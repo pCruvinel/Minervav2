@@ -6,6 +6,7 @@ import { FileDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { User } from '../../lib/types';
 import { OSListHeader } from './os-list-header';
 import { OSFiltersCard } from './os-filters-card';
+import { EtapaFilter } from './etapa-filter';
 import { OSTable } from './os-table';
 import { useOrdensServico } from '../../lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '../../lib/api-client';
@@ -115,6 +116,7 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
   const [tipoOSFilter, setTipoOSFilter] = useState('todos');
   const [setorFilter, setSetorFilter] = useState('todos');
   const [responsavelFilter, setResponsavelFilter] = useState('todos');
+  const [etapaFilter, setEtapaFilter] = useState<number[]>([]); // Novo: filtro de etapas
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Buscar OS da API usando hook customizado
@@ -184,9 +186,18 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
       console.log(`🔍 [RESPONSAVEL] Filtro: ${responsavelFilter}, OS filtradas: ${filtered.length}`);
     }
 
+    // Novo: Filtro por etapa atual
+    if (etapaFilter.length > 0) {
+      filtered = filtered.filter(os => {
+        // Se a OS tem etapaAtual e está em uma das etapas selecionadas
+        return os.etapaAtual && etapaFilter.includes(os.etapaAtual.numero);
+      });
+      console.log(`🔍 [ETAPA] Filtro: ${etapaFilter.join(', ')}, OS filtradas: ${filtered.length}`);
+    }
+
     console.log(`✅ [FINAL] Total de OS exibidas: ${filtered.length}`);
     return filtered;
-  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, currentUser, ordensServicoFromAPI, error]);
+  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, etapaFilter, currentUser, ordensServicoFromAPI, error]);
 
   // Função para exportar dados
   const handleExport = () => {
@@ -267,6 +278,15 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
           onTipoOSChange={setTipoOSFilter}
           onSetorChange={setSetorFilter}
           onResponsavelChange={setResponsavelFilter}
+        />
+
+        {/* Filtro de Etapas - Dinâmico por tipo de OS */}
+        <EtapaFilter
+          totalSteps={15} // OS 01-04 tem 15 etapas (futuro: detectar automaticamente por tipo)
+          selectedEtapas={etapaFilter}
+          onFilterChange={setEtapaFilter}
+          useLocalStorage={true}
+          storageKey="os_list_etapa_filter"
         />
 
         {/* Card da Tabela */}
