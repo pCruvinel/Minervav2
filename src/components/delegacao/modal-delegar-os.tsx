@@ -16,6 +16,7 @@ import { useAuth } from '../../lib/contexts/auth-context';
 import { PermissaoUtil } from '../../lib/auth-utils';
 import { User, OrdemServico, Delegacao } from '../../lib/types';
 import { mockUsers } from '../../lib/mock-data';
+import { ordensServicoAPI } from '../../lib/api-client';
 
 interface ModalDelegarOSProps {
   isOpen: boolean;
@@ -49,8 +50,8 @@ export function ModalDelegarOS({
       // Não delegar para MOBRA (sem acesso ao sistema)
       if (user.role_nivel === 'MOBRA') return false;
 
-      // Verificar se pode delegar para este colaborador
-      return PermissaoUtil.podeDelegarParaColaborador(currentUser, user);
+      // Verificar se pode delegar para este colaborador (usando método correto)
+      return PermissaoUtil.podeDelegarPara(currentUser, user.setor, user);
     });
   }, [currentUser]);
 
@@ -98,28 +99,37 @@ export function ModalDelegarOS({
     setIsSubmitting(true);
 
     try {
-      // Criar objeto de delegação
-      const novaDelegacao: Delegacao = {
-        id: `del-${Date.now()}`,
+      // Chamar API para criar delegação no Supabase
+      console.log('📋 Criando delegação via API...');
+
+      const resultado = await ordensServicoAPI.createDelegacao({
         os_id: os.id,
         delegante_id: currentUser.id,
-        delegante_nome: currentUser.nome_completo,
         delegado_id: selectedColaborador.id,
-        delegado_nome: selectedColaborador.nome_completo,
-        data_delegacao: new Date().toISOString(),
-        data_prazo: dataPrazo,
-        status_delegacao: 'PENDENTE',
         descricao_tarefa: descricaoTarefa.trim(),
         observacoes: observacoes.trim() || undefined,
-        data_criacao: new Date().toISOString(),
-        data_atualizacao: new Date().toISOString(),
+        data_prazo: dataPrazo,
+        status_delegacao: 'PENDENTE',
+      });
+
+      console.log('✅ Delegação criada com sucesso:', resultado);
+
+      // Converter resultado da API para o tipo local Delegacao
+      const novaDelegacao: Delegacao = {
+        id: resultado.id,
+        os_id: resultado.os_id,
+        delegante_id: resultado.delegante_id,
+        delegante_nome: resultado.delegante_nome,
+        delegado_id: resultado.delegado_id,
+        delegado_nome: resultado.delegado_nome,
+        data_delegacao: resultado.created_at,
+        data_prazo: resultado.data_prazo,
+        status_delegacao: resultado.status_delegacao.toLowerCase(),
+        descricao_tarefa: resultado.descricao_tarefa,
+        observacoes: resultado.observacoes,
+        data_criacao: resultado.created_at,
+        data_atualizacao: resultado.updated_at,
       };
-
-      // TODO: Integrar com API/Supabase
-      console.log('📋 Delegação criada:', novaDelegacao);
-
-      // Simular delay de API
-      await new Promise(resolve => setTimeout(resolve, 800));
 
       // Callback de sucesso
       if (onDelegarSuccess) {
@@ -131,9 +141,12 @@ export function ModalDelegarOS({
       );
 
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao delegar tarefa:', error);
-      toast.error('Erro ao delegar tarefa. Tente novamente.');
+
+      // Mensagem de erro específica baseada no erro retornado
+      const errorMessage = error?.message || 'Erro ao delegar tarefa. Tente novamente.';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

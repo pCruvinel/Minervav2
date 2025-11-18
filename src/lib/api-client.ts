@@ -134,8 +134,41 @@ export const ordensServicoAPI = {
     apiRequest<any>(`/etapas/${etapaId}`, { method: 'PUT', body: data }),
   
   // Listar tipos de OS
-  getTiposOS: () => 
+  getTiposOS: () =>
     apiRequest<any[]>('/tipos-os'),
+
+  // ==================== DELEGAÇÕES ====================
+
+  // Criar nova delegação
+  createDelegacao: (data: {
+    os_id: string;
+    delegante_id: string;
+    delegado_id: string;
+    descricao_tarefa: string;
+    observacoes?: string;
+    data_prazo?: string;
+    status_delegacao?: string;
+  }) =>
+    apiRequest<any>('/delegacoes', { method: 'POST', body: data }),
+
+  // Listar delegações de uma OS
+  getDelegacoes: (osId: string) =>
+    apiRequest<any[]>(`/ordens-servico/${osId}/delegacoes`),
+
+  // Listar delegações de um colaborador (como delegado)
+  getDelegacoesColaborador: (colaboradorId: string) =>
+    apiRequest<any[]>(`/delegacoes/delegado/${colaboradorId}`),
+
+  // Atualizar status de delegação
+  updateDelegacao: (id: string, data: {
+    status_delegacao?: string;
+    observacoes?: string;
+  }) =>
+    apiRequest<any>(`/delegacoes/${id}`, { method: 'PUT', body: data }),
+
+  // Deletar delegação (apenas se PENDENTE)
+  deleteDelegacao: (id: string) =>
+    apiRequest<any>(`/delegacoes/${id}`, { method: 'DELETE' }),
 };
 
 // ==================== TIPOS DE OS API ====================

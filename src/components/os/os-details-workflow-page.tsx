@@ -166,7 +166,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
   // Buscar dados de uma etapa específica
   const getStepData = (stepNum: number) => {
-    return formDataByStep[stepNum] || {};
+    const data = formDataByStep[stepNum] || {};
+    if (!formDataByStep[stepNum]) {
+      console.warn(`⚠️ Dados vazios para etapa ${stepNum}, retornando objeto vazio`);
+    }
+    return data;
   };
 
   // Atualizar dados de uma etapa (com auto-save)
@@ -256,19 +260,23 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
   // Cálculos de precificação (memoizados)
   const valoresPrecificacao = useMemo(() => {
+    // Proteção contra undefined: usar array vazio como fallback
+    const etapasPrincipais = etapa8Data?.etapasPrincipais || [];
+
     // Custo Base (soma dos totais das sub-etapas)
-    const custoBase = etapa8Data.etapasPrincipais.reduce((total, etapa) => {
-      return total + etapa.subetapas.reduce((subtotal, sub) => {
-        return subtotal + (parseFloat(sub.total) || 0);
+    const custoBase = etapasPrincipais.reduce((total, etapa) => {
+      const subetapas = etapa?.subetapas || [];
+      return total + subetapas.reduce((subtotal, sub) => {
+        return subtotal + (parseFloat(sub?.total) || 0);
       }, 0);
     }, 0);
 
-    // Percentuais
-    const percImprevisto = parseFloat(etapa9Data.percentualImprevisto) || 0;
-    const percLucro = parseFloat(etapa9Data.percentualLucro) || 0;
-    const percImposto = parseFloat(etapa9Data.percentualImposto) || 0;
-    const percEntrada = parseFloat(etapa9Data.percentualEntrada) || 0;
-    const numParcelas = parseFloat(etapa9Data.numeroParcelas) || 1;
+    // Percentuais (com valores padrão)
+    const percImprevisto = parseFloat(etapa9Data?.percentualImprevisto) || 0;
+    const percLucro = parseFloat(etapa9Data?.percentualLucro) || 0;
+    const percImposto = parseFloat(etapa9Data?.percentualImposto) || 0;
+    const percEntrada = parseFloat(etapa9Data?.percentualEntrada) || 0;
+    const numParcelas = parseFloat(etapa9Data?.numeroParcelas) || 1;
 
     // Valor Total
     const valorTotal = custoBase * (1 + (percImprevisto + percLucro + percImposto) / 100);
@@ -283,7 +291,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       valorEntrada,
       valorParcela,
     };
-  }, [etapa8Data.etapasPrincipais, etapa9Data]);
+  }, [etapa8Data, etapa9Data]);
 
   // Funções de upload de arquivos
   const handleFileUpload = async (files: FileList | null) => {
@@ -653,28 +661,48 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       return true;
     }
 
-    // Obter dados da etapa atual
-    const currentStepData = getCurrentStepData();
+    try {
+      // Obter dados da etapa atual
+      const currentStepData = getCurrentStepData();
 
-    // Validar usando schema Zod
-    const { valid, errors } = validateStep(currentStep, currentStepData);
-
-    if (!valid) {
-      // Exibir erros de validação
-      const errorList = getStepValidationErrors(currentStep, currentStepData);
-
-      if (errorList.length > 0) {
-        const errorMessage = errorList.slice(0, 3).join('\n');
-        const moreErrors = errorList.length > 3 ? `\n... e mais ${errorList.length - 3} erro(s)` : '';
-
+      // Proteção contra dados undefined
+      if (!currentStepData || Object.keys(currentStepData).length === 0) {
         try {
-          toast.error(`Preencha os campos obrigatórios:\n\n${errorMessage}${moreErrors}`);
+          toast.error(`Preencha os campos obrigatórios da etapa ${currentStep}`);
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de validação:', toastError);
+          console.error('❌ Erro ao exibir toast:', toastError);
         }
+        return false;
       }
 
-      console.warn(`⚠️ Etapa ${currentStep} inválida:`, errors);
+      // Validar usando schema Zod
+      const { valid, errors } = validateStep(currentStep, currentStepData);
+
+      if (!valid) {
+        // Exibir erros de validação
+        const errorList = getStepValidationErrors(currentStep, currentStepData);
+
+        if (errorList.length > 0) {
+          const errorMessage = errorList.slice(0, 3).join('\n');
+          const moreErrors = errorList.length > 3 ? `\n... e mais ${errorList.length - 3} erro(s)` : '';
+
+          try {
+            toast.error(`Preencha os campos obrigatórios:\n\n${errorMessage}${moreErrors}`);
+          } catch (toastError) {
+            console.error('❌ Erro ao exibir toast de validação:', toastError);
+          }
+        }
+
+        console.warn(`⚠️ Etapa ${currentStep} inválida:`, errors);
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Erro ao validar etapa:', error);
+      try {
+        toast.error('Erro ao validar a etapa. Tente novamente.');
+      } catch (toastError) {
+        console.error('❌ Erro ao exibir toast:', toastError);
+      }
       return false;
     }
 

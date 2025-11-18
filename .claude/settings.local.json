@@ -4,9 +4,20 @@
       "Bash(git commit:*)",
       "Bash(npm install:*)",
       "Bash(npm run build:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(curl:*)",
+      "Bash(supabase status:*)",
+      "Bash(cat:*)",
+      "Bash(node scripts/run-migrations.js:*)",
+      "Bash(grep:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "supabase"
+  ]
 }

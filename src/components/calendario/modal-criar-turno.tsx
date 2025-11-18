@@ -13,10 +13,13 @@ import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
+import { useCreateTurno } from '../../lib/hooks/use-turnos';
+import { Loader2 } from 'lucide-react';
 
 interface ModalCriarTurnoProps {
   open: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
 }
 
 const coresTurno = [
@@ -30,16 +33,18 @@ const coresTurno = [
 
 const setoresDisponiveis = ['Assessoria', 'Comercial', 'Obras'];
 
-export function ModalCriarTurno({ open, onClose }: ModalCriarTurnoProps) {
+export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoProps) {
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFim, setHoraFim] = useState('11:00');
-  const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'definir'>('uteis');
+  const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'custom'>('uteis');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [numeroVagas, setNumeroVagas] = useState('5');
   const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
   const [todosSetores, setTodosSetores] = useState(false);
+
+  const { mutate: criarTurno, loading: criando } = useCreateTurno();
 
   const handleToggleSetor = (setor: string) => {
     if (setoresSelecionados.includes(setor)) {
@@ -58,14 +63,14 @@ export function ModalCriarTurno({ open, onClose }: ModalCriarTurnoProps) {
     }
   };
 
-  const handleSalvar = () => {
+  const handleSalvar = async () => {
     // Validações
     if (!horaInicio || !horaFim) {
       toast.error('Preencha os horários de início e fim');
       return;
     }
 
-    if (recorrencia === 'definir' && (!dataInicio || !dataFim)) {
+    if (recorrencia === 'custom' && (!dataInicio || !dataFim)) {
       toast.error('Preencha as datas de início e fim');
       return;
     }
@@ -80,19 +85,31 @@ export function ModalCriarTurno({ open, onClose }: ModalCriarTurnoProps) {
       return;
     }
 
-    // Aqui você faria a chamada para API/Supabase para salvar o turno
-    console.log('Salvando turno:', {
+    // Criar turno via hook
+    await criarTurno({
       horaInicio,
       horaFim,
-      recorrencia,
-      dataInicio: recorrencia === 'definir' ? dataInicio : null,
-      dataFim: recorrencia === 'definir' ? dataFim : null,
-      numeroVagas: parseInt(numeroVagas),
+      vagasTotal: parseInt(numeroVagas),
+      setores: setoresSelecionados,
       cor: corSelecionada,
-      setores: setoresSelecionados
+      tipoRecorrencia: recorrencia,
+      dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
+      dataFim: recorrencia === 'custom' ? dataFim : undefined,
     });
 
-    toast.success('Turno configurado com sucesso!');
+    // Resetar formulário
+    setHoraInicio('09:00');
+    setHoraFim('11:00');
+    setRecorrencia('uteis');
+    setDataInicio('');
+    setDataFim('');
+    setNumeroVagas('5');
+    setCorSelecionada(coresTurno[0].valor);
+    setSetoresSelecionados([]);
+    setTodosSetores(false);
+
+    // Callback de sucesso
+    onSuccess?.();
     onClose();
   };
 
@@ -146,15 +163,15 @@ export function ModalCriarTurno({ open, onClose }: ModalCriarTurnoProps) {
                 </Label>
               </div>
               <div className="flex items-center space-x-2">
-                <RadioGroupItem value="definir" id="definir" />
-                <Label htmlFor="definir" className="cursor-pointer font-normal">
+                <RadioGroupItem value="custom" id="custom" />
+                <Label htmlFor="custom" className="cursor-pointer font-normal">
                   Definir datas
                 </Label>
               </div>
             </RadioGroup>
 
             {/* Campos de datas (aparecem apenas se "Definir datas" for selecionado) */}
-            {recorrencia === 'definir' && (
+            {recorrencia === 'custom' && (
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
                   <Label htmlFor="dataInicio">Data de Início (dd-mm-aa)</Label>
@@ -242,11 +259,18 @@ export function ModalCriarTurno({ open, onClose }: ModalCriarTurnoProps) {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={criando}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar} className="bg-primary hover:bg-primary/90">
-            Salvar Turno
+          <Button onClick={handleSalvar} className="bg-primary hover:bg-primary/90" disabled={criando}>
+            {criando ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              'Salvar Turno'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

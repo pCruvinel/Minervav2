@@ -17,13 +17,15 @@ import {
   SelectValue,
 } from '../ui/select';
 import { toast } from 'sonner';
-import { Calendar, Clock } from 'lucide-react';
+import { Calendar, Clock, Loader2 } from 'lucide-react';
+import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
 
 interface ModalNovoAgendamentoProps {
   open: boolean;
   onClose: () => void;
   turno: any;
   dia: Date;
+  onSuccess?: () => void;
 }
 
 const categorias = [
@@ -35,11 +37,14 @@ const categorias = [
 
 const setores = ['Assessoria', 'Comercial', 'Obras'];
 
-export function ModalNovoAgendamento({ open, onClose, turno, dia }: ModalNovoAgendamentoProps) {
+export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: ModalNovoAgendamentoProps) {
   const [categoria, setCategoria] = useState('');
   const [setor, setSetor] = useState('');
   const [horarioInicio, setHorarioInicio] = useState('');
   const [duracao, setDuracao] = useState('1');
+
+  const { mutate: criarAgendamento, loading: criando } = useCreateAgendamento();
+  const verificarDisponibilidade = useVerificarDisponibilidade();
 
   // Resetar horário de início quando o modal abrir
   useEffect(() => {
@@ -111,7 +116,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia }: ModalNovoAge
     return null;
   };
 
-  const handleConfirmar = () => {
+  const handleConfirmar = async () => {
     // Validações
     if (!categoria) {
       toast.error('Selecione uma categoria');
@@ -140,24 +145,46 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia }: ModalNovoAge
       return;
     }
 
-    // Aqui você faria a chamada para API/Supabase para salvar o agendamento
-    console.log('Criando agendamento:', {
-      turnoId: turno?.id,
-      dia: formatarData(dia),
+    if (!turno?.id) {
+      toast.error('Turno inválido');
+      return;
+    }
+
+    const horarioFim = calcularHorarioFim();
+    const dataFormatada = dia.toISOString().split('T')[0];
+
+    // Verificar disponibilidade antes de criar
+    const disponivel = await verificarDisponibilidade(
+      turno.id,
+      dataFormatada,
+      horarioInicio,
+      horarioFim
+    );
+
+    if (!disponivel) {
+      toast.error('Não há vagas disponíveis neste horário');
+      return;
+    }
+
+    // Criar agendamento via hook
+    await criarAgendamento({
+      turnoId: turno.id,
+      data: dataFormatada,
+      horarioInicio,
+      horarioFim,
+      duracaoHoras: parseInt(duracao),
       categoria,
       setor,
-      horarioInicio,
-      horarioFim: calcularHorarioFim(),
-      duracao: `${duracao}h`
     });
 
-    toast.success('Agendamento confirmado com sucesso!');
-    
     // Resetar campos
     setCategoria('');
     setSetor('');
     setHorarioInicio('');
     setDuracao('1');
+
+    // Callback de sucesso
+    onSuccess?.();
     onClose();
   };
 
@@ -295,11 +322,18 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia }: ModalNovoAge
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleFechar}>
+          <Button variant="outline" onClick={handleFechar} disabled={criando}>
             Cancelar
           </Button>
-          <Button onClick={handleConfirmar} className="bg-primary hover:bg-primary/90">
-            Confirmar Agendamento
+          <Button onClick={handleConfirmar} className="bg-primary hover:bg-primary/90" disabled={criando}>
+            {criando ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Confirmando...
+              </>
+            ) : (
+              'Confirmar Agendamento'
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

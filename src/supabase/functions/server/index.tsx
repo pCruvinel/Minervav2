@@ -704,6 +704,282 @@ app.get("/make-server-5ad7fd2c/tipos-os", async (c) => {
   }
 });
 
+// ==================== DELEGAÇÕES ROUTES ====================
+
+// Criar nova delegação
+app.post("/make-server-5ad7fd2c/delegacoes", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const body = await c.req.json();
+
+    console.log('📋 Recebendo requisição para criar delegação:', body);
+
+    // Validação básica de campos obrigatórios
+    if (!body.os_id || !body.delegante_id || !body.delegado_id || !body.descricao_tarefa) {
+      return c.json({
+        error: 'Campos obrigatórios: os_id, delegante_id, delegado_id, descricao_tarefa'
+      }, 400);
+    }
+
+    // Validação de tamanho mínimo da descrição
+    if (body.descricao_tarefa.trim().length < 10) {
+      return c.json({
+        error: 'Descrição da tarefa deve ter no mínimo 10 caracteres'
+      }, 400);
+    }
+
+    // Validação: não pode delegar para si mesmo
+    if (body.delegante_id === body.delegado_id) {
+      return c.json({
+        error: 'Não é possível delegar uma tarefa para si mesmo'
+      }, 400);
+    }
+
+    // Buscar dados do delegante
+    const { data: delegante, error: deleganteError } = await supabase
+      .from('colaboradores')
+      .select('id, nome_completo, role_nivel')
+      .eq('id', body.delegante_id)
+      .single();
+
+    if (deleganteError || !delegante) {
+      console.error('Erro ao buscar delegante:', deleganteError);
+      return c.json({ error: 'Delegante não encontrado' }, 404);
+    }
+
+    // Validar se delegante tem permissão para delegar (gestor+)
+    const podeDelegar = ['GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS', 'DIRETORIA'].includes(
+      delegante.role_nivel
+    );
+
+    if (!podeDelegar) {
+      return c.json({
+        error: 'Apenas gestores e diretores podem delegar tarefas'
+      }, 403);
+    }
+
+    // Buscar dados do delegado
+    const { data: delegado, error: delegadoError } = await supabase
+      .from('colaboradores')
+      .select('id, nome_completo, setor, status_colaborador')
+      .eq('id', body.delegado_id)
+      .single();
+
+    if (delegadoError || !delegado) {
+      console.error('Erro ao buscar delegado:', delegadoError);
+      return c.json({ error: 'Delegado não encontrado' }, 404);
+    }
+
+    // Validar se delegado está ativo
+    if (delegado.status_colaborador !== 'ativo') {
+      return c.json({
+        error: 'Não é possível delegar para colaborador inativo'
+      }, 400);
+    }
+
+    // Verificar se a OS existe
+    const { data: os, error: osError } = await supabase
+      .from('ordens_servico')
+      .select('id, codigo, status')
+      .eq('id', body.os_id)
+      .single();
+
+    if (osError || !os) {
+      console.error('Erro ao buscar OS:', osError);
+      return c.json({ error: 'Ordem de Serviço não encontrada' }, 404);
+    }
+
+    // Normalizar status da delegação
+    const statusNormalizado = body.status_delegacao
+      ? body.status_delegacao.toUpperCase().replace(/\s+/g, '_')
+      : 'PENDENTE';
+
+    // Preparar dados para inserção
+    const delegacaoData = {
+      os_id: body.os_id,
+      delegante_id: delegante.id,
+      delegante_nome: delegante.nome_completo,
+      delegado_id: delegado.id,
+      delegado_nome: delegado.nome_completo,
+      descricao_tarefa: body.descricao_tarefa.trim(),
+      observacoes: body.observacoes?.trim() || null,
+      data_prazo: body.data_prazo || null,
+      status_delegacao: statusNormalizado,
+    };
+
+    console.log('📋 Criando delegação:', delegacaoData);
+
+    // Inserir no banco de dados
+    const { data, error } = await supabase
+      .from('delegacoes')
+      .insert(delegacaoData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar delegação:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log('✅ Delegação criada com sucesso:', data.id);
+
+    return c.json(data, 201);
+  } catch (error) {
+    console.error('Erro no endpoint POST /delegacoes:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Listar delegações de uma OS
+app.get("/make-server-5ad7fd2c/ordens-servico/:osId/delegacoes", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { osId } = c.req.param();
+
+    console.log(`📋 Buscando delegações da OS: ${osId}`);
+
+    const { data, error } = await supabase
+      .from('delegacoes')
+      .select('*')
+      .eq('os_id', osId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar delegações:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log(`✅ ${data?.length || 0} delegações encontradas`);
+
+    return c.json(data || []);
+  } catch (error) {
+    console.error('Erro no endpoint GET /ordens-servico/:osId/delegacoes:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Listar todas as delegações de um colaborador (como delegado)
+app.get("/make-server-5ad7fd2c/delegacoes/delegado/:colaboradorId", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { colaboradorId } = c.req.param();
+
+    console.log(`📋 Buscando delegações do colaborador: ${colaboradorId}`);
+
+    const { data, error } = await supabase
+      .from('delegacoes')
+      .select('*, ordens_servico:os_id(codigo, titulo, status)')
+      .eq('delegado_id', colaboradorId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Erro ao buscar delegações do colaborador:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log(`✅ ${data?.length || 0} delegações encontradas`);
+
+    return c.json(data || []);
+  } catch (error) {
+    console.error('Erro no endpoint GET /delegacoes/delegado/:colaboradorId:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Atualizar status de delegação
+app.put("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+    const body = await c.req.json();
+
+    console.log(`📋 Atualizando delegação: ${id}`, body);
+
+    // Normalizar status se fornecido
+    const statusNormalizado = body.status_delegacao
+      ? body.status_delegacao.toUpperCase().replace(/\s+/g, '_')
+      : undefined;
+
+    // Preparar dados de atualização
+    const updateData: any = {};
+    if (statusNormalizado !== undefined) updateData.status_delegacao = statusNormalizado;
+    if (body.observacoes !== undefined) updateData.observacoes = body.observacoes?.trim() || null;
+
+    // Verificar se há algo para atualizar
+    if (Object.keys(updateData).length === 0) {
+      return c.json({ error: 'Nenhum campo para atualizar fornecido' }, 400);
+    }
+
+    const { data, error } = await supabase
+      .from('delegacoes')
+      .update(updateData)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar delegação:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    if (!data) {
+      return c.json({ error: 'Delegação não encontrada' }, 404);
+    }
+
+    console.log('✅ Delegação atualizada com sucesso');
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint PUT /delegacoes/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Deletar delegação (apenas se PENDENTE)
+app.delete("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+
+    console.log(`📋 Deletando delegação: ${id}`);
+
+    // Buscar delegação para verificar status
+    const { data: delegacao, error: fetchError } = await supabase
+      .from('delegacoes')
+      .select('status_delegacao')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !delegacao) {
+      return c.json({ error: 'Delegação não encontrada' }, 404);
+    }
+
+    // Validar se está PENDENTE
+    if (delegacao.status_delegacao !== 'PENDENTE') {
+      return c.json({
+        error: 'Apenas delegações com status PENDENTE podem ser removidas'
+      }, 400);
+    }
+
+    const { error } = await supabase
+      .from('delegacoes')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Erro ao deletar delegação:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log('✅ Delegação deletada com sucesso');
+
+    return c.json({ message: 'Delegação removida com sucesso' });
+  } catch (error) {
+    console.error('Erro no endpoint DELETE /delegacoes/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 // ==================== SEED/SETUP ROUTES ====================
 
 // Seed inicial de usuários com diferentes cargos

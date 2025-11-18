@@ -1,121 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { ModalCriarTurno } from './modal-criar-turno';
 import { ModalNovoAgendamento } from './modal-novo-agendamento';
 import { Button } from '../ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
+import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
+import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
 
 interface CalendarioSemanaProps {
   dataAtual: Date;
 }
 
-// Mock de turnos por dia da semana
-const turnosMock = [
-  // Segunda (dia 0)
-  {
-    id: '1',
-    dia: 0,
-    horaInicio: '09:00',
-    horaFim: '12:00',
-    vagasOcupadas: 2,
-    vagasTotal: 5,
-    setores: ['Comercial', 'Obras'],
-    cor: '#DBEAFE', // Azul suave
-    agendamentos: [
-      { id: 'a1', categoria: 'Vistoria Inicial', setor: 'Comercial' },
-      { id: 'a2', categoria: 'Apresentação de Proposta', setor: 'Obras' }
-    ]
-  },
-  // Terça (dia 1)
-  {
-    id: '2',
-    dia: 1,
-    horaInicio: '08:00',
-    horaFim: '10:00',
-    vagasOcupadas: 1,
-    vagasTotal: 3,
-    setores: ['Assessoria'],
-    cor: '#FEF3C7', // Amarelo suave
-    agendamentos: [
-      { id: 'a3', categoria: 'Visita Semanal', setor: 'Assessoria' }
-    ]
-  },
-  {
-    id: '3',
-    dia: 1,
-    horaInicio: '14:00',
-    horaFim: '17:00',
-    vagasOcupadas: 3,
-    vagasTotal: 3,
-    setores: ['Obras'],
-    cor: '#E0E7FF', // Índigo suave
-    agendamentos: [
-      { id: 'a4', categoria: 'Vistoria Técnica', setor: 'Obras' },
-      { id: 'a5', categoria: 'Reunião de Alinhamento', setor: 'Obras' },
-      { id: 'a6', categoria: 'Medições', setor: 'Obras' }
-    ]
-  },
-  // Quarta (dia 2)
-  {
-    id: '4',
-    dia: 2,
-    horaInicio: '10:00',
-    horaFim: '13:00',
-    vagasOcupadas: 0,
-    vagasTotal: 4,
-    setores: ['Comercial', 'Assessoria'],
-    cor: '#D1FAE5', // Verde suave
-    agendamentos: []
-  },
-  // Quinta (dia 3)
-  {
-    id: '5',
-    dia: 3,
-    horaInicio: '09:00',
-    horaFim: '11:00',
-    vagasOcupadas: 2,
-    vagasTotal: 5,
-    setores: ['Comercial'],
-    cor: '#FCE7F3', // Rosa suave
-    agendamentos: [
-      { id: 'a7', categoria: 'Apresentação de Proposta', setor: 'Comercial' },
-      { id: 'a8', categoria: 'Vistoria Inicial', setor: 'Comercial' }
-    ]
-  },
-  // Sexta (dia 4)
-  {
-    id: '6',
-    dia: 4,
-    horaInicio: '08:00',
-    horaFim: '12:00',
-    vagasOcupadas: 1,
-    vagasTotal: 6,
-    setores: ['Comercial', 'Obras', 'Assessoria'],
-    cor: '#E9D5FF', // Roxo suave
-    agendamentos: [
-      { id: 'a9', categoria: 'Vistoria Inicial', setor: 'Comercial' }
-    ]
-  },
-  {
-    id: '7',
-    dia: 4,
-    horaInicio: '14:00',
-    horaFim: '16:00',
-    vagasOcupadas: 2,
-    vagasTotal: 4,
-    setores: ['Assessoria'],
-    cor: '#FED7AA', // Laranja suave
-    agendamentos: [
-      { id: 'a10', categoria: 'Visita Semanal', setor: 'Assessoria' },
-      { id: 'a11', categoria: 'Reunião de Alinhamento', setor: 'Assessoria' }
-    ]
-  }
-];
-
 export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
   const [modalCriarTurno, setModalCriarTurno] = useState(false);
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
+
+  // Calcular dias da semana atual
+  const diasDaSemana = useMemo(() => {
+    const dias = [];
+    const primeiroDia = new Date(dataAtual);
+    const diaSemana = primeiroDia.getDay();
+    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
+    primeiroDia.setDate(primeiroDia.getDate() + diff);
+
+    for (let i = 0; i < 5; i++) {
+      const dia = new Date(primeiroDia);
+      dia.setDate(dia.getDate() + i);
+      dias.push(dia);
+    }
+    return dias;
+  }, [dataAtual]);
+
+  const startDate = diasDaSemana[0]?.toISOString().split('T')[0] || '';
+  const endDate = diasDaSemana[4]?.toISOString().split('T')[0] || '';
+
+  // Buscar turnos da semana
+  const { turnosPorDia, loading: loadingTurnos, refetch: refetchTurnos } = useTurnosPorSemana(startDate, endDate);
+
+  // Buscar agendamentos da semana
+  const { agendamentos, loading: loadingAgendamentos, refetch: refetchAgendamentos } = useAgendamentos({
+    dataInicio: startDate,
+    dataFim: endDate,
+  });
+
+  const loading = loadingTurnos || loadingAgendamentos;
+
+  const handleRefresh = () => {
+    refetchTurnos();
+    refetchAgendamentos();
+  };
 
   // Dias da semana (Seg - Sex)
   const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
@@ -142,23 +76,38 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
     };
   };
   
-  // Calcular dias da semana atual
-  const obterDiasDaSemana = () => {
-    const dias = [];
-    const primeiroDia = new Date(dataAtual);
-    const diaSemana = primeiroDia.getDay();
-    const diff = diaSemana === 0 ? -6 : 1 - diaSemana; // Ajustar para segunda-feira
-    primeiroDia.setDate(primeiroDia.getDate() + diff);
+  // Preparar dados para renderização
+  const turnosPorDiaIndex = useMemo(() => {
+    if (!turnosPorDia) return new Map();
 
-    for (let i = 0; i < 5; i++) {
-      const dia = new Date(primeiroDia);
-      dia.setDate(dia.getDate() + i);
-      dias.push(dia);
-    }
-    return dias;
-  };
+    const mapPorIndex = new Map<number, any[]>();
 
-  const diasDaSemana = obterDiasDaSemana();
+    diasDaSemana.forEach((dia, index) => {
+      const dataStr = dia.toISOString().split('T')[0];
+      const turnosDoDia = turnosPorDia.get(dataStr) || [];
+
+      // Adicionar agendamentos aos turnos
+      const turnosComAgendamentos = turnosDoDia.map(turno => {
+        const agendamentosDoTurno = agendamentos.filter(
+          a => a.turnoId === turno.id && a.data === dataStr
+        );
+
+        return {
+          ...turno,
+          dia: index,
+          agendamentos: agendamentosDoTurno.map(a => ({
+            id: a.id,
+            categoria: a.categoria,
+            setor: a.setor,
+          })),
+        };
+      });
+
+      mapPorIndex.set(index, turnosComAgendamentos);
+    });
+
+    return mapPorIndex;
+  }, [turnosPorDia, agendamentos, diasDaSemana]);
 
   const handleClickTurno = (turno: any) => {
     if (turno.vagasOcupadas < turno.vagasTotal) {
@@ -175,14 +124,23 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
           <Button
             onClick={() => setModalCriarTurno(true)}
             className="bg-primary hover:bg-primary/90"
+            disabled={loading}
           >
             <Plus className="h-4 w-4 mr-2" />
             Configurar Novo Turno
           </Button>
         </div>
 
-        {/* Grade do Calendário */}
-        <div className="border border-neutral-200 rounded-lg overflow-hidden">
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        )}
+
+        {!loading && (
+          <>
+            {/* Grade do Calendário */}
+            <div className="border border-neutral-200 rounded-lg overflow-hidden">
           {/* Cabeçalho com dias da semana */}
           <div className="grid grid-cols-[100px_repeat(5,1fr)] bg-neutral-100 border-b border-neutral-200">
             <div className="p-3 border-r border-neutral-200"></div>
@@ -223,41 +181,43 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
 
                 {/* Turnos posicionados absolutamente */}
                 <div className="absolute inset-0 p-2 pointer-events-none">
-                  {turnosMock
-                    .filter(turno => turno.dia === diaIndex)
-                    .map(turno => {
-                      const estilo = calcularEstiloTurno(turno);
-                      return (
-                        <div
-                          key={turno.id}
-                          className="absolute left-2 right-2 pointer-events-auto"
-                          style={estilo}
-                        >
-                          <BlocoTurno
-                            turno={turno}
-                            onClick={() => handleClickTurno(turno)}
-                          />
-                        </div>
-                      );
-                    })}
+                  {(turnosPorDiaIndex.get(diaIndex) || []).map(turno => {
+                    const estilo = calcularEstiloTurno(turno);
+                    return (
+                      <div
+                        key={turno.id}
+                        className="absolute left-2 right-2 pointer-events-auto"
+                        style={estilo}
+                      >
+                        <BlocoTurno
+                          turno={turno}
+                          onClick={() => handleClickTurno(turno)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Modais */}
       <ModalCriarTurno
         open={modalCriarTurno}
         onClose={() => setModalCriarTurno(false)}
+        onSuccess={handleRefresh}
       />
-      
+
       <ModalNovoAgendamento
         open={modalAgendamento}
         onClose={() => setModalAgendamento(false)}
         turno={turnoSelecionado}
         dia={turnoSelecionado ? diasDaSemana[turnoSelecionado.dia] : new Date()}
+        onSuccess={handleRefresh}
       />
     </>
   );

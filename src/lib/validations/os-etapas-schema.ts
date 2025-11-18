@@ -21,16 +21,19 @@ export const etapa1Schema = z.object({
 
   cpfCnpj: z.string()
     .min(11, { message: 'CPF/CNPJ inválido' })
+    .optional()
     .describe('CPF ou CNPJ'),
 
   email: z.string()
     .email({ message: 'Email inválido' })
+    .optional()
     .describe('Email do cliente'),
 
   telefone: z.string()
     .min(10, { message: 'Telefone deve ter pelo menos 10 dígitos' })
+    .optional()
     .describe('Telefone de contato'),
-});
+}).strict();
 
 export type Etapa1Data = z.infer<typeof etapa1Schema>;
 
@@ -44,14 +47,9 @@ export const etapa2Schema = z.object({
 
   descricaoBreve: z.string()
     .min(10, { message: 'Descrição deve ter pelo menos 10 caracteres' })
+    .optional()
     .describe('Descrição breve do serviço'),
-}).partial().refine(
-  (data) => data.tipoOS && data.tipoOS.length > 0,
-  {
-    message: 'Tipo de OS é obrigatório',
-    path: ['tipoOS'],
-  }
-);
+}).strict();
 
 export type Etapa2Data = z.infer<typeof etapa2Schema>;
 
@@ -69,14 +67,9 @@ export const etapa3Schema = z.object({
 
   observacoes: z.string()
     .min(10, { message: 'Observações devem ter pelo menos 10 caracteres' })
+    .optional()
     .describe('Observações da entrevista'),
-}).partial().refine(
-  (data) => data.dataEntrevista && data.interessePrincipal,
-  {
-    message: 'Data e interesse principal são obrigatórios',
-    path: ['dataEntrevista'],
-  }
-);
+}).strict();
 
 export type Etapa3Data = z.infer<typeof etapa3Schema>;
 
@@ -99,13 +92,7 @@ export const etapa4Schema = z.object({
   observacoes: z.string()
     .optional()
     .describe('Observações adicionais'),
-}).partial().refine(
-  (data) => data.dataVisita && data.horaVisita && data.responsavelVisita,
-  {
-    message: 'Data, hora e responsável são obrigatórios',
-    path: ['dataVisita'],
-  }
-);
+}).strict();
 
 export type Etapa4Data = z.infer<typeof etapa4Schema>;
 
@@ -445,6 +432,11 @@ export const stepsSchemas = {
  * @returns {valid: boolean, errors: Record<string, string>}
  */
 export function validateStep(stepNumber: number, data: any): { valid: boolean; errors: Record<string, string> } {
+  // Proteção contra data undefined
+  if (data === undefined || data === null) {
+    return { valid: false, errors: { _root: `Dados não fornecidos para etapa ${stepNumber}` } };
+  }
+
   const schema = stepsSchemas[stepNumber as keyof typeof stepsSchemas];
 
   if (!schema) {
@@ -455,18 +447,23 @@ export function validateStep(stepNumber: number, data: any): { valid: boolean; e
     schema.parse(data);
     return { valid: true, errors: {} };
   } catch (error) {
-    if (error instanceof z.ZodError) {
+    // Verificar se é um erro Zod válido
+    if (error instanceof z.ZodError && error.errors && Array.isArray(error.errors)) {
       const errors: Record<string, string> = {};
 
       error.errors.forEach((err) => {
-        const path = err.path.join('.');
-        errors[path] = err.message;
+        if (err && err.path && Array.isArray(err.path)) {
+          const path = err.path.join('.');
+          errors[path] = err.message;
+        }
       });
 
       return { valid: false, errors };
     }
 
-    return { valid: false, errors: { _root: 'Erro ao validar dados' } };
+    // Fallback para erros genéricos
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido ao validar dados';
+    return { valid: false, errors: { _root: errorMessage } };
   }
 }
 
