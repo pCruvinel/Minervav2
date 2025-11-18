@@ -41,6 +41,7 @@ import { uploadFile, deleteFile, formatFileSize, getFileUrl } from '../../lib/ut
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
 import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
 import { AutoSaveStatus } from '../ui/auto-save-status';
+import { useAuth } from '../../lib/contexts/auth-context';
 
 // Definição das 15 etapas do fluxo OS 01-04
 const steps: WorkflowStep[] = [
@@ -71,16 +72,20 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
-  
+
   // Estado interno para armazenar osId criada (diferente da prop osIdProp)
   const [internalOsId, setInternalOsId] = useState<string | null>(null);
-  
+
   // Estado de loading para criação de OS (Etapa 2 → 3)
   const [isCreatingOS, setIsCreatingOS] = useState(false);
-  
+
   // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
   const osId = osIdProp || internalOsId;
-  
+
+  // Obter ID do usuário logado (fixado TODO 3)
+  const { currentUser } = useAuth();
+  const currentUserId = currentUser?.id || 'user-unknown';
+
   // Hook para gerenciar etapas
   const { etapas, isLoading, fetchEtapas, createEtapa, updateEtapa, saveFormData, getEtapaData } = useEtapas();
   
@@ -287,9 +292,13 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       toast.error('É necessário criar a OS antes de anexar arquivos');
       return;
     }
-    
-    // TODO: Pegar colaboradorId do usuário logado (por enquanto usando mock)
-    const colaboradorId = 'user-123';
+
+    // Usar ID do usuário logado (FIXADO: TODO 3)
+    const colaboradorId = currentUserId;
+    if (colaboradorId === 'user-unknown') {
+      toast.error('Usuário não identificado. Faça login novamente.');
+      return;
+    }
     
     // Determinar osNumero e etapa baseado na etapa atual
     const osNumero = 'os1'; // Sempre OS 1-4 neste componente

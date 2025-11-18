@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -127,6 +127,52 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
     estado: '',
   });
 
+  // Calcular quais etapas estão concluídas (FIXADO: TODO 2)
+  // Uma etapa é considerada completa quando tem dados mínimos preenchidos
+  const completedSteps = useMemo(() => {
+    const completed: number[] = [];
+
+    // Etapa 1: Identificação do Lead
+    if (etapa1Data.leadId) completed.push(1);
+
+    // Etapa 2: Seleção do Tipo de Assessoria
+    if (etapa2Data.tipoOS) completed.push(2);
+
+    // Etapa 3: Follow-up 1
+    if (etapa3Data.motivoProcura && etapa3Data.idadeEdificacao) completed.push(3);
+
+    // Etapa 4: Memorial/Escopo
+    if (etapa4Data.descricaoServico && etapa4Data.escopo) completed.push(4);
+
+    // Etapa 5: Precificação
+    if (etapa5Data.valorBase) completed.push(5);
+
+    // Etapa 6: Gerar Proposta
+    if (etapa6Data.propostaGerada) completed.push(6);
+
+    // Etapa 7: Agendar Apresentação
+    if (etapa7Data.dataAgendamento) completed.push(7);
+
+    // Etapa 8: Realizar Apresentação
+    if (etapa8Data.apresentacaoRealizada) completed.push(8);
+
+    // Etapa 9: Follow-up 3
+    if (etapa9Data.interesseCliente) completed.push(9);
+
+    // Etapa 10: Gerar Contrato
+    if (etapa10Data.contratoFile) completed.push(10);
+
+    // Etapa 11: Contrato Assinado
+    if (etapa11Data.contratoAssinado) completed.push(11);
+
+    // Nota: Etapa 12 (Ativar Contrato) será completada ao finalizar
+
+    return completed;
+  }, [
+    etapa1Data, etapa2Data, etapa3Data, etapa4Data, etapa5Data, etapa6Data,
+    etapa7Data, etapa8Data, etapa9Data, etapa10Data, etapa11Data,
+  ]);
+
   // Handlers para navegação
   const handleStepClick = (stepId: number) => {
     if (stepId <= currentStep) {
@@ -178,11 +224,11 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
       )}
       
       {/* Stepper Horizontal */}
-      <WorkflowStepper 
+      <WorkflowStepper
         steps={steps}
         currentStep={currentStep}
         onStepClick={handleStepClick}
-        completedSteps={[]} // TODO: Implementar lógica de etapas concluídas
+        completedSteps={completedSteps} // FIXADO: Calcula etapas concluídas dinamicamente
       />
 
       {/* Main Content Area */}
