@@ -39,6 +39,8 @@ import { toast } from '../../lib/utils/safe-toast';
 import { ErrorBoundary } from '../error-boundary';
 import { uploadFile, deleteFile, formatFileSize, getFileUrl } from '../../lib/utils/supabase-storage';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
+import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
+import { AutoSaveStatus } from '../ui/auto-save-status';
 
 // Definição das 15 etapas do fluxo OS 01-04
 const steps: WorkflowStep[] = [
@@ -106,6 +108,54 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const [uploadProgress, setUploadProgress] = useState(0);
 
   // ========================================
+  // AUTO-SAVE CONFIG
+  // ========================================
+  // Recuperar dados salvos em localStorage (se existirem)
+  const savedData = useLocalStorageData(`os_workflow_${osId || 'new'}`);
+
+  // Inicializar formData com dados salvos
+  useEffect(() => {
+    if (savedData && Object.keys(savedData).length > 0) {
+      setFormDataByStep(savedData);
+      console.log('📁 Dados recuperados do localStorage:', savedData);
+      try {
+        toast.info('Dados anteriores recuperados');
+      } catch (toastError) {
+        console.error('❌ Erro ao exibir toast de recuperação:', toastError);
+      }
+    }
+  }, [osId]); // Apenas ao montar ou quando osId muda
+
+  // Auto-save quando dados mudam (com debounce de 1s)
+  const { isSaving, isSaved, markDirty, saveiNow } = useAutoSave(
+    async (data: any) => {
+      // Se temos osId, salvar no banco de dados
+      if (osId && etapas && etapas.length > 0) {
+        try {
+          const etapaAtual = etapas.find((e) => e.ordem === currentStep);
+          if (etapaAtual && data[currentStep]) {
+            await saveFormData(etapaAtual.id, data[currentStep], false);
+          }
+        } catch (error) {
+          console.error('❌ Erro ao auto-salvar:', error);
+          throw error;
+        }
+      }
+    },
+    {
+      debounceMs: 1000, // Auto-save após 1 segundo de inatividade
+      useLocalStorage: true,
+      storageKey: `os_workflow_${osId || 'new'}`,
+      onSaveSuccess: () => {
+        console.log('✅ Auto-save bem-sucedido');
+      },
+      onSaveError: (error) => {
+        console.error('❌ Auto-save falhou:', error);
+      },
+    }
+  );
+
+  // ========================================
   // HELPERS PARA GERENCIAR FORMULÁRIO
   // ========================================
 
@@ -114,23 +164,33 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     return formDataByStep[stepNum] || {};
   };
 
-  // Atualizar dados de uma etapa
+  // Atualizar dados de uma etapa (com auto-save)
   const setStepData = (stepNum: number, data: any) => {
-    setFormDataByStep(prev => ({
-      ...prev,
-      [stepNum]: data
-    }));
+    setFormDataByStep(prev => {
+      const updated = {
+        ...prev,
+        [stepNum]: data
+      };
+      // Marcar para auto-save
+      markDirty(updated);
+      return updated;
+    });
   };
 
-  // Atualizar campo individual de uma etapa
+  // Atualizar campo individual de uma etapa (com auto-save)
   const updateStepField = (stepNum: number, field: string, value: any) => {
-    setFormDataByStep(prev => ({
-      ...prev,
-      [stepNum]: {
-        ...(prev[stepNum] || {}),
-        [field]: value
-      }
-    }));
+    setFormDataByStep(prev => {
+      const updated = {
+        ...prev,
+        [stepNum]: {
+          ...(prev[stepNum] || {}),
+          [field]: value
+        }
+      };
+      // Marcar para auto-save
+      markDirty(updated);
+      return updated;
+    });
   };
 
   // Aliases para compatibilidade com código existente (serão removidos gradualmente)
@@ -810,7 +870,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
             </span>
           </div>
 
-          {/* Indicador de Progresso */}
+          {/* Indicador de Progresso e Auto-save */}
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <div className="flex items-center gap-1">
@@ -828,6 +888,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               <span className="text-sm font-semibold text-green-600">
                 {Math.round((completedSteps.length / steps.length) * 100)}%
               </span>
+            </div>
+
+            {/* Auto-save Status */}
+            <div className="border-l border-gray-200 pl-3 ml-1">
+              <AutoSaveStatus
+                isSaving={isSaving}
+                isSaved={isSaved}
+                className="text-xs"
+              />
             </div>
           </div>
         </div>
