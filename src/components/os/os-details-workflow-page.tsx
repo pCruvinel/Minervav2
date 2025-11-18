@@ -38,6 +38,7 @@ import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
 import { ErrorBoundary } from '../error-boundary';
 import { uploadFile, deleteFile, formatFileSize, getFileUrl } from '../../lib/utils/supabase-storage';
+import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
 
 // Definição das 15 etapas do fluxo OS 01-04
 const steps: WorkflowStep[] = [
@@ -573,31 +574,42 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   };
 
   /**
-   * Validar campos obrigatórios da etapa atual
+   * Validar etapa atual usando schemas Zod
+   * Exibe erros específicos em toast
    * @returns true se válido, false se há campos faltando
    */
   const validateCurrentStep = (): boolean => {
-    switch (currentStep) {
-      case 1: // Identificação do Lead
-        return !!etapa1Data.leadId;
-      
-      case 2: // Seleção do Tipo de OS
-        return !!etapa2Data.tipoOS;
-      
-      case 3: // Follow-up 1
-        return !!(
-          etapa3Data.idadeEdificacao &&
-          etapa3Data.motivoProcura &&
-          etapa3Data.quandoAconteceu &&
-          etapa3Data.grauUrgencia &&
-          etapa3Data.apresentacaoProposta &&
-          etapa3Data.nomeContatoLocal &&
-          etapa3Data.telefoneContatoLocal
-        );
-      // Adicionar validações para outras etapas conforme necessário
-      default:
-        return true; // Etapas sem validação específica
+    // Se não existe schema para esta etapa, permite avançar
+    if (!hasSchemaForStep(currentStep)) {
+      return true;
     }
+
+    // Obter dados da etapa atual
+    const currentStepData = getCurrentStepData();
+
+    // Validar usando schema Zod
+    const { valid, errors } = validateStep(currentStep, currentStepData);
+
+    if (!valid) {
+      // Exibir erros de validação
+      const errorList = getStepValidationErrors(currentStep, currentStepData);
+
+      if (errorList.length > 0) {
+        const errorMessage = errorList.slice(0, 3).join('\n');
+        const moreErrors = errorList.length > 3 ? `\n... e mais ${errorList.length - 3} erro(s)` : '';
+
+        try {
+          toast.error(`Preencha os campos obrigatórios:\n\n${errorMessage}${moreErrors}`);
+        } catch (toastError) {
+          console.error('❌ Erro ao exibir toast de validação:', toastError);
+        }
+      }
+
+      console.warn(`⚠️ Etapa ${currentStep} inválida:`, errors);
+      return false;
+    }
+
+    return true;
   };
 
   /**
