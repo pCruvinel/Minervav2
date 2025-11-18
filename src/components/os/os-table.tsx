@@ -67,9 +67,44 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
     }
   };
 
-  // Função para retornar o Badge de status com as cores corretas
+  // Função para retornar o Badge de status com as cores corretas (suporta MAIÚSCULAS)
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: any; label: string; className?: string }> = {
+      // Novo padrão (MAIÚSCULAS)
+      EM_ANDAMENTO: {
+        variant: 'secondary',
+        label: 'Em Andamento',
+        className: 'bg-[rgb(221,192,99)] text-black hover:bg-[rgb(221,192,99)]'
+      },
+      AGUARDANDO_INFORMACOES: {
+        variant: 'default',
+        label: 'Aguardando Informações',
+        className: 'bg-[rgb(245,158,11)] text-white hover:bg-[rgb(245,158,11)]'
+      },
+      ATRASADA: {
+        variant: 'destructive',
+        label: 'Atrasada',
+        className: 'bg-[rgb(239,68,68)] text-white hover:bg-[rgb(239,68,68)]'
+      },
+      CONCLUIDA: {
+        variant: 'default',
+        label: 'Concluída',
+        className: 'bg-[rgb(34,197,94)] text-white hover:bg-[rgb(34,197,94)]'
+      },
+      EM_TRIAGEM: {
+        variant: 'outline',
+        label: 'Em Triagem'
+      },
+      EM_VALIDACAO: {
+        variant: 'default',
+        label: 'Em Validação',
+        className: 'bg-blue-500 text-white hover:bg-blue-500'
+      },
+      CANCELADA: {
+        variant: 'outline',
+        label: 'Cancelada'
+      },
+      // Legado (minúsculas) - mantido para compatibilidade
       em_andamento: {
         variant: 'secondary',
         label: 'Em Andamento',
@@ -102,6 +137,18 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
 
     const config = statusConfig[status] || { variant: 'outline', label: status };
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
+  };
+
+  // Função para retornar cores baseadas no status da etapa
+  const getEtapaStatusColor = (status: string) => {
+    const colorMap: Record<string, string> = {
+      'PENDENTE': 'bg-gray-100 text-gray-700 border-gray-300',
+      'EM_ANDAMENTO': 'bg-yellow-100 text-yellow-700 border-yellow-300',
+      'AGUARDANDO_APROVACAO': 'bg-orange-100 text-orange-700 border-orange-300',
+      'APROVADA': 'bg-green-100 text-green-700 border-green-300',
+      'REJEITADA': 'bg-red-100 text-red-700 border-red-300',
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
   // Função para verificar se a data está atrasada
@@ -159,11 +206,18 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                   <TableCell>{getStatusBadge(os.status)}</TableCell>
                   <TableCell>
                     {os.etapaAtual ? (
-                      <div className="flex items-center gap-1">
-                        <Badge variant="outline" className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          variant="outline"
+                          className={`text-xs font-semibold border ${getEtapaStatusColor(os.etapaAtual.status)}`}
+                          title={`Status: ${os.etapaAtual.status}`}
+                        >
                           E{os.etapaAtual.numero}
                         </Badge>
-                        <span className="text-sm text-muted-foreground truncate max-w-[120px]">
+                        <span
+                          className="text-sm truncate max-w-[140px]"
+                          title={`${os.etapaAtual.titulo} (${os.etapaAtual.status})`}
+                        >
                           {os.etapaAtual.titulo}
                         </span>
                       </div>
