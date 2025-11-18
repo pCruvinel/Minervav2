@@ -94,95 +94,74 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       .map((etapa: any) => etapa.numero_etapa);
   }, [etapas]);
   
-  // Estados dos formulários de cada etapa
-  const [etapa1Data, setEtapa1Data] = useState({ leadId: '' });
-  const [etapa2Data, setEtapa2Data] = useState({ tipoOS: '' });
-  const [etapa3Data, setEtapa3Data] = useState({
-    idadeEdificacao: '',
-    motivoProcura: '',
-    quandoAconteceu: '',
-    oqueFeitoARespeito: '',
-    existeEscopo: '',
-    previsaoOrcamentaria: '',
-    grauUrgencia: '',
-    apresentacaoProposta: '',
-    nomeContatoLocal: '',
-    telefoneContatoLocal: '',
-    cargoContatoLocal: '',
-    anexos: [] as Array<{
-      id: string;
-      name: string;
-      path: string;
-      size: number;
-      type: string;
-      url: string;
-      uploadedAt: string;
-    }>,
-  });
-  
+  // ========================================
+  // ESTADO CONSOLIDADO DO FORMULÁRIO
+  // ========================================
+  // Armazena dados de todas as etapas em um único objeto
+  const [formDataByStep, setFormDataByStep] = useState<Record<number, any>>({});
+
   // Estado para controlar upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [etapa4Data, setEtapa4Data] = useState({ dataAgendamento: '' });
-  const [etapa5Data, setEtapa5Data] = useState({ visitaRealizada: false });
-  const [etapa6Data, setEtapa6Data] = useState({
-    // Momento 1: Perguntas Durante a Visita - Respostas do Cliente
-    outrasEmpresas: '',
-    comoEsperaResolver: '',
-    expectativaCliente: '',
-    estadoAncoragem: '',
-    fotosAncoragem: [] as Array<{ file: File; comment: string }>,
-    // Momento 2: Avaliação Geral da Visita
-    quemAcompanhou: '',
-    avaliacaoVisita: '',
-    // Momento 3: Respostas do Engenheiro
-    estadoGeralEdificacao: '',
-    servicoResolver: '',
-    arquivosGerais: [] as Array<{ file: File; comment: string }>,
-  });
-  const [etapa8Data, setEtapa8Data] = useState({
-    objetivo: '',
-    etapasPrincipais: [] as Array<{
-      nome: string;
-      subetapas: Array<{
-        nome: string;
-        m2: string;
-        diasUteis: string;
-        total: string;
-      }>;
-    }>,
-    planejamentoInicial: '',
-    logisticaTransporte: '',
-    preparacaoArea: '',
-  });
-  const [etapa9Data, setEtapa9Data] = useState({
-    percentualImprevisto: '',
-    percentualLucro: '',
-    percentualImposto: '',
-    percentualEntrada: '',
-    numeroParcelas: '',
-  });
-  const [etapa10Data, setEtapa10Data] = useState({
-    propostaGerada: false,
-    dataGeracao: '',
-    codigoProposta: '',
-    validadeDias: '',
-    garantiaMeses: '',
-  });
-  const [etapa11Data, setEtapa11Data] = useState({ dataAgendamento: '' });
-  const [etapa12Data, setEtapa12Data] = useState({ apresentacaoRealizada: false });
-  const [etapa13Data, setEtapa13Data] = useState({
-    propostaApresentada: '',
-    metodoApresentacao: '',
-    clienteAchouProposta: '',
-    clienteAchouContrato: '',
-    doresNaoAtendidas: '',
-    indicadorFechamento: '',
-    quemEstavaNaApresentacao: '',
-    nivelSatisfacao: '',
-  });
-  const [etapa14Data, setEtapa14Data] = useState({ contratoFile: null as File | null });
-  const [etapa15Data, setEtapa15Data] = useState({ contratoAssinado: false });
+
+  // ========================================
+  // HELPERS PARA GERENCIAR FORMULÁRIO
+  // ========================================
+
+  // Buscar dados de uma etapa específica
+  const getStepData = (stepNum: number) => {
+    return formDataByStep[stepNum] || {};
+  };
+
+  // Atualizar dados de uma etapa
+  const setStepData = (stepNum: number, data: any) => {
+    setFormDataByStep(prev => ({
+      ...prev,
+      [stepNum]: data
+    }));
+  };
+
+  // Atualizar campo individual de uma etapa
+  const updateStepField = (stepNum: number, field: string, value: any) => {
+    setFormDataByStep(prev => ({
+      ...prev,
+      [stepNum]: {
+        ...(prev[stepNum] || {}),
+        [field]: value
+      }
+    }));
+  };
+
+  // Aliases para compatibilidade com código existente (serão removidos gradualmente)
+  const etapa1Data = getStepData(1);
+  const etapa2Data = getStepData(2);
+  const etapa3Data = getStepData(3);
+  const etapa4Data = getStepData(4);
+  const etapa5Data = getStepData(5);
+  const etapa6Data = getStepData(6);
+  const etapa8Data = getStepData(8);
+  const etapa9Data = getStepData(9);
+  const etapa10Data = getStepData(10);
+  const etapa11Data = getStepData(11);
+  const etapa12Data = getStepData(12);
+  const etapa13Data = getStepData(13);
+  const etapa14Data = getStepData(14);
+  const etapa15Data = getStepData(15);
+
+  const setEtapa1Data = (data: any) => setStepData(1, data);
+  const setEtapa2Data = (data: any) => setStepData(2, data);
+  const setEtapa3Data = (data: any) => setStepData(3, data);
+  const setEtapa4Data = (data: any) => setStepData(4, data);
+  const setEtapa5Data = (data: any) => setStepData(5, data);
+  const setEtapa6Data = (data: any) => setStepData(6, data);
+  const setEtapa8Data = (data: any) => setStepData(8, data);
+  const setEtapa9Data = (data: any) => setStepData(9, data);
+  const setEtapa10Data = (data: any) => setStepData(10, data);
+  const setEtapa11Data = (data: any) => setStepData(11, data);
+  const setEtapa12Data = (data: any) => setStepData(12, data);
+  const setEtapa13Data = (data: any) => setStepData(13, data);
+  const setEtapa14Data = (data: any) => setStepData(14, data);
+  const setEtapa15Data = (data: any) => setStepData(15, data);
 
   // Estado do formulário de novo lead (Dialog)
   const [formData, setFormData] = useState({
@@ -533,63 +512,21 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
    */
   const carregarDadosEtapaAtual = () => {
     const dadosSalvos = getEtapaData(currentStep);
-    
+
     if (!dadosSalvos) {
       console.log(`ℹ️ Etapa ${currentStep} sem dados salvos`);
       return;
     }
-    
+
     console.log(`📥 Carregando dados da etapa ${currentStep}:`, dadosSalvos);
-    
-    // Carregar dados no estado correspondente
-    switch (currentStep) {
-      case 1:
-        setEtapa1Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 2:
-        setEtapa2Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 3:
-        setEtapa3Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 4:
-        setEtapa4Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 5:
-        setEtapa5Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 6:
-        setEtapa6Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 7:
-        // Etapa 7 (Memorial Escopo) usa etapa8Data
-        setEtapa8Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 8:
-        setEtapa8Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 9:
-        setEtapa9Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 10:
-        setEtapa10Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 11:
-        setEtapa11Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 12:
-        setEtapa12Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 13:
-        setEtapa13Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 14:
-        setEtapa14Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-      case 15:
-        setEtapa15Data(prev => ({ ...prev, ...dadosSalvos }));
-        break;
-    }
+
+    // Carregar dados no formDataByStep (novo sistema consolidado)
+    setStepData(currentStep, {
+      ...getStepData(currentStep),
+      ...dadosSalvos
+    });
+
+    toast.success(`Dados da etapa ${currentStep} carregados!`, { icon: '📥' });
   };
 
   /**
@@ -600,61 +537,23 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       console.warn('⚠️ loadEtapas: osId inválido ou vazio');
       return;
     }
-    
+
     try {
       await fetchEtapas(osId);
       console.log('✅ Etapas carregadas:', etapas);
-      
-      // Preencher estados locais com dados do banco
+
+      // Preencher formDataByStep com dados do banco (sistema consolidado)
       if (etapas) {
+        const newFormData: Record<number, any> = {};
+
         etapas.forEach((etapa) => {
           if (etapa.dados_etapa) {
-            switch (etapa.ordem) {
-              case 1:
-                setEtapa1Data(etapa.dados_etapa);
-                break;
-              case 2:
-                setEtapa2Data(etapa.dados_etapa);
-                break;
-              case 3:
-                setEtapa3Data(etapa.dados_etapa);
-                break;
-              case 4:
-                setEtapa4Data(etapa.dados_etapa);
-                break;
-              case 5:
-                setEtapa5Data(etapa.dados_etapa);
-                break;
-              case 6:
-                setEtapa6Data(etapa.dados_etapa);
-                break;
-              case 8:
-                setEtapa8Data(etapa.dados_etapa);
-                break;
-              case 9:
-                setEtapa9Data(etapa.dados_etapa);
-                break;
-              case 10:
-                setEtapa10Data(etapa.dados_etapa);
-                break;
-              case 11:
-                setEtapa11Data(etapa.dados_etapa);
-                break;
-              case 12:
-                setEtapa12Data(etapa.dados_etapa);
-                break;
-              case 13:
-                setEtapa13Data(etapa.dados_etapa);
-                break;
-              case 14:
-                setEtapa14Data(etapa.dados_etapa);
-                break;
-              case 15:
-                setEtapa15Data(etapa.dados_etapa);
-                break;
-            }
+            newFormData[etapa.ordem] = etapa.dados_etapa;
           }
         });
+
+        setFormDataByStep(newFormData);
+        console.log('✅ Dados carregados no formDataByStep:', newFormData);
       }
     } catch (error) {
       console.error('❌ Erro ao carregar etapas:', error);
@@ -667,26 +566,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   };
 
   /**
-   * Obter dados da etapa atual
+   * Obter dados da etapa atual (usa sistema consolidado)
    */
   const getCurrentStepData = () => {
-    switch (currentStep) {
-      case 1: return etapa1Data;
-      case 2: return etapa2Data;
-      case 3: return etapa3Data;
-      case 4: return etapa4Data;
-      case 5: return etapa5Data;
-      case 6: return etapa6Data;
-      case 8: return etapa8Data;
-      case 9: return etapa9Data;
-      case 10: return etapa10Data;
-      case 11: return etapa11Data;
-      case 12: return etapa12Data;
-      case 13: return etapa13Data;
-      case 14: return etapa14Data;
-      case 15: return etapa15Data;
-      default: return {};
-    }
+    return getStepData(currentStep);
   };
 
   /**

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { ordensServicoAPI } from '../api-client';
+import { EtapaStatus } from '../types';
 
-export interface Etapa {
+export interface OsEtapa {
   id: string;
   os_id: string;
   ordem: number;
   nome_etapa: string;
-  status: 'PENDENTE' | 'EM_ANDAMENTO' | 'AGUARDANDO_APROVACAO' | 'APROVADA' | 'REJEITADA';
+  status: EtapaStatus;
   dados_etapa: any;
   responsavel_id?: string;
   aprovador_id?: string;
@@ -17,10 +18,13 @@ export interface Etapa {
   updated_at?: string;
 }
 
+// Manter alias para compatibilidade
+export type Etapa = OsEtapa;
+
 export interface CreateEtapaData {
   ordem: number;
   nome_etapa: string;
-  status?: 'PENDENTE' | 'EM_ANDAMENTO' | 'APROVADA';
+  status?: EtapaStatus;
   dados_etapa?: any;
   responsavel_id?: string;
   aprovador_id?: string;
@@ -28,7 +32,7 @@ export interface CreateEtapaData {
 
 export interface UpdateEtapaData {
   nome_etapa?: string;
-  status?: 'PENDENTE' | 'EM_ANDAMENTO' | 'AGUARDANDO_APROVACAO' | 'APROVADA' | 'REJEITADA';
+  status?: EtapaStatus;
   dados_etapa?: any;
   responsavel_id?: string;
   aprovador_id?: string;
@@ -119,12 +123,12 @@ export function useEtapas() {
       setIsLoading(true);
       setError(null);
       console.log(`➕ Criando etapa ${data.ordem} - ${data.nome_etapa} na OS ${osId}...`);
-      
+
       const newEtapa = await ordensServicoAPI.createEtapa(osId, {
         ...data,
-        status: data.status || 'Pendente',
+        status: data.status || 'PENDENTE',
       });
-      
+
       console.log('✅ Etapa criada:', newEtapa);
       
       // Atualizar lista local
@@ -186,7 +190,7 @@ export function useEtapas() {
   /**
    * Salvar dados de formulário em uma etapa
    * (Atalho para updateEtapa com apenas dados_etapa)
-   * 
+   *
    * @param etapaId - ID da etapa
    * @param formData - Dados do formulário
    * @param markAsComplete - Se true, marca etapa como concluída
@@ -201,10 +205,10 @@ export function useEtapas() {
     };
 
     if (markAsComplete) {
-      updateData.status = 'Concluída'; // COM acento
+      updateData.status = 'APROVADA'; // Status padronizado
       updateData.data_conclusao = new Date().toISOString();
     } else {
-      updateData.status = 'Em Andamento';
+      updateData.status = 'EM_ANDAMENTO'; // Status padronizado
       if (!etapas?.find(e => e.id === etapaId)?.data_inicio) {
         updateData.data_inicio = new Date().toISOString();
       }

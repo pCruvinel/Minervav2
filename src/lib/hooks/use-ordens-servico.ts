@@ -157,26 +157,37 @@ export function useUpdateEtapa(etapaId: string) {
 // Funções auxiliares
 function mapStatusToLocal(status: string): string {
   const statusMap: Record<string, string> = {
-    // Novos valores (MAIÚSCULAS + SNAKE_CASE)
-    'EM_TRIAGEM': 'em_triagem',
-    'AGUARDANDO_INFORMACOES': 'aguardando_informacoes',
-    'EM_ANDAMENTO': 'em_andamento',
-    'EM_VALIDACAO': 'em_validacao',
-    'ATRASADA': 'atrasada',
-    'CONCLUIDA': 'concluida',
-    'CANCELADA': 'cancelada',
-    
-    // Valores antigos para compatibilidade
-    'Em Triagem': 'em_triagem',
-    'Aguardando Informações': 'aguardando_informacoes',
-    'Em Andamento': 'em_andamento',
-    'Em Validação': 'em_validacao',
-    'Atrasada': 'atrasada',
-    'Concluída': 'concluida',
-    'Concluida': 'concluida',
-    'Cancelada': 'cancelada',
+    // Novos valores (MAIÚSCULAS + SNAKE_CASE) - mantém formato
+    'EM_TRIAGEM': 'EM_TRIAGEM',
+    'AGUARDANDO_INFORMACOES': 'AGUARDANDO_INFORMACOES',
+    'EM_ANDAMENTO': 'EM_ANDAMENTO',
+    'EM_VALIDACAO': 'EM_VALIDACAO',
+    'ATRASADA': 'ATRASADA',
+    'CONCLUIDA': 'CONCLUIDA',
+    'CANCELADA': 'CANCELADA',
+
+    // Valores antigos para compatibilidade - converte para novo padrão
+    'Em Triagem': 'EM_TRIAGEM',
+    'Aguardando Informações': 'AGUARDANDO_INFORMACOES',
+    'Em Andamento': 'EM_ANDAMENTO',
+    'Em Validação': 'EM_VALIDACAO',
+    'Atrasada': 'ATRASADA',
+    'Concluída': 'CONCLUIDA',
+    'Concluida': 'CONCLUIDA',
+    'Cancelada': 'CANCELADA',
+
+    // Valores legados (minúsculas + hífen) - converte para novo padrão
+    'em_triagem': 'EM_TRIAGEM',
+    'em-triagem': 'EM_TRIAGEM',
+    'triagem': 'EM_TRIAGEM',
+    'em_andamento': 'EM_ANDAMENTO',
+    'em-andamento': 'EM_ANDAMENTO',
+    'em_validacao': 'EM_VALIDACAO',
+    'em-validacao': 'EM_VALIDACAO',
+    'concluida': 'CONCLUIDA',
+    'cancelada': 'CANCELADA',
   };
-  return statusMap[status] || 'em_andamento';
+  return statusMap[status] || 'EM_ANDAMENTO';
 }
 
 function mapSetorToLocal(setor: string | undefined): string {

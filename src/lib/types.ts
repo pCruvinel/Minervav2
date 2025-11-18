@@ -27,11 +27,21 @@ export type SetorLegacy = 'assessoria' | 'obras';
 // STATUS DE ORDEM DE SERVIÇO
 // ============================================================
 
-export type OSStatus = 
-  | 'TRIAGEM' 
-  | 'EM_ANDAMENTO' 
-  | 'EM_VALIDACAO' 
-  | 'CONCLUIDA' 
+export type OSStatus =
+  | 'EM_TRIAGEM'
+  | 'AGUARDANDO_INFORMACOES'
+  | 'EM_ANDAMENTO'
+  | 'EM_VALIDACAO'
+  | 'ATRASADA'
+  | 'CONCLUIDA'
+  | 'CANCELADA';
+
+// Status de Etapa
+export type EtapaStatus =
+  | 'PENDENTE'
+  | 'EM_ANDAMENTO'
+  | 'AGUARDANDO_APROVACAO'
+  | 'APROVADA'
   | 'REJEITADA';
 
 // ============================================================
@@ -213,6 +223,13 @@ export const SETOR_NAMES: Record<Setor, string> = {
 // INTERFACES EXISTENTES (COMPATIBILIDADE)
 // ============================================================
 
+// Informação resumida de etapa
+export interface EtapaInfo {
+  numero: number;
+  titulo: string;
+  status: EtapaStatus;
+}
+
 export interface OrdemServico {
   id: string;
   codigo: string;
@@ -226,7 +243,12 @@ export interface OrdemServico {
   prazoFim: string;
   createdAt: string;
   updatedAt: string;
-  
+
+  // Campos de etapa atual
+  numeroEtapaAtual?: number;
+  statusEtapaAtual?: EtapaStatus;
+  etapaAtual?: EtapaInfo;
+
   // Novos campos para delegação
   delegado_por_id?: string;
   delegada_para_id?: string;
@@ -284,3 +306,53 @@ export interface AuditoriaAcao {
   ip_origem?: string;
   data_acao: Date;
 }
+
+// ============================================================
+// MAPEAMENTO DE STATUS (LEGADO → PADRONIZADO)
+// ============================================================
+
+// Mapeamento de status legado para novo formato
+export const mapLegacyStatusToStandard = (legacyStatus: string): OSStatus => {
+  const statusMap: Record<string, OSStatus> = {
+    'triagem': 'EM_TRIAGEM',
+    'em-andamento': 'EM_ANDAMENTO',
+    'em-validacao': 'EM_VALIDACAO',
+    'concluida': 'CONCLUIDA',
+    'rejeitada': 'CANCELADA',
+    'TRIAGEM': 'EM_TRIAGEM',
+    'EM_ANDAMENTO': 'EM_ANDAMENTO',
+    'EM_VALIDACAO': 'EM_VALIDACAO',
+    'CONCLUIDA': 'CONCLUIDA',
+    'REJEITADA': 'CANCELADA',
+  };
+
+  return statusMap[legacyStatus] || 'EM_TRIAGEM';
+};
+
+// Mapeamento de status padronizado para exibição
+export const getStatusLabel = (status: OSStatus): string => {
+  const labels: Record<OSStatus, string> = {
+    'EM_TRIAGEM': 'Em Triagem',
+    'AGUARDANDO_INFORMACOES': 'Aguardando Informações',
+    'EM_ANDAMENTO': 'Em Andamento',
+    'EM_VALIDACAO': 'Em Validação',
+    'ATRASADA': 'Atrasada',
+    'CONCLUIDA': 'Concluída',
+    'CANCELADA': 'Cancelada',
+  };
+
+  return labels[status] || status;
+};
+
+// Mapeamento de status de etapa para exibição
+export const getEtapaStatusLabel = (status: EtapaStatus): string => {
+  const labels: Record<EtapaStatus, string> = {
+    'PENDENTE': 'Pendente',
+    'EM_ANDAMENTO': 'Em Andamento',
+    'AGUARDANDO_APROVACAO': 'Aguardando Aprovação',
+    'APROVADA': 'Aprovada',
+    'REJEITADA': 'Rejeitada',
+  };
+
+  return labels[status] || status;
+};

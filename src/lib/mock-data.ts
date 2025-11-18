@@ -530,13 +530,20 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Construtora ABC Ltda',
     tipo: 'Projeto Estrutural',
     descricao: 'Elaboração de projeto estrutural para edifício residencial de 10 pavimentos',
-    status: 'em-andamento',
-    setor: 'assessoria',
+    status: 'EM_ANDAMENTO',
+    setor: 'ASS',
     responsavel: mockUsers[1],
     prazoInicio: '2024-11-01',
     prazoFim: '2024-11-30',
     createdAt: '2024-11-01T08:00:00Z',
-    updatedAt: '2024-11-09T10:30:00Z'
+    updatedAt: '2024-11-09T10:30:00Z',
+    numeroEtapaAtual: 5,
+    statusEtapaAtual: 'EM_ANDAMENTO',
+    etapaAtual: {
+      numero: 5,
+      titulo: 'Realizar Visita',
+      status: 'EM_ANDAMENTO'
+    }
   },
   {
     id: '2',
@@ -544,13 +551,20 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Incorporadora XYZ',
     tipo: 'Consultoria Técnica',
     descricao: 'Consultoria para aprovação de projeto junto à prefeitura',
-    status: 'triagem',
-    setor: 'assessoria',
+    status: 'EM_TRIAGEM',
+    setor: 'ASS',
     responsavel: mockUsers[0],
     prazoInicio: '2024-11-08',
     prazoFim: '2024-11-15',
     createdAt: '2024-11-08T09:00:00Z',
-    updatedAt: '2024-11-08T09:00:00Z'
+    updatedAt: '2024-11-08T09:00:00Z',
+    numeroEtapaAtual: 1,
+    statusEtapaAtual: 'PENDENTE',
+    etapaAtual: {
+      numero: 1,
+      titulo: 'Identificação do Cliente/Lead',
+      status: 'PENDENTE'
+    }
   },
   {
     id: '3',
@@ -558,13 +572,20 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Empreendimentos Delta',
     tipo: 'Fiscalização de Obra',
     descricao: 'Fiscalização e acompanhamento de obra de fundação',
-    status: 'em-validacao',
-    setor: 'obras',
+    status: 'EM_VALIDACAO',
+    setor: 'OBR',
     responsavel: mockUsers[2],
     prazoInicio: '2024-10-15',
     prazoFim: '2024-11-10',
     createdAt: '2024-10-15T08:00:00Z',
-    updatedAt: '2024-11-08T16:45:00Z'
+    updatedAt: '2024-11-08T16:45:00Z',
+    numeroEtapaAtual: 12,
+    statusEtapaAtual: 'AGUARDANDO_APROVACAO',
+    etapaAtual: {
+      numero: 12,
+      titulo: 'Follow-up 3: Pós-Apresentação',
+      status: 'AGUARDANDO_APROVACAO'
+    }
   },
   {
     id: '4',
@@ -572,13 +593,20 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Construtora Sigma',
     tipo: 'Laudo Técnico',
     descricao: 'Laudo de avaliação de imóvel para financiamento',
-    status: 'concluida',
-    setor: 'assessoria',
+    status: 'CONCLUIDA',
+    setor: 'ASS',
     responsavel: mockUsers[1],
     prazoInicio: '2024-10-20',
     prazoFim: '2024-11-05',
     createdAt: '2024-10-20T08:00:00Z',
-    updatedAt: '2024-11-05T14:20:00Z'
+    updatedAt: '2024-11-05T14:20:00Z',
+    numeroEtapaAtual: 15,
+    statusEtapaAtual: 'APROVADA',
+    etapaAtual: {
+      numero: 15,
+      titulo: 'Iniciar Contrato de Obra',
+      status: 'APROVADA'
+    }
   },
   {
     id: '5',
@@ -586,13 +614,20 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Grupo Omega',
     tipo: 'Projeto Hidrossanitário',
     descricao: 'Projeto hidrossanitário para complexo comercial',
-    status: 'em-andamento',
-    setor: 'assessoria',
+    status: 'EM_ANDAMENTO',
+    setor: 'ASS',
     responsavel: mockUsers[1],
     prazoInicio: '2024-11-05',
     prazoFim: '2024-12-05',
     createdAt: '2024-11-05T08:00:00Z',
-    updatedAt: '2024-11-07T11:15:00Z'
+    updatedAt: '2024-11-07T11:15:00Z',
+    numeroEtapaAtual: 8,
+    statusEtapaAtual: 'EM_ANDAMENTO',
+    etapaAtual: {
+      numero: 8,
+      titulo: 'Precificação',
+      status: 'EM_ANDAMENTO'
+    }
   },
   {
     id: '6',
@@ -600,14 +635,66 @@ export const mockOrdensServico: OrdemServico[] = [
     cliente: 'Incorporadora Beta',
     tipo: 'Vistoria Técnica',
     descricao: 'Vistoria cautelar pré-obra em imóveis vizinhos',
-    status: 'triagem',
-    setor: 'obras',
+    status: 'EM_TRIAGEM',
+    setor: 'OBR',
     responsavel: mockUsers[2],
     prazoInicio: '2024-11-09',
     prazoFim: '2024-11-12',
     createdAt: '2024-11-09T08:00:00Z',
-    updatedAt: '2024-11-09T08:00:00Z'
+    updatedAt: '2024-11-09T08:00:00Z',
+    numeroEtapaAtual: 2,
+    statusEtapaAtual: 'PENDENTE',
+    etapaAtual: {
+      numero: 2,
+      titulo: 'Seleção do Tipo de OS',
+      status: 'PENDENTE'
+    }
   }
+];
+
+// ============================================================
+// ETAPAS MOCKADAS POR OS
+// ============================================================
+
+import type { OsEtapa } from './hooks/use-etapas';
+
+export const mockEtapas: OsEtapa[] = [
+  // OS 1 - Em andamento na etapa 5
+  { id: 'e1-1', os_id: '1', ordem: 1, nome_etapa: 'Identificação do Cliente/Lead', status: 'APROVADA', dados_etapa: { leadId: 'L1' }, data_inicio: '2024-11-01T08:00:00Z', data_conclusao: '2024-11-01T09:30:00Z' },
+  { id: 'e1-2', os_id: '1', ordem: 2, nome_etapa: 'Seleção do Tipo de OS', status: 'APROVADA', dados_etapa: { tipoOS: '01' }, data_inicio: '2024-11-01T10:00:00Z', data_conclusao: '2024-11-01T11:00:00Z' },
+  { id: 'e1-3', os_id: '1', ordem: 3, nome_etapa: 'Follow-up 1: Entrevista Inicial', status: 'APROVADA', dados_etapa: { observacoes: 'Cliente interessado' }, data_inicio: '2024-11-02T08:00:00Z', data_conclusao: '2024-11-02T12:00:00Z' },
+  { id: 'e1-4', os_id: '1', ordem: 4, nome_etapa: 'Agendar Visita Técnica', status: 'APROVADA', dados_etapa: { dataVisita: '2024-11-05', horaVisita: '14:00' }, data_inicio: '2024-11-02T14:00:00Z', data_conclusao: '2024-11-03T09:00:00Z' },
+  { id: 'e1-5', os_id: '1', ordem: 5, nome_etapa: 'Realizar Visita', status: 'EM_ANDAMENTO', dados_etapa: { observacoes: 'Visita parcialmente realizada' }, data_inicio: '2024-11-05T14:00:00Z' },
+  { id: 'e1-6', os_id: '1', ordem: 6, nome_etapa: 'Follow-up 2: Pós-Visita', status: 'PENDENTE', dados_etapa: null },
+  { id: 'e1-7', os_id: '1', ordem: 7, nome_etapa: 'Formulário Memorial (Escopo)', status: 'PENDENTE', dados_etapa: null },
+  { id: 'e1-8', os_id: '1', ordem: 8, nome_etapa: 'Precificação', status: 'PENDENTE', dados_etapa: null },
+
+  // OS 2 - Em triagem na etapa 1
+  { id: 'e2-1', os_id: '2', ordem: 1, nome_etapa: 'Identificação do Cliente/Lead', status: 'PENDENTE', dados_etapa: null },
+
+  // OS 3 - Em validação na etapa 12
+  { id: 'e3-1', os_id: '3', ordem: 1, nome_etapa: 'Identificação do Cliente/Lead', status: 'APROVADA', dados_etapa: { leadId: 'L4' }, data_inicio: '2024-10-15T08:00:00Z', data_conclusao: '2024-10-15T10:00:00Z' },
+  { id: 'e3-2', os_id: '3', ordem: 2, nome_etapa: 'Seleção do Tipo de OS', status: 'APROVADA', dados_etapa: { tipoOS: '03' }, data_inicio: '2024-10-15T10:30:00Z', data_conclusao: '2024-10-15T11:00:00Z' },
+  { id: 'e3-3', os_id: '3', ordem: 3, nome_etapa: 'Follow-up 1: Entrevista Inicial', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-16T12:00:00Z' },
+  { id: 'e3-4', os_id: '3', ordem: 4, nome_etapa: 'Agendar Visita Técnica', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-18T09:00:00Z' },
+  { id: 'e3-5', os_id: '3', ordem: 5, nome_etapa: 'Realizar Visita', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-20T16:00:00Z' },
+  { id: 'e3-6', os_id: '3', ordem: 6, nome_etapa: 'Follow-up 2: Pós-Visita', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-22T10:00:00Z' },
+  { id: 'e3-7', os_id: '3', ordem: 7, nome_etapa: 'Formulário Memorial (Escopo)', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-25T15:00:00Z' },
+  { id: 'e3-8', os_id: '3', ordem: 8, nome_etapa: 'Precificação', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-28T11:00:00Z' },
+  { id: 'e3-9', os_id: '3', ordem: 9, nome_etapa: 'Gerar Proposta Comercial', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-10-30T14:00:00Z' },
+  { id: 'e3-10', os_id: '3', ordem: 10, nome_etapa: 'Agendar Visita (Apresentação)', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-01T09:00:00Z' },
+  { id: 'e3-11', os_id: '3', ordem: 11, nome_etapa: 'Realizar Visita (Apresentação)', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-05T16:00:00Z' },
+  { id: 'e3-12', os_id: '3', ordem: 12, nome_etapa: 'Follow-up 3: Pós-Apresentação', status: 'AGUARDANDO_APROVACAO', dados_etapa: { observacoes: 'Aguardando aprovação do gestor' }, data_inicio: '2024-11-06T08:00:00Z' },
+
+  // OS 5 - Em andamento na etapa 8
+  { id: 'e5-1', os_id: '5', ordem: 1, nome_etapa: 'Identificação do Cliente/Lead', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-05T09:00:00Z' },
+  { id: 'e5-2', os_id: '5', ordem: 2, nome_etapa: 'Seleção do Tipo de OS', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-05T10:00:00Z' },
+  { id: 'e5-3', os_id: '5', ordem: 3, nome_etapa: 'Follow-up 1: Entrevista Inicial', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-05T14:00:00Z' },
+  { id: 'e5-4', os_id: '5', ordem: 4, nome_etapa: 'Agendar Visita Técnica', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-05T16:00:00Z' },
+  { id: 'e5-5', os_id: '5', ordem: 5, nome_etapa: 'Realizar Visita', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-06T15:00:00Z' },
+  { id: 'e5-6', os_id: '5', ordem: 6, nome_etapa: 'Follow-up 2: Pós-Visita', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-06T17:00:00Z' },
+  { id: 'e5-7', os_id: '5', ordem: 7, nome_etapa: 'Formulário Memorial (Escopo)', status: 'APROVADA', dados_etapa: {}, data_conclusao: '2024-11-07T10:00:00Z' },
+  { id: 'e5-8', os_id: '5', ordem: 8, nome_etapa: 'Precificação', status: 'EM_ANDAMENTO', dados_etapa: { valorParcial: 150000 }, data_inicio: '2024-11-07T11:00:00Z' },
 ];
 
 export const mockComentarios: Comentario[] = [
