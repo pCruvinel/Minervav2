@@ -1144,6 +1144,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                     formData={formData}
                     onFormDataChange={setFormData}
                     onSaveNewLead={handleSaveNewLead}
+                    readOnly={isHistoricalNavigation}
                   />
                 </ErrorBoundary>
               )}
@@ -1214,6 +1215,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                   ref={stepFollowup1Ref}
                   data={etapa3Data}
                   onDataChange={setEtapa3Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 
@@ -1816,6 +1818,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                 <StepMemorialEscopo
                   data={etapa8Data}
                   onDataChange={setEtapa8Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 
