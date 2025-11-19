@@ -196,14 +196,18 @@ const isAccessible = isCompleted || isCurrent || step.id < currentStep;
 
 #### 3.2 Adicionar readOnly aos Componentes (Prioridade: OS 5-6)
 - [x] StepFollowup1: Adicionar prop readOnly e disabled em 11 campos
-- [ ] StepIdentificacaoLeadCompleto: Adicionar readOnly (já usa Form components)
-- [ ] StepMemorialEscopo: Adicionar readOnly
+- [x] StepIdentificacaoLeadCompleto: Adicionar readOnly (5 campos validados + combobox)
+- [x] StepMemorialEscopo: Adicionar readOnly (1 FormTextarea + 3 Inputs + arrays dinâmicos)
 - [ ] Outros componentes shared/ (a fazer conforme necessário)
 
-**Commit:** `a502bee` - feat: Adicionar suporte readOnly ao StepFollowup1
+**Commits:**
+- `a502bee` - feat: Adicionar suporte readOnly ao StepFollowup1
+- `12b0cfb` - feat: Adicionar suporte readOnly ao StepIdentificacaoLeadCompleto
+- `f2a0b84` - feat: Adicionar suporte readOnly ao StepMemorialEscopo
 
 #### 3.3 Integrar readOnly nos Workflows
 - [x] OS 5-6: Passar readOnly={isHistoricalNavigation} para StepFollowup1
+- [x] OS 5-6: Passar readOnly={isHistoricalNavigation} para StepIdentificacaoLeadCompleto
 - [ ] OS 1-4: Passar readOnly para todos os steps (pendente)
 
 **Mock do Banner:**
@@ -598,7 +602,7 @@ Botão: "Voltar para Etapa X"
 |------|-----------|----------------|-------------|----------|
 | 1 | Análise e Documentação | ✅ 3h | 19/01 | 19/01 |
 | 2 | Migrar Lógica OS 5-6 | ✅ 1h | 19/01 | 19/01 |
-| 3 | Modo Híbrido (OS 5-6) | ✅ 2.5h | 19/01 | 19/01 |
+| 3 | Modo Híbrido (OS 5-6) | ✅ 3.5h | 19/01 | 19/01 |
 | 4 | Validação Obrigatória | 2-3h | - | - |
 | 5 | Auto-Save | 3-4h | - | - |
 | 6 | Hooks Utilitários | 4-5h | - | - |
@@ -606,7 +610,7 @@ Botão: "Voltar para Etapa X"
 | 8 | Progress Bar | 2-3h | - | - |
 | 9 | Testes Completos | 6-8h | - | - |
 | 10 | Documentação | 3-4h | - | - |
-| **TOTAL** | | **36-48h (5-6 dias)** | | |
+| **TOTAL** | | **37-49h (5-6 dias)** | | |
 
 ---
 
