@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import { ChevronLeft, AlertCircle } from 'lucide-react';
+import { ChevronLeft, AlertCircle, Info } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
+import { toast } from '../../lib/utils/safe-toast';
 
 // Componentes compartilhados
 import { StepIdentificacaoLeadCompleto } from './steps/shared/step-identificacao-lead-completo';
@@ -52,6 +53,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
+  // Estados de navegação histórica
+  const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
+  const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
   
   // Estados dos formulários de cada etapa
   const [etapa1Data, setEtapa1Data] = useState({ leadId: '' });
@@ -175,8 +180,31 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
 
   // Handlers para navegação
   const handleStepClick = (stepId: number) => {
+    // Só permite voltar para etapas concluídas ou a etapa atual
     if (stepId <= currentStep) {
+      // Se está navegando para uma etapa anterior, salva a posição atual
+      if (stepId < currentStep && !isHistoricalNavigation) {
+        setLastActiveStep(currentStep);
+        setIsHistoricalNavigation(true);
+      }
+
+      // Se está voltando para a última etapa ativa, limpa o modo histórico
+      if (stepId === lastActiveStep) {
+        setIsHistoricalNavigation(false);
+        setLastActiveStep(null);
+      }
+
       setCurrentStep(stepId);
+    }
+  };
+
+  // Handler para retornar à etapa ativa
+  const handleReturnToActive = () => {
+    if (lastActiveStep) {
+      setCurrentStep(lastActiveStep);
+      setIsHistoricalNavigation(false);
+      setLastActiveStep(null);
+      toast.success('Voltou para onde estava!', { icon: '🎯' });
     }
   };
 
@@ -224,12 +252,29 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
       )}
       
       {/* Stepper Horizontal */}
-      <WorkflowStepper
-        steps={steps}
-        currentStep={currentStep}
-        onStepClick={handleStepClick}
-        completedSteps={completedSteps} // FIXADO: Calcula etapas concluídas dinamicamente
-      />
+      <div className="relative">
+        <WorkflowStepper
+          steps={steps}
+          currentStep={currentStep}
+          onStepClick={handleStepClick}
+          completedSteps={completedSteps}
+          lastActiveStep={lastActiveStep || undefined}
+        />
+
+        {/* Botão de Retorno Rápido */}
+        {isHistoricalNavigation && lastActiveStep && (
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
+            <button
+              onClick={handleReturnToActive}
+              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
+              title="Voltar para a etapa em que estava trabalhando"
+            >
+              <ChevronLeft className="w-4 h-4 rotate-180" />
+              <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Main Content Area */}
       <div className="flex-1 overflow-hidden">
@@ -247,6 +292,24 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
                   Etapa {currentStep} de {steps.length}
                 </Badge>
               </div>
+
+              {/* Banner de Modo Histórico */}
+              {isHistoricalNavigation && (
+                <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg flex items-start gap-3">
+                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-blue-900 text-sm">
+                      Modo de Visualização Histórica
+                    </h4>
+                    <p className="text-blue-800 text-sm">
+                      Você está visualizando dados de uma etapa já concluída.
+                      {lastActiveStep && (
+                        <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
               
@@ -365,6 +428,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
               prevButtonText="Anterior"
               nextButtonText="Próxima Etapa"
               finalButtonText="Ativar Contrato"
+              readOnlyMode={isHistoricalNavigation}
+              onReturnToActive={handleReturnToActive}
             />
           </Card>
         </div>
