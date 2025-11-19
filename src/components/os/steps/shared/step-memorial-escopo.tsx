@@ -8,6 +8,9 @@ import { Textarea } from '../../../ui/textarea';
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { Separator } from '../../../ui/separator';
 import { Plus, Trash2, X, AlertCircle } from 'lucide-react';
+import { FormTextarea } from '../../../ui/form-textarea';
+import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
+import { etapa7Schema } from '../../../../lib/validations/os-etapas-schema';
 
 interface SubEtapa {
   nome: string;
@@ -30,12 +33,22 @@ interface StepMemorialEscopoProps {
     preparacaoArea: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
 export function StepMemorialEscopo({
   data,
   onDataChange,
+  readOnly = false,
 }: StepMemorialEscopoProps) {
+  // Hook de validação
+  const {
+    errors,
+    touched,
+    validateField,
+    markFieldTouched,
+  } = useFieldValidation(etapa7Schema);
+
   const handleAdicionarEtapaPrincipal = () => {
     const novaEtapa: EtapaPrincipal = {
       nome: '',
@@ -103,18 +116,32 @@ export function StepMemorialEscopo({
       </Alert>
 
       {/* 1. Objetivo */}
-      <div className="space-y-2">
-        <Label htmlFor="objetivo">
-          1. Qual o objetivo da contratação do serviço? <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="objetivo"
-          rows={3}
-          value={data.objetivo}
-          onChange={(e) => onDataChange({ ...data, objetivo: e.target.value })}
-          placeholder="Descreva o objetivo principal do serviço a ser executado..."
-        />
-      </div>
+      <FormTextarea
+        id="objetivo"
+        label="1. Qual o objetivo da contratação do serviço?"
+        required
+        rows={3}
+        maxLength={500}
+        showCharCount
+        value={data.objetivo}
+        onChange={(e) => {
+          if (!readOnly) {
+            onDataChange({ ...data, objetivo: e.target.value });
+            if (touched.objetivo) validateField('objetivo', e.target.value);
+          }
+        }}
+        onBlur={() => {
+          if (!readOnly) {
+            markFieldTouched('objetivo');
+            validateField('objetivo', data.objetivo);
+          }
+        }}
+        error={touched.objetivo ? errors.objetivo : undefined}
+        success={touched.objetivo && !errors.objetivo && data.objetivo.length >= 10}
+        helperText="Mínimo 10 caracteres - Descreva o objetivo principal do serviço"
+        placeholder="Descreva o objetivo principal do serviço a ser executado..."
+        disabled={readOnly}
+      />
 
       <Separator />
 
@@ -127,6 +154,7 @@ export function StepMemorialEscopo({
           <PrimaryButton
             variant="secondary"
             onClick={handleAdicionarEtapaPrincipal}
+            disabled={readOnly}
           >
             <Plus className="h-4 w-4 mr-2" />
             Adicionar Etapa Principal
@@ -148,13 +176,15 @@ export function StepMemorialEscopo({
               <div className="flex items-center gap-3">
                 <Input
                   value={etapa.nome}
-                  onChange={(e) => handleAtualizarNomeEtapa(etapaIndex, e.target.value)}
+                  onChange={(e) => !readOnly && handleAtualizarNomeEtapa(etapaIndex, e.target.value)}
                   placeholder={`Ex: ${etapaIndex + 1}. Tratamento de Fachada`}
                   className="flex-1"
+                  disabled={readOnly}
                 />
                 <PrimaryButton
                   variant="secondary"
                   onClick={() => handleAdicionarSubetapa(etapaIndex)}
+                  disabled={readOnly}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Sub-etapa
@@ -163,6 +193,7 @@ export function StepMemorialEscopo({
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoverEtapaPrincipal(etapaIndex)}
+                  disabled={readOnly}
                 >
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </Button>
@@ -190,8 +221,9 @@ export function StepMemorialEscopo({
                       <div className="col-span-5">
                         <Input
                           value={sub.nome}
-                          onChange={(e) => handleAtualizarSubetapa(etapaIndex, subIndex, 'nome', e.target.value)}
+                          onChange={(e) => !readOnly && handleAtualizarSubetapa(etapaIndex, subIndex, 'nome', e.target.value)}
                           placeholder="Descrição da sub-etapa"
+                          disabled={readOnly}
                         />
                       </div>
                       <div className="col-span-2">
@@ -199,16 +231,18 @@ export function StepMemorialEscopo({
                           type="number"
                           step="0.01"
                           value={sub.m2}
-                          onChange={(e) => handleAtualizarSubetapa(etapaIndex, subIndex, 'm2', e.target.value)}
+                          onChange={(e) => !readOnly && handleAtualizarSubetapa(etapaIndex, subIndex, 'm2', e.target.value)}
                           placeholder="0"
+                          disabled={readOnly}
                         />
                       </div>
                       <div className="col-span-2">
                         <Input
                           type="number"
                           value={sub.diasUteis}
-                          onChange={(e) => handleAtualizarSubetapa(etapaIndex, subIndex, 'diasUteis', e.target.value)}
+                          onChange={(e) => !readOnly && handleAtualizarSubetapa(etapaIndex, subIndex, 'diasUteis', e.target.value)}
                           placeholder="0"
+                          disabled={readOnly}
                         />
                       </div>
                       <div className="col-span-2">
@@ -216,8 +250,9 @@ export function StepMemorialEscopo({
                           type="number"
                           step="0.01"
                           value={sub.total}
-                          onChange={(e) => handleAtualizarSubetapa(etapaIndex, subIndex, 'total', e.target.value)}
+                          onChange={(e) => !readOnly && handleAtualizarSubetapa(etapaIndex, subIndex, 'total', e.target.value)}
                           placeholder="0,00"
+                          disabled={readOnly}
                         />
                       </div>
                       <div className="col-span-1">
@@ -225,6 +260,7 @@ export function StepMemorialEscopo({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoverSubetapa(etapaIndex, subIndex)}
+                          disabled={readOnly}
                         >
                           <X className="h-4 w-4 text-destructive" />
                         </Button>
@@ -255,12 +291,28 @@ export function StepMemorialEscopo({
               id="planejamentoInicial"
               type="number"
               value={data.planejamentoInicial}
-              onChange={(e) => onDataChange({ ...data, planejamentoInicial: e.target.value })}
+              onChange={(e) => {
+                if (!readOnly) {
+                  onDataChange({ ...data, planejamentoInicial: e.target.value });
+                  if (touched.planejamentoInicial) validateField('planejamentoInicial', e.target.value);
+                }
+              }}
+              onBlur={() => {
+                if (!readOnly) {
+                  markFieldTouched('planejamentoInicial');
+                  validateField('planejamentoInicial', data.planejamentoInicial);
+                }
+              }}
+              className={touched.planejamentoInicial && errors.planejamentoInicial ? 'border-red-500' : ''}
               placeholder="0"
+              disabled={readOnly}
             />
             <p className="text-xs text-muted-foreground">
               Dias úteis para planejamento e mobilização
             </p>
+            {touched.planejamentoInicial && errors.planejamentoInicial && (
+              <p className="text-xs text-red-600">❌ {errors.planejamentoInicial}</p>
+            )}
           </div>
 
           {/* Logística e transporte */}
@@ -272,12 +324,28 @@ export function StepMemorialEscopo({
               id="logisticaTransporte"
               type="number"
               value={data.logisticaTransporte}
-              onChange={(e) => onDataChange({ ...data, logisticaTransporte: e.target.value })}
+              onChange={(e) => {
+                if (!readOnly) {
+                  onDataChange({ ...data, logisticaTransporte: e.target.value });
+                  if (touched.logisticaTransporte) validateField('logisticaTransporte', e.target.value);
+                }
+              }}
+              onBlur={() => {
+                if (!readOnly) {
+                  markFieldTouched('logisticaTransporte');
+                  validateField('logisticaTransporte', data.logisticaTransporte);
+                }
+              }}
+              className={touched.logisticaTransporte && errors.logisticaTransporte ? 'border-red-500' : ''}
               placeholder="0"
+              disabled={readOnly}
             />
             <p className="text-xs text-muted-foreground">
               Dias úteis para transporte e logística
             </p>
+            {touched.logisticaTransporte && errors.logisticaTransporte && (
+              <p className="text-xs text-red-600">❌ {errors.logisticaTransporte}</p>
+            )}
           </div>
 
           {/* Preparação de área */}
@@ -289,12 +357,28 @@ export function StepMemorialEscopo({
               id="preparacaoArea"
               type="number"
               value={data.preparacaoArea}
-              onChange={(e) => onDataChange({ ...data, preparacaoArea: e.target.value })}
+              onChange={(e) => {
+                if (!readOnly) {
+                  onDataChange({ ...data, preparacaoArea: e.target.value });
+                  if (touched.preparacaoArea) validateField('preparacaoArea', e.target.value);
+                }
+              }}
+              onBlur={() => {
+                if (!readOnly) {
+                  markFieldTouched('preparacaoArea');
+                  validateField('preparacaoArea', data.preparacaoArea);
+                }
+              }}
+              className={touched.preparacaoArea && errors.preparacaoArea ? 'border-red-500' : ''}
               placeholder="0"
+              disabled={readOnly}
             />
             <p className="text-xs text-muted-foreground">
               Dias úteis para montagem de estruturas e preparação
             </p>
+            {touched.preparacaoArea && errors.preparacaoArea && (
+              <p className="text-xs text-red-600">❌ {errors.preparacaoArea}</p>
+            )}
           </div>
 
           {/* Execução de obra (calculado) */}
