@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { Input } from '../../../ui/input';
 import { Label } from '../../../ui/label';
 import { Textarea } from '../../../ui/textarea';
@@ -6,6 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { Separator } from '../../../ui/separator';
 import { AlertCircle, Upload } from 'lucide-react';
+import { FormInput } from '../../../ui/form-input';
+import { FormTextarea } from '../../../ui/form-textarea';
+import { FormSelect } from '../../../ui/form-select';
+import { FormMaskedInput, validarTelefone } from '../../../ui/form-masked-input';
+import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
+import { etapa3Schema } from '../../../../lib/validations/os-etapas-schema';
 
 interface StepFollowup1Props {
   data: {
@@ -24,7 +30,51 @@ interface StepFollowup1Props {
   onDataChange: (data: any) => void;
 }
 
-export function StepFollowup1({ data, onDataChange }: StepFollowup1Props) {
+export interface StepFollowup1Handle {
+  validate: () => boolean;
+}
+
+export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>(
+  function StepFollowup1({ data, onDataChange }, ref) {
+  // Hook de validação
+  const {
+    errors,
+    touched,
+    validateField,
+    markFieldTouched,
+    markAllTouched,
+    validateAll,
+  } = useFieldValidation(etapa3Schema);
+
+  /**
+   * Função de validação exposta via imperativeHandle
+   * Marca todos os campos como tocados, valida e retorna se é válido
+   */
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      // Marca todos os campos como tocados para mostrar bordas/erros
+      markAllTouched();
+
+      // Valida todo o formulário e popula objeto de erros
+      const isValid = validateAll(data);
+
+      // Se houver erros, scroll para o primeiro campo inválido
+      if (!isValid) {
+        // Encontra o primeiro campo com erro e faz scroll
+        const firstErrorField = Object.keys(errors)[0];
+        if (firstErrorField) {
+          const element = document.getElementById(firstErrorField);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
+      }
+
+      return isValid;
+    }
+  }), [markAllTouched, validateAll, data, errors]);
+
   return (
     <div className="space-y-6">
       <Alert>
@@ -35,162 +85,204 @@ export function StepFollowup1({ data, onDataChange }: StepFollowup1Props) {
       </Alert>
 
       <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="idadeEdificacao">
-            1. Qual a idade da edificação? <span className="text-destructive">*</span>
-          </Label>
-          <Select 
-            value={data.idadeEdificacao} 
-            onValueChange={(value) => onDataChange({ ...data, idadeEdificacao: value })}
-          >
-            <SelectTrigger id="idadeEdificacao">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Ainda não foi entregue">Ainda não foi entregue</SelectItem>
-              <SelectItem value="0 a 3 anos">0 a 3 anos</SelectItem>
-              <SelectItem value="3 a 5 anos">3 a 5 anos</SelectItem>
-              <SelectItem value="5 a 10 anos">5 a 10 anos</SelectItem>
-              <SelectItem value="10 a 20 anos">10 a 20 anos</SelectItem>
-              <SelectItem value="Acima de 20 anos">Acima de 20 anos</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <FormSelect
+          id="idadeEdificacao"
+          label="1. Qual a idade da edificação?"
+          required
+          value={data.idadeEdificacao}
+          onValueChange={(value) => {
+            onDataChange({ ...data, idadeEdificacao: value });
+            if (touched.idadeEdificacao) validateField('idadeEdificacao', value);
+            markFieldTouched('idadeEdificacao');
+          }}
+          error={touched.idadeEdificacao ? errors.idadeEdificacao : undefined}
+          success={touched.idadeEdificacao && !errors.idadeEdificacao && data.idadeEdificacao.length > 0}
+          helperText="Selecione a idade aproximada da edificação"
+          placeholder="Selecione"
+          options={[
+            { value: "Ainda não foi entregue", label: "Ainda não foi entregue" },
+            { value: "0 a 3 anos", label: "0 a 3 anos" },
+            { value: "3 a 5 anos", label: "3 a 5 anos" },
+            { value: "5 a 10 anos", label: "5 a 10 anos" },
+            { value: "10 a 20 anos", label: "10 a 20 anos" },
+            { value: "Acima de 20 anos", label: "Acima de 20 anos" },
+          ]}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="motivoProcura">
-            2. Qual o motivo fez você nos procurar? Quais problemas existentes? <span className="text-destructive">*</span>
-          </Label>
-          <Textarea
-            id="motivoProcura"
-            rows={4}
-            value={data.motivoProcura}
-            onChange={(e) => onDataChange({ ...data, motivoProcura: e.target.value })}
-            placeholder="Descreva os problemas e motivações..."
-          />
-        </div>
+        <FormTextarea
+          id="motivoProcura"
+          label="2. Qual o motivo fez você nos procurar? Quais problemas existentes?"
+          required
+          rows={4}
+          maxLength={500}
+          showCharCount
+          value={data.motivoProcura}
+          onChange={(e) => {
+            onDataChange({ ...data, motivoProcura: e.target.value });
+            if (touched.motivoProcura) validateField('motivoProcura', e.target.value);
+          }}
+          onBlur={() => {
+            markFieldTouched('motivoProcura');
+            validateField('motivoProcura', data.motivoProcura);
+          }}
+          error={touched.motivoProcura ? errors.motivoProcura : undefined}
+          success={touched.motivoProcura && !errors.motivoProcura && data.motivoProcura.length >= 10}
+          helperText="Mínimo 10 caracteres - Descreva os problemas e motivações"
+          placeholder="Descreva os problemas e motivações..."
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="quandoAconteceu">
-            3. Quando aconteceu? Há quanto tempo vem acontecendo? <span className="text-destructive">*</span>
-          </Label>
-          <Textarea
-            id="quandoAconteceu"
-            rows={3}
-            value={data.quandoAconteceu}
-            onChange={(e) => onDataChange({ ...data, quandoAconteceu: e.target.value })}
-            placeholder="Descreva o histórico do problema..."
-          />
-        </div>
+        <FormTextarea
+          id="quandoAconteceu"
+          label="3. Quando aconteceu? Há quanto tempo vem acontecendo?"
+          required
+          rows={3}
+          maxLength={300}
+          showCharCount
+          value={data.quandoAconteceu}
+          onChange={(e) => {
+            onDataChange({ ...data, quandoAconteceu: e.target.value });
+            if (touched.quandoAconteceu) validateField('quandoAconteceu', e.target.value);
+          }}
+          onBlur={() => {
+            markFieldTouched('quandoAconteceu');
+            validateField('quandoAconteceu', data.quandoAconteceu);
+          }}
+          error={touched.quandoAconteceu ? errors.quandoAconteceu : undefined}
+          success={touched.quandoAconteceu && !errors.quandoAconteceu && data.quandoAconteceu.length >= 10}
+          helperText="Mínimo 10 caracteres - Descreva o histórico do problema"
+          placeholder="Descreva o histórico do problema..."
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="oqueFeitoARespeito">
-            4. O que já foi feito a respeito disso?
-          </Label>
-          <Textarea
-            id="oqueFeitoARespeito"
-            rows={3}
-            value={data.oqueFeitoARespeito}
-            onChange={(e) => onDataChange({ ...data, oqueFeitoARespeito: e.target.value })}
-            placeholder="Descreva as ações já realizadas..."
-          />
-        </div>
+        <FormTextarea
+          id="oqueFeitoARespeito"
+          label="4. O que já foi feito a respeito disso?"
+          rows={3}
+          maxLength={300}
+          showCharCount
+          value={data.oqueFeitoARespeito}
+          onChange={(e) => onDataChange({ ...data, oqueFeitoARespeito: e.target.value })}
+          helperText="Descreva as ações já realizadas (opcional)"
+          placeholder="Descreva as ações já realizadas..."
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="existeEscopo">
-            5. Existe um escopo de serviços ou laudo com diagnóstico do problema?
-          </Label>
-          <Textarea
-            id="existeEscopo"
-            rows={2}
-            value={data.existeEscopo}
-            onChange={(e) => onDataChange({ ...data, existeEscopo: e.target.value })}
-            placeholder="Sim/Não e detalhes..."
-          />
-        </div>
+        <FormTextarea
+          id="existeEscopo"
+          label="5. Existe um escopo de serviços ou laudo com diagnóstico do problema?"
+          rows={2}
+          maxLength={200}
+          showCharCount
+          value={data.existeEscopo}
+          onChange={(e) => onDataChange({ ...data, existeEscopo: e.target.value })}
+          helperText="Informe se existe documentação prévia (opcional)"
+          placeholder="Sim/Não e detalhes..."
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="previsaoOrcamentaria">
-            6. Existe previsão orçamentária para este serviço? Ou você precisa de parâmetro para taxa extra?
-          </Label>
-          <Textarea
-            id="previsaoOrcamentaria"
-            rows={2}
-            value={data.previsaoOrcamentaria}
-            onChange={(e) => onDataChange({ ...data, previsaoOrcamentaria: e.target.value })}
-            placeholder="Informe o orçamento disponível..."
-          />
-        </div>
+        <FormTextarea
+          id="previsaoOrcamentaria"
+          label="6. Existe previsão orçamentária para este serviço? Ou você precisa de parâmetro para taxa extra?"
+          rows={2}
+          maxLength={200}
+          showCharCount
+          value={data.previsaoOrcamentaria}
+          onChange={(e) => onDataChange({ ...data, previsaoOrcamentaria: e.target.value })}
+          helperText="Informe o orçamento disponível (opcional)"
+          placeholder="Informe o orçamento disponível..."
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="grauUrgencia">
-            7. Qual o grau de urgência para executar esse serviço? <span className="text-destructive">*</span>
-          </Label>
-          <Select 
-            value={data.grauUrgencia} 
-            onValueChange={(value) => onDataChange({ ...data, grauUrgencia: value })}
-          >
-            <SelectTrigger id="grauUrgencia">
-              <SelectValue placeholder="Selecione" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="30 dias">30 dias</SelectItem>
-              <SelectItem value="3 meses">3 meses</SelectItem>
-              <SelectItem value="6 meses ou mais">6 meses ou mais</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <FormSelect
+          id="grauUrgencia"
+          label="7. Qual o grau de urgência para executar esse serviço?"
+          required
+          value={data.grauUrgencia}
+          onValueChange={(value) => {
+            onDataChange({ ...data, grauUrgencia: value });
+            if (touched.grauUrgencia) validateField('grauUrgencia', value);
+            markFieldTouched('grauUrgencia');
+          }}
+          error={touched.grauUrgencia ? errors.grauUrgencia : undefined}
+          success={touched.grauUrgencia && !errors.grauUrgencia && data.grauUrgencia.length > 0}
+          helperText="Selecione o prazo de execução desejado"
+          placeholder="Selecione"
+          options={[
+            { value: "30 dias", label: "30 dias" },
+            { value: "3 meses", label: "3 meses" },
+            { value: "6 meses ou mais", label: "6 meses ou mais" },
+          ]}
+        />
 
-        <div className="space-y-2">
-          <Label htmlFor="apresentacaoProposta">
-            8. Nossas propostas são apresentadas, nós não enviamos orçamento. Você concorda? Deseja que faça o orçamento? Se sim, qual dia e horário sugeridos para apresentação da proposta comercial dessa visita técnica? <span className="text-destructive">*</span>
-          </Label>
-          <Textarea
-            id="apresentacaoProposta"
-            rows={3}
-            value={data.apresentacaoProposta}
-            onChange={(e) => onDataChange({ ...data, apresentacaoProposta: e.target.value })}
-            placeholder="Resposta do cliente..."
-          />
-        </div>
+        <FormTextarea
+          id="apresentacaoProposta"
+          label="8. Nossas propostas são apresentadas, nós não enviamos orçamento. Você concorda? Deseja que faça o orçamento? Se sim, qual dia e horário sugeridos para apresentação da proposta comercial dessa visita técnica?"
+          required
+          rows={3}
+          maxLength={300}
+          showCharCount
+          value={data.apresentacaoProposta}
+          onChange={(e) => {
+            onDataChange({ ...data, apresentacaoProposta: e.target.value });
+            if (touched.apresentacaoProposta) validateField('apresentacaoProposta', e.target.value);
+          }}
+          onBlur={() => {
+            markFieldTouched('apresentacaoProposta');
+            validateField('apresentacaoProposta', data.apresentacaoProposta);
+          }}
+          error={touched.apresentacaoProposta ? errors.apresentacaoProposta : undefined}
+          success={touched.apresentacaoProposta && !errors.apresentacaoProposta && data.apresentacaoProposta.length >= 10}
+          helperText="Mínimo 10 caracteres - Resposta do cliente sobre apresentação"
+          placeholder="Resposta do cliente..."
+        />
 
         <Separator />
 
         <h3 className="text-sm font-medium">Dados do Contato no Local</h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="nomeContatoLocal">
-              9. Nome (Contato no Local) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="nomeContatoLocal"
-              value={data.nomeContatoLocal}
-              onChange={(e) => onDataChange({ ...data, nomeContatoLocal: e.target.value })}
-              placeholder="Nome completo"
-            />
-          </div>
+          <FormInput
+            id="nomeContatoLocal"
+            label="9. Nome (Contato no Local)"
+            required
+            value={data.nomeContatoLocal}
+            onChange={(e) => {
+              onDataChange({ ...data, nomeContatoLocal: e.target.value });
+              if (touched.nomeContatoLocal) validateField('nomeContatoLocal', e.target.value);
+            }}
+            onBlur={() => {
+              markFieldTouched('nomeContatoLocal');
+              validateField('nomeContatoLocal', data.nomeContatoLocal);
+            }}
+            error={touched.nomeContatoLocal ? errors.nomeContatoLocal : undefined}
+            success={touched.nomeContatoLocal && !errors.nomeContatoLocal && data.nomeContatoLocal.length >= 3}
+            helperText="Mínimo 3 caracteres"
+            placeholder="Nome completo"
+          />
 
-          <div className="space-y-2">
-            <Label htmlFor="telefoneContatoLocal">
-              10. Contato (Telefone) <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="telefoneContatoLocal"
-              value={data.telefoneContatoLocal}
-              onChange={(e) => onDataChange({ ...data, telefoneContatoLocal: e.target.value })}
-              placeholder="(00) 00000-0000"
-            />
-          </div>
+          <FormMaskedInput
+            id="telefoneContatoLocal"
+            label="10. Contato (Telefone)"
+            required
+            maskType="telefone"
+            value={data.telefoneContatoLocal}
+            onChange={(e) => {
+              onDataChange({ ...data, telefoneContatoLocal: e.target.value });
+              if (touched.telefoneContatoLocal) validateField('telefoneContatoLocal', e.target.value);
+            }}
+            onBlur={() => {
+              markFieldTouched('telefoneContatoLocal');
+              validateField('telefoneContatoLocal', data.telefoneContatoLocal);
+            }}
+            error={touched.telefoneContatoLocal ? errors.telefoneContatoLocal : undefined}
+            success={touched.telefoneContatoLocal && !errors.telefoneContatoLocal && validarTelefone(data.telefoneContatoLocal)}
+            helperText="Digite com DDD (10 ou 11 dígitos)"
+            placeholder="(00) 00000-0000"
+          />
 
-          <div className="col-span-2 space-y-2">
-            <Label htmlFor="cargoContatoLocal">
-              11. Cargo (Contato no Local)
-            </Label>
-            <Input
+          <div className="col-span-2">
+            <FormInput
               id="cargoContatoLocal"
+              label="11. Cargo (Contato no Local)"
               value={data.cargoContatoLocal}
               onChange={(e) => onDataChange({ ...data, cargoContatoLocal: e.target.value })}
+              helperText="Cargo ou função da pessoa no local (opcional)"
               placeholder="Ex: Síndico, Zelador, Gerente..."
             />
           </div>
@@ -213,4 +305,7 @@ export function StepFollowup1({ data, onDataChange }: StepFollowup1Props) {
       </div>
     </div>
   );
-}
+  }
+);
+
+StepFollowup1.displayName = 'StepFollowup1';

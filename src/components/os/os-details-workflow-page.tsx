@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -30,6 +30,7 @@ import { Separator } from '../ui/separator';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
 import { StepIdentificacaoLeadCompleto } from './steps/shared/step-identificacao-lead-completo';
+import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-followup-1';
 import { StepMemorialEscopo } from './steps/shared/step-memorial-escopo';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarPropostaOS0104 } from './steps/shared/step-gerar-proposta-os01-04';
@@ -92,7 +93,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // Estados de navegação histórica
   const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
   const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
-  
+
+  // Ref para o componente StepFollowup1 (para validação imperativa)
+  const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
+
   // Calcular quais etapas estão concluídas (status = APROVADA)
   const completedSteps = useMemo(() => {
     if (!etapas || etapas.length === 0) return [];
@@ -166,10 +170,32 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
   // Buscar dados de uma etapa específica
   const getStepData = (stepNum: number) => {
-    const data = formDataByStep[stepNum] || {};
-    if (!formDataByStep[stepNum]) {
-      console.warn(`⚠️ Dados vazios para etapa ${stepNum}, retornando objeto vazio`);
+    const data = formDataByStep[stepNum];
+
+    if (!data) {
+      // Retornar estruturas padrão para etapas que precisam de arrays inicializados
+      const defaults: Record<number, any> = {
+        3: {
+          anexos: [],
+          idadeEdificacao: '',
+          motivoProcura: '',
+          quandoAconteceu: '',
+          oqueFeitoARespeito: '',
+          existeEscopo: '',
+          previsaoOrcamentaria: '',
+          grauUrgencia: '',
+          apresentacaoProposta: '',
+          nomeContatoLocal: '',
+          telefoneContatoLocal: '',
+          cargoContatoLocal: '',
+        },
+        6: { fotosAncoragem: [], arquivosGerais: [] },
+        8: { etapasPrincipais: [] },
+      };
+
+      return defaults[stepNum] || {};
     }
+
     return data;
   };
 
@@ -202,21 +228,21 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     });
   };
 
-  // Aliases para compatibilidade com código existente (serão removidos gradualmente)
-  const etapa1Data = getStepData(1);
-  const etapa2Data = getStepData(2);
-  const etapa3Data = getStepData(3);
-  const etapa4Data = getStepData(4);
-  const etapa5Data = getStepData(5);
-  const etapa6Data = getStepData(6);
-  const etapa8Data = getStepData(8);
-  const etapa9Data = getStepData(9);
-  const etapa10Data = getStepData(10);
-  const etapa11Data = getStepData(11);
-  const etapa12Data = getStepData(12);
-  const etapa13Data = getStepData(13);
-  const etapa14Data = getStepData(14);
-  const etapa15Data = getStepData(15);
+  // Aliases para compatibilidade com código existente (memoizados para performance)
+  const etapa1Data = useMemo(() => getStepData(1), [formDataByStep]);
+  const etapa2Data = useMemo(() => getStepData(2), [formDataByStep]);
+  const etapa3Data = useMemo(() => getStepData(3), [formDataByStep]);
+  const etapa4Data = useMemo(() => getStepData(4), [formDataByStep]);
+  const etapa5Data = useMemo(() => getStepData(5), [formDataByStep]);
+  const etapa6Data = useMemo(() => getStepData(6), [formDataByStep]);
+  const etapa8Data = useMemo(() => getStepData(8), [formDataByStep]);
+  const etapa9Data = useMemo(() => getStepData(9), [formDataByStep]);
+  const etapa10Data = useMemo(() => getStepData(10), [formDataByStep]);
+  const etapa11Data = useMemo(() => getStepData(11), [formDataByStep]);
+  const etapa12Data = useMemo(() => getStepData(12), [formDataByStep]);
+  const etapa13Data = useMemo(() => getStepData(13), [formDataByStep]);
+  const etapa14Data = useMemo(() => getStepData(14), [formDataByStep]);
+  const etapa15Data = useMemo(() => getStepData(15), [formDataByStep]);
 
   const setEtapa1Data = (data: any) => setStepData(1, data);
   const setEtapa2Data = (data: any) => setStepData(2, data);
@@ -354,7 +380,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Adicionar arquivos ao estado
       setEtapa3Data(prev => ({
         ...prev,
-        anexos: [...prev.anexos, ...uploadedFiles],
+        anexos: [...(prev.anexos || []), ...uploadedFiles],
       }));
       
       toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
@@ -377,7 +403,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Remover do estado
       setEtapa3Data(prev => ({
         ...prev,
-        anexos: prev.anexos.filter(f => f.id !== fileId),
+        anexos: (prev.anexos || []).filter(f => f.id !== fileId),
       }));
       
       toast.success('Arquivo removido com sucesso!');
@@ -435,22 +461,77 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     }
   };
 
-  const handleSelectLead = (leadId: string) => {
+  // Função para validar UUID
+  const isValidUUID = (uuid: string): boolean => {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(uuid);
+  };
+
+  const handleSelectLead = (leadId: string, leadData?: any) => {
     try {
       console.log('🎯 handleSelectLead chamado com ID:', leadId);
-      
+      console.log('📊 leadData recebido:', leadData);
+
       // Validar leadId
       if (!leadId || typeof leadId !== 'string') {
         console.error('❌ leadId inválido:', leadId);
+        console.error('❌ leadId deve ser uma string');
         return;
       }
-      
+
+      // Validar se é um UUID válido
+      if (!isValidUUID(leadId)) {
+        console.error('❌ leadId não é um UUID válido:', leadId);
+        console.error('❌ O lead selecionado não foi criado corretamente no banco de dados');
+        console.error('❌ UUID esperado: 8-4-4-4-12 hexadecimais (ex: 3acbed3a-7254-42b6-8a1b-9ad8a7d3da5d)');
+        try {
+          toast.error(`Lead inválido. UUID recebido: "${leadId}". Certifique-se de que foi criado corretamente no banco de dados.`);
+        } catch (toastError) {
+          console.error('❌ Erro ao exibir toast:', toastError);
+        }
+        return;
+      }
+
       setSelectedLeadId(leadId);
-      setEtapa1Data({ leadId });
-      
-      console.log('✅ Lead ID salvo com sucesso:', leadId);
-      // Nota: O formData é preenchido pelo componente StepIdentificacaoLeadCompleto
-      // quando um lead é selecionado do banco de dados
+      console.log('✅ selectedLeadId validado e atualizado:', leadId);
+
+      // Se recebemos dados completos do lead, salvar tudo
+      if (leadData) {
+        const etapa1DataCompleta = {
+          leadId,
+          nome: leadData.nome_razao_social || '',
+          cpfCnpj: leadData.cpf_cnpj || '',
+          email: leadData.email || '',
+          telefone: leadData.telefone || '',
+          // Campos adicionais do lead
+          tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
+          nomeResponsavel: leadData.nome_responsavel || '',
+          cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
+          tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
+          qtdUnidades: leadData.endereco?.qtd_unidades || '',
+          qtdBlocos: leadData.endereco?.qtd_blocos || '',
+          qtdPavimentos: leadData.endereco?.qtd_pavimentos || '',
+          tipoTelhado: leadData.endereco?.tipo_telhado || '',
+          possuiElevador: leadData.endereco?.possui_elevador || false,
+          possuiPiscina: leadData.endereco?.possui_piscina || false,
+          cep: leadData.endereco?.cep || '',
+          endereco: leadData.endereco?.rua || '',
+          numero: leadData.endereco?.numero || '',
+          complemento: leadData.endereco?.complemento || '',
+          bairro: leadData.endereco?.bairro || '',
+          cidade: leadData.endereco?.cidade || '',
+          estado: leadData.endereco?.estado || '',
+        };
+
+        console.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
+        setEtapa1Data(etapa1DataCompleta);
+        console.log('✅ setEtapa1Data chamado com dados completos');
+      } else {
+        console.warn('⚠️ leadData não recebido, salvando apenas leadId');
+        // Fallback: salvar apenas leadId (será preenchido depois se necessário)
+        setEtapa1Data({ leadId });
+        console.log('✅ setEtapa1Data chamado com apenas leadId');
+      }
     } catch (error) {
       console.error('❌ Erro ao selecionar lead:', error);
       // NÃO usar toast aqui para evitar erro do Sonner
@@ -582,7 +663,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     if (etapas && etapas.length > 0 && osId) {
       carregarDadosEtapaAtual();
     }
-  }, [currentStep, etapas]);
+  }, [currentStep]); // Removido 'etapas' para evitar loop infinito de auto-save
 
   /**
    * Carregar dados salvos da etapa atual
@@ -788,7 +869,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         }
         return;
       }
-      
+
       if (!etapa2Data.tipoOS) {
         try {
           toast.error('Selecione o tipo de OS antes de continuar');
@@ -801,30 +882,30 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       try {
         // Ativar loading state
         setIsCreatingOS(true);
-        
+
         console.log('🚀 Iniciando criação de OS no Supabase...');
-        
+
         // Criar OS e 15 etapas no banco
         const novaOsId = await criarOSComEtapas();
-        
+
         console.log('✅ OS criada com sucesso! ID:', novaOsId);
-        
+
         // Salvar osId no estado interno
         setInternalOsId(novaOsId);
-        
+
         // Recarregar etapas do banco
         console.log('📋 Carregando etapas...');
         await fetchEtapas(novaOsId);
-        
+
         // Avançar para etapa 3
         setCurrentStep(3);
-        
+
         try {
           toast.success('Agora você pode preencher o Follow-up 1!');
         } catch (toastError) {
           console.error('❌ Erro ao exibir toast de sucesso:', toastError);
         }
-        
+
       } catch (error) {
         console.error('❌ Erro ao criar OS:', error);
         try {
@@ -836,14 +917,48 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         // Desativar loading state
         setIsCreatingOS(false);
       }
-      
+
+      return;
+    }
+
+    // ========================================
+    // CASO ESPECIAL: Etapa 3 (Follow-up 1) - Usar validação imperativa
+    // ========================================
+    if (currentStep === 3) {
+      // Usar validação imperativa do componente StepFollowup1
+      if (stepFollowup1Ref.current) {
+        const isValid = stepFollowup1Ref.current.validate();
+
+        if (!isValid) {
+          try {
+            toast.error('Preencha todos os campos obrigatórios antes de avançar');
+          } catch (toastError) {
+            console.error('❌ Erro ao exibir toast de validação (Etapa 3):', toastError);
+          }
+          return;
+        }
+      }
+
+      // Se passou na validação, continuar com salvamento e avanço
+      try {
+        if (osId) {
+          await saveCurrentStepData(true);
+        }
+
+        if (currentStep < steps.length) {
+          setCurrentStep(currentStep + 1);
+        }
+      } catch (error) {
+        console.error('❌ Não foi possível avançar devido a erro ao salvar');
+      }
+
       return;
     }
 
     // ========================================
     // CASO NORMAL: Outras transições de etapa
     // ========================================
-    
+
     // Validar campos obrigatórios
     if (!validateCurrentStep()) {
       try {
@@ -859,7 +974,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       if (osId) {
         await saveCurrentStepData(true);
       }
-      
+
       // Avançar para próxima etapa
       if (currentStep < steps.length) {
         setCurrentStep(currentStep + 1);
@@ -1095,6 +1210,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
               {/* ETAPA 3: Follow-up 1 (Entrevista Inicial) */}
               {currentStep === 3 && (
+                <StepFollowup1
+                  ref={stepFollowup1Ref}
+                  data={etapa3Data}
+                  onDataChange={setEtapa3Data}
+                />
+              )}
+
+              {/* OLD INLINE FORM - KEEP FOR REFERENCE, DISABLED */}
+              {false && currentStep === 3 && (
                 <div className="space-y-6">
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
@@ -1302,11 +1426,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                           </>
                         )}
                       </div>
-                      
+
                       {/* Lista de arquivos anexados */}
-                      {etapa3Data.anexos.length > 0 && (
+                      {(etapa3Data.anexos?.length ?? 0) > 0 && (
                         <div className="space-y-2 mt-4">
-                          <Label className="text-sm">Arquivos Anexados ({etapa3Data.anexos.length})</Label>
+                          <Label className="text-sm">Arquivos Anexados ({etapa3Data.anexos?.length ?? 0})</Label>
                           <div className="space-y-2">
                             {etapa3Data.anexos.map((file) => (
                               <div
@@ -1519,9 +1643,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                           Múltiplos arquivos permitidos • Você poderá adicionar comentários após o upload
                         </p>
                       </div>
-                      
+
                       {/* Lista de arquivos anexados com comentários */}
-                      {etapa6Data.fotosAncoragem.length > 0 && (
+                      {(etapa6Data.fotosAncoragem?.length ?? 0) > 0 && (
                         <div className="mt-4 space-y-2">
                           {etapa6Data.fotosAncoragem.map((item, index) => (
                             <div key={index} className="border border-neutral-200 rounded-lg p-3">
@@ -1649,7 +1773,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       </div>
 
                       {/* Lista de arquivos anexados com comentários */}
-                      {etapa6Data.arquivosGerais.length > 0 && (
+                      {(etapa6Data.arquivosGerais?.length ?? 0) > 0 && (
                         <div className="mt-4 space-y-2">
                           {etapa6Data.arquivosGerais.map((item, index) => (
                             <div key={index} className="border border-neutral-200 rounded-lg p-3">
