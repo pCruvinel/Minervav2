@@ -341,6 +341,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
                 <StepFollowup1
                   data={etapa3Data}
                   onDataChange={setEtapa3Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 

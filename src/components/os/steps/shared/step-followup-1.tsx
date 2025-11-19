@@ -28,6 +28,7 @@ interface StepFollowup1Props {
     cargoContatoLocal: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
 export interface StepFollowup1Handle {
@@ -35,7 +36,7 @@ export interface StepFollowup1Handle {
 }
 
 export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>(
-  function StepFollowup1({ data, onDataChange }, ref) {
+  function StepFollowup1({ data, onDataChange, readOnly = false }, ref) {
   // Hook de validação
   const {
     errors,
@@ -91,14 +92,17 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           required
           value={data.idadeEdificacao}
           onValueChange={(value) => {
-            onDataChange({ ...data, idadeEdificacao: value });
-            if (touched.idadeEdificacao) validateField('idadeEdificacao', value);
-            markFieldTouched('idadeEdificacao');
+            if (!readOnly) {
+              onDataChange({ ...data, idadeEdificacao: value });
+              if (touched.idadeEdificacao) validateField('idadeEdificacao', value);
+              markFieldTouched('idadeEdificacao');
+            }
           }}
           error={touched.idadeEdificacao ? errors.idadeEdificacao : undefined}
           success={touched.idadeEdificacao && !errors.idadeEdificacao && data.idadeEdificacao.length > 0}
           helperText="Selecione a idade aproximada da edificação"
           placeholder="Selecione"
+          disabled={readOnly}
           options={[
             { value: "Ainda não foi entregue", label: "Ainda não foi entregue" },
             { value: "0 a 3 anos", label: "0 a 3 anos" },
@@ -118,17 +122,22 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           showCharCount
           value={data.motivoProcura}
           onChange={(e) => {
-            onDataChange({ ...data, motivoProcura: e.target.value });
-            if (touched.motivoProcura) validateField('motivoProcura', e.target.value);
+            if (!readOnly) {
+              onDataChange({ ...data, motivoProcura: e.target.value });
+              if (touched.motivoProcura) validateField('motivoProcura', e.target.value);
+            }
           }}
           onBlur={() => {
-            markFieldTouched('motivoProcura');
-            validateField('motivoProcura', data.motivoProcura);
+            if (!readOnly) {
+              markFieldTouched('motivoProcura');
+              validateField('motivoProcura', data.motivoProcura);
+            }
           }}
           error={touched.motivoProcura ? errors.motivoProcura : undefined}
           success={touched.motivoProcura && !errors.motivoProcura && data.motivoProcura.length >= 10}
           helperText="Mínimo 10 caracteres - Descreva os problemas e motivações"
           placeholder="Descreva os problemas e motivações..."
+          disabled={readOnly}
         />
 
         <FormTextarea
@@ -140,17 +149,22 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           showCharCount
           value={data.quandoAconteceu}
           onChange={(e) => {
-            onDataChange({ ...data, quandoAconteceu: e.target.value });
-            if (touched.quandoAconteceu) validateField('quandoAconteceu', e.target.value);
+            if (!readOnly) {
+              onDataChange({ ...data, quandoAconteceu: e.target.value });
+              if (touched.quandoAconteceu) validateField('quandoAconteceu', e.target.value);
+            }
           }}
           onBlur={() => {
-            markFieldTouched('quandoAconteceu');
-            validateField('quandoAconteceu', data.quandoAconteceu);
+            if (!readOnly) {
+              markFieldTouched('quandoAconteceu');
+              validateField('quandoAconteceu', data.quandoAconteceu);
+            }
           }}
           error={touched.quandoAconteceu ? errors.quandoAconteceu : undefined}
           success={touched.quandoAconteceu && !errors.quandoAconteceu && data.quandoAconteceu.length >= 10}
           helperText="Mínimo 10 caracteres - Descreva o histórico do problema"
           placeholder="Descreva o histórico do problema..."
+          disabled={readOnly}
         />
 
         <FormTextarea
@@ -160,9 +174,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           maxLength={300}
           showCharCount
           value={data.oqueFeitoARespeito}
-          onChange={(e) => onDataChange({ ...data, oqueFeitoARespeito: e.target.value })}
+          onChange={(e) => !readOnly && onDataChange({ ...data, oqueFeitoARespeito: e.target.value })}
           helperText="Descreva as ações já realizadas (opcional)"
           placeholder="Descreva as ações já realizadas..."
+          disabled={readOnly}
         />
 
         <FormTextarea
@@ -172,9 +187,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           maxLength={200}
           showCharCount
           value={data.existeEscopo}
-          onChange={(e) => onDataChange({ ...data, existeEscopo: e.target.value })}
+          onChange={(e) => !readOnly && onDataChange({ ...data, existeEscopo: e.target.value })}
           helperText="Informe se existe documentação prévia (opcional)"
           placeholder="Sim/Não e detalhes..."
+          disabled={readOnly}
         />
 
         <FormTextarea
@@ -184,9 +200,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           maxLength={200}
           showCharCount
           value={data.previsaoOrcamentaria}
-          onChange={(e) => onDataChange({ ...data, previsaoOrcamentaria: e.target.value })}
+          onChange={(e) => !readOnly && onDataChange({ ...data, previsaoOrcamentaria: e.target.value })}
           helperText="Informe o orçamento disponível (opcional)"
           placeholder="Informe o orçamento disponível..."
+          disabled={readOnly}
         />
 
         <FormSelect
@@ -195,14 +212,17 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           required
           value={data.grauUrgencia}
           onValueChange={(value) => {
-            onDataChange({ ...data, grauUrgencia: value });
-            if (touched.grauUrgencia) validateField('grauUrgencia', value);
-            markFieldTouched('grauUrgencia');
+            if (!readOnly) {
+              onDataChange({ ...data, grauUrgencia: value });
+              if (touched.grauUrgencia) validateField('grauUrgencia', value);
+              markFieldTouched('grauUrgencia');
+            }
           }}
           error={touched.grauUrgencia ? errors.grauUrgencia : undefined}
           success={touched.grauUrgencia && !errors.grauUrgencia && data.grauUrgencia.length > 0}
           helperText="Selecione o prazo de execução desejado"
           placeholder="Selecione"
+          disabled={readOnly}
           options={[
             { value: "30 dias", label: "30 dias" },
             { value: "3 meses", label: "3 meses" },
@@ -219,17 +239,22 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           showCharCount
           value={data.apresentacaoProposta}
           onChange={(e) => {
-            onDataChange({ ...data, apresentacaoProposta: e.target.value });
-            if (touched.apresentacaoProposta) validateField('apresentacaoProposta', e.target.value);
+            if (!readOnly) {
+              onDataChange({ ...data, apresentacaoProposta: e.target.value });
+              if (touched.apresentacaoProposta) validateField('apresentacaoProposta', e.target.value);
+            }
           }}
           onBlur={() => {
-            markFieldTouched('apresentacaoProposta');
-            validateField('apresentacaoProposta', data.apresentacaoProposta);
+            if (!readOnly) {
+              markFieldTouched('apresentacaoProposta');
+              validateField('apresentacaoProposta', data.apresentacaoProposta);
+            }
           }}
           error={touched.apresentacaoProposta ? errors.apresentacaoProposta : undefined}
           success={touched.apresentacaoProposta && !errors.apresentacaoProposta && data.apresentacaoProposta.length >= 10}
           helperText="Mínimo 10 caracteres - Resposta do cliente sobre apresentação"
           placeholder="Resposta do cliente..."
+          disabled={readOnly}
         />
 
         <Separator />
@@ -243,17 +268,22 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             required
             value={data.nomeContatoLocal}
             onChange={(e) => {
-              onDataChange({ ...data, nomeContatoLocal: e.target.value });
-              if (touched.nomeContatoLocal) validateField('nomeContatoLocal', e.target.value);
+              if (!readOnly) {
+                onDataChange({ ...data, nomeContatoLocal: e.target.value });
+                if (touched.nomeContatoLocal) validateField('nomeContatoLocal', e.target.value);
+              }
             }}
             onBlur={() => {
-              markFieldTouched('nomeContatoLocal');
-              validateField('nomeContatoLocal', data.nomeContatoLocal);
+              if (!readOnly) {
+                markFieldTouched('nomeContatoLocal');
+                validateField('nomeContatoLocal', data.nomeContatoLocal);
+              }
             }}
             error={touched.nomeContatoLocal ? errors.nomeContatoLocal : undefined}
             success={touched.nomeContatoLocal && !errors.nomeContatoLocal && data.nomeContatoLocal.length >= 3}
             helperText="Mínimo 3 caracteres"
             placeholder="Nome completo"
+            disabled={readOnly}
           />
 
           <FormMaskedInput
@@ -263,17 +293,22 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             maskType="telefone"
             value={data.telefoneContatoLocal}
             onChange={(e) => {
-              onDataChange({ ...data, telefoneContatoLocal: e.target.value });
-              if (touched.telefoneContatoLocal) validateField('telefoneContatoLocal', e.target.value);
+              if (!readOnly) {
+                onDataChange({ ...data, telefoneContatoLocal: e.target.value });
+                if (touched.telefoneContatoLocal) validateField('telefoneContatoLocal', e.target.value);
+              }
             }}
             onBlur={() => {
-              markFieldTouched('telefoneContatoLocal');
-              validateField('telefoneContatoLocal', data.telefoneContatoLocal);
+              if (!readOnly) {
+                markFieldTouched('telefoneContatoLocal');
+                validateField('telefoneContatoLocal', data.telefoneContatoLocal);
+              }
             }}
             error={touched.telefoneContatoLocal ? errors.telefoneContatoLocal : undefined}
             success={touched.telefoneContatoLocal && !errors.telefoneContatoLocal && validarTelefone(data.telefoneContatoLocal)}
             helperText="Digite com DDD (10 ou 11 dígitos)"
             placeholder="(00) 00000-0000"
+            disabled={readOnly}
           />
 
           <div className="col-span-2">
@@ -281,9 +316,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               id="cargoContatoLocal"
               label="11. Cargo (Contato no Local)"
               value={data.cargoContatoLocal}
-              onChange={(e) => onDataChange({ ...data, cargoContatoLocal: e.target.value })}
+              onChange={(e) => !readOnly && onDataChange({ ...data, cargoContatoLocal: e.target.value })}
               helperText="Cargo ou função da pessoa no local (opcional)"
               placeholder="Ex: Síndico, Zelador, Gerente..."
+              disabled={readOnly}
             />
           </div>
         </div>
