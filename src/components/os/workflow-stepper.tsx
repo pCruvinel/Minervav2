@@ -78,7 +78,8 @@ export function WorkflowStepper({
           const isCompleted = completedSteps.includes(step.id); // Usar completedSteps para determinar se está concluída
           const isCurrent = step.id === currentStep;
           const isLastActive = lastActiveStep === step.id && currentStep !== step.id;
-          const isAccessible = isCompleted || isCurrent; // Permite acessar etapas concluídas OU a atual
+          // Permite acessar: etapas concluídas, etapa atual, OU qualquer etapa anterior à atual
+          const isAccessible = isCompleted || isCurrent || step.id < currentStep;
           
           return (
             <React.Fragment key={step.id}>
