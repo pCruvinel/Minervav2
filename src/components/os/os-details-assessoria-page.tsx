@@ -325,6 +325,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
                   formData={formData}
                   onFormDataChange={setFormData}
                   onSaveNewLead={handleSaveNewLead}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 

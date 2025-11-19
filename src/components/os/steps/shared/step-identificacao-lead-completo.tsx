@@ -17,6 +17,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../ui/command';
 import { useClientes, useCreateCliente, transformFormToCliente } from '../../../../lib/hooks/use-clientes';
 import { toast } from '../../../../lib/utils/safe-toast';
+import { FormInput } from '../../../ui/form-input';
+import { FormMaskedInput, validarCPF, validarCNPJ, validarTelefone, validarCEP, removeMask } from '../../../ui/form-masked-input';
+import { FormSelect } from '../../../ui/form-select';
+import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
+import { etapa1Schema } from '../../../../lib/validations/os-etapas-schema';
 
 interface FormDataCompleto {
   nome: string;
@@ -44,7 +49,7 @@ interface FormDataCompleto {
 
 interface StepIdentificacaoLeadCompletoProps {
   selectedLeadId: string;
-  onSelectLead: (leadId: string) => void;
+  onSelectLead: (leadId: string, leadData?: any) => void;
   showCombobox: boolean;
   onShowComboboxChange: (show: boolean) => void;
   showNewLeadDialog: boolean;
@@ -52,6 +57,7 @@ interface StepIdentificacaoLeadCompletoProps {
   formData: FormDataCompleto;
   onFormDataChange: (data: FormDataCompleto) => void;
   onSaveNewLead: () => void;
+  readOnly?: boolean;
 }
 
 export function StepIdentificacaoLeadCompleto({
@@ -64,14 +70,25 @@ export function StepIdentificacaoLeadCompleto({
   formData,
   onFormDataChange,
   onSaveNewLead,
+  readOnly = false,
 }: StepIdentificacaoLeadCompletoProps) {
   // Buscar leads do banco de dados
   const { clientes: leads, loading, error, refetch } = useClientes('LEAD');
   const { mutate: createCliente, loading: creating } = useCreateCliente();
-  
+
   // Estado local para salvar
   const [isSaving, setIsSaving] = useState(false);
-  
+
+  // Hook de validação
+  const {
+    errors,
+    touched,
+    validateField,
+    validateAll,
+    markFieldTouched,
+    markAllTouched,
+  } = useFieldValidation(etapa1Schema);
+
   const selectedLead = leads?.find(l => l.id === selectedLeadId);
   
   // Função para preencher formData com dados do lead selecionado
@@ -118,7 +135,7 @@ export function StepIdentificacaoLeadCompleto({
   const handleSelectLead = (lead: any) => {
     try {
       console.log('🎯 Selecionando lead:', lead.id);
-      
+
       // Validar lead
       if (!lead || !lead.id) {
         console.error('❌ Lead inválido:', lead);
@@ -129,18 +146,18 @@ export function StepIdentificacaoLeadCompleto({
         }
         return;
       }
-      
-      // Selecionar lead
-      onSelectLead(lead.id);
-      
+
+      // Selecionar lead - PASSAR O OBJETO COMPLETO DO LEAD
+      onSelectLead(lead.id, lead);
+
       // Preencher dados
       preencherFormDataComLead(lead);
-      
+
       // Fechar combobox após um pequeno delay para evitar problemas de rendering
       setTimeout(() => {
         onShowComboboxChange(false);
       }, 50);
-      
+
       console.log('✅ Lead selecionado com sucesso:', lead.nome_razao_social);
     } catch (error) {
       console.error('❌ Erro ao selecionar lead:', error);
@@ -156,35 +173,43 @@ export function StepIdentificacaoLeadCompleto({
   const handleSaveNewLead = async () => {
     try {
       setIsSaving(true);
-      
-      // Validações básicas
-      if (!formData.nome || !formData.cpfCnpj || !formData.telefone || !formData.email) {
+
+      // Marcar todos os campos como tocados para mostrar erros
+      markAllTouched();
+
+      // Validar todos os campos usando Zod
+      const dataToValidate = {
+        leadId: 'temp', // Será criado após salvar
+        ...formData,
+      };
+
+      if (!validateAll(dataToValidate)) {
         try {
-          toast.error('Preencha todos os campos obrigatórios');
+          toast.error('Corrija os erros de validação antes de continuar');
         } catch (toastError) {
           console.error('❌ Erro ao exibir toast (validação novo lead):', toastError);
         }
         return;
       }
-      
+
       // Transformar dados do formulário para formato da API
       const clienteData = transformFormToCliente(formData);
-      
+
       // Criar cliente no banco
       const novoCliente = await createCliente(clienteData);
-      
+
       // Atualizar lista de clientes
       await refetch();
-      
+
       // Selecionar o novo lead criado
       onSelectLead(novoCliente.id);
-      
+
       // Fechar dialog
       onShowNewLeadDialogChange(false);
-      
+
       // Chamar callback original (se necessário)
       onSaveNewLead();
-      
+
     } catch (error) {
       console.error('Erro ao salvar lead:', error);
     } finally {
@@ -223,7 +248,7 @@ export function StepIdentificacaoLeadCompleto({
                 variant="outline"
                 role="combobox"
                 className="w-full justify-between focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                disabled={loading}
+                disabled={loading || readOnly}
               >
                 {loading ? (
                   <>
@@ -417,27 +442,67 @@ export function StepIdentificacaoLeadCompleto({
               <div>
                 <h3 className="text-sm font-medium mb-4">Identificação</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="col-span-2 space-y-2">
-                    <Label htmlFor="nome">
-                      Nome / Razão Social <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div className="col-span-2">
+                    <FormInput
                       id="nome"
+                      label="Nome / Razão Social"
+                      required
                       value={formData.nome}
-                      onChange={(e) => onFormDataChange({ ...formData, nome: e.target.value })}
+                      onChange={(e) => {
+                        if (!readOnly) {
+                          onFormDataChange({ ...formData, nome: e.target.value });
+                          if (touched.nome) validateField('nome', e.target.value);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!readOnly) {
+                          markFieldTouched('nome');
+                          validateField('nome', formData.nome);
+                        }
+                      }}
+                      error={touched.nome ? errors.nome : undefined}
+                      success={touched.nome && !errors.nome && formData.nome.length >= 3}
+                      helperText="Mínimo 3 caracteres"
                       placeholder="Digite o nome completo ou razão social"
+                      disabled={readOnly}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="cpfCnpj">
-                      CPF / CNPJ <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div>
+                    <FormMaskedInput
                       id="cpfCnpj"
+                      label="CPF / CNPJ"
+                      required
+                      maskType="cpf-cnpj"
                       value={formData.cpfCnpj}
-                      onChange={(e) => onFormDataChange({ ...formData, cpfCnpj: e.target.value })}
+                      onChange={(e) => {
+                        if (!readOnly) {
+                          onFormDataChange({ ...formData, cpfCnpj: e.target.value });
+                          if (touched.cpfCnpj) {
+                            const cleaned = removeMask(e.target.value);
+                            const isValid = cleaned.length === 11 ? validarCPF(e.target.value) : cleaned.length === 14 ? validarCNPJ(e.target.value) : false;
+                            validateField('cpfCnpj', e.target.value);
+                          }
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!readOnly) {
+                          markFieldTouched('cpfCnpj');
+                          const cleaned = removeMask(formData.cpfCnpj);
+                          if (cleaned.length > 0) {
+                            const isValid = cleaned.length === 11 ? validarCPF(formData.cpfCnpj) : cleaned.length === 14 ? validarCNPJ(formData.cpfCnpj) : false;
+                            if (!isValid && cleaned.length >= 11) {
+                              // Custom validation error
+                            }
+                          }
+                          validateField('cpfCnpj', formData.cpfCnpj);
+                        }
+                      }}
+                      error={touched.cpfCnpj ? errors.cpfCnpj : undefined}
+                      success={touched.cpfCnpj && !errors.cpfCnpj && formData.cpfCnpj.length >= 14}
+                      helperText="Digite CPF (11 dígitos) ou CNPJ (14 dígitos)"
                       placeholder="000.000.000-00 ou 00.000.000/0001-00"
+                      disabled={readOnly}
                     />
                   </div>
 
@@ -479,28 +544,57 @@ export function StepIdentificacaoLeadCompleto({
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="telefone">
-                      Telefone / WhatsApp <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div>
+                    <FormMaskedInput
                       id="telefone"
+                      label="Telefone / WhatsApp"
+                      required
+                      maskType="telefone"
                       value={formData.telefone}
-                      onChange={(e) => onFormDataChange({ ...formData, telefone: e.target.value })}
+                      onChange={(e) => {
+                        if (!readOnly) {
+                          onFormDataChange({ ...formData, telefone: e.target.value });
+                          if (touched.telefone) validateField('telefone', e.target.value);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!readOnly) {
+                          markFieldTouched('telefone');
+                          validateField('telefone', formData.telefone);
+                        }
+                      }}
+                      error={touched.telefone ? errors.telefone : undefined}
+                      success={touched.telefone && !errors.telefone && validarTelefone(formData.telefone)}
+                      helperText="Digite com DDD (10 ou 11 dígitos)"
                       placeholder="(00) 00000-0000"
+                      disabled={readOnly}
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="email">
-                      Email <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div>
+                    <FormInput
                       id="email"
+                      label="Email"
+                      required
                       type="email"
                       value={formData.email}
-                      onChange={(e) => onFormDataChange({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        if (!readOnly) {
+                          onFormDataChange({ ...formData, email: e.target.value });
+                          if (touched.email) validateField('email', e.target.value);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!readOnly) {
+                          markFieldTouched('email');
+                          validateField('email', formData.email);
+                        }
+                      }}
+                      error={touched.email ? errors.email : undefined}
+                      success={touched.email && !errors.email && formData.email.includes('@')}
+                      helperText="Digite um email válido"
                       placeholder="email@exemplo.com"
+                      disabled={readOnly}
                     />
                   </div>
                 </div>
@@ -643,15 +737,30 @@ export function StepIdentificacaoLeadCompleto({
               <div>
                 <h3 className="text-sm font-medium mb-4">Endereço</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="cep">
-                      CEP <span className="text-destructive">*</span>
-                    </Label>
-                    <Input
+                  <div>
+                    <FormMaskedInput
                       id="cep"
+                      label="CEP"
+                      required
+                      maskType="cep"
                       value={formData.cep}
-                      onChange={(e) => onFormDataChange({ ...formData, cep: e.target.value })}
+                      onChange={(e) => {
+                        if (!readOnly) {
+                          onFormDataChange({ ...formData, cep: e.target.value });
+                          if (touched.cep) validateField('cep', e.target.value);
+                        }
+                      }}
+                      onBlur={() => {
+                        if (!readOnly) {
+                          markFieldTouched('cep');
+                          validateField('cep', formData.cep);
+                        }
+                      }}
+                      error={touched.cep ? errors.cep : undefined}
+                      success={touched.cep && !errors.cep && validarCEP(formData.cep)}
+                      helperText="Digite o CEP (8 dígitos)"
                       placeholder="00000-000"
+                      disabled={readOnly}
                     />
                   </div>
 
