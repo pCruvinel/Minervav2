@@ -181,7 +181,7 @@ const isAccessible = isCompleted || isCurrent || step.id < currentStep;
 
 ---
 
-### FASE 3: Implementar Modo Híbrido de Visualização ✅ CONCLUÍDA (OS 5-6)
+### FASE 3: Implementar Modo Híbrido de Visualização ✅ CONCLUÍDA (OS 1-4 e OS 5-6)
 
 #### 3.1 Replicar Navegação Histórica para OS 5-6
 - [x] Adicionar estados lastActiveStep e isHistoricalNavigation
@@ -208,7 +208,11 @@ const isAccessible = isCompleted || isCurrent || step.id < currentStep;
 #### 3.3 Integrar readOnly nos Workflows
 - [x] OS 5-6: Passar readOnly={isHistoricalNavigation} para StepFollowup1
 - [x] OS 5-6: Passar readOnly={isHistoricalNavigation} para StepIdentificacaoLeadCompleto
-- [ ] OS 1-4: Passar readOnly para todos os steps (pendente)
+- [x] OS 1-4: Passar readOnly para StepIdentificacaoLeadCompleto (Etapa 1)
+- [x] OS 1-4: Passar readOnly para StepFollowup1 (Etapa 3)
+- [x] OS 1-4: Passar readOnly para StepMemorialEscopo (Etapa 7)
+
+**Commit:** `c55ac38` - feat: Integrar readOnly em 3 componentes do OS 1-4
 
 **Mock do Banner:**
 ```tsx
