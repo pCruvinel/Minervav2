@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -14,7 +14,7 @@ import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
 import { useCreateTurno } from '../../lib/hooks/use-turnos';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 
 interface ModalCriarTurnoProps {
   open: boolean;
@@ -33,6 +33,15 @@ const coresTurno = [
 
 const setoresDisponiveis = ['Assessoria', 'Comercial', 'Obras'];
 
+interface ValidationErrors {
+  horaInicio?: string;
+  horaFim?: string;
+  dataInicio?: string;
+  dataFim?: string;
+  numeroVagas?: string;
+  setores?: string;
+}
+
 export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoProps) {
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFim, setHoraFim] = useState('11:00');
@@ -43,8 +52,138 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
   const [todosSetores, setTodosSetores] = useState(false);
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   const { mutate: criarTurno, loading: criando } = useCreateTurno();
+
+  // Validar horários
+  const validarHorarios = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    // Validar horaInicio
+    if (!horaInicio) {
+      erros.horaInicio = 'Hora de início é obrigatória';
+    } else if (!/^\d{2}:\d{2}$/.test(horaInicio)) {
+      erros.horaInicio = 'Formato inválido (use HH:MM)';
+    } else {
+      const [horas] = horaInicio.split(':').map(Number);
+      if (horas < 8 || horas > 18) {
+        erros.horaInicio = 'Deve estar entre 08:00 e 18:00';
+      }
+    }
+
+    // Validar horaFim
+    if (!horaFim) {
+      erros.horaFim = 'Hora de fim é obrigatória';
+    } else if (!/^\d{2}:\d{2}$/.test(horaFim)) {
+      erros.horaFim = 'Formato inválido (use HH:MM)';
+    } else if (horaFim <= horaInicio) {
+      erros.horaFim = 'Deve ser após a hora de início';
+    } else {
+      const [horas] = horaFim.split(':').map(Number);
+      if (horas > 18) {
+        erros.horaFim = 'Deve ser até 18:00';
+      }
+
+      // Validar duração (30 min a 4 horas)
+      const [inicioH, inicioM] = horaInicio.split(':').map(Number);
+      const [fimH, fimM] = horaFim.split(':').map(Number);
+      const duracao = (fimH + fimM / 60) - (inicioH + inicioM / 60);
+      if (duracao < 0.5) {
+        erros.horaFim = 'Duração mínima é 30 minutos';
+      } else if (duracao > 4) {
+        erros.horaFim = 'Duração máxima é 4 horas';
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar datas (se recorrência = custom)
+  const validarDatas = (): boolean => {
+    if (recorrencia !== 'custom') return true;
+
+    const erros: ValidationErrors = {};
+    const hoje = new Date().toISOString().split('T')[0];
+
+    if (!dataInicio) {
+      erros.dataInicio = 'Data de início é obrigatória';
+    } else if (dataInicio < hoje) {
+      erros.dataInicio = 'Deve ser uma data futura';
+    }
+
+    if (!dataFim) {
+      erros.dataFim = 'Data de fim é obrigatória';
+    } else if (dataFim < dataInicio) {
+      erros.dataFim = 'Deve ser após a data de início';
+    } else {
+      // Verificar se intervalo é <= 30 dias
+      const difDias = Math.floor(
+        (new Date(dataFim).getTime() - new Date(dataInicio).getTime()) / (1000 * 60 * 60 * 24)
+      );
+      if (difDias > 30) {
+        erros.dataFim = 'Intervalo máximo é 30 dias';
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar número de vagas
+  const validarVagas = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!numeroVagas) {
+      erros.numeroVagas = 'Número de vagas é obrigatório';
+    } else {
+      const vagas = parseInt(numeroVagas);
+      if (isNaN(vagas) || vagas <= 0) {
+        erros.numeroVagas = 'Deve ser um número positivo';
+      } else if (vagas > 50) {
+        erros.numeroVagas = 'Máximo 50 vagas';
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar setores
+  const validarSetores = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!todosSetores && setoresSelecionados.length === 0) {
+      erros.setores = 'Selecione ao menos um setor';
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar formulário completo
+  const validarFormulario = (): boolean => {
+    const validHorarios = validarHorarios();
+    const validDatas = validarDatas();
+    const validVagas = validarVagas();
+    const validSetores = validarSetores();
+
+    return validHorarios && validDatas && validVagas && validSetores;
+  };
+
+  // Verificar se formulário está válido
+  const isFormValid = useMemo(() => {
+    const temErros = Object.keys(errors).length > 0;
+    const camposPreenchidos =
+      horaInicio && horaFim && numeroVagas && (todosSetores || setoresSelecionados.length > 0);
+
+    if (recorrencia === 'custom') {
+      return camposPreenchidos && dataInicio && dataFim && !temErros;
+    }
+
+    return camposPreenchidos && !temErros;
+  }, [horaInicio, horaFim, numeroVagas, setoresSelecionados, todosSetores, dataInicio, dataFim, recorrencia, errors]);
 
   const handleToggleSetor = (setor: string) => {
     if (setoresSelecionados.includes(setor)) {
@@ -64,57 +203,56 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   };
 
   const handleSalvar = async () => {
-    // Validações
-    if (!horaInicio || !horaFim) {
-      toast.error('Preencha os horários de início e fim');
+    // Validar formulário completo
+    if (!validarFormulario()) {
+      toast.error('Corrija os erros antes de salvar');
       return;
     }
 
-    if (recorrencia === 'custom' && (!dataInicio || !dataFim)) {
-      toast.error('Preencha as datas de início e fim');
-      return;
+    try {
+      // Criar turno via hook
+      await criarTurno({
+        horaInicio,
+        horaFim,
+        vagasTotal: parseInt(numeroVagas),
+        setores: todosSetores ? setoresDisponiveis : setoresSelecionados,
+        cor: corSelecionada,
+        tipoRecorrencia: recorrencia,
+        dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
+        dataFim: recorrencia === 'custom' ? dataFim : undefined,
+      });
+
+      // Resetar formulário
+      setHoraInicio('09:00');
+      setHoraFim('11:00');
+      setRecorrencia('uteis');
+      setDataInicio('');
+      setDataFim('');
+      setNumeroVagas('5');
+      setCorSelecionada(coresTurno[0].valor);
+      setSetoresSelecionados([]);
+      setTodosSetores(false);
+      setErrors({});
+
+      // Callback de sucesso
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      toast.error('Erro ao criar turno. Tente novamente.');
+      console.error('Erro ao criar turno:', error);
     }
+  };
 
-    if (!numeroVagas || parseInt(numeroVagas) <= 0) {
-      toast.error('Número de vagas deve ser maior que zero');
-      return;
+  // Resetar errors ao fechar modal
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      setErrors({});
+      onClose();
     }
-
-    if (setoresSelecionados.length === 0) {
-      toast.error('Selecione pelo menos um setor');
-      return;
-    }
-
-    // Criar turno via hook
-    await criarTurno({
-      horaInicio,
-      horaFim,
-      vagasTotal: parseInt(numeroVagas),
-      setores: setoresSelecionados,
-      cor: corSelecionada,
-      tipoRecorrencia: recorrencia,
-      dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
-      dataFim: recorrencia === 'custom' ? dataFim : undefined,
-    });
-
-    // Resetar formulário
-    setHoraInicio('09:00');
-    setHoraFim('11:00');
-    setRecorrencia('uteis');
-    setDataInicio('');
-    setDataFim('');
-    setNumeroVagas('5');
-    setCorSelecionada(coresTurno[0].valor);
-    setSetoresSelecionados([]);
-    setTodosSetores(false);
-
-    // Callback de sucesso
-    onSuccess?.();
-    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configurar Novo Turno</DialogTitle>
@@ -132,8 +270,22 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                 id="horaInicio"
                 type="time"
                 value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
+                onChange={(e) => {
+                  setHoraInicio(e.target.value);
+                  setErrors((prev) => {
+                    const novo = { ...prev };
+                    delete novo.horaInicio;
+                    return novo;
+                  });
+                }}
+                className={errors.horaInicio ? 'border-red-500 focus:border-red-500' : ''}
               />
+              {errors.horaInicio && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.horaInicio}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="horaFim">Hora de Fim</Label>
@@ -141,8 +293,22 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                 id="horaFim"
                 type="time"
                 value={horaFim}
-                onChange={(e) => setHoraFim(e.target.value)}
+                onChange={(e) => {
+                  setHoraFim(e.target.value);
+                  setErrors((prev) => {
+                    const novo = { ...prev };
+                    delete novo.horaFim;
+                    return novo;
+                  });
+                }}
+                className={errors.horaFim ? 'border-red-500 focus:border-red-500' : ''}
               />
+              {errors.horaFim && (
+                <p className="text-sm text-red-500 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.horaFim}
+                </p>
+              )}
             </div>
           </div>
 
@@ -174,22 +340,50 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
             {recorrencia === 'custom' && (
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="dataInicio">Data de Início (dd-mm-aa)</Label>
+                  <Label htmlFor="dataInicio">Data de Início</Label>
                   <Input
                     id="dataInicio"
                     type="date"
                     value={dataInicio}
-                    onChange={(e) => setDataInicio(e.target.value)}
+                    onChange={(e) => {
+                      setDataInicio(e.target.value);
+                      setErrors((prev) => {
+                        const novo = { ...prev };
+                        delete novo.dataInicio;
+                        return novo;
+                      });
+                    }}
+                    className={errors.dataInicio ? 'border-red-500 focus:border-red-500' : ''}
                   />
+                  {errors.dataInicio && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.dataInicio}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dataFim">Data de Fim (dd-mm-aa)</Label>
+                  <Label htmlFor="dataFim">Data de Fim</Label>
                   <Input
                     id="dataFim"
                     type="date"
                     value={dataFim}
-                    onChange={(e) => setDataFim(e.target.value)}
+                    onChange={(e) => {
+                      setDataFim(e.target.value);
+                      setErrors((prev) => {
+                        const novo = { ...prev };
+                        delete novo.dataFim;
+                        return novo;
+                      });
+                    }}
+                    className={errors.dataFim ? 'border-red-500 focus:border-red-500' : ''}
                   />
+                  {errors.dataFim && (
+                    <p className="text-sm text-red-500 flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4" />
+                      {errors.dataFim}
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -202,10 +396,24 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
               id="numeroVagas"
               type="number"
               min="1"
+              max="50"
               value={numeroVagas}
-              onChange={(e) => setNumeroVagas(e.target.value)}
-              className="max-w-[150px]"
+              onChange={(e) => {
+                setNumeroVagas(e.target.value);
+                setErrors((prev) => {
+                  const novo = { ...prev };
+                  delete novo.numeroVagas;
+                  return novo;
+                });
+              }}
+              className={`max-w-[150px] ${errors.numeroVagas ? 'border-red-500 focus:border-red-500' : ''}`}
             />
+            {errors.numeroVagas && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.numeroVagas}
+              </p>
+            )}
           </div>
 
           {/* Cor do Turno */}
@@ -229,14 +437,21 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
 
           {/* Limitar Setores */}
-          <div className="space-y-3">
-            <Label>Limitar Setores</Label>
+          <div className={`space-y-3 p-4 rounded-lg ${errors.setores ? 'bg-red-50 border border-red-200' : 'bg-neutral-50'}`}>
+            <Label className={errors.setores ? 'text-red-700' : ''}>Limitar Setores</Label>
             <div className="space-y-2">
               <div className="flex items-center space-x-2">
                 <Checkbox
                   id="todos-setores"
                   checked={todosSetores}
-                  onCheckedChange={handleTodosSetores}
+                  onCheckedChange={(checked: boolean | string) => {
+                    handleTodosSetores(checked === true);
+                    setErrors((prev) => {
+                      const novo = { ...prev };
+                      delete novo.setores;
+                      return novo;
+                    });
+                  }}
                 />
                 <Label htmlFor="todos-setores" className="cursor-pointer font-normal">
                   Todos
@@ -247,7 +462,14 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   <Checkbox
                     id={setor}
                     checked={setoresSelecionados.includes(setor)}
-                    onCheckedChange={() => handleToggleSetor(setor)}
+                    onCheckedChange={() => {
+                      handleToggleSetor(setor);
+                      setErrors((prev) => {
+                        const novo = { ...prev };
+                        delete novo.setores;
+                        return novo;
+                      });
+                    }}
                   />
                   <Label htmlFor={setor} className="cursor-pointer font-normal">
                     {setor}
@@ -255,6 +477,12 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                 </div>
               ))}
             </div>
+            {errors.setores && (
+              <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+                <AlertCircle className="h-4 w-4" />
+                {errors.setores}
+              </p>
+            )}
           </div>
         </div>
 
@@ -262,7 +490,12 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           <Button variant="outline" onClick={onClose} disabled={criando}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar} className="bg-primary hover:bg-primary/90" disabled={criando}>
+          <Button
+            onClick={handleSalvar}
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={criando || !isFormValid}
+            title={!isFormValid ? 'Corrija os erros antes de salvar' : ''}
+          >
             {criando ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
