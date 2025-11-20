@@ -1,8 +1,9 @@
 import { useState, useMemo, lazy, Suspense, memo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { Button } from '../ui/button';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
+import { SkeletonTurnoGrid } from '../ui/skeleton';
 
 // Lazy load modais para melhor performance (carregam só quando abertos)
 const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
@@ -132,8 +133,8 @@ function CalendarioSemanaComponent({
         </div>
 
         {loading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <div className="border border-neutral-200 rounded-lg overflow-hidden p-6">
+            <SkeletonTurnoGrid count={5} />
           </div>
         )}
 

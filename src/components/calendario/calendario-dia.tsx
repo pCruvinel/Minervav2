@@ -1,9 +1,10 @@
 import { useState, lazy, Suspense } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { Button } from '../ui/button';
-import { Plus, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, AlertCircle } from 'lucide-react';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { Alert, AlertDescription } from '../ui/alert';
+import { SkeletonTurnoGrid } from '../ui/skeleton';
 
 // Lazy load modais para melhor performance (carregam só quando abertos)
 const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
@@ -74,13 +75,20 @@ export function CalendarioDia({
     }
   };
 
-  // Loading state
+  // Loading state with skeleton
   if (loading) {
     return (
-      <div className="p-6 flex justify-center items-center min-h-[400px]">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-neutral-600">Carregando turnos...</p>
+      <div className="p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-sm text-neutral-600">Visualizando</p>
+            <div className="h-8 w-48 bg-neutral-200 rounded animate-pulse" />
+          </div>
+          <div className="h-10 w-40 bg-neutral-200 rounded animate-pulse" />
+        </div>
+
+        <div className="border border-neutral-200 rounded-lg overflow-hidden p-6">
+          <SkeletonTurnoGrid count={4} />
         </div>
       </div>
     );
