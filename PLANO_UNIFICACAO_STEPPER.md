@@ -251,38 +251,82 @@ interface StepComponentProps {
 
 ---
 
-### FASE 4: Integrar Validação Obrigatória
+### FASE 4: Integrar Validação Obrigatória ✅ CONCLUÍDA
 
-#### 4.1 Validação Antes de Avançar
-- [ ] Modificar `handleNextStep` em todos os workflows
-- [ ] Chamar validação do step component (se existir ref)
-- [ ] Bloquear avanço se `isValid === false`
-- [ ] Mostrar toast com mensagem de erro
-- [ ] Scroll para primeiro campo inválido
+#### 4.1 Adicionar `isFormValid()` aos Componentes
+- [x] StepFollowup1: Expor método `isFormValid()` via ref
+- [x] StepMemorialEscopo: Converter para forwardRef e expor `isFormValid()`
+- [x] StepIdentificacaoLeadCompleto: Converter para forwardRef e expor `isFormValid()`
 
-**Padrão de validação:**
+**Interfaces implementadas:**
 ```typescript
-// No workflow page
-const stepRef = useRef<StepHandle>(null);
+export interface StepFollowup1Handle {
+  validate: () => boolean;
+  isFormValid: () => boolean; // Valida silenciosamente
+}
 
-const handleNextStep = async () => {
-  // Validar step atual
-  if (stepRef.current && !stepRef.current.validate()) {
-    toast.error('Preencha todos os campos obrigatórios');
-    return;
-  }
+export interface StepMemorialEscopoHandle {
+  validate: () => boolean;
+  isFormValid: () => boolean;
+}
 
-  // Salvar e avançar
-  await saveCurrentStepData();
-  setCurrentStep(currentStep + 1);
-};
+export interface StepIdentificacaoLeadCompletoHandle {
+  validate: () => boolean;
+  isFormValid: () => boolean;
+}
 ```
 
-#### 4.2 Indicadores Visuais no Stepper
-- [ ] Adicionar ícone de warning em etapas inválidas
-- [ ] Tooltip mostrando campos faltantes
-- [ ] Badge com contador de erros (opcional)
-- [ ] Cor amarela para etapas parcialmente completas
+**Commit:** Pendente
+
+#### 4.2 Atualizar WorkflowFooter
+- [x] Adicionar props `isFormInvalid` e `invalidFormMessage`
+- [x] Desabilitar botão "Salvar e Continuar" quando `isFormInvalid=true`
+- [x] Tooltip vermelho ao hover explicando erro
+- [x] Ícone AlertCircle para clareza visual
+
+**Props adicionadas:**
+```typescript
+interface WorkflowFooterProps {
+  // ... props existentes
+  isFormInvalid?: boolean;
+  invalidFormMessage?: string;
+}
+```
+
+**Commit:** Pendente
+
+#### 4.3 Documentação
+- [x] Criar `IMPLEMENTACAO_FASE4_VALIDACAO_OBRIGATORIA.md`
+- [x] Guia de uso com exemplos completos
+- [x] Padrões de integração para workflows
+- [ ] Integrar validação em OS 1-4
+- [ ] Integrar validação em OS 5-6
+
+**Documentação:** `IMPLEMENTACAO_FASE4_VALIDACAO_OBRIGATORIA.md`
+
+**Padrão de uso:**
+```typescript
+// Criar refs
+const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
+
+// Verificar validade
+const isCurrentStepInvalid = useMemo(() => {
+  if (isHistoricalNavigation) return false;
+
+  switch (currentStep) {
+    case 3:
+      return stepFollowup1Ref.current?.isFormValid() === false;
+    default:
+      return false;
+  }
+}, [currentStep, etapa3Data, isHistoricalNavigation]);
+
+// Passar pro Footer
+<WorkflowFooter
+  isFormInvalid={isCurrentStepInvalid}
+  invalidFormMessage="Preencha todos os campos obrigatórios"
+/>
+```
 
 ---
 
@@ -607,14 +651,14 @@ Botão: "Voltar para Etapa X"
 | 1 | Análise e Documentação | ✅ 3h | 19/01 | 19/01 |
 | 2 | Migrar Lógica OS 5-6 | ✅ 1h | 19/01 | 19/01 |
 | 3 | Modo Híbrido (OS 5-6) | ✅ 3.5h | 19/01 | 19/01 |
-| 4 | Validação Obrigatória | 2-3h | - | - |
+| 4 | Validação Obrigatória | ✅ 2h | 19/01 | 19/01 |
 | 5 | Auto-Save | 3-4h | - | - |
 | 6 | Hooks Utilitários | 4-5h | - | - |
 | 7 | Migrar Workflows | 6-8h | - | - |
-| 8 | Progress Bar | 2-3h | - | - |
+| 8 | Progress Bar | ❌ Cancelada | - | - |
 | 9 | Testes Completos | 6-8h | - | - |
 | 10 | Documentação | 3-4h | - | - |
-| **TOTAL** | | **37-49h (5-6 dias)** | | |
+| **TOTAL** | | **35-47h (5-6 dias)** | | |
 
 ---
 

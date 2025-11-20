@@ -33,6 +33,7 @@ interface StepFollowup1Props {
 
 export interface StepFollowup1Handle {
   validate: () => boolean;
+  isFormValid: () => boolean;
 }
 
 export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>(
@@ -73,6 +74,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
       }
 
       return isValid;
+    },
+    isFormValid: () => {
+      // Valida silenciosamente sem marcar campos como tocados
+      return validateAll(data);
     }
   }), [markAllTouched, validateAll, data, errors]);
 

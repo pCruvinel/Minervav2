@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { forwardRef, useImperativeHandle } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
 import { Button } from '../../../ui/button';
 import { PrimaryButton } from '../../../ui/primary-button';
@@ -36,18 +36,48 @@ interface StepMemorialEscopoProps {
   readOnly?: boolean;
 }
 
-export function StepMemorialEscopo({
-  data,
-  onDataChange,
-  readOnly = false,
-}: StepMemorialEscopoProps) {
+export interface StepMemorialEscopoHandle {
+  validate: () => boolean;
+  isFormValid: () => boolean;
+}
+
+export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemorialEscopoProps>(
+  function StepMemorialEscopo({ data, onDataChange, readOnly = false }, ref) {
   // Hook de validação
   const {
     errors,
     touched,
     validateField,
     markFieldTouched,
+    markAllTouched,
+    validateAll,
   } = useFieldValidation(etapa7Schema);
+
+  /**
+   * Expõe métodos de validação via ref
+   */
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      markAllTouched();
+      const isValid = validateAll(data);
+
+      if (!isValid) {
+        const firstErrorField = Object.keys(errors)[0];
+        if (firstErrorField) {
+          const element = document.getElementById(firstErrorField);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
+      }
+
+      return isValid;
+    },
+    isFormValid: () => {
+      return validateAll(data);
+    }
+  }), [markAllTouched, validateAll, data, errors]);
 
   const handleAdicionarEtapaPrincipal = () => {
     const novaEtapa: EtapaPrincipal = {
@@ -435,4 +465,4 @@ export function StepMemorialEscopo({
       </div>
     </div>
   );
-}
+});

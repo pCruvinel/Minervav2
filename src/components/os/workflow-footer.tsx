@@ -1,7 +1,8 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import { PrimaryButton } from '../ui/primary-button';
-import { ChevronLeft, ChevronRight, Check, Loader2, Info } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { ChevronLeft, ChevronRight, Check, Loader2, Info, AlertCircle } from 'lucide-react';
 
 interface WorkflowFooterProps {
   currentStep: number;
@@ -19,6 +20,10 @@ interface WorkflowFooterProps {
   loadingText?: string;
   readOnlyMode?: boolean;
   onReturnToActive?: () => void;
+  /** Se true, mostra que o formulário está inválido e bloqueia o botão */
+  isFormInvalid?: boolean;
+  /** Mensagem customizada para tooltip quando formulário inválido */
+  invalidFormMessage?: string;
 }
 
 export function WorkflowFooter({
@@ -37,8 +42,11 @@ export function WorkflowFooter({
   loadingText = 'Processando...',
   readOnlyMode = false,
   onReturnToActive,
+  isFormInvalid = false,
+  invalidFormMessage = 'Preencha todos os campos obrigatórios para continuar',
 }: WorkflowFooterProps) {
   const isLastStep = currentStep === totalSteps;
+  const shouldDisableNext = disableNext || isLoading || isFormInvalid;
 
   return (
     <div className="flex-shrink-0 border-t border-neutral-200 px-6 py-4 bg-neutral-50">
@@ -81,39 +89,71 @@ export function WorkflowFooter({
                 </Button>
               )}
               {isLastStep ? (
-                <PrimaryButton 
-                  onClick={onNextStep}
-                  disabled={disableNext || isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {loadingText}
-                    </>
-                  ) : (
-                    <>
-                      {finalButtonText}
-                      <Check className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </PrimaryButton>
+                <TooltipProvider>
+                  <Tooltip open={isFormInvalid ? undefined : false}>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <PrimaryButton
+                          onClick={onNextStep}
+                          disabled={shouldDisableNext}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {loadingText}
+                            </>
+                          ) : (
+                            <>
+                              {finalButtonText}
+                              <Check className="h-4 w-4 ml-2" />
+                            </>
+                          )}
+                        </PrimaryButton>
+                      </span>
+                    </TooltipTrigger>
+                    {isFormInvalid && (
+                      <TooltipContent side="top" className="bg-red-600 text-white border-red-700">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>{invalidFormMessage}</span>
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               ) : (
-                <PrimaryButton 
-                  onClick={onNextStep}
-                  disabled={disableNext || isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      {loadingText}
-                    </>
-                  ) : (
-                    <>
-                      {nextButtonText}
-                      <ChevronRight className="h-4 w-4 ml-2" />
-                    </>
-                  )}
-                </PrimaryButton>
+                <TooltipProvider>
+                  <Tooltip open={isFormInvalid ? undefined : false}>
+                    <TooltipTrigger asChild>
+                      <span>
+                        <PrimaryButton
+                          onClick={onNextStep}
+                          disabled={shouldDisableNext}
+                        >
+                          {isLoading ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              {loadingText}
+                            </>
+                          ) : (
+                            <>
+                              {nextButtonText}
+                              <ChevronRight className="h-4 w-4 ml-2" />
+                            </>
+                          )}
+                        </PrimaryButton>
+                      </span>
+                    </TooltipTrigger>
+                    {isFormInvalid && (
+                      <TooltipContent side="top" className="bg-red-600 text-white border-red-700">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>{invalidFormMessage}</span>
+                        </div>
+                      </TooltipContent>
+                    )}
+                  </Tooltip>
+                </TooltipProvider>
               )}
             </>
           )}

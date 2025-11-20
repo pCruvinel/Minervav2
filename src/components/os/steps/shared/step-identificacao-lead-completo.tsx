@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Button } from '../../../ui/button';
 import { PrimaryButton } from '../../../ui/primary-button';
 import { Input } from '../../../ui/input';
@@ -60,18 +60,24 @@ interface StepIdentificacaoLeadCompletoProps {
   readOnly?: boolean;
 }
 
-export function StepIdentificacaoLeadCompleto({
-  selectedLeadId,
-  onSelectLead,
-  showCombobox,
-  onShowComboboxChange,
-  showNewLeadDialog,
-  onShowNewLeadDialogChange,
-  formData,
-  onFormDataChange,
-  onSaveNewLead,
-  readOnly = false,
-}: StepIdentificacaoLeadCompletoProps) {
+export interface StepIdentificacaoLeadCompletoHandle {
+  validate: () => boolean;
+  isFormValid: () => boolean;
+}
+
+export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCompletoHandle, StepIdentificacaoLeadCompletoProps>(
+  function StepIdentificacaoLeadCompleto({
+    selectedLeadId,
+    onSelectLead,
+    showCombobox,
+    onShowComboboxChange,
+    showNewLeadDialog,
+    onShowNewLeadDialogChange,
+    formData,
+    onFormDataChange,
+    onSaveNewLead,
+    readOnly = false,
+  }, ref) {
   // Buscar leads do banco de dados
   const { clientes: leads, loading, error, refetch } = useClientes('LEAD');
   const { mutate: createCliente, loading: creating } = useCreateCliente();
@@ -88,6 +94,32 @@ export function StepIdentificacaoLeadCompleto({
     markFieldTouched,
     markAllTouched,
   } = useFieldValidation(etapa1Schema);
+
+  /**
+   * Expõe métodos de validação via ref
+   */
+  useImperativeHandle(ref, () => ({
+    validate: () => {
+      markAllTouched();
+      const isValid = validateAll(formData);
+
+      if (!isValid) {
+        const firstErrorField = Object.keys(errors)[0];
+        if (firstErrorField) {
+          const element = document.getElementById(firstErrorField);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            element.focus();
+          }
+        }
+      }
+
+      return isValid;
+    },
+    isFormValid: () => {
+      return validateAll(formData);
+    }
+  }), [markAllTouched, validateAll, formData, errors]);
 
   const selectedLead = leads?.find(l => l.id === selectedLeadId);
   
@@ -864,4 +896,4 @@ export function StepIdentificacaoLeadCompleto({
       </div>
     </>
   );
-}
+});
