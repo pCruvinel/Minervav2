@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Users, Loader2, AlertCircle } from 'lucide-react';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -10,7 +11,7 @@ interface CalendarioMesProps {
   onRefresh: () => void;
 }
 
-export function CalendarioMes({
+function CalendarioMesComponent({
   dataAtual,
   turnosPorDia,
   loading,
@@ -73,7 +74,7 @@ export function CalendarioMes({
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Erro ao carrega turnos: {error}
+            Erro ao carregar turnos: {error instanceof Error ? error.message : String(error)}
           </AlertDescription>
         </Alert>
       </div>
@@ -167,3 +168,6 @@ export function CalendarioMes({
     </div>
   );
 }
+
+// Memoize component para evitar re-renders desnecessários
+export const CalendarioMes = memo(CalendarioMesComponent);

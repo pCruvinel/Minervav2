@@ -1,5 +1,5 @@
-import React from 'react';
-import { Clock, Users, Building2 } from 'lucide-react';
+import { memo } from 'react';
+import { Clock, Users } from 'lucide-react';
 
 interface Agendamento {
   id: string;
@@ -23,7 +23,7 @@ interface BlocoTurnoProps {
   onClick: () => void;
 }
 
-export function BlocoTurno({ turno, onClick }: BlocoTurnoProps) {
+function BlocoTurnoComponent({ turno, onClick }: BlocoTurnoProps) {
   const temVagasDisponiveis = turno.vagasOcupadas < turno.vagasTotal;
   
   return (
@@ -84,3 +84,12 @@ export function BlocoTurno({ turno, onClick }: BlocoTurnoProps) {
     </div>
   );
 }
+
+// Memoize component para evitar re-renders desnecessários
+export const BlocoTurno = memo(BlocoTurnoComponent, (prevProps, nextProps) => {
+  // Custom comparison: apenas re-render se turno.id ou vagas ocupadas mudarem
+  return (
+    prevProps.turno.id === nextProps.turno.id &&
+    prevProps.turno.vagasOcupadas === nextProps.turno.vagasOcupadas
+  );
+});

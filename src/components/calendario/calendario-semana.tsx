@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense } from 'react';
+import { useState, useMemo, lazy, Suspense, memo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { Button } from '../ui/button';
 import { Plus, Loader2 } from 'lucide-react';
@@ -17,7 +17,7 @@ interface CalendarioSemanaProps {
   onRefresh: () => void;
 }
 
-export function CalendarioSemana({
+function CalendarioSemanaComponent({
   dataAtual,
   turnosPorDia,
   agendamentos,
@@ -226,3 +226,6 @@ export function CalendarioSemana({
     </>
   );
 }
+
+// Memoize component para evitar re-renders desnecessários
+export const CalendarioSemana = memo(CalendarioSemanaComponent);
