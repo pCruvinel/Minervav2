@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '../ui/select';
 import { toast } from 'sonner';
-import { Calendar, Clock, Loader2 } from 'lucide-react';
+import { Calendar, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
 
 interface ModalNovoAgendamentoProps {
@@ -37,11 +37,19 @@ const categorias = [
 
 const setores = ['Assessoria', 'Comercial', 'Obras'];
 
+interface ValidationErrors {
+  categoria?: string;
+  setor?: string;
+  horarioInicio?: string;
+  duracao?: string;
+}
+
 export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: ModalNovoAgendamentoProps) {
   const [categoria, setCategoria] = useState('');
   const [setor, setSetor] = useState('');
   const [horarioInicio, setHorarioInicio] = useState('');
   const [duracao, setDuracao] = useState('1');
+  const [errors, setErrors] = useState<ValidationErrors>({});
 
   const { mutate: criarAgendamento, loading: criando } = useCreateAgendamento();
   const verificarDisponibilidade = useVerificarDisponibilidade();
@@ -50,8 +58,100 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
   useEffect(() => {
     if (open && turno) {
       setHorarioInicio(turno.horaInicio);
+      setErrors({});
     }
   }, [open, turno]);
+
+  // Validar categoria
+  const validarCategoria = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!categoria) {
+      erros.categoria = 'Selecione uma categoria';
+    } else if (!categorias.includes(categoria)) {
+      erros.categoria = 'Categoria inválida';
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar setor
+  const validarSetor = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!setor) {
+      erros.setor = 'Selecione um setor';
+    } else if (!turno?.setores?.includes(setor)) {
+      erros.setor = `O setor ${setor} não está permitido neste turno`;
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar horário de início
+  const validarHorarioInicio = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!horarioInicio) {
+      erros.horarioInicio = 'Selecione o horário de início';
+    } else if (!turno) {
+      erros.horarioInicio = 'Turno inválido';
+    } else {
+      const [horaInicio] = horarioInicio.split(':').map(Number);
+      const [horaInicioTurno] = turno.horaInicio.split(':').map(Number);
+      const [horaFimTurno] = turno.horaFim.split(':').map(Number);
+
+      if (horaInicio < horaInicioTurno || horaInicio >= horaFimTurno) {
+        erros.horarioInicio = 'O horário deve estar dentro do turno';
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar duração
+  const validarDuracao = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (!duracao) {
+      erros.duracao = 'Selecione a duração';
+    } else if (!turno || !horarioInicio) {
+      // Skip se turno ou horário não estiverem prontos
+      return true;
+    } else {
+      const durationValue = parseInt(duracao);
+      const [horaInicio] = horarioInicio.split(':').map(Number);
+      const [horaFimTurno] = turno.horaFim.split(':').map(Number);
+      const horaFimAgendamento = horaInicio + durationValue;
+
+      if (horaFimAgendamento > horaFimTurno) {
+        erros.duracao = `Duração máxima é ${horaFimTurno - horaInicio}h para este horário`;
+      }
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
+  // Validar formulário completo
+  const validarFormulario = (): boolean => {
+    const validCategoria = validarCategoria();
+    const validSetor = validarSetor();
+    const validHorarioInicio = validarHorarioInicio();
+    const validDuracao = validarDuracao();
+
+    return validCategoria && validSetor && validHorarioInicio && validDuracao;
+  };
+
+  // Verificar se formulário está válido para o submit button
+  const isFormValid = useMemo(() => {
+    const temErros = Object.keys(errors).length > 0;
+    const camposPreenchidos = categoria && setor && horarioInicio && duracao;
+    return camposPreenchidos && !temErros;
+  }, [categoria, setor, horarioInicio, duracao, errors]);
 
   const formatarData = (data: Date) => {
     const dia = String(data.getDate()).padStart(2, '0');
@@ -117,31 +217,9 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
   };
 
   const handleConfirmar = async () => {
-    // Validações
-    if (!categoria) {
-      toast.error('Selecione uma categoria');
-      return;
-    }
-
-    if (!setor) {
-      toast.error('Selecione um setor');
-      return;
-    }
-
-    if (!horarioInicio) {
-      toast.error('Selecione o horário de início');
-      return;
-    }
-
-    const erroHorario = validarHorario();
-    if (erroHorario) {
-      toast.error(erroHorario);
-      return;
-    }
-
-    // Validar se o setor está permitido no turno
-    if (turno && !turno.setores.includes(setor)) {
-      toast.error(`O setor ${setor} não está permitido neste turno`);
+    // Validar formulário completo
+    if (!validarFormulario()) {
+      toast.error('Corrija os erros antes de confirmar');
       return;
     }
 
@@ -150,42 +228,48 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
       return;
     }
 
-    const horarioFim = calcularHorarioFim();
-    const dataFormatada = dia.toISOString().split('T')[0];
+    try {
+      const horarioFim = calcularHorarioFim();
+      const dataFormatada = dia.toISOString().split('T')[0];
 
-    // Verificar disponibilidade antes de criar
-    const disponivel = await verificarDisponibilidade(
-      turno.id,
-      dataFormatada,
-      horarioInicio,
-      horarioFim
-    );
+      // Verificar disponibilidade antes de criar
+      const disponivel = await verificarDisponibilidade(
+        turno.id,
+        dataFormatada,
+        horarioInicio,
+        horarioFim
+      );
 
-    if (!disponivel) {
-      toast.error('Não há vagas disponíveis neste horário');
-      return;
+      if (!disponivel) {
+        toast.error('Não há vagas disponíveis neste horário');
+        return;
+      }
+
+      // Criar agendamento via hook
+      await criarAgendamento({
+        turnoId: turno.id,
+        data: dataFormatada,
+        horarioInicio,
+        horarioFim,
+        duracaoHoras: parseInt(duracao),
+        categoria,
+        setor,
+      });
+
+      // Resetar campos
+      setCategoria('');
+      setSetor('');
+      setHorarioInicio('');
+      setDuracao('1');
+      setErrors({});
+
+      // Callback de sucesso
+      onSuccess?.();
+      onClose();
+    } catch (error) {
+      toast.error('Erro ao criar agendamento. Tente novamente.');
+      console.error('Erro ao criar agendamento:', error);
     }
-
-    // Criar agendamento via hook
-    await criarAgendamento({
-      turnoId: turno.id,
-      data: dataFormatada,
-      horarioInicio,
-      horarioFim,
-      duracaoHoras: parseInt(duracao),
-      categoria,
-      setor,
-    });
-
-    // Resetar campos
-    setCategoria('');
-    setSetor('');
-    setHorarioInicio('');
-    setDuracao('1');
-
-    // Callback de sucesso
-    onSuccess?.();
-    onClose();
   };
 
   const handleFechar = () => {
@@ -193,6 +277,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
     setSetor('');
     setHorarioInicio('');
     setDuracao('1');
+    setErrors({});
     onClose();
   };
 
@@ -229,10 +314,19 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           </div>
 
           {/* Categoria */}
-          <div className="space-y-2">
-            <Label htmlFor="categoria">Categoria *</Label>
-            <Select value={categoria} onValueChange={setCategoria}>
-              <SelectTrigger id="categoria">
+          <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-red-50 border border-red-200' : ''}`}>
+            <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : ''}>
+              Categoria *
+            </Label>
+            <Select value={categoria} onValueChange={(value: string) => {
+              setCategoria(value);
+              setErrors((prev) => {
+                const novo = { ...prev };
+                delete novo.categoria;
+                return novo;
+              });
+            }}>
+              <SelectTrigger id="categoria" className={errors.categoria ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione a categoria" />
               </SelectTrigger>
               <SelectContent>
@@ -243,18 +337,33 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 ))}
               </SelectContent>
             </Select>
+            {errors.categoria && (
+              <p className="text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.categoria}
+              </p>
+            )}
           </div>
 
           {/* Setor */}
-          <div className="space-y-2">
-            <Label htmlFor="setor">Setor *</Label>
-            <Select value={setor} onValueChange={setSetor}>
-              <SelectTrigger id="setor">
+          <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-red-50 border border-red-200' : ''}`}>
+            <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : ''}>
+              Setor *
+            </Label>
+            <Select value={setor} onValueChange={(value: string) => {
+              setSetor(value);
+              setErrors((prev) => {
+                const novo = { ...prev };
+                delete novo.setor;
+                return novo;
+              });
+            }}>
+              <SelectTrigger id="setor" className={errors.setor ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione o setor" />
               </SelectTrigger>
               <SelectContent>
                 {setores
-                  .filter(s => turno.setores.includes(s)) // Filtrar apenas setores permitidos
+                  .filter(s => turno.setores.includes(s))
                   .map((set) => (
                     <SelectItem key={set} value={set}>
                       {set}
@@ -265,13 +374,28 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
             <p className="text-xs text-neutral-600">
               Setores permitidos: {turno.setores.join(', ')}
             </p>
+            {errors.setor && (
+              <p className="text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.setor}
+              </p>
+            )}
           </div>
 
           {/* Horário de Início */}
-          <div className="space-y-2">
-            <Label htmlFor="horarioInicio">Horário de Início *</Label>
-            <Select value={horarioInicio} onValueChange={setHorarioInicio}>
-              <SelectTrigger id="horarioInicio">
+          <div className={`space-y-2 p-3 rounded-lg ${errors.horarioInicio ? 'bg-red-50 border border-red-200' : ''}`}>
+            <Label htmlFor="horarioInicio" className={errors.horarioInicio ? 'text-red-700' : ''}>
+              Horário de Início *
+            </Label>
+            <Select value={horarioInicio} onValueChange={(value: string) => {
+              setHorarioInicio(value);
+              setErrors((prev) => {
+                const novo = { ...prev };
+                delete novo.horarioInicio;
+                return novo;
+              });
+            }}>
+              <SelectTrigger id="horarioInicio" className={errors.horarioInicio ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione o horário de início" />
               </SelectTrigger>
               <SelectContent>
@@ -282,13 +406,28 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 ))}
               </SelectContent>
             </Select>
+            {errors.horarioInicio && (
+              <p className="text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.horarioInicio}
+              </p>
+            )}
           </div>
 
           {/* Duração */}
-          <div className="space-y-2">
-            <Label htmlFor="duracao">Duração (horas) *</Label>
-            <Select value={duracao} onValueChange={setDuracao}>
-              <SelectTrigger id="duracao">
+          <div className={`space-y-2 p-3 rounded-lg ${errors.duracao ? 'bg-red-50 border border-red-200' : ''}`}>
+            <Label htmlFor="duracao" className={errors.duracao ? 'text-red-700' : ''}>
+              Duração (horas) *
+            </Label>
+            <Select value={duracao} onValueChange={(value: string) => {
+              setDuracao(value);
+              setErrors((prev) => {
+                const novo = { ...prev };
+                delete novo.duracao;
+                return novo;
+              });
+            }}>
+              <SelectTrigger id="duracao" className={errors.duracao ? 'border-red-500' : ''}>
                 <SelectValue placeholder="Selecione a duração" />
               </SelectTrigger>
               <SelectContent>
@@ -299,6 +438,12 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 ))}
               </SelectContent>
             </Select>
+            {errors.duracao && (
+              <p className="text-sm text-red-600 flex items-center gap-1">
+                <AlertCircle className="h-4 w-4" />
+                {errors.duracao}
+              </p>
+            )}
           </div>
 
           {/* Preview do Horário Calculado */}
@@ -325,7 +470,12 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           <Button variant="outline" onClick={handleFechar} disabled={criando}>
             Cancelar
           </Button>
-          <Button onClick={handleConfirmar} className="bg-primary hover:bg-primary/90" disabled={criando}>
+          <Button
+            onClick={handleConfirmar}
+            className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={criando || !isFormValid}
+            title={!isFormValid ? 'Corrija os erros antes de confirmar' : ''}
+          >
             {criando ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
