@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { BlocoTurno } from './bloco-turno';
-import { ModalCriarTurno } from './modal-criar-turno';
-import { ModalNovoAgendamento } from './modal-novo-agendamento';
 import { Button } from '../ui/button';
 import { Plus, Loader2, AlertCircle } from 'lucide-react';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { Alert, AlertDescription } from '../ui/alert';
+
+// Lazy load modais para melhor performance (carregam só quando abertos)
+const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
+const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
 
 interface CalendarioDiaProps {
   dataAtual: Date;
@@ -171,20 +173,24 @@ export function CalendarioDia({
         </div>
       </div>
 
-      {/* Modais */}
-      <ModalCriarTurno
-        open={modalCriarTurno}
-        onClose={() => setModalCriarTurno(false)}
-        onSuccess={handleRefresh}
-      />
+      {/* Modais - Lazy loaded para melhor performance */}
+      <Suspense fallback={null}>
+        <ModalCriarTurno
+          open={modalCriarTurno}
+          onClose={() => setModalCriarTurno(false)}
+          onSuccess={handleRefresh}
+        />
+      </Suspense>
 
-      <ModalNovoAgendamento
-        open={modalAgendamento}
-        onClose={() => setModalAgendamento(false)}
-        turno={turnoSelecionado}
-        dia={dataAtual}
-        onSuccess={handleRefresh}
-      />
+      <Suspense fallback={null}>
+        <ModalNovoAgendamento
+          open={modalAgendamento}
+          onClose={() => setModalAgendamento(false)}
+          turno={turnoSelecionado}
+          dia={dataAtual}
+          onSuccess={handleRefresh}
+        />
+      </Suspense>
     </>
   );
 }

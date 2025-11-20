@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CalendarioSemana } from './calendario-semana';
@@ -84,10 +84,10 @@ export function CalendarioPage() {
   });
 
   // Criar refetch unificado para ambos hooks
-  const handleRefetch = () => {
+  const handleRefetch = useCallback(() => {
     refetch();
     refetchAgendamentos();
-  };
+  }, [refetch, refetchAgendamentos]);
 
   // Formatar mês e ano (ex: "Novembro 2025")
   const formatarMesAno = (data: Date) => {
