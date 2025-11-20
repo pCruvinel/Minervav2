@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -12,8 +12,8 @@ import { WorkflowFooter } from './workflow-footer';
 import { toast } from '../../lib/utils/safe-toast';
 
 // Componentes compartilhados
-import { StepIdentificacaoLeadCompleto } from './steps/shared/step-identificacao-lead-completo';
-import { StepFollowup1 } from './steps/shared/step-followup-1';
+import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
+import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-followup-1';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarProposta } from './steps/shared/step-gerar-proposta';
 import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentacao';
@@ -57,6 +57,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
   // Estados de navegação histórica
   const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
   const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
+
+  // Refs para componentes com validação imperativa
+  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+  const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
   
   // Estados dos formulários de cada etapa
   const [etapa1Data, setEtapa1Data] = useState({ leadId: '' });
@@ -177,6 +181,22 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
     etapa1Data, etapa2Data, etapa3Data, etapa4Data, etapa5Data, etapa6Data,
     etapa7Data, etapa8Data, etapa9Data, etapa10Data, etapa11Data,
   ]);
+
+  // Verificar se o formulário da etapa atual está inválido
+  const isCurrentStepInvalid = useMemo(() => {
+    // Não validar em modo de navegação histórica (read-only)
+    if (isHistoricalNavigation) return false;
+
+    // Verificar validação para cada etapa com formulário
+    switch (currentStep) {
+      case 1:
+        return stepLeadRef.current?.isFormValid() === false;
+      case 3:
+        return stepFollowup1Ref.current?.isFormValid() === false;
+      default:
+        return false; // Etapas sem validação obrigatória
+    }
+  }, [currentStep, isHistoricalNavigation]);
 
   // Handlers para navegação
   const handleStepClick = (stepId: number) => {
@@ -316,6 +336,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
                 <StepIdentificacaoLeadCompleto
+                  ref={stepLeadRef}
                   selectedLeadId={selectedLeadId}
                   onSelectLead={handleSelectLead}
                   showCombobox={showLeadCombobox}
@@ -340,6 +361,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
               {/* ETAPA 3: Follow-up 1 (Entrevista Inicial) */}
               {currentStep === 3 && (
                 <StepFollowup1
+                  ref={stepFollowup1Ref}
                   data={etapa3Data}
                   onDataChange={setEtapa3Data}
                   readOnly={isHistoricalNavigation}
@@ -432,6 +454,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05' }: OSDetailsA
               finalButtonText="Ativar Contrato"
               readOnlyMode={isHistoricalNavigation}
               onReturnToActive={handleReturnToActive}
+              isFormInvalid={isCurrentStepInvalid}
+              invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
             />
           </Card>
         </div>
