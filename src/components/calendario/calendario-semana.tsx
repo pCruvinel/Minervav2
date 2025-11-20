@@ -1,17 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { ModalCriarTurno } from './modal-criar-turno';
 import { ModalNovoAgendamento } from './modal-novo-agendamento';
 import { Button } from '../ui/button';
 import { Plus, Loader2 } from 'lucide-react';
-import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
-import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
+import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 
 interface CalendarioSemanaProps {
   dataAtual: Date;
+  turnosPorDia: Map<string, TurnoComVagas[]> | null;
+  agendamentos: any[];
+  loading: boolean;
+  error: Error | null;
+  onRefresh: () => void;
 }
 
-export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
+export function CalendarioSemana({
+  dataAtual,
+  turnosPorDia,
+  agendamentos,
+  loading,
+  error,
+  onRefresh
+}: CalendarioSemanaProps) {
   const [modalCriarTurno, setModalCriarTurno] = useState(false);
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
@@ -36,24 +47,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
     return dias;
   }, [dataAtual]);
 
-  const startDate = diasDaSemana[0]?.toISOString().split('T')[0] || '';
-  const endDate = diasDaSemana[6]?.toISOString().split('T')[0] || '';
-
-  // Buscar turnos da semana
-  const { turnosPorDia, loading: loadingTurnos, refetch: refetchTurnos } = useTurnosPorSemana(startDate, endDate);
-
-  // Buscar agendamentos da semana
-  const { agendamentos, loading: loadingAgendamentos, refetch: refetchAgendamentos } = useAgendamentos({
-    dataInicio: startDate,
-    dataFim: endDate,
-  });
-
-  const loading = loadingTurnos || loadingAgendamentos;
-
-  const handleRefresh = () => {
-    refetchTurnos();
-    refetchAgendamentos();
-  };
+  const handleRefresh = onRefresh;
 
   // Dias da semana (Seg - Dom, 7 dias)
   const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
@@ -67,13 +61,13 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
   const ALTURA_SLOT = 80; // Altura de cada slot de horário em pixels
 
   // Calcular posição e altura do turno
-  const calcularEstiloTurno = (turno: any) => {
+  const calcularEstiloTurno = (turno: TurnoComVagas) => {
     const [horaInicio] = turno.horaInicio.split(':').map(Number);
     const [horaFim] = turno.horaFim.split(':').map(Number);
-    
+
     const indexInicio = horarios.findIndex(h => h === turno.horaInicio);
     const duracao = horaFim - horaInicio;
-    
+
     return {
       top: `${indexInicio * ALTURA_SLOT}px`,
       height: `${duracao * ALTURA_SLOT - 8}px` // -8 para padding
@@ -84,7 +78,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
   const turnosPorDiaIndex = useMemo(() => {
     if (!turnosPorDia) return new Map();
 
-    const mapPorIndex = new Map<number, any[]>();
+    const mapPorIndex = new Map<number, (TurnoComVagas & { dia: number })[]>();
 
     diasDaSemana.forEach((dia, index) => {
       const dataStr = dia.toISOString().split('T')[0];
@@ -113,7 +107,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
     return mapPorIndex;
   }, [turnosPorDia, agendamentos, diasDaSemana]);
 
-  const handleClickTurno = (turno: any) => {
+  const handleClickTurno = (turno: TurnoComVagas & { dia: number }) => {
     if (turno.vagasOcupadas < turno.vagasTotal) {
       setTurnoSelecionado(turno);
       setModalAgendamento(true);

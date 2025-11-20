@@ -1,21 +1,25 @@
 import { Users, Loader2, AlertCircle } from 'lucide-react';
-import { useTurnosPorSemana, TurnoComVagas } from '../../lib/hooks/use-turnos';
+import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface CalendarioMesProps {
   dataAtual: Date;
+  turnosPorDia: Map<string, TurnoComVagas[]> | null;
+  loading: boolean;
+  error: Error | null;
+  onRefresh: () => void;
 }
 
-export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
+export function CalendarioMes({
+  dataAtual,
+  turnosPorDia,
+  loading,
+  error,
+  onRefresh
+}: CalendarioMesProps) {
   // Calcular período do mês
   const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
   const ultimoDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0);
-
-  const startDate = primeiroDia.toISOString().split('T')[0];
-  const endDate = ultimoDia.toISOString().split('T')[0];
-
-  // Buscar turnos do mês
-  const { turnosPorDia, loading, error } = useTurnosPorSemana(startDate, endDate);
 
   const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 

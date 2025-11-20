@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CalendarioSemana } from './calendario-semana';
 import { CalendarioMes } from './calendario-mes';
 import { CalendarioDia } from './calendario-dia';
+import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
+import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
 
 type VisualizacaoTipo = 'mes' | 'semana' | 'dia';
 
@@ -44,6 +46,48 @@ const getEndOfWeek = (data: Date): Date => {
 export function CalendarioPage() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [visualizacao, setVisualizacao] = useState<VisualizacaoTipo>('semana');
+
+  // Calcular range de datas baseado na visualização
+  const dateRange = useMemo(() => {
+    if (visualizacao === 'mes') {
+      const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
+      const ultimoDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0);
+      return {
+        startDate: primeiroDia.toISOString().split('T')[0],
+        endDate: ultimoDia.toISOString().split('T')[0],
+      };
+    } else if (visualizacao === 'semana') {
+      const inicio = getStartOfWeek(dataAtual);
+      const fim = getEndOfWeek(dataAtual);
+      return {
+        startDate: inicio.toISOString().split('T')[0],
+        endDate: fim.toISOString().split('T')[0],
+      };
+    } else {
+      const dataStr = dataAtual.toISOString().split('T')[0];
+      return {
+        startDate: dataStr,
+        endDate: dataStr,
+      };
+    }
+  }, [dataAtual, visualizacao]);
+
+  // Buscar turnos e agendamentos
+  const { turnosPorDia, loading, error, refetch } = useTurnosPorSemana(
+    dateRange.startDate,
+    dateRange.endDate
+  );
+
+  const { agendamentos, refetch: refetchAgendamentos } = useAgendamentos({
+    dataInicio: dateRange.startDate,
+    dataFim: dateRange.endDate,
+  });
+
+  // Criar refetch unificado para ambos hooks
+  const handleRefetch = () => {
+    refetch();
+    refetchAgendamentos();
+  };
 
   // Formatar mês e ano (ex: "Novembro 2025")
   const formatarMesAno = (data: Date) => {
@@ -162,9 +206,35 @@ export function CalendarioPage() {
 
         {/* Conteúdo do Calendário */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          {visualizacao === 'semana' && <CalendarioSemana dataAtual={dataAtual} />}
-          {visualizacao === 'mes' && <CalendarioMes dataAtual={dataAtual} />}
-          {visualizacao === 'dia' && <CalendarioDia dataAtual={dataAtual} />}
+          {visualizacao === 'semana' && (
+            <CalendarioSemana
+              dataAtual={dataAtual}
+              turnosPorDia={turnosPorDia}
+              agendamentos={agendamentos}
+              loading={loading}
+              error={error}
+              onRefresh={handleRefetch}
+            />
+          )}
+          {visualizacao === 'mes' && (
+            <CalendarioMes
+              dataAtual={dataAtual}
+              turnosPorDia={turnosPorDia}
+              loading={loading}
+              error={error}
+              onRefresh={handleRefetch}
+            />
+          )}
+          {visualizacao === 'dia' && (
+            <CalendarioDia
+              dataAtual={dataAtual}
+              turnosPorDia={turnosPorDia}
+              agendamentos={agendamentos}
+              loading={loading}
+              error={error}
+              onRefresh={handleRefetch}
+            />
+          )}
         </div>
       </div>
     </div>

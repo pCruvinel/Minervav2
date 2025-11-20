@@ -4,30 +4,32 @@ import { ModalCriarTurno } from './modal-criar-turno';
 import { ModalNovoAgendamento } from './modal-novo-agendamento';
 import { Button } from '../ui/button';
 import { Plus, Loader2, AlertCircle } from 'lucide-react';
-import { useTurnosPorSemana, TurnoComVagas } from '../../lib/hooks/use-turnos';
-import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
+import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { Alert, AlertDescription } from '../ui/alert';
 
 interface CalendarioDiaProps {
   dataAtual: Date;
+  turnosPorDia: Map<string, TurnoComVagas[]> | null;
+  agendamentos: any[];
+  loading: boolean;
+  error: Error | null;
+  onRefresh: () => void;
 }
 
-export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
+export function CalendarioDia({
+  dataAtual,
+  turnosPorDia,
+  agendamentos,
+  loading,
+  error,
+  onRefresh
+}: CalendarioDiaProps) {
   const [modalCriarTurno, setModalCriarTurno] = useState(false);
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoComVagas | null>(null);
 
-  // Buscar turnos para o dia (usa range de 1 dia)
-  const dataStr = dataAtual.toISOString().split('T')[0];
-  const { turnosPorDia, loading, error, refetch } = useTurnosPorSemana(dataStr, dataStr);
-
-  // Buscar agendamentos para o dia
-  const { agendamentos } = useAgendamentos({
-    dataInicio: dataStr,
-    dataFim: dataStr,
-  });
-
   // Obter turnos do dia atual
+  const dataStr = dataAtual.toISOString().split('T')[0];
   const turnosDia = turnosPorDia?.get(dataStr) || [];
 
   // Horários (08:00 - 18:00)
@@ -52,9 +54,7 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
     };
   };
 
-  const handleRefresh = () => {
-    refetch();
-  };
+  const handleRefresh = onRefresh;
 
   const formatarDia = (data: Date) => {
     return data.toLocaleDateString('pt-BR', { 
