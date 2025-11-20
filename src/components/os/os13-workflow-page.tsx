@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
@@ -20,7 +20,10 @@ import { StepSeguroObras } from './steps/os13/step-seguro-obras';
 import { StepDocumentosSST } from './steps/os13/step-documentos-sst';
 import { StepAgendarVisitaFinal } from './steps/os13/step-agendar-visita-final';
 import { StepRealizarVisitaFinal } from './steps/os13/step-realizar-visita-final';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Info } from 'lucide-react';
+import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
+import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
+import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
 
 const steps: WorkflowStep[] = [
   { id: 1, title: 'Dados do Cliente', short: 'Cliente', responsible: 'Comercial', status: 'active' },
@@ -48,13 +51,43 @@ interface OS13WorkflowPageProps {
 }
 
 export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
-  const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
+  // Hook de Estado do Workflow
+  const {
+    currentStep,
+    setCurrentStep,
+    lastActiveStep,
+    setLastActiveStep,
+    isHistoricalNavigation,
+    setIsHistoricalNavigation,
+    formDataByStep,
+    setStepData,
+    saveStep,
+    completedSteps: completedStepsFromHook,
+    isLoading: isLoadingData
+  } = useWorkflowState({
+    osId,
+    totalSteps: steps.length
+  });
 
-  // Estados de cada etapa
-  const [etapa1Data, setEtapa1Data] = useState({
+  // Hook de Navegação
+  const {
+    handleStepClick,
+    handleReturnToActive,
+    handleNextStep,
+    handlePrevStep
+  } = useWorkflowNavigation({
+    totalSteps: steps.length,
+    currentStep,
+    setCurrentStep,
+    lastActiveStep,
+    setLastActiveStep,
+    isHistoricalNavigation,
+    setIsHistoricalNavigation,
+    onSaveStep: (step) => saveStep(step, false)
+  });
+
+  // Mapeamento de dados para compatibilidade
+  const etapa1Data = formDataByStep[1] || {
     cliente: '',
     tipoEdificacao: '',
     qtdPavimentos: '',
@@ -71,71 +104,85 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     cargo: '',
     telefone: '',
     email: '',
+  };
+
+  const etapa2Data = formDataByStep[2] || { artAnexada: '' };
+  const etapa3Data = formDataByStep[3] || { relatorioAnexado: '' };
+  const etapa4Data = formDataByStep[4] || { imagemAnexada: '' };
+  const etapa5Data = formDataByStep[5] || { cronogramaAnexado: '' };
+  const etapa6Data = formDataByStep[6] || { dataVisita: '' };
+  const etapa7Data = formDataByStep[7] || { visitaRealizada: false };
+  const etapa8Data = formDataByStep[8] || { histogramaAnexado: '' };
+  const etapa9Data = formDataByStep[9] || { placaAnexada: '' };
+  const etapa10Data = formDataByStep[10] || { os09Criada: false, os09Id: '' };
+  const etapa11Data = formDataByStep[11] || { os10Criada: false, os10Id: '' };
+  const etapa12Data = formDataByStep[12] || { evidenciaAnexada: '' };
+  const etapa13Data = formDataByStep[13] || { diarioAnexado: '' };
+  const etapa14Data = formDataByStep[14] || { decisaoSeguro: '' };
+  const etapa15Data = formDataByStep[15] || { documentosAnexados: [] };
+  const etapa16Data = formDataByStep[16] || { dataVisitaFinal: '' };
+  const etapa17Data = formDataByStep[17] || { visitaFinalRealizada: false };
+
+  // Setters wrappers
+  const setEtapa1Data = (data: any) => setStepData(1, data);
+  const setEtapa2Data = (data: any) => setStepData(2, data);
+  const setEtapa3Data = (data: any) => setStepData(3, data);
+  const setEtapa4Data = (data: any) => setStepData(4, data);
+  const setEtapa5Data = (data: any) => setStepData(5, data);
+  const setEtapa6Data = (data: any) => setStepData(6, data);
+  const setEtapa7Data = (data: any) => setStepData(7, data);
+  const setEtapa8Data = (data: any) => setStepData(8, data);
+  const setEtapa9Data = (data: any) => setStepData(9, data);
+  const setEtapa10Data = (data: any) => setStepData(10, data);
+  const setEtapa11Data = (data: any) => setStepData(11, data);
+  const setEtapa12Data = (data: any) => setStepData(12, data);
+  const setEtapa13Data = (data: any) => setStepData(13, data);
+  const setEtapa14Data = (data: any) => setStepData(14, data);
+  const setEtapa15Data = (data: any) => setStepData(15, data);
+  const setEtapa16Data = (data: any) => setStepData(16, data);
+  const setEtapa17Data = (data: any) => setStepData(17, data);
+
+  /**
+   * Cálculo dinâmico de etapas completadas
+   */
+  // Regras de completude
+  const completionRules = useMemo(() => ({
+    1: (data: any) => !!(data.cliente && data.cnpj),
+    2: (data: any) => !!data.artAnexada,
+    3: (data: any) => !!data.relatorioAnexado,
+    4: (data: any) => !!data.imagemAnexada,
+    5: (data: any) => !!data.cronogramaAnexado,
+    6: (data: any) => !!data.dataVisita,
+    7: (data: any) => !!data.visitaRealizada,
+    8: (data: any) => !!data.histogramaAnexado,
+    9: (data: any) => !!data.placaAnexada,
+    10: (data: any) => !!data.os09Criada,
+    11: (data: any) => !!data.os10Criada,
+    12: (data: any) => !!data.evidenciaAnexada,
+    13: (data: any) => !!data.diarioAnexado,
+    14: (data: any) => !!data.decisaoSeguro,
+    15: (data: any) => !!(data.documentosAnexados && data.documentosAnexados.length > 0),
+    16: (data: any) => !!data.dataVisitaFinal,
+    17: (data: any) => !!data.visitaFinalRealizada,
+  }), []);
+
+  const { completedSteps } = useWorkflowCompletion({
+    currentStep,
+    formDataByStep,
+    completionRules,
+    completedStepsFromHook
   });
-
-  const [etapa2Data, setEtapa2Data] = useState({ artAnexada: '' });
-  const [etapa3Data, setEtapa3Data] = useState({ relatorioAnexado: '' });
-  const [etapa4Data, setEtapa4Data] = useState({ imagemAnexada: '' });
-  const [etapa5Data, setEtapa5Data] = useState({ cronogramaAnexado: '' });
-  const [etapa6Data, setEtapa6Data] = useState({ dataVisita: '' });
-  const [etapa7Data, setEtapa7Data] = useState({ visitaRealizada: false });
-  const [etapa8Data, setEtapa8Data] = useState({ histogramaAnexado: '' });
-  const [etapa9Data, setEtapa9Data] = useState({ placaAnexada: '' });
-  const [etapa10Data, setEtapa10Data] = useState({ os09Criada: false, os09Id: '' });
-  const [etapa11Data, setEtapa11Data] = useState({ os10Criada: false, os10Id: '' });
-  const [etapa12Data, setEtapa12Data] = useState({ evidenciaAnexada: '' });
-  const [etapa13Data, setEtapa13Data] = useState({ diarioAnexado: '' });
-  const [etapa14Data, setEtapa14Data] = useState({ decisaoSeguro: '' });
-  const [etapa15Data, setEtapa15Data] = useState({ documentosAnexados: [] as string[] });
-  const [etapa16Data, setEtapa16Data] = useState({ dataVisitaFinal: '' });
-  const [etapa17Data, setEtapa17Data] = useState({ visitaFinalRealizada: false });
-
-  const handleNext = () => {
-    if (currentStep < steps.length) {
-      if (!completedSteps.includes(currentStep)) {
-        setCompletedSteps([...completedSteps, currentStep]);
-      }
-      setLastActiveStep(currentStep + 1);
-      setCurrentStep(currentStep + 1);
-      setIsHistoricalNavigation(false);
-      toast.success(`Avançado para etapa ${currentStep + 1}`);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      toast.info(`Voltou para etapa ${currentStep - 1}`);
-    }
-  };
-
-  const handleStepClick = (stepId: number) => {
-    if (completedSteps.includes(stepId) || stepId === currentStep) {
-      setIsHistoricalNavigation(stepId < (lastActiveStep || currentStep));
-      setCurrentStep(stepId);
-      if (stepId < (lastActiveStep || currentStep)) {
-        toast.info(`📜 Visualizando etapa ${stepId} (histórico)`);
-      }
-    }
-  };
-
-  const handleReturnToActive = () => {
-    if (lastActiveStep) {
-      setCurrentStep(lastActiveStep);
-      setIsHistoricalNavigation(false);
-      toast.success(`Retornado à etapa ativa ${lastActiveStep}`);
-    }
-  };
 
   const handleSaveStep = async () => {
     try {
+      await saveStep(currentStep, true);
       toast.success('Dados salvos com sucesso!');
-      console.log('Salvando etapa', currentStep);
     } catch (error) {
       toast.error('Erro ao salvar dados');
-      console.error('Erro:', error);
     }
   };
+
+
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -169,34 +216,37 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
             lastActiveStep={lastActiveStep || undefined}
           />
           
+          {/* Botão de retorno rápido */}
           {isHistoricalNavigation && lastActiveStep && (
             <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
               <button
                 onClick={handleReturnToActive}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all shadow-lg whitespace-nowrap animate-pulse"
-                style={{ backgroundColor: '#f97316', color: 'white' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ea580c';
-                  e.currentTarget.classList.remove('animate-pulse');
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#f97316';
-                  e.currentTarget.classList.add('animate-pulse');
-                }}
+                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
+                title="Voltar para a etapa em que estava trabalhando"
               >
                 <ChevronLeft className="w-4 h-4 rotate-180" />
-                <span className="text-sm">Voltar para Etapa {lastActiveStep}</span>
+                <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
               </button>
             </div>
           )}
         </div>
       </div>
 
+      {/* Banner de navegação histórica */}
       {isHistoricalNavigation && (
-        <div className="bg-orange-50 border-b border-orange-200 px-6 py-3">
-          <p className="text-orange-800 text-sm">
-            📜 Você está visualizando uma etapa já concluída. As alterações serão salvas, mas não afetarão o progresso atual.
-          </p>
+        <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 mx-6 rounded-r-lg flex items-start gap-3">
+          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h4 className="font-semibold text-blue-900 text-sm">
+              Modo de Visualização Histórica
+            </h4>
+            <p className="text-blue-800 text-sm">
+              Você está visualizando dados de uma etapa já concluída.
+              {lastActiveStep && (
+                <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
+              )}
+            </p>
+          </div>
         </div>
       )}
 
@@ -204,23 +254,23 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
       <div className="px-6 py-6">
         <Card className="max-w-5xl mx-auto">
           <div className="p-6">
-            {currentStep === 1 && <StepDadosCliente data={etapa1Data} onDataChange={setEtapa1Data} />}
-            {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} />}
-            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} />}
-            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} />}
-            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} />}
-            {currentStep === 6 && <StepAgendarVisitaInicial data={etapa6Data} onDataChange={setEtapa6Data} />}
-            {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} />}
-            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} />}
-            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} />}
-            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} />}
-            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} />}
-            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} />}
-            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} />}
-            {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} />}
-            {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} />}
-            {currentStep === 16 && <StepAgendarVisitaFinal data={etapa16Data} onDataChange={setEtapa16Data} />}
-            {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} />}
+            {currentStep === 1 && <StepDadosCliente data={etapa1Data} onDataChange={setEtapa1Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 6 && <StepAgendarVisitaInicial data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 16 && <StepAgendarVisitaFinal data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isHistoricalNavigation} />}
           </div>
         </Card>
       </div>
@@ -228,11 +278,12 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
       <WorkflowFooter
         currentStep={currentStep}
         totalSteps={steps.length}
-        onBack={handleBack}
-        onNext={handleNext}
-        onSave={handleSaveStep}
-        isFirstStep={currentStep === 1}
-        isLastStep={currentStep === steps.length}
+        onPrevStep={handlePrevStep}
+        onNextStep={handleNextStep}
+        onSaveDraft={handleSaveStep}
+        readOnlyMode={isHistoricalNavigation}
+        onReturnToActive={handleReturnToActive}
+        isLoading={isLoadingData}
       />
     </div>
   );

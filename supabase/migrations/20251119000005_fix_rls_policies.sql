@@ -26,12 +26,12 @@ USING (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE colaboradores.id = auth.uid()
-    AND colaboradores.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL')
+    AND colaboradores.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO')
   )
 );
 
 COMMENT ON POLICY "turnos_view_all" ON turnos IS 'Todos usuários autenticados podem ver turnos ativos';
-COMMENT ON POLICY "turnos_manage_admin" ON turnos IS 'Apenas Diretoria e Gestor Comercial podem gerenciar turnos';
+COMMENT ON POLICY "turnos_manage_admin" ON turnos IS 'Apenas Diretoria e Gestor Administrativo podem gerenciar turnos';
 
 -- ==========================================
 -- 2. CORRIGIR POLÍTICAS DE AGENDAMENTOS
@@ -64,7 +64,7 @@ USING (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE colaboradores.id = auth.uid()
-    AND colaboradores.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL')
+    AND colaboradores.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO')
   )
 );
 
@@ -88,14 +88,14 @@ USING (
   )
 );
 
--- Gestor Comercial vê todos
-CREATE POLICY "colaboradores_view_gestor_comercial"
+-- Gestor Administrativo vê todos
+CREATE POLICY "colaboradores_view_gestor_administrativo"
 ON colaboradores FOR SELECT
 USING (
   EXISTS (
     SELECT 1 FROM colaboradores c
     WHERE c.id = auth.uid()
-    AND c.role_nivel = 'GESTOR_COMERCIAL'
+    AND c.role_nivel = 'GESTOR_ADMINISTRATIVO'
   )
 );
 
@@ -145,14 +145,14 @@ USING (
   )
 );
 
--- Gestor Comercial vê todas
-CREATE POLICY "os_view_gestor_comercial"
+-- Gestor Administrativo vê todas
+CREATE POLICY "os_view_gestor_administrativo"
 ON ordens_servico FOR SELECT
 USING (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE id = auth.uid()
-    AND role_nivel = 'GESTOR_COMERCIAL'
+    AND role_nivel = 'GESTOR_ADMINISTRATIVO'
   )
 );
 
@@ -189,7 +189,7 @@ WITH CHECK (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE id = auth.uid()
-    AND role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
+    AND role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
   )
 );
 
@@ -201,7 +201,7 @@ USING (
     SELECT 1 FROM colaboradores c
     WHERE c.id = auth.uid()
     AND (
-      c.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL') OR
+      c.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO') OR
       (
         c.role_nivel IN ('GESTOR_ASSESSORIA', 'GESTOR_OBRAS') AND
         EXISTS (
@@ -228,7 +228,7 @@ USING (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE id = auth.uid()
-    AND role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
+    AND role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
   )
 );
 
@@ -244,7 +244,7 @@ USING (
   EXISTS (
     SELECT 1 FROM colaboradores
     WHERE id = auth.uid()
-    AND role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
+    AND role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
   )
 );
 
@@ -255,7 +255,7 @@ USING (
 DROP POLICY IF EXISTS "financeiro_view_all" ON financeiro_lancamentos;
 DROP POLICY IF EXISTS "financeiro_manage_all" ON financeiro_lancamentos;
 
--- Apenas Diretoria e Gestor Comercial têm acesso ao financeiro
+-- Apenas Diretoria e Gestor Administrativo têm acesso ao financeiro
 CREATE POLICY "financeiro_view_authorized"
 ON financeiro_lancamentos FOR SELECT
 USING (
@@ -294,8 +294,8 @@ USING (
     AND (
       -- Diretoria
       EXISTS (SELECT 1 FROM colaboradores WHERE id = auth.uid() AND role_nivel = 'DIRETORIA') OR
-      -- Gestor Comercial
-      EXISTS (SELECT 1 FROM colaboradores WHERE id = auth.uid() AND role_nivel = 'GESTOR_COMERCIAL') OR
+      -- Gestor Administrativo
+      EXISTS (SELECT 1 FROM colaboradores WHERE id = auth.uid() AND role_nivel = 'GESTOR_ADMINISTRATIVO') OR
       -- Responsável
       os.responsavel_id = auth.uid() OR
       -- Delegado
@@ -312,7 +312,7 @@ USING (
   EXISTS (
     SELECT 1 FROM colaboradores c
     WHERE c.id = auth.uid()
-    AND c.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
+    AND c.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
   )
 );
 
@@ -331,7 +331,7 @@ USING (
     SELECT 1 FROM ordens_servico os
     WHERE os.id = os_anexos.os_id
     AND (
-      EXISTS (SELECT 1 FROM colaboradores WHERE id = auth.uid() AND role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL')) OR
+      EXISTS (SELECT 1 FROM colaboradores WHERE id = auth.uid() AND role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO')) OR
       os.responsavel_id = auth.uid() OR
       EXISTS (SELECT 1 FROM delegacoes WHERE delegacoes.os_id = os.id AND delegacoes.delegado_id = auth.uid())
     )
@@ -346,7 +346,7 @@ USING (
     SELECT 1 FROM ordens_servico os
     JOIN colaboradores c ON c.id = auth.uid()
     WHERE os.id = os_anexos.os_id
-    AND c.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
+    AND c.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS')
   )
 );
 
@@ -383,7 +383,7 @@ ORDER BY tablename;
 -- TESTES RECOMENDADOS:
 -- 1. ✅ Testar login como cada tipo de usuário
 -- 2. ✅ Verificar se Diretoria vê tudo
--- 3. ✅ Verificar se Gestor Comercial vê tudo
+-- 3. ✅ Verificar se Gestor Administrativo vê tudo
 -- 4. ✅ Verificar se Gestor de Setor vê apenas seu setor
 -- 5. ✅ Verificar se Colaborador vê apenas suas tarefas
 -- 6. ✅ Verificar se MOBRA não acessa nada (se implementado)

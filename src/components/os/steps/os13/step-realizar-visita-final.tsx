@@ -4,12 +4,13 @@ import { Alert, AlertDescription } from '../../../ui/alert';
 import { CheckCircle2, MapPin, AlertCircle, Flag } from 'lucide-react';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepRealizarVisitaFinalProps {
+export interface StepRealizarVisitaFinalProps {
   data: { visitaFinalRealizada: boolean };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRealizarVisitaFinal({ data, onDataChange }: StepRealizarVisitaFinalProps) {
+export function StepRealizarVisitaFinal({ data, onDataChange, readOnly }: StepRealizarVisitaFinalProps) {
   const handleRealizarVisita = () => {
     onDataChange({ visitaFinalRealizada: true });
     toast.success('Visita final registrada como realizada!');
@@ -54,9 +55,9 @@ export function StepRealizarVisitaFinal({ data, onDataChange }: StepRealizarVisi
 
       {/* Card Clicável */}
       {!data.visitaFinalRealizada && (
-        <Card 
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
-          onClick={handleRealizarVisita}
+        <Card
+          className={`transition-all ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:border-primary'}`}
+          onClick={readOnly ? undefined : handleRealizarVisita}
         >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">

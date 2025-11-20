@@ -10,9 +10,10 @@ interface StepGerarContratoProps {
     dataUpload: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepGerarContrato({ data, onDataChange }: StepGerarContratoProps) {
+export function StepGerarContrato({ data, onDataChange, readOnly = false }: StepGerarContratoProps) {
   return (
     <div className="space-y-6">
       <Alert>
@@ -44,10 +45,10 @@ export function StepGerarContrato({ data, onDataChange }: StepGerarContratoProps
             <CardTitle className="text-base">2. Upload do Contrato</CardTitle>
           </CardHeader>
           <CardContent className="py-8">
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+            <div className={`border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center transition-colors ${readOnly ? 'opacity-50 cursor-not-allowed' : 'hover:border-primary cursor-pointer'}`}>
               <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
               <p className="text-sm mb-2">
-                Clique para fazer upload ou arraste o arquivo
+                {readOnly ? 'Upload desabilitado em modo leitura' : 'Clique para fazer upload ou arraste o arquivo'}
               </p>
               <p className="text-xs text-muted-foreground">
                 PDF, DOCX até 10MB
@@ -70,7 +71,12 @@ export function StepGerarContrato({ data, onDataChange }: StepGerarContratoProps
                   </div>
                 </div>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => onDataChange({ contratoFile: null, dataUpload: '' })}>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => !readOnly && onDataChange({ contratoFile: null, dataUpload: '' })}
+                disabled={readOnly}
+              >
                 <X className="w-4 h-4" />
               </Button>
             </div>

@@ -36,16 +36,19 @@ interface StepFormularioPosVisitaProps {
     justificativa: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPosVisitaProps) {
+export function StepFormularioPosVisita({ data, onDataChange, readOnly }: StepFormularioPosVisitaProps) {
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const handleInputChange = (field: string, value: any) => {
+    if (readOnly) return;
     onDataChange({ ...data, [field]: value });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -62,6 +65,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
   };
 
   const handleRemoveFile = (index: number) => {
+    if (readOnly) return;
     const newFiles = data.fotosLocal.filter((_, i) => i !== index);
     handleInputChange('fotosLocal', newFiles);
     toast.info('Arquivo removido');
@@ -89,7 +93,8 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
             </Label>
             <Select
               value={data.pontuacaoEngenheiro}
-              onValueChange={(value) => handleInputChange('pontuacaoEngenheiro', value)}
+              onValueChange={(value: string) => handleInputChange('pontuacaoEngenheiro', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="pontuacaoEngenheiro">
                 <SelectValue placeholder="Selecione" />
@@ -107,7 +112,8 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
             </Label>
             <Select
               value={data.pontuacaoMorador}
-              onValueChange={(value) => handleInputChange('pontuacaoMorador', value)}
+              onValueChange={(value: string) => handleInputChange('pontuacaoMorador', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="pontuacaoMorador">
                 <SelectValue placeholder="Selecione" />
@@ -125,7 +131,8 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
             </Label>
             <Select
               value={data.tipoDocumento}
-              onValueChange={(value) => handleInputChange('tipoDocumento', value)}
+              onValueChange={(value: string) => handleInputChange('tipoDocumento', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="tipoDocumento">
                 <SelectValue placeholder="Selecione" />
@@ -151,7 +158,8 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
           </Label>
           <RadioGroup
             value={data.areaVistoriada}
-            onValueChange={(value) => handleInputChange('areaVistoriada', value)}
+            onValueChange={(value: string) => handleInputChange('areaVistoriada', value)}
+            disabled={readOnly}
           >
             {AREAS_VISTORIA.map((area, index) => (
               <div key={index} className="flex items-start space-x-2">
@@ -182,6 +190,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               onChange={(e) => handleInputChange('manifestacaoPatologica', e.target.value)}
               placeholder="Descreva as manifestações patológicas identificadas"
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -195,6 +204,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               onChange={(e) => handleInputChange('recomendacoesPrevias', e.target.value)}
               placeholder="Liste as recomendações iniciais"
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -205,7 +215,8 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               </Label>
               <Select
                 value={data.gravidade}
-                onValueChange={(value) => handleInputChange('gravidade', value)}
+                onValueChange={(value: string) => handleInputChange('gravidade', value)}
+                disabled={readOnly}
               >
                 <SelectTrigger id="gravidade">
                   <SelectValue placeholder="Selecione" />
@@ -228,6 +239,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
                 value={data.origemNBR}
                 onChange={(e) => handleInputChange('origemNBR', e.target.value)}
                 placeholder="Ex: NBR 15575"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -242,6 +254,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               onChange={(e) => handleInputChange('observacoesGerais', e.target.value)}
               placeholder="Adicione observações relevantes sobre a visita"
               rows={4}
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -258,26 +271,28 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
             Anexe fotos do local <span className="text-red-500">*</span>
           </Label>
           
-          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
-            <input
-              type="file"
-              id="file-upload-pos"
-              className="hidden"
-              multiple
-              accept="image/*"
-              onChange={handleFileUpload}
-              disabled={uploadingFiles}
-            />
-            <label htmlFor="file-upload-pos" className="cursor-pointer">
-              <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
-              <p className="text-sm text-neutral-600 mb-1">
-                Clique para selecionar ou arraste arquivos
-              </p>
-              <p className="text-xs text-neutral-500">
-                PNG, JPG, JPEG até 10MB
-              </p>
-            </label>
-          </div>
+          {!readOnly && (
+            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
+              <input
+                type="file"
+                id="file-upload-pos"
+                className="hidden"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploadingFiles}
+              />
+              <label htmlFor="file-upload-pos" className="cursor-pointer">
+                <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
+                <p className="text-sm text-neutral-600 mb-1">
+                  Clique para selecionar ou arraste arquivos
+                </p>
+                <p className="text-xs text-neutral-500">
+                  PNG, JPG, JPEG até 10MB
+                </p>
+              </label>
+            </div>
+          )}
 
           {data.fotosLocal.length > 0 && (
             <div className="space-y-2 mt-4">
@@ -294,12 +309,14 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <button
-                      onClick={() => handleRemoveFile(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleRemoveFile(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -325,6 +342,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               onChange={(e) => handleInputChange('resultadoVisita', e.target.value)}
               placeholder="Descreva o resultado geral da visita"
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -338,6 +356,7 @@ export function StepFormularioPosVisita({ data, onDataChange }: StepFormularioPo
               onChange={(e) => handleInputChange('justificativa', e.target.value)}
               placeholder="Justifique o resultado apresentado"
               rows={3}
+              disabled={readOnly}
             />
           </div>
         </div>

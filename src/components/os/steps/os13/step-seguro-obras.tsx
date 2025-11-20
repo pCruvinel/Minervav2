@@ -5,12 +5,13 @@ import { Card, CardContent } from '../../../ui/card';
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { Shield, CheckCircle2, AlertCircle, XCircle } from 'lucide-react';
 
-interface StepSeguroObrasProps {
+export interface StepSeguroObrasProps {
   data: { decisaoSeguro: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepSeguroObras({ data, onDataChange }: StepSeguroObrasProps) {
+export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObrasProps) {
   const handleDecisaoChange = (value: string) => {
     onDataChange({ decisaoSeguro: value });
   };
@@ -72,12 +73,12 @@ export function StepSeguroObras({ data, onDataChange }: StepSeguroObrasProps) {
           Decisão sobre Contratação do Seguro <span className="text-red-500">*</span>
         </Label>
         
-        <RadioGroup value={data.decisaoSeguro} onValueChange={handleDecisaoChange}>
-          <Card 
-            className={`cursor-pointer transition-all ${
+        <RadioGroup value={data.decisaoSeguro} onValueChange={handleDecisaoChange} disabled={readOnly}>
+          <Card
+            className={`transition-all ${
               data.decisaoSeguro === 'aprovar' ? 'border-green-500 bg-green-50' : 'hover:border-neutral-300'
-            }`}
-            onClick={() => handleDecisaoChange('aprovar')}
+            } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={readOnly ? undefined : () => handleDecisaoChange('aprovar')}
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -97,11 +98,11 @@ export function StepSeguroObras({ data, onDataChange }: StepSeguroObrasProps) {
             </CardContent>
           </Card>
 
-          <Card 
-            className={`cursor-pointer transition-all ${
+          <Card
+            className={`transition-all ${
               data.decisaoSeguro === 'reprovar' ? 'border-red-500 bg-red-50' : 'hover:border-neutral-300'
-            }`}
-            onClick={() => handleDecisaoChange('reprovar')}
+            } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            onClick={readOnly ? undefined : () => handleDecisaoChange('reprovar')}
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">

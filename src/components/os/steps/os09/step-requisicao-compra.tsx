@@ -44,14 +44,17 @@ interface StepRequisicaoCompraProps {
     dataPrevistaFim: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompraProps) {
+export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequisicaoCompraProps) {
   const handleInputChange = (field: string, value: any) => {
+    if (readOnly) return;
     onDataChange({ ...data, [field]: value });
   };
 
   const handleDateSelect = (field: string, date: Date | undefined) => {
+    if (readOnly) return;
     if (date) {
       handleInputChange(field, date.toISOString());
     }
@@ -73,6 +76,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
   };
 
   const handleCNPJChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const formatted = formatCNPJ(e.target.value);
     handleInputChange('cnpj', formatted);
   };
@@ -106,6 +110,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               onChange={handleCNPJChange}
               placeholder="00.000.000/0000-00"
               maxLength={18}
+              disabled={readOnly}
             />
           </div>
 
@@ -115,7 +120,8 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
             </Label>
             <Select
               value={data.centroCusto}
-              onValueChange={(value) => handleInputChange('centroCusto', value)}
+              onValueChange={(value: string) => handleInputChange('centroCusto', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="centroCusto">
                 <SelectValue placeholder="Selecione o centro de custo" />
@@ -136,7 +142,8 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
             </Label>
             <Select
               value={data.tipo}
-              onValueChange={(value) => handleInputChange('tipo', value)}
+              onValueChange={(value: string) => handleInputChange('tipo', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo de requisição" />
@@ -170,6 +177,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               onChange={(e) => handleInputChange('descricaoMaterial', e.target.value)}
               placeholder="Descreva detalhadamente o material ou serviço solicitado"
               rows={3}
+              disabled={readOnly}
             />
           </div>
 
@@ -183,6 +191,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                 value={data.quantidade}
                 onChange={(e) => handleInputChange('quantidade', e.target.value)}
                 placeholder="Ex: 100 unidades, 50 metros, etc."
+                disabled={readOnly}
               />
             </div>
 
@@ -195,6 +204,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                 value={data.parametroPreco}
                 onChange={(e) => handleInputChange('parametroPreco', e.target.value)}
                 placeholder="Ex: R$ 50,00"
+                disabled={readOnly}
               />
             </div>
 
@@ -208,6 +218,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                 value={data.linkProduto}
                 onChange={(e) => handleInputChange('linkProduto', e.target.value)}
                 placeholder="https://exemplo.com/produto"
+                disabled={readOnly}
               />
             </div>
           </div>
@@ -230,6 +241,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               value={data.localEntrega}
               onChange={(e) => handleInputChange('localEntrega', e.target.value)}
               placeholder="Endereço completo de entrega"
+              disabled={readOnly}
             />
           </div>
 
@@ -242,6 +254,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               value={data.prazoEntrega}
               onChange={(e) => handleInputChange('prazoEntrega', e.target.value)}
               placeholder="Ex: 15 dias úteis"
+              disabled={readOnly}
             />
           </div>
 
@@ -253,6 +266,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               onChange={(e) => handleInputChange('observacoes', e.target.value)}
               placeholder="Observações adicionais sobre a requisição"
               rows={3}
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -275,6 +289,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                 value={data.sistema}
                 onChange={(e) => handleInputChange('sistema', e.target.value)}
                 placeholder="Ex: Sistema Hidráulico, Elétrico, etc."
+                disabled={readOnly}
               />
             </div>
 
@@ -287,6 +302,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                 value={data.item}
                 onChange={(e) => handleInputChange('item', e.target.value)}
                 placeholder="Descreva o que será feito"
+                disabled={readOnly}
               />
             </div>
 
@@ -296,7 +312,8 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
               </Label>
               <Select
                 value={data.geraRuido}
-                onValueChange={(value) => handleInputChange('geraRuido', value)}
+                onValueChange={(value: string) => handleInputChange('geraRuido', value)}
+                disabled={readOnly}
               >
                 <SelectTrigger id="geraRuido">
                   <SelectValue placeholder="Selecione" />
@@ -323,6 +340,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                       'w-full justify-start text-left font-normal',
                       !dataInicio && 'text-muted-foreground'
                     )}
+                    disabled={readOnly}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
@@ -332,9 +350,10 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                   <Calendar
                     mode="single"
                     selected={dataInicio}
-                    onSelect={(date) => handleDateSelect('dataPrevistaInicio', date)}
+                    onSelect={(date: Date | undefined) => handleDateSelect('dataPrevistaInicio', date)}
                     locale={ptBR}
                     initialFocus
+                    disabled={readOnly}
                   />
                 </PopoverContent>
               </Popover>
@@ -352,6 +371,7 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                       'w-full justify-start text-left font-normal',
                       !dataFim && 'text-muted-foreground'
                     )}
+                    disabled={readOnly}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
@@ -361,9 +381,9 @@ export function StepRequisicaoCompra({ data, onDataChange }: StepRequisicaoCompr
                   <Calendar
                     mode="single"
                     selected={dataFim}
-                    onSelect={(date) => handleDateSelect('dataPrevistaFim', date)}
+                    onSelect={(date: Date | undefined) => handleDateSelect('dataPrevistaFim', date)}
                     locale={ptBR}
-                    disabled={(date) => dataInicio ? date < dataInicio : false}
+                    disabled={(date: Date) => (dataInicio ? date < dataInicio : false) || !!readOnly}
                     initialFocus
                   />
                 </PopoverContent>

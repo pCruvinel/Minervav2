@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepImagemAreasProps {
+export interface StepImagemAreasProps {
   data: { imagemAnexada: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepImagemAreas({ data, onDataChange }: StepImagemAreasProps) {
+export function StepImagemAreas({ data, onDataChange, readOnly }: StepImagemAreasProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Anexar Imagem de Referência de Áreas"
@@ -19,6 +20,7 @@ export function StepImagemAreas({ data, onDataChange }: StepImagemAreasProps) {
       data={data}
       dataKey="imagemAnexada"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

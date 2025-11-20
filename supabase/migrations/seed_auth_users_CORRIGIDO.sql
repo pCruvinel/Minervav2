@@ -40,9 +40,9 @@ BEGIN
     SET id = 'user-gcom-001',
         updated_at = NOW()
     WHERE email = 'pedro.gestorcomercial@minervaestrutura.com.br';
-    RAISE NOTICE '✅ Gestor Comercial atualizado';
+    RAISE NOTICE '✅ Gestor Administrativo atualizado';
   ELSE
-    RAISE NOTICE '⚠️  Gestor Comercial não encontrado';
+    RAISE NOTICE '⚠️  Gestor Administrativo não encontrado';
   END IF;
 
   -- 3. Gestor Assessoria
@@ -73,9 +73,9 @@ BEGIN
     SET id = 'user-ccom-001',
         updated_at = NOW()
     WHERE email = 'ana.colabc@minervaestrutura.com.br';
-    RAISE NOTICE '✅ Colaborador Comercial atualizado';
+    RAISE NOTICE '✅ Colaborador Administrativo atualizado';
   ELSE
-    RAISE NOTICE '⚠️  Colaborador Comercial não encontrado';
+    RAISE NOTICE '⚠️  Colaborador Administrativo não encontrado';
   END IF;
 
   -- 6. Colaborador Assessoria

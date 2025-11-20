@@ -14,6 +14,7 @@ interface StepAnexarArquivoGenericoProps {
   data: { [key: string]: string };
   dataKey: string;
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
 export function StepAnexarArquivoGenerico({
@@ -27,6 +28,7 @@ export function StepAnexarArquivoGenerico({
   data,
   dataKey,
   onDataChange,
+  readOnly,
 }: StepAnexarArquivoGenericoProps) {
   const [uploading, setUploading] = useState(false);
 
@@ -90,7 +92,7 @@ export function StepAnexarArquivoGenerico({
             className="hidden"
             accept={acceptFormats}
             onChange={handleFileUpload}
-            disabled={uploading}
+            disabled={uploading || readOnly}
           />
           <label htmlFor={`file-upload-${dataKey}`} className="cursor-pointer">
             <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
@@ -119,8 +121,9 @@ export function StepAnexarArquivoGenerico({
             </div>
           </div>
           <button
-            onClick={() => onDataChange({ [dataKey]: '' })}
-            className="text-sm text-red-500 hover:underline"
+            onClick={readOnly ? undefined : () => onDataChange({ [dataKey]: '' })}
+            className={`text-sm text-red-500 hover:underline ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+            disabled={readOnly}
           >
             Remover
           </button>

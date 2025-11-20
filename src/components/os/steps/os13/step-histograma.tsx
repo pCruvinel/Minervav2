@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepHistogramaProps {
+export interface StepHistogramaProps {
   data: { histogramaAnexado: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepHistograma({ data, onDataChange }: StepHistogramaProps) {
+export function StepHistograma({ data, onDataChange, readOnly }: StepHistogramaProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Histograma de Obra"
@@ -19,6 +20,7 @@ export function StepHistograma({ data, onDataChange }: StepHistogramaProps) {
       data={data}
       dataKey="histogramaAnexado"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepCronogramaObraProps {
+export interface StepCronogramaObraProps {
   data: { cronogramaAnexado: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepCronogramaObra({ data, onDataChange }: StepCronogramaObraProps) {
+export function StepCronogramaObra({ data, onDataChange, readOnly }: StepCronogramaObraProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Anexar Cronograma de Obra"
@@ -19,6 +20,7 @@ export function StepCronogramaObra({ data, onDataChange }: StepCronogramaObraPro
       data={data}
       dataKey="cronogramaAnexado"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

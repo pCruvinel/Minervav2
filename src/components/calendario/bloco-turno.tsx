@@ -15,7 +15,7 @@ interface Turno {
   vagasTotal: number;
   setores: string[];
   cor: string;
-  agendamentos: Agendamento[];
+  agendamentos?: Agendamento[];
 }
 
 interface BlocoTurnoProps {

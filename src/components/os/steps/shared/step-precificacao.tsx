@@ -19,31 +19,35 @@ interface EtapaPrincipal {
 }
 
 interface StepPrecificacaoProps {
-  etapa8Data: {
+  memorialData: {
     objetivo: string;
     etapasPrincipais: EtapaPrincipal[];
     planejamentoInicial: string;
     logisticaTransporte: string;
     preparacaoArea: string;
   };
-  etapa9Data: {
+  data: {
     percentualImprevisto: string;
     percentualLucro: string;
     percentualImposto: string;
     percentualEntrada: string;
     numeroParcelas: string;
   };
-  onEtapa9DataChange: (data: any) => void;
+  onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
 export function StepPrecificacao({
-  etapa8Data,
-  etapa9Data,
-  onEtapa9DataChange,
+  memorialData,
+  data,
+  onDataChange,
+  readOnly = false,
 }: StepPrecificacaoProps) {
   // Calcular Custo Base do Memorial
   const calcularCustoBase = (): number => {
-    return etapa8Data.etapasPrincipais.reduce((total, etapa) => {
+    if (!memorialData || !memorialData.etapasPrincipais) return 0;
+    
+    return memorialData.etapasPrincipais.reduce((total, etapa) => {
       return total + etapa.subetapas.reduce((subtotal, sub) => {
         return subtotal + (parseFloat(sub.total) || 0);
       }, 0);
@@ -53,9 +57,9 @@ export function StepPrecificacao({
   // Calcular Valor Atual (Total) com percentuais
   const calcularValorAtual = (): number => {
     const custoBase = calcularCustoBase();
-    const imprevisto = parseFloat(etapa9Data.percentualImprevisto) || 0;
-    const lucro = parseFloat(etapa9Data.percentualLucro) || 0;
-    const imposto = parseFloat(etapa9Data.percentualImposto) || 0;
+    const imprevisto = parseFloat(data.percentualImprevisto) || 0;
+    const lucro = parseFloat(data.percentualLucro) || 0;
+    const imposto = parseFloat(data.percentualImposto) || 0;
 
     // Fórmula: CustoBase * (1 + %Imprevisto/100 + %Lucro/100 + %Imposto/100)
     return custoBase * (1 + imprevisto / 100 + lucro / 100 + imposto / 100);
@@ -64,7 +68,7 @@ export function StepPrecificacao({
   // Calcular Valor de Entrada
   const calcularValorEntrada = (): number => {
     const valorTotal = calcularValorAtual();
-    const percentualEntrada = parseFloat(etapa9Data.percentualEntrada) || 0;
+    const percentualEntrada = parseFloat(data.percentualEntrada) || 0;
     return valorTotal * (percentualEntrada / 100);
   };
 
@@ -72,7 +76,7 @@ export function StepPrecificacao({
   const calcularValorParcela = (): number => {
     const valorTotal = calcularValorAtual();
     const valorEntrada = calcularValorEntrada();
-    const numeroParcelas = parseFloat(etapa9Data.numeroParcelas) || 1;
+    const numeroParcelas = parseFloat(data.numeroParcelas) || 1;
     
     if (numeroParcelas === 0) return 0;
     return (valorTotal - valorEntrada) / numeroParcelas;
@@ -116,9 +120,10 @@ export function StepPrecificacao({
             <Input
               id="percentualImprevisto"
               type="number"
-              value={etapa9Data.percentualImprevisto}
-              onChange={(e) => onEtapa9DataChange({ ...etapa9Data, percentualImprevisto: e.target.value })}
+              value={data.percentualImprevisto}
+              onChange={(e) => !readOnly && onDataChange({ ...data, percentualImprevisto: e.target.value })}
               placeholder="0"
+              disabled={readOnly}
             />
           </div>
 
@@ -129,9 +134,10 @@ export function StepPrecificacao({
             <Input
               id="percentualLucro"
               type="number"
-              value={etapa9Data.percentualLucro}
-              onChange={(e) => onEtapa9DataChange({ ...etapa9Data, percentualLucro: e.target.value })}
+              value={data.percentualLucro}
+              onChange={(e) => !readOnly && onDataChange({ ...data, percentualLucro: e.target.value })}
               placeholder="0"
+              disabled={readOnly}
             />
           </div>
 
@@ -142,9 +148,10 @@ export function StepPrecificacao({
             <Input
               id="percentualImposto"
               type="number"
-              value={etapa9Data.percentualImposto}
-              onChange={(e) => onEtapa9DataChange({ ...etapa9Data, percentualImposto: e.target.value })}
+              value={data.percentualImposto}
+              onChange={(e) => !readOnly && onDataChange({ ...data, percentualImposto: e.target.value })}
               placeholder="0"
+              disabled={readOnly}
             />
           </div>
 
@@ -175,9 +182,10 @@ export function StepPrecificacao({
             <Input
               id="percentualEntrada"
               type="number"
-              value={etapa9Data.percentualEntrada}
-              onChange={(e) => onEtapa9DataChange({ ...etapa9Data, percentualEntrada: e.target.value })}
+              value={data.percentualEntrada}
+              onChange={(e) => !readOnly && onDataChange({ ...data, percentualEntrada: e.target.value })}
               placeholder="0"
+              disabled={readOnly}
             />
           </div>
 
@@ -188,9 +196,10 @@ export function StepPrecificacao({
             <Input
               id="numeroParcelas"
               type="number"
-              value={etapa9Data.numeroParcelas}
-              onChange={(e) => onEtapa9DataChange({ ...etapa9Data, numeroParcelas: e.target.value })}
+              value={data.numeroParcelas}
+              onChange={(e) => !readOnly && onDataChange({ ...data, numeroParcelas: e.target.value })}
               placeholder="0"
+              disabled={readOnly}
             />
           </div>
 
@@ -240,7 +249,7 @@ export function StepPrecificacao({
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Parcelas:</span>
             <span className="text-sm font-medium">
-              {etapa9Data.numeroParcelas}x de R$ {calcularValorParcela().toFixed(2).replace('.', ',')}
+              {data.numeroParcelas}x de R$ {calcularValorParcela().toFixed(2).replace('.', ',')}
             </span>
           </div>
         </CardContent>

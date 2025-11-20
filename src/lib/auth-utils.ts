@@ -44,7 +44,7 @@ export class PermissaoUtil {
     }
 
     // Gestor Comercial pode delegar para qualquer setor
-    if (delegante.role_nivel === 'GESTOR_COMERCIAL') {
+    if (delegante.role_nivel === 'GESTOR_ADMINISTRATIVO') {
       return true;
     }
 
@@ -178,7 +178,7 @@ export class PermissaoUtil {
     }
 
     // Gestor Comercial tem acesso a todas as OS
-    if (usuario.role_nivel === 'GESTOR_COMERCIAL') {
+    if (usuario.role_nivel === 'GESTOR_ADMINISTRATIVO') {
       return true;
     }
 
@@ -211,7 +211,7 @@ export class PermissaoUtil {
     }
 
     // Gestor Comercial pode editar qualquer OS
-    if (usuario.role_nivel === 'GESTOR_COMERCIAL') {
+    if (usuario.role_nivel === 'GESTOR_ADMINISTRATIVO') {
       return true;
     }
 

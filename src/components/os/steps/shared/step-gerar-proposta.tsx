@@ -10,10 +10,12 @@ interface StepGerarPropostaProps {
     dataGeracao: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepGerarProposta({ data, onDataChange }: StepGerarPropostaProps) {
+export function StepGerarProposta({ data, onDataChange, readOnly = false }: StepGerarPropostaProps) {
   const handleGerarProposta = () => {
+    if (readOnly) return;
     onDataChange({
       propostaGerada: true,
       dataGeracao: new Date().toISOString().split('T')[0],
@@ -34,6 +36,7 @@ export function StepGerarProposta({ data, onDataChange }: StepGerarPropostaProps
         <Button
           onClick={handleGerarProposta}
           className="bg-primary text-white hover:bg-primary/90"
+          disabled={readOnly}
         >
           <FileText className="w-4 h-4 mr-2" />
           Gerar Proposta Comercial

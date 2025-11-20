@@ -16,16 +16,20 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
 
-  // Calcular dias da semana atual
+  // Calcular dias da semana atual (segunda a domingo, 7 dias)
   const diasDaSemana = useMemo(() => {
-    const dias = [];
-    const primeiroDia = new Date(dataAtual);
-    const diaSemana = primeiroDia.getDay();
-    const diff = diaSemana === 0 ? -6 : 1 - diaSemana;
-    primeiroDia.setDate(primeiroDia.getDate() + diff);
+    const dias: Date[] = [];
+    const data = new Date(dataAtual);
+    const dayOfWeek = data.getDay(); // 0 = Domingo, 1 = Segunda, ..., 6 = Sábado
 
-    for (let i = 0; i < 5; i++) {
-      const dia = new Date(primeiroDia);
+    // Ir para segunda-feira da semana
+    // Se é segunda (1): 0 dias | Se é domingo (0): -6 dias
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    data.setDate(data.getDate() + distanceToMonday);
+
+    // Gerar 7 dias (segunda a domingo)
+    for (let i = 0; i < 7; i++) {
+      const dia = new Date(data);
       dia.setDate(dia.getDate() + i);
       dias.push(dia);
     }
@@ -33,7 +37,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
   }, [dataAtual]);
 
   const startDate = diasDaSemana[0]?.toISOString().split('T')[0] || '';
-  const endDate = diasDaSemana[4]?.toISOString().split('T')[0] || '';
+  const endDate = diasDaSemana[6]?.toISOString().split('T')[0] || '';
 
   // Buscar turnos da semana
   const { turnosPorDia, loading: loadingTurnos, refetch: refetchTurnos } = useTurnosPorSemana(startDate, endDate);
@@ -51,8 +55,8 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
     refetchAgendamentos();
   };
 
-  // Dias da semana (Seg - Sex)
-  const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex'];
+  // Dias da semana (Seg - Dom, 7 dias)
+  const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
   
   // Horários (08:00 - 18:00)
   const horarios = [
@@ -142,7 +146,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
             {/* Grade do Calendário */}
             <div className="border border-neutral-200 rounded-lg overflow-hidden">
           {/* Cabeçalho com dias da semana */}
-          <div className="grid grid-cols-[100px_repeat(5,1fr)] bg-neutral-100 border-b border-neutral-200">
+          <div className="grid grid-cols-[100px_repeat(7,1fr)] bg-neutral-100 border-b border-neutral-200">
             <div className="p-3 border-r border-neutral-200"></div>
             {diasSemana.map((dia, index) => (
               <div key={dia} className="p-3 text-center border-r last:border-r-0 border-neutral-200">
@@ -155,7 +159,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
           </div>
 
           {/* Grade de horários */}
-          <div className="grid grid-cols-[100px_repeat(5,1fr)]">
+          <div className="grid grid-cols-[100px_repeat(7,1fr)]">
             {/* Coluna de horários */}
             <div>
               {horarios.map((horario) => (
@@ -169,7 +173,7 @@ export function CalendarioSemana({ dataAtual }: CalendarioSemanaProps) {
             </div>
 
             {/* Colunas para cada dia */}
-            {[0, 1, 2, 3, 4].map((diaIndex) => (
+            {[0, 1, 2, 3, 4, 5, 6].map((diaIndex) => (
               <div key={diaIndex} className="border-r last:border-r-0 border-neutral-200 relative">
                 {/* Grid de fundo com horários */}
                 {horarios.map((horario) => (

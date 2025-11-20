@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepPlacaObraProps {
+export interface StepPlacaObraProps {
   data: { placaAnexada: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepPlacaObra({ data, onDataChange }: StepPlacaObraProps) {
+export function StepPlacaObra({ data, onDataChange, readOnly }: StepPlacaObraProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Gerar Placa de Obra"
@@ -19,6 +20,7 @@ export function StepPlacaObra({ data, onDataChange }: StepPlacaObraProps) {
       data={data}
       dataKey="placaAnexada"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

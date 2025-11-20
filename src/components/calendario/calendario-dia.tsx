@@ -1,48 +1,34 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { ModalCriarTurno } from './modal-criar-turno';
 import { ModalNovoAgendamento } from './modal-novo-agendamento';
 import { Button } from '../ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2, AlertCircle } from 'lucide-react';
+import { useTurnosPorSemana, TurnoComVagas } from '../../lib/hooks/use-turnos';
+import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface CalendarioDiaProps {
   dataAtual: Date;
 }
 
-// Mock de turnos para um dia específico
-const turnosDiaMock = [
-  {
-    id: '1',
-    horaInicio: '09:00',
-    horaFim: '12:00',
-    vagasOcupadas: 3,
-    vagasTotal: 5,
-    setores: ['Comercial', 'Obras'],
-    cor: '#DBEAFE', // Azul suave
-    agendamentos: [
-      { id: 'a1', categoria: 'Vistoria Inicial', setor: 'Comercial' },
-      { id: 'a2', categoria: 'Apresentação de Proposta', setor: 'Obras' },
-      { id: 'a3', categoria: 'Vistoria Técnica', setor: 'Comercial' }
-    ]
-  },
-  {
-    id: '2',
-    horaInicio: '14:00',
-    horaFim: '17:00',
-    vagasOcupadas: 1,
-    vagasTotal: 3,
-    setores: ['Assessoria'],
-    cor: '#FEF3C7', // Amarelo suave
-    agendamentos: [
-      { id: 'a4', categoria: 'Visita Semanal', setor: 'Assessoria' }
-    ]
-  }
-];
-
 export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
   const [modalCriarTurno, setModalCriarTurno] = useState(false);
   const [modalAgendamento, setModalAgendamento] = useState(false);
-  const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
+  const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoComVagas | null>(null);
+
+  // Buscar turnos para o dia (usa range de 1 dia)
+  const dataStr = dataAtual.toISOString().split('T')[0];
+  const { turnosPorDia, loading, error, refetch } = useTurnosPorSemana(dataStr, dataStr);
+
+  // Buscar agendamentos para o dia
+  const { agendamentos } = useAgendamentos({
+    dataInicio: dataStr,
+    dataFim: dataStr,
+  });
+
+  // Obter turnos do dia atual
+  const turnosDia = turnosPorDia?.get(dataStr) || [];
 
   // Horários (08:00 - 18:00)
   const horarios = [
@@ -53,17 +39,21 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
   const ALTURA_SLOT = 100; // Altura de cada slot de horário em pixels
 
   // Calcular posição e altura do turno
-  const calcularEstiloTurno = (turno: any) => {
+  const calcularEstiloTurno = (turno: TurnoComVagas) => {
     const [horaInicio] = turno.horaInicio.split(':').map(Number);
     const [horaFim] = turno.horaFim.split(':').map(Number);
-    
+
     const indexInicio = horarios.findIndex(h => h === turno.horaInicio);
     const duracao = horaFim - horaInicio;
-    
+
     return {
       top: `${indexInicio * ALTURA_SLOT}px`,
       height: `${duracao * ALTURA_SLOT - 8}px` // -8 para padding
     };
+  };
+
+  const handleRefresh = () => {
+    refetch();
   };
 
   const formatarDia = (data: Date) => {
@@ -75,12 +65,38 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
     });
   };
 
-  const handleClickTurno = (turno: any) => {
+  const handleClickTurno = (turno: TurnoComVagas) => {
     if (turno.vagasOcupadas < turno.vagasTotal) {
       setTurnoSelecionado(turno);
       setModalAgendamento(true);
     }
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-neutral-600">Carregando turnos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Erro ao carregar turnos: {error instanceof Error ? error.message : String(error)}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -94,6 +110,7 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
           <Button
             onClick={() => setModalCriarTurno(true)}
             className="bg-primary hover:bg-primary/90"
+            disabled={loading}
           >
             <Plus className="h-4 w-4 mr-2" />
             Configurar Novo Turno
@@ -127,21 +144,27 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
 
               {/* Turnos posicionados absolutamente */}
               <div className="absolute inset-0 p-3 pointer-events-none">
-                {turnosDiaMock.map(turno => {
-                  const estilo = calcularEstiloTurno(turno);
-                  return (
-                    <div
-                      key={turno.id}
-                      className="absolute left-3 right-3 max-w-2xl pointer-events-auto"
-                      style={estilo}
-                    >
-                      <BlocoTurno
-                        turno={turno}
-                        onClick={() => handleClickTurno(turno)}
-                      />
-                    </div>
-                  );
-                })}
+                {turnosDia.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-neutral-400">
+                    <p>Sem turnos cadastrados para este dia</p>
+                  </div>
+                ) : (
+                  turnosDia.map(turno => {
+                    const estilo = calcularEstiloTurno(turno);
+                    return (
+                      <div
+                        key={turno.id}
+                        className="absolute left-3 right-3 max-w-2xl pointer-events-auto"
+                        style={estilo}
+                      >
+                        <BlocoTurno
+                          turno={turno}
+                          onClick={() => handleClickTurno(turno)}
+                        />
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>
@@ -152,13 +175,15 @@ export function CalendarioDia({ dataAtual }: CalendarioDiaProps) {
       <ModalCriarTurno
         open={modalCriarTurno}
         onClose={() => setModalCriarTurno(false)}
+        onSuccess={handleRefresh}
       />
-      
+
       <ModalNovoAgendamento
         open={modalAgendamento}
         onClose={() => setModalAgendamento(false)}
         turno={turnoSelecionado}
         dia={dataAtual}
+        onSuccess={handleRefresh}
       />
     </>
   );

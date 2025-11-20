@@ -10,12 +10,14 @@ interface StepUploadOrcamentosProps {
     orcamentosAnexados: string[];
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepUploadOrcamentos({ data, onDataChange }: StepUploadOrcamentosProps) {
+export function StepUploadOrcamentos({ data, onDataChange, readOnly }: StepUploadOrcamentosProps) {
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -47,6 +49,7 @@ export function StepUploadOrcamentos({ data, onDataChange }: StepUploadOrcamento
   };
 
   const handleRemoveFile = (index: number) => {
+    if (readOnly) return;
     const newFiles = data.orcamentosAnexados.filter((_, i) => i !== index);
     onDataChange({ ...data, orcamentosAnexados: newFiles });
     toast.info('Orçamento removido');
@@ -113,7 +116,7 @@ export function StepUploadOrcamentos({ data, onDataChange }: StepUploadOrcamento
             Anexar Orçamentos <span className="text-red-500">*</span>
           </Label>
           
-          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-neutral-400 transition-colors">
+          <div className={`border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center transition-colors ${readOnly ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-400'}`}>
             <input
               type="file"
               id="file-upload-orcamentos"
@@ -121,9 +124,9 @@ export function StepUploadOrcamentos({ data, onDataChange }: StepUploadOrcamento
               multiple
               accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
               onChange={handleFileUpload}
-              disabled={uploadingFiles || isComplete}
+              disabled={uploadingFiles || isComplete || readOnly}
             />
-            <label htmlFor="file-upload-orcamentos" className="cursor-pointer">
+            <label htmlFor="file-upload-orcamentos" className={`cursor-pointer ${readOnly ? 'pointer-events-none' : ''}`}>
               <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
               <p className="text-sm text-neutral-600 mb-2">
                 Clique para selecionar ou arraste arquivos
@@ -183,12 +186,14 @@ export function StepUploadOrcamentos({ data, onDataChange }: StepUploadOrcamento
                     Visualizar
                   </Button>
                   
-                  <button
-                    onClick={() => handleRemoveFile(index)}
-                    className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {!readOnly && (
+                    <button
+                      onClick={() => handleRemoveFile(index)}
+                      className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
             ))}

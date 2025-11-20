@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepRelatorioFotograficoProps {
+export interface StepRelatorioFotograficoProps {
   data: { relatorioAnexado: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRelatorioFotografico({ data, onDataChange }: StepRelatorioFotograficoProps) {
+export function StepRelatorioFotografico({ data, onDataChange, readOnly }: StepRelatorioFotograficoProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Anexar Relatório Fotográfico Pré-Obra"
@@ -19,6 +20,7 @@ export function StepRelatorioFotografico({ data, onDataChange }: StepRelatorioFo
       data={data}
       dataKey="relatorioAnexado"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

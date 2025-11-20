@@ -39,8 +39,8 @@ BEGIN
     RETURN true;
   END IF;
 
-  -- Gestor Comercial vê tudo
-  IF v_role = 'GESTOR_COMERCIAL' THEN
+  -- Gestor Administrativo vê tudo
+  IF v_role = 'GESTOR_ADMINISTRATIVO' THEN
     RETURN true;
   END IF;
 
@@ -104,8 +104,8 @@ BEGIN
     RETURN true;
   END IF;
 
-  -- Gestor Comercial pode editar tudo
-  IF v_role = 'GESTOR_COMERCIAL' THEN
+  -- Gestor Administrativo pode editar tudo
+  IF v_role = 'GESTOR_ADMINISTRATIVO' THEN
     RETURN true;
   END IF;
 
@@ -206,8 +206,8 @@ BEGIN
   JOIN tipos_os t ON os.tipo_os_id = t.id
   WHERE os.id = p_os_id;
 
-  -- Diretoria e Gestor Comercial podem delegar para qualquer setor
-  IF v_delegante_role IN ('DIRETORIA', 'GESTOR_COMERCIAL') THEN
+  -- Diretoria e Gestor Administrativo podem delegar para qualquer setor
+  IF v_delegante_role IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO') THEN
     RETURN jsonb_build_object('valido', true);
   END IF;
 
@@ -252,20 +252,20 @@ BEGIN
     'ativo', v_user.ativo,
 
     -- Permissões booleanas
-    'pode_criar_os', v_user.role_nivel NOT IN ('MOBRA', 'COLABORADOR_COMERCIAL', 'COLABORADOR_ASSESSORIA', 'COLABORADOR_OBRAS'),
-    'pode_delegar', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS'),
-    'pode_aprovar', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS'),
+    'pode_criar_os', v_user.role_nivel NOT IN ('MOBRA', 'COLABORADOR_ADMINISTRATIVO', 'COLABORADOR_ASSESSORIA', 'COLABORADOR_OBRAS'),
+    'pode_delegar', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS'),
+    'pode_aprovar', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO', 'GESTOR_ASSESSORIA', 'GESTOR_OBRAS'),
     'pode_gerenciar_usuarios', v_user.role_nivel = 'DIRETORIA',
-    'acesso_financeiro', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL'),
-    'acesso_todos_setores', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL'),
+    'acesso_financeiro', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO'),
+    'acesso_todos_setores', v_user.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO'),
 
     -- Nível hierárquico
     'nivel_hierarquico', CASE v_user.role_nivel
       WHEN 'MOBRA' THEN 1
-      WHEN 'COLABORADOR_COMERCIAL' THEN 2
+      WHEN 'COLABORADOR_ADMINISTRATIVO' THEN 2
       WHEN 'COLABORADOR_ASSESSORIA' THEN 2
       WHEN 'COLABORADOR_OBRAS' THEN 2
-      WHEN 'GESTOR_COMERCIAL' THEN 3
+      WHEN 'GESTOR_ADMINISTRATIVO' THEN 3
       WHEN 'GESTOR_ASSESSORIA' THEN 3
       WHEN 'GESTOR_OBRAS' THEN 3
       WHEN 'DIRETORIA' THEN 4
@@ -274,8 +274,8 @@ BEGIN
 
     -- Setores que pode acessar
     'setores_acesso', CASE
-      WHEN v_user.role_nivel IN ('DIRETORIA', 'GESTOR_COMERCIAL') THEN
-        jsonb_build_array('COMERCIAL', 'ASSESSORIA', 'OBRAS')
+      WHEN v_user.role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO') THEN
+        jsonb_build_array('ADMINISTRATIVO', 'ASSESSORIA', 'OBRAS')
       WHEN v_user.setor IS NOT NULL THEN
         jsonb_build_array(v_user.setor)
       ELSE
@@ -304,10 +304,10 @@ BEGIN
   -- Obter níveis hierárquicos
   SELECT CASE role_nivel
     WHEN 'MOBRA' THEN 1
-    WHEN 'COLABORADOR_COMERCIAL' THEN 2
+    WHEN 'COLABORADOR_ADMINISTRATIVO' THEN 2
     WHEN 'COLABORADOR_ASSESSORIA' THEN 2
     WHEN 'COLABORADOR_OBRAS' THEN 2
-    WHEN 'GESTOR_COMERCIAL' THEN 3
+    WHEN 'GESTOR_ADMINISTRATIVO' THEN 3
     WHEN 'GESTOR_ASSESSORIA' THEN 3
     WHEN 'GESTOR_OBRAS' THEN 3
     WHEN 'DIRETORIA' THEN 4
@@ -318,10 +318,10 @@ BEGIN
 
   SELECT CASE role_nivel
     WHEN 'MOBRA' THEN 1
-    WHEN 'COLABORADOR_COMERCIAL' THEN 2
+    WHEN 'COLABORADOR_ADMINISTRATIVO' THEN 2
     WHEN 'COLABORADOR_ASSESSORIA' THEN 2
     WHEN 'COLABORADOR_OBRAS' THEN 2
-    WHEN 'GESTOR_COMERCIAL' THEN 3
+    WHEN 'GESTOR_ADMINISTRATIVO' THEN 3
     WHEN 'GESTOR_ASSESSORIA' THEN 3
     WHEN 'GESTOR_OBRAS' THEN 3
     WHEN 'DIRETORIA' THEN 4

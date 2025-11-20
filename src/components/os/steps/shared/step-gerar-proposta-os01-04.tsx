@@ -70,6 +70,7 @@ interface StepGerarPropostaOS0104Props {
     garantiaMeses: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
 export function StepGerarPropostaOS0104({
@@ -82,6 +83,7 @@ export function StepGerarPropostaOS0104({
   valorParcela,
   data,
   onDataChange,
+  readOnly = false,
 }: StepGerarPropostaOS0104Props) {
   const [showPreview, setShowPreview] = useState(false);
 
@@ -208,8 +210,9 @@ export function StepGerarPropostaOS0104({
                   id="validadeDias"
                   type="number"
                   value={data.validadeDias}
-                  onChange={(e) => onDataChange({ ...data, validadeDias: e.target.value })}
+                  onChange={(e) => !readOnly && onDataChange({ ...data, validadeDias: e.target.value })}
                   placeholder="Ex: 30"
+                  disabled={readOnly}
                 />
               </div>
 
@@ -221,8 +224,9 @@ export function StepGerarPropostaOS0104({
                   id="garantiaMeses"
                   type="number"
                   value={data.garantiaMeses}
-                  onChange={(e) => onDataChange({ ...data, garantiaMeses: e.target.value })}
+                  onChange={(e) => !readOnly && onDataChange({ ...data, garantiaMeses: e.target.value })}
                   placeholder="Ex: 12"
+                  disabled={readOnly}
                 />
               </div>
             </div>
@@ -235,7 +239,7 @@ export function StepGerarPropostaOS0104({
         <div className="flex justify-center">
           <PrimaryButton
             onClick={handleGerarProposta}
-            disabled={!data.validadeDias || !data.garantiaMeses || !validacao.valido}
+            disabled={readOnly || !data.validadeDias || !data.garantiaMeses || !validacao.valido}
             className="px-8"
           >
             <FileText className="h-4 w-4 mr-2" />

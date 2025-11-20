@@ -1,0 +1,47 @@
+{
+  "projectId": "zxfevlkssljndqqhxkjb",
+  "api": {
+    "port": 54321,
+    "schemas": ["public"],
+    "extraSearchPath": ["extensions"],
+    "maxConnections": 20,
+    "logLevel": "rest"
+  },
+  "db": {
+    "port": 54322,
+    "majorVersion": 15,
+    "sslMode": "disable",
+    "initialSeedSql": "supabase/migrations/seed_auth_users.sql"
+  },
+  "studio": {
+    "port": 54323
+  },
+  "inbucket": {
+    "port": 54324
+  },
+  "vector": {
+    "port": 54328
+  },
+  "realtime": {
+    "maxConnections": 20000,
+    "maxEvents": 128,
+    "maxChannelJoins": 128,
+    "maxConcurrentUpdates": 200,
+    "jwtSecret": "super-secret-jwt-token-with-at-least-32-characters-long",
+    "logLevel": "debug",
+    "tlsEnforced": false
+  },
+  "auth": {
+    "enableSignup": true,
+    "emailRateLimitTokensPerSecond": 10,
+    "mfa": {
+      "maxEnrolledFactors": 10
+    },
+    "jwtExpiry": 3600,
+    "externalOidcProviders": {},
+    "enableAnonymousSignIns": true
+  },
+  "edge_runtime": {
+    "policy": "wasm"
+  }
+}

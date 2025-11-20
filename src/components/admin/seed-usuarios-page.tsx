@@ -71,7 +71,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
         message: 'Seed simulado com sucesso (modo frontend)',
         resultados: [
           { email: 'diretoria@minerva.com', nome: 'Diretor Geral', role: 'DIRETORIA' },
-          { email: 'gestor.comercial@minerva.com', nome: 'Gestor Comercial', role: 'GESTOR_COMERCIAL' },
+          { email: 'gestor.comercial@minerva.com', nome: 'Gestor Administrativo', role: 'GESTOR_ADMINISTRATIVO' },
           { email: 'gestor.obras@minerva.com', nome: 'Gestor de Obras', role: 'GESTOR_OBRAS' },
         ],
         summary: { criados: 3, existentes: 0, erros: 0 },

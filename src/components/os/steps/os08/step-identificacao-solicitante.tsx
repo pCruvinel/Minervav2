@@ -39,16 +39,19 @@ interface StepIdentificacaoSolicitanteProps {
     fotosAnexadas: string[];
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentificacaoSolicitanteProps) {
+export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly }: StepIdentificacaoSolicitanteProps) {
   const [uploadingFiles, setUploadingFiles] = useState(false);
 
   const handleInputChange = (field: string, value: any) => {
+    if (readOnly) return;
     onDataChange({ ...data, [field]: value });
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (readOnly) return;
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -66,6 +69,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
   };
 
   const handleRemoveFile = (index: number) => {
+    if (readOnly) return;
     const newFiles = data.fotosAnexadas.filter((_, i) => i !== index);
     handleInputChange('fotosAnexadas', newFiles);
     toast.info('Arquivo removido');
@@ -96,6 +100,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.nomeCompleto}
               onChange={(e) => handleInputChange('nomeCompleto', e.target.value)}
               placeholder="Digite o nome completo"
+              disabled={readOnly}
             />
           </div>
 
@@ -109,6 +114,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.contatoWhatsApp}
               onChange={(e) => handleInputChange('contatoWhatsApp', e.target.value)}
               placeholder="(00) 00000-0000"
+              disabled={readOnly}
             />
           </div>
 
@@ -121,6 +127,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.condominio}
               onChange={(e) => handleInputChange('condominio', e.target.value)}
               placeholder="Nome do condomínio"
+              disabled={readOnly}
             />
           </div>
 
@@ -133,6 +140,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.cargo}
               onChange={(e) => handleInputChange('cargo', e.target.value)}
               placeholder="Ex: Síndico, Zelador, etc."
+              disabled={readOnly}
             />
           </div>
 
@@ -145,6 +153,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.bloco}
               onChange={(e) => handleInputChange('bloco', e.target.value)}
               placeholder="Ex: Bloco A"
+              disabled={readOnly}
             />
           </div>
 
@@ -157,6 +166,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
               value={data.unidadeAutonoma}
               onChange={(e) => handleInputChange('unidadeAutonoma', e.target.value)}
               placeholder="Ex: Apto 101"
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -170,7 +180,8 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
 
         <RadioGroup
           value={data.tipoArea}
-          onValueChange={(value) => handleInputChange('tipoArea', value)}
+          onValueChange={(value: string) => handleInputChange('tipoArea', value)}
+          disabled={readOnly}
         >
           <div className="flex items-center space-x-2">
             <RadioGroupItem value="unidade_autonoma" id="tipo-unidade" />
@@ -203,6 +214,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             onChange={(e) => handleInputChange('unidadesVistoriar', e.target.value)}
             placeholder="No caso de infiltração, é obrigatório o agendamento com a outra unidade que se desconfia ser a causadora"
             rows={3}
+            disabled={readOnly}
           />
         </div>
 
@@ -216,6 +228,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             value={data.contatoUnidades}
             onChange={(e) => handleInputChange('contatoUnidades', e.target.value)}
             placeholder="(00) 00000-0000"
+            disabled={readOnly}
           />
         </div>
       </div>
@@ -235,6 +248,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             value={data.tipoDocumento}
             onChange={(e) => handleInputChange('tipoDocumento', e.target.value)}
             placeholder="Ex: Parecer técnico"
+            disabled={readOnly}
           />
         </div>
 
@@ -244,7 +258,8 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
           </Label>
           <RadioGroup
             value={data.areaVistoriada}
-            onValueChange={(value) => handleInputChange('areaVistoriada', value)}
+            onValueChange={(value: string) => handleInputChange('areaVistoriada', value)}
+            disabled={readOnly}
           >
             {AREAS_VISTORIA.map((area, index) => (
               <div key={index} className="flex items-start space-x-2">
@@ -267,6 +282,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             onChange={(e) => handleInputChange('detalhesSolicitacao', e.target.value)}
             placeholder="Descreva detalhadamente o que precisa ser vistoriado"
             rows={4}
+            disabled={readOnly}
           />
         </div>
 
@@ -279,6 +295,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             value={data.tempoSituacao}
             onChange={(e) => handleInputChange('tempoSituacao', e.target.value)}
             placeholder="Ex: 3 meses, 1 ano, etc."
+            disabled={readOnly}
           />
         </div>
 
@@ -291,6 +308,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             value={data.primeiraVisita}
             onChange={(e) => handleInputChange('primeiraVisita', e.target.value)}
             placeholder="Sim ou Não"
+            disabled={readOnly}
           />
         </div>
       </div>
@@ -306,26 +324,28 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
             Anexe fotos da situação <span className="text-red-500">*</span>
           </Label>
           
-          <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              multiple
-              accept="image/*"
-              onChange={handleFileUpload}
-              disabled={uploadingFiles}
-            />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
-              <p className="text-sm text-neutral-600 mb-1">
-                Clique para selecionar ou arraste arquivos
-              </p>
-              <p className="text-xs text-neutral-500">
-                PNG, JPG, JPEG até 10MB
-              </p>
-            </label>
-          </div>
+          {!readOnly && (
+            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
+              <input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                multiple
+                accept="image/*"
+                onChange={handleFileUpload}
+                disabled={uploadingFiles}
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
+                <p className="text-sm text-neutral-600 mb-1">
+                  Clique para selecionar ou arraste arquivos
+                </p>
+                <p className="text-xs text-neutral-500">
+                  PNG, JPG, JPEG até 10MB
+                </p>
+              </label>
+            </div>
+          )}
 
           {data.fotosAnexadas.length > 0 && (
             <div className="space-y-2 mt-4">
@@ -342,12 +362,14 @@ export function StepIdentificacaoSolicitante({ data, onDataChange }: StepIdentif
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <button
-                      onClick={() => handleRemoveFile(index)}
-                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
+                    {!readOnly && (
+                      <button
+                        onClick={() => handleRemoveFile(index)}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>

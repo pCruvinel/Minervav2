@@ -4,12 +4,13 @@ import { Alert, AlertDescription } from '../../../ui/alert';
 import { CheckCircle2, MapPin, AlertCircle, Calendar } from 'lucide-react';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepRealizarVisitaInicialProps {
+export interface StepRealizarVisitaInicialProps {
   data: { visitaRealizada: boolean };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRealizarVisitaInicial({ data, onDataChange }: StepRealizarVisitaInicialProps) {
+export function StepRealizarVisitaInicial({ data, onDataChange, readOnly }: StepRealizarVisitaInicialProps) {
   const handleIniciarVisita = () => {
     onDataChange({ visitaRealizada: true });
     toast.success('Visita inicial registrada como realizada!');
@@ -54,9 +55,9 @@ export function StepRealizarVisitaInicial({ data, onDataChange }: StepRealizarVi
 
       {/* Card Clicável */}
       {!data.visitaRealizada && (
-        <Card 
-          className="cursor-pointer transition-all hover:shadow-lg hover:border-primary"
-          onClick={handleIniciarVisita}
+        <Card
+          className={`transition-all ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:shadow-lg hover:border-primary'}`}
+          onClick={readOnly ? undefined : handleIniciarVisita}
         >
           <CardContent className="p-6">
             <div className="flex items-center gap-4">

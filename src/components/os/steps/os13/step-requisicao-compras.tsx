@@ -5,12 +5,13 @@ import { Alert, AlertDescription } from '../../../ui/alert';
 import { ShoppingCart, Plus, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepRequisicaoComprasProps {
+export interface StepRequisicaoComprasProps {
   data: { os09Criada: boolean; os09Id: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRequisicaoCompras({ data, onDataChange }: StepRequisicaoComprasProps) {
+export function StepRequisicaoCompras({ data, onDataChange, readOnly }: StepRequisicaoComprasProps) {
   const handleCriarOS09 = () => {
     // Simular criação de OS-09
     const novoId = `OS-${Math.floor(Math.random() * 10000)}`;
@@ -81,6 +82,7 @@ export function StepRequisicaoCompras({ data, onDataChange }: StepRequisicaoComp
                 onClick={handleCriarOS09}
                 className="bg-primary hover:bg-primary/90"
                 style={{ backgroundColor: '#D3AF37' }}
+                disabled={readOnly}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar OS-09

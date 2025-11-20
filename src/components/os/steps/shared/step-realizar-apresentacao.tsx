@@ -10,9 +10,10 @@ interface StepRealizarApresentacaoProps {
     apresentacaoRealizada: boolean;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRealizarApresentacao({ data, onDataChange }: StepRealizarApresentacaoProps) {
+export function StepRealizarApresentacao({ data, onDataChange, readOnly = false }: StepRealizarApresentacaoProps) {
   return (
     <div className="space-y-6">
       <Alert>
@@ -26,7 +27,8 @@ export function StepRealizarApresentacao({ data, onDataChange }: StepRealizarApr
         <Checkbox
           id="apresentacao-realizada"
           checked={data.apresentacaoRealizada}
-          onCheckedChange={(checked) => onDataChange({ apresentacaoRealizada: checked as boolean })}
+          onCheckedChange={(checked: boolean | 'indeterminate') => !readOnly && onDataChange({ apresentacaoRealizada: checked === true })}
+          disabled={readOnly}
         />
         <Label htmlFor="apresentacao-realizada" className="cursor-pointer">
           Confirmar que a apresentação foi realizada

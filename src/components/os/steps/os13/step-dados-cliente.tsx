@@ -30,7 +30,7 @@ const ESTADOS_BRASIL = [
   'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
 
-interface StepDadosClienteProps {
+export interface StepDadosClienteProps {
   data: {
     cliente: string;
     tipoEdificacao: string;
@@ -50,9 +50,10 @@ interface StepDadosClienteProps {
     email: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) {
+export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClienteProps) {
   const handleInputChange = (field: string, value: any) => {
     onDataChange({ ...data, [field]: value });
   };
@@ -109,7 +110,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             </Label>
             <Select
               value={data.cliente}
-              onValueChange={(value) => handleInputChange('cliente', value)}
+              onValueChange={(value: string) => handleInputChange('cliente', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="cliente">
                 <SelectValue placeholder="Selecione o cliente" />
@@ -129,7 +131,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             </Label>
             <Select
               value={data.tipoEdificacao}
-              onValueChange={(value) => handleInputChange('tipoEdificacao', value)}
+              onValueChange={(value: string) => handleInputChange('tipoEdificacao', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="tipoEdificacao">
                 <SelectValue placeholder="Selecione o tipo de edificação" />
@@ -155,6 +158,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.qtdPavimentos}
               onChange={(e) => handleInputChange('qtdPavimentos', e.target.value)}
               placeholder="Ex: 15"
+              disabled={readOnly}
             />
           </div>
 
@@ -164,7 +168,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             </Label>
             <Select
               value={data.tipoTelhado}
-              onValueChange={(value) => handleInputChange('tipoTelhado', value)}
+              onValueChange={(value: string) => handleInputChange('tipoTelhado', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="tipoTelhado">
                 <SelectValue placeholder="Selecione o tipo de telhado" />
@@ -186,7 +191,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             <Switch
               id="possuiElevador"
               checked={data.possuiElevador}
-              onCheckedChange={(checked) => handleInputChange('possuiElevador', checked)}
+              onCheckedChange={(checked: boolean) => handleInputChange('possuiElevador', checked)}
+              disabled={readOnly}
             />
           </div>
 
@@ -197,7 +203,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             <Switch
               id="possuiPiscina"
               checked={data.possuiPiscina}
-              onCheckedChange={(checked) => handleInputChange('possuiPiscina', checked)}
+              onCheckedChange={(checked: boolean) => handleInputChange('possuiPiscina', checked)}
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -220,6 +227,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               onChange={(e) => handleInputChange('cnpj', formatCNPJ(e.target.value))}
               placeholder="00.000.000/0000-00"
               maxLength={18}
+              disabled={readOnly}
             />
           </div>
 
@@ -233,6 +241,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               onChange={(e) => handleInputChange('cep', formatCEP(e.target.value))}
               placeholder="00000-000"
               maxLength={9}
+              disabled={readOnly}
             />
           </div>
 
@@ -242,7 +251,8 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
             </Label>
             <Select
               value={data.estado}
-              onValueChange={(value) => handleInputChange('estado', value)}
+              onValueChange={(value: string) => handleInputChange('estado', value)}
+              disabled={readOnly}
             >
               <SelectTrigger id="estado">
                 <SelectValue placeholder="Selecione" />
@@ -266,6 +276,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.cidade}
               onChange={(e) => handleInputChange('cidade', e.target.value)}
               placeholder="Digite a cidade"
+              disabled={readOnly}
             />
           </div>
 
@@ -278,6 +289,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.endereco}
               onChange={(e) => handleInputChange('endereco', e.target.value)}
               placeholder="Rua, Avenida, número"
+              disabled={readOnly}
             />
           </div>
 
@@ -290,6 +302,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.bairro}
               onChange={(e) => handleInputChange('bairro', e.target.value)}
               placeholder="Digite o bairro"
+              disabled={readOnly}
             />
           </div>
         </div>
@@ -311,6 +324,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.responsavel}
               onChange={(e) => handleInputChange('responsavel', e.target.value)}
               placeholder="Nome completo do responsável"
+              disabled={readOnly}
             />
           </div>
 
@@ -323,6 +337,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.cargo}
               onChange={(e) => handleInputChange('cargo', e.target.value)}
               placeholder="Ex: Síndico, Gerente, Diretor"
+              disabled={readOnly}
             />
           </div>
 
@@ -336,6 +351,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               onChange={(e) => handleInputChange('telefone', formatTelefone(e.target.value))}
               placeholder="(00) 00000-0000"
               maxLength={15}
+              disabled={readOnly}
             />
           </div>
 
@@ -349,6 +365,7 @@ export function StepDadosCliente({ data, onDataChange }: StepDadosClienteProps) 
               value={data.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
               placeholder="email@exemplo.com"
+              disabled={readOnly}
             />
           </div>
         </div>

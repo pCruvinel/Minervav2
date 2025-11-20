@@ -138,8 +138,8 @@ BEGIN
     v_senha_hash,
     NOW(),
     jsonb_build_object(
-      'nome_completo', 'Pedro Gestor Comercial',
-      'role_nivel', 'GESTOR_COMERCIAL'
+      'nome_completo', 'Pedro Gestor Administrativo',
+      'role_nivel', 'GESTOR_ADMINISTRATIVO'
     ),
     NOW(),
     NOW(),
@@ -252,8 +252,8 @@ BEGIN
     v_senha_hash,
     NOW(),
     jsonb_build_object(
-      'nome_completo', 'Ana Colaboradora Comercial',
-      'role_nivel', 'COLABORADOR_COMERCIAL'
+      'nome_completo', 'Ana Colaboradora Administrativa',
+      'role_nivel', 'COLABORADOR_ADMINISTRATIVO'
     ),
     NOW(),
     NOW(),

@@ -11,10 +11,12 @@ interface StepAgendarVisitaProps {
     dataAgendamento: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepAgendarVisita({ data, onDataChange }: StepAgendarVisitaProps) {
+export function StepAgendarVisita({ data, onDataChange, readOnly }: StepAgendarVisitaProps) {
   const handleDateSelect = (date: Date | undefined) => {
+    if (readOnly) return;
     if (date) {
       onDataChange({ ...data, dataAgendamento: date.toISOString() });
     }
@@ -42,9 +44,9 @@ export function StepAgendarVisita({ data, onDataChange }: StepAgendarVisitaProps
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={handleDateSelect}
+                onSelect={(date: Date | undefined) => handleDateSelect(date)}
                 locale={ptBR}
-                disabled={(date) => date < new Date()}
+                disabled={(date: Date) => readOnly || date < new Date()}
                 className="rounded-md"
               />
             </div>

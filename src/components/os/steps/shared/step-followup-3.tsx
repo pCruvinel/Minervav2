@@ -14,9 +14,10 @@ interface StepFollowup3Props {
     dataRetorno: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepFollowup3({ data, onDataChange }: StepFollowup3Props) {
+export function StepFollowup3({ data, onDataChange, readOnly = false }: StepFollowup3Props) {
   return (
     <div className="space-y-6">
       <Alert>
@@ -29,7 +30,11 @@ export function StepFollowup3({ data, onDataChange }: StepFollowup3Props) {
       <div className="space-y-4">
         <div>
           <Label>Nível de interesse do cliente</Label>
-          <Select value={data.interesseCliente} onValueChange={(value) => onDataChange({ ...data, interesseCliente: value })}>
+          <Select 
+            value={data.interesseCliente} 
+            onValueChange={(value: string) => !readOnly && onDataChange({ ...data, interesseCliente: value })}
+            disabled={readOnly}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Selecione..." />
             </SelectTrigger>
@@ -46,8 +51,9 @@ export function StepFollowup3({ data, onDataChange }: StepFollowup3Props) {
           <Textarea
             placeholder="Dúvidas do cliente..."
             value={data.pontosDuvida}
-            onChange={(e) => onDataChange({ ...data, pontosDuvida: e.target.value })}
+            onChange={(e) => !readOnly && onDataChange({ ...data, pontosDuvida: e.target.value })}
             rows={3}
+            disabled={readOnly}
           />
         </div>
 
@@ -56,8 +62,9 @@ export function StepFollowup3({ data, onDataChange }: StepFollowup3Props) {
           <Textarea
             placeholder="O que foi combinado..."
             value={data.proximosPassos}
-            onChange={(e) => onDataChange({ ...data, proximosPassos: e.target.value })}
+            onChange={(e) => !readOnly && onDataChange({ ...data, proximosPassos: e.target.value })}
             rows={3}
+            disabled={readOnly}
           />
         </div>
 
@@ -66,7 +73,8 @@ export function StepFollowup3({ data, onDataChange }: StepFollowup3Props) {
           <Input
             type="date"
             value={data.dataRetorno}
-            onChange={(e) => onDataChange({ ...data, dataRetorno: e.target.value })}
+            onChange={(e) => !readOnly && onDataChange({ ...data, dataRetorno: e.target.value })}
+            disabled={readOnly}
           />
         </div>
       </div>

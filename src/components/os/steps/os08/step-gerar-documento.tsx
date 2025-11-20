@@ -11,12 +11,14 @@ interface StepGerarDocumentoProps {
     documentoUrl: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepGerarDocumento({ data, onDataChange }: StepGerarDocumentoProps) {
+export function StepGerarDocumento({ data, onDataChange, readOnly }: StepGerarDocumentoProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
 
   const handleGerarDocumento = async () => {
+    if (readOnly) return;
     setIsGenerating(true);
     
     try {
@@ -104,7 +106,7 @@ export function StepGerarDocumento({ data, onDataChange }: StepGerarDocumentoPro
           <div className="flex flex-col items-center gap-4 py-8">
             <PrimaryButton
               onClick={handleGerarDocumento}
-              disabled={isGenerating}
+              disabled={isGenerating || readOnly}
               className="px-8 py-3"
             >
               {isGenerating ? (

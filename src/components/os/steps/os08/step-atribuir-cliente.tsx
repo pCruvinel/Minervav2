@@ -18,10 +18,12 @@ interface StepAtribuirClienteProps {
     clienteId: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepAtribuirCliente({ data, onDataChange }: StepAtribuirClienteProps) {
+export function StepAtribuirCliente({ data, onDataChange, readOnly }: StepAtribuirClienteProps) {
   const handleInputChange = (field: string, value: any) => {
+    if (readOnly) return;
     onDataChange({ ...data, [field]: value });
   };
 
@@ -41,7 +43,8 @@ export function StepAtribuirCliente({ data, onDataChange }: StepAtribuirClienteP
           </Label>
           <Select
             value={data.clienteId}
-            onValueChange={(value) => handleInputChange('clienteId', value)}
+            onValueChange={(value: string) => handleInputChange('clienteId', value)}
+            disabled={readOnly}
           >
             <SelectTrigger id="clienteId">
               <SelectValue placeholder="Selecione um cliente" />

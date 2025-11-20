@@ -13,10 +13,12 @@ interface StepRealizarVisitaProps {
     dataRealizacao: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRealizarVisita({ data, onDataChange }: StepRealizarVisitaProps) {
+export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealizarVisitaProps) {
   const handleIniciarVisita = () => {
+    if (readOnly) return;
     const now = new Date().toISOString();
     onDataChange({
       ...data,
@@ -27,6 +29,7 @@ export function StepRealizarVisita({ data, onDataChange }: StepRealizarVisitaPro
   };
 
   const handleCancelar = () => {
+    if (readOnly) return;
     onDataChange({
       ...data,
       visitaRealizada: false,
@@ -94,6 +97,7 @@ export function StepRealizarVisita({ data, onDataChange }: StepRealizarVisitaPro
               <PrimaryButton
                 onClick={handleIniciarVisita}
                 className="px-8 py-3"
+                disabled={readOnly}
               >
                 <CheckCircle2 className="w-5 h-5 mr-2" />
                 Iniciar Visita
@@ -130,6 +134,7 @@ export function StepRealizarVisita({ data, onDataChange }: StepRealizarVisitaPro
                   variant="outline"
                   onClick={handleCancelar}
                   className="border-green-600 text-green-700 hover:bg-green-100"
+                  disabled={readOnly}
                 >
                   Cancelar Confirmação
                 </Button>

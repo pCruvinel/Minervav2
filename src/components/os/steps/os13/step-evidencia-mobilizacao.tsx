@@ -1,12 +1,13 @@
 import React from 'react';
 import { StepAnexarArquivoGenerico } from '../shared/step-anexar-arquivo-generico';
 
-interface StepEvidenciaMobilizacaoProps {
+export interface StepEvidenciaMobilizacaoProps {
   data: { evidenciaAnexada: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepEvidenciaMobilizacao({ data, onDataChange }: StepEvidenciaMobilizacaoProps) {
+export function StepEvidenciaMobilizacao({ data, onDataChange, readOnly }: StepEvidenciaMobilizacaoProps) {
   return (
     <StepAnexarArquivoGenerico
       titulo="Evidência de Mobilização Concluída"
@@ -19,6 +20,7 @@ export function StepEvidenciaMobilizacao({ data, onDataChange }: StepEvidenciaMo
       data={data}
       dataKey="evidenciaAnexada"
       onDataChange={onDataChange}
+      readOnly={readOnly}
     />
   );
 }

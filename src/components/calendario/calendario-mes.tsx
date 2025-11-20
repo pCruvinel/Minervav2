@@ -1,40 +1,23 @@
-import React from 'react';
-import { Users } from 'lucide-react';
+import { Users, Loader2, AlertCircle } from 'lucide-react';
+import { useTurnosPorSemana, TurnoComVagas } from '../../lib/hooks/use-turnos';
+import { Alert, AlertDescription } from '../ui/alert';
 
 interface CalendarioMesProps {
   dataAtual: Date;
 }
 
-// Mock de turnos para alguns dias (simulação)
-  const turnosPorDia: { [key: string]: any[] } = {
-    '15': [
-      { id: '1', horaInicio: '09:00', horaFim: '12:00', vagasOcupadas: 2, vagasTotal: 5, setores: ['Comercial'], cor: '#DBEAFE' },
-      { id: '2', horaInicio: '14:00', horaFim: '16:00', vagasOcupadas: 1, vagasTotal: 3, setores: ['Obras'], cor: '#E0E7FF' }
-    ],
-    '16': [
-      { id: '3', horaInicio: '10:00', horaFim: '13:00', vagasOcupadas: 3, vagasTotal: 4, setores: ['Assessoria'], cor: '#FEF3C7' }
-    ],
-    '18': [
-      { id: '4', horaInicio: '08:00', horaFim: '11:00', vagasOcupadas: 0, vagasTotal: 6, setores: ['Comercial', 'Obras'], cor: '#D1FAE5' },
-      { id: '5', horaInicio: '14:00', horaFim: '18:00', vagasOcupadas: 4, vagasTotal: 5, setores: ['Obras'], cor: '#FCE7F3' }
-    ],
-    '20': [
-      { id: '6', horaInicio: '09:00', horaFim: '12:00', vagasOcupadas: 5, vagasTotal: 5, setores: ['Comercial'], cor: '#E9D5FF' }
-    ],
-    '22': [
-      { id: '7', horaInicio: '15:00', horaFim: '17:00', vagasOcupadas: 1, vagasTotal: 2, setores: ['Assessoria'], cor: '#FED7AA' }
-    ],
-    '25': [
-      { id: '8', horaInicio: '09:00', horaFim: '13:00', vagasOcupadas: 2, vagasTotal: 8, setores: ['Comercial', 'Obras', 'Assessoria'], cor: '#DBEAFE' }
-    ]
-  };
-
 export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
-  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-  // Obter o primeiro e último dia do mês
+  // Calcular período do mês
   const primeiroDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), 1);
   const ultimoDia = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 0);
+
+  const startDate = primeiroDia.toISOString().split('T')[0];
+  const endDate = ultimoDia.toISOString().split('T')[0];
+
+  // Buscar turnos do mês
+  const { turnosPorDia, loading, error } = useTurnosPorSemana(startDate, endDate);
+
+  const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
   // Obter o dia da semana do primeiro dia (0 = Domingo)
   const diaSemanaInicio = primeiroDia.getDay();
@@ -44,7 +27,7 @@ export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
 
   // Criar array de dias (incluindo espaços vazios no início)
   const dias = [];
-  
+
   // Adicionar espaços vazios para os dias antes do primeiro dia do mês
   for (let i = 0; i < diaSemanaInicio; i++) {
     dias.push(null);
@@ -56,10 +39,42 @@ export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
   }
 
   // Obter turnos para um dia específico
-  const getTurnosDoDia = (dia: number | null) => {
-    if (!dia) return [];
-    return turnosPorDia[dia] || [];
+  const getTurnosDoDia = (dia: number | null): TurnoComVagas[] => {
+    if (!dia || !turnosPorDia) return [];
+
+    // Formatar dia como string (ex: "2025-11-20")
+    const dataStr = new Date(dataAtual.getFullYear(), dataAtual.getMonth(), dia)
+      .toISOString()
+      .split('T')[0];
+
+    return turnosPorDia.get(dataStr) || [];
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-[400px]">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-neutral-600">Carregando turnos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Erro ao carrega turnos: {error}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6">
@@ -79,9 +94,10 @@ export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
           {dias.map((dia, index) => {
             const turnos = getTurnosDoDia(dia);
             const hoje = new Date();
-            const ehHoje = dia === hoje.getDate() && 
-                          dataAtual.getMonth() === hoje.getMonth() && 
-                          dataAtual.getFullYear() === hoje.getFullYear();
+            const ehHoje =
+              dia === hoje.getDate() &&
+              dataAtual.getMonth() === hoje.getMonth() &&
+              dataAtual.getFullYear() === hoje.getFullYear();
 
             return (
               <div
@@ -95,29 +111,39 @@ export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
               >
                 {dia && (
                   <>
-                    <div className={`
+                    <div
+                      className={`
                       inline-flex items-center justify-center w-7 h-7 rounded-full mb-2
                       ${ehHoje ? 'bg-primary text-white' : ''}
-                    `}>
+                    `}
+                    >
                       {dia}
                     </div>
-                    
+
                     {/* Turnos do dia */}
                     <div className="space-y-1">
-                      {turnos.map((turno, idx) => (
-                        <div
-                          key={idx}
-                          className="rounded px-2 py-1.5 text-xs cursor-pointer hover:opacity-90 transition-opacity"
-                          style={{ backgroundColor: turno.cor }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <Users className="h-3 w-3" />
-                            <span>
-                              {turno.vagasOcupadas}/{turno.vagasTotal} vagas
-                            </span>
-                          </div>
-                        </div>
-                      ))}
+                      {turnos.length === 0 ? (
+                        <p className="text-xs text-neutral-400">Sem turnos</p>
+                      ) : (
+                        turnos.map((turno, idx) => {
+                          const vagasOcupadas = turno.vagasOcupadas || 0;
+                          const vagasTotal = turno.vagasTotal || 1;
+                          return (
+                            <div
+                              key={idx}
+                              className="rounded px-2 py-1.5 text-xs cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{ backgroundColor: turno.cor || '#DBEAFE' }}
+                            >
+                              <div className="flex items-center justify-between">
+                                <Users className="h-3 w-3" />
+                                <span>
+                                  {vagasOcupadas}/{vagasTotal}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </>
                 )}
@@ -130,7 +156,8 @@ export function CalendarioMes({ dataAtual }: CalendarioMesProps) {
       {/* Legenda */}
       <div className="mt-4 p-4 bg-neutral-100 rounded-lg">
         <div className="text-sm text-neutral-700">
-          <span className="font-medium">Legenda:</span> Clique em um turno para ver detalhes ou fazer um agendamento
+          <span className="font-medium">Legenda:</span> Cada bloco representa um turno com sua disponibilidade de
+          vagas
         </div>
       </div>
     </div>

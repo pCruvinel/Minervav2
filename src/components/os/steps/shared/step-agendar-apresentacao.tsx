@@ -10,9 +10,10 @@ interface StepAgendarApresentacaoProps {
     dataAgendamento: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepAgendarApresentacao({ data, onDataChange }: StepAgendarApresentacaoProps) {
+export function StepAgendarApresentacao({ data, onDataChange, readOnly = false }: StepAgendarApresentacaoProps) {
   return (
     <div className="space-y-6">
       <Alert>
@@ -28,7 +29,8 @@ export function StepAgendarApresentacao({ data, onDataChange }: StepAgendarApres
           <Input
             type="datetime-local"
             value={data.dataAgendamento}
-            onChange={(e) => onDataChange({ dataAgendamento: e.target.value })}
+            onChange={(e) => !readOnly && onDataChange({ dataAgendamento: e.target.value })}
+            disabled={readOnly}
           />
         </div>
       </div>

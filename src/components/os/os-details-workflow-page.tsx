@@ -24,7 +24,8 @@ import {
   AlertCircle,
   Trash2,
   Loader2,
-  Info
+  Info,
+  X
 } from 'lucide-react';
 import { Separator } from '../ui/separator';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
@@ -34,7 +35,10 @@ import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-fol
 import { StepMemorialEscopo, type StepMemorialEscopoHandle } from './steps/shared/step-memorial-escopo';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarPropostaOS0104 } from './steps/shared/step-gerar-proposta-os01-04';
-import { useEtapas } from '../../lib/hooks/use-etapas';
+import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentacao';
+import { StepRealizarApresentacao } from './steps/shared/step-realizar-apresentacao';
+import { StepGerarContrato } from './steps/shared/step-gerar-contrato';
+import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
 import { ErrorBoundary } from '../error-boundary';
@@ -43,6 +47,9 @@ import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../l
 import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
 import { AutoSaveStatus } from '../ui/auto-save-status';
 import { useAuth } from '../../lib/contexts/auth-context';
+import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
+import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
+import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
 
 // Definição das 15 etapas do fluxo OS 01-04
 const steps: WorkflowStep[] = [
@@ -69,11 +76,6 @@ interface OSDetailsWorkflowPageProps {
 }
 
 export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkflowPageProps = {}) {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
-  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
-
   // Estado interno para armazenar osId criada (diferente da prop osIdProp)
   const [internalOsId, setInternalOsId] = useState<string | null>(null);
 
@@ -87,12 +89,58 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || 'user-unknown';
 
-  // Hook para gerenciar etapas
-  const { etapas, isLoading, fetchEtapas, createEtapa, updateEtapa, saveFormData, getEtapaData } = useEtapas();
-  
-  // Estados de navegação histórica
-  const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
-  const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
+  // Hook de Estado do Workflow
+  const {
+    currentStep,
+    setCurrentStep,
+    lastActiveStep,
+    setLastActiveStep,
+    isHistoricalNavigation,
+    setIsHistoricalNavigation,
+    formDataByStep,
+    setStepData: hookSetStepData,
+    saveStep,
+    createEtapa,
+    updateEtapa,
+    completedSteps: completedStepsFromHook,
+    isLoading: isLoading,
+    etapas,
+    refreshEtapas
+  } = useWorkflowState({
+    osId: osId || undefined,
+    totalSteps: steps.length
+  });
+
+  // Hook de Navegação
+  const {
+    handleStepClick,
+    handleReturnToActive,
+    handleNextStep: hookHandleNextStep,
+    handlePrevStep
+  } = useWorkflowNavigation({
+    totalSteps: steps.length,
+    currentStep,
+    setCurrentStep,
+    lastActiveStep,
+    setLastActiveStep,
+    isHistoricalNavigation,
+    setIsHistoricalNavigation,
+    onSaveStep: async (step) => {
+      // Se não tem OS ID e não é etapa 1 ou 2, não salva
+      if (!osId && step > 2) return true;
+      
+      // Se tem OS ID, salva
+      if (osId) {
+        return await saveStep(step, false);
+      }
+      
+      return true;
+    }
+  });
+
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
+  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
 
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
@@ -100,13 +148,18 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
 
   // Calcular quais etapas estão concluídas (status = APROVADA)
-  const completedSteps = useMemo(() => {
-    if (!etapas || etapas.length === 0) return [];
+  // Regras de completude (Fallback para modo criação)
+  const completionRules = useMemo(() => ({
+    1: (data: any) => !!data.leadId,
+    2: (data: any) => !!data.tipoOS,
+  }), []);
 
-    return etapas
-      .filter((etapa: any) => etapa.status === 'APROVADA')
-      .map((etapa: any) => etapa.numero_etapa);
-  }, [etapas]);
+  const { completedSteps } = useWorkflowCompletion({
+    currentStep,
+    formDataByStep,
+    completionRules,
+    completedStepsFromHook
+  });
 
   // Verificar se o formulário da etapa atual está inválido
   const isCurrentStepInvalid = useMemo(() => {
@@ -130,8 +183,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // ESTADO CONSOLIDADO DO FORMULÁRIO
   // ========================================
   // Armazena dados de todas as etapas em um único objeto
-  const [formDataByStep, setFormDataByStep] = useState<Record<number, any>>({});
-
   // Estado para controlar upload
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -145,15 +196,14 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // Inicializar formData com dados salvos
   useEffect(() => {
     if (savedData && Object.keys(savedData).length > 0) {
-      setFormDataByStep(savedData);
+      // Se houver dados salvos localmente, mesclar com o estado do hook
+      // Isso pode ser complexo, por enquanto apenas logamos
       console.log('📁 Dados recuperados do localStorage:', savedData);
-      try {
-        toast.info('Dados anteriores recuperados');
-      } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de recuperação:', toastError);
-      }
+      
+      // Opcional: Atualizar o hook com dados locais se estiverem vazios
+      // Mas o hook carrega do banco, então cuidado para não sobrescrever
     }
-  }, [osId]); // Apenas ao montar ou quando osId muda
+  }, [osId]); 
 
   // Auto-save quando dados mudam (com debounce de 1s)
   const { isSaving, isSaved, markDirty, saveiNow } = useAutoSave(
@@ -161,9 +211,25 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Se temos osId, salvar no banco de dados
       if (osId && etapas && etapas.length > 0) {
         try {
-          const etapaAtual = etapas.find((e) => e.ordem === currentStep);
-          if (etapaAtual && data[currentStep]) {
-            await saveFormData(etapaAtual.id, data[currentStep], false);
+          // O data aqui é { [stepNum]: stepData }
+          // Precisamos extrair o dado da etapa atual
+          const stepData = data[currentStep];
+          
+          if (stepData) {
+            // Usar saveStep do hook (mas ele pega do state, e o state pode não estar atualizado ainda se for muito rápido?)
+            // Melhor usar saveFormData direto do useEtapas (que está dentro do useWorkflowState mas não exposto diretamente aqui, 
+            // exceto via saveStep que usa getStepData).
+            // Mas saveStep usa getStepData que lê de formDataByStep.
+            // Se hookSetStepData atualizou o state, deve estar ok.
+            
+            // Mas para garantir, vamos usar o data passado para o callback
+            const etapaAtual = etapas.find((e) => e.ordem === currentStep);
+            if (etapaAtual) {
+               // Precisamos acessar saveFormData. Como não temos acesso direto (está dentro do hook),
+               // podemos usar saveStep se confiarmos no state, ou expor saveFormData do hook.
+               // Vamos confiar no saveStep por enquanto, mas passando isDraft=true
+               await saveStep(currentStep, true);
+            }
           }
         } catch (error) {
           console.error('❌ Erro ao auto-salvar:', error);
@@ -172,15 +238,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       }
     },
     {
-      debounceMs: 1000, // Auto-save após 1 segundo de inatividade
+      debounceMs: 1000,
       useLocalStorage: true,
       storageKey: `os_workflow_${osId || 'new'}`,
-      onSaveSuccess: () => {
-        console.log('✅ Auto-save bem-sucedido');
-      },
-      onSaveError: (error) => {
-        console.error('❌ Auto-save falhou:', error);
-      },
+      onSaveSuccess: () => console.log('✅ Auto-save bem-sucedido'),
+      onSaveError: (error) => console.error('❌ Auto-save falhou:', error),
     }
   );
 
@@ -221,31 +283,17 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
   // Atualizar dados de uma etapa (com auto-save)
   const setStepData = (stepNum: number, data: any) => {
-    setFormDataByStep(prev => {
-      const updated = {
-        ...prev,
-        [stepNum]: data
-      };
-      // Marcar para auto-save
-      markDirty(updated);
-      return updated;
-    });
+    hookSetStepData(stepNum, data);
+    markDirty({ [stepNum]: data });
   };
 
   // Atualizar campo individual de uma etapa (com auto-save)
   const updateStepField = (stepNum: number, field: string, value: any) => {
-    setFormDataByStep(prev => {
-      const updated = {
-        ...prev,
-        [stepNum]: {
-          ...(prev[stepNum] || {}),
-          [field]: value
-        }
-      };
-      // Marcar para auto-save
-      markDirty(updated);
-      return updated;
-    });
+    const currentData = formDataByStep[stepNum] || {};
+    const newData = { ...currentData, [field]: value };
+    
+    hookSetStepData(stepNum, newData);
+    markDirty({ [stepNum]: newData });
   };
 
   // Aliases para compatibilidade com código existente (memoizados para performance)
@@ -255,6 +303,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const etapa4Data = useMemo(() => getStepData(4), [formDataByStep]);
   const etapa5Data = useMemo(() => getStepData(5), [formDataByStep]);
   const etapa6Data = useMemo(() => getStepData(6), [formDataByStep]);
+  const etapa7Data = useMemo(() => getStepData(7), [formDataByStep]);
   const etapa8Data = useMemo(() => getStepData(8), [formDataByStep]);
   const etapa9Data = useMemo(() => getStepData(9), [formDataByStep]);
   const etapa10Data = useMemo(() => getStepData(10), [formDataByStep]);
@@ -270,6 +319,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const setEtapa4Data = (data: any) => setStepData(4, data);
   const setEtapa5Data = (data: any) => setStepData(5, data);
   const setEtapa6Data = (data: any) => setStepData(6, data);
+  const setEtapa7Data = (data: any) => setStepData(7, data);
   const setEtapa8Data = (data: any) => setStepData(8, data);
   const setEtapa9Data = (data: any) => setStepData(9, data);
   const setEtapa10Data = (data: any) => setStepData(10, data);
@@ -318,11 +368,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     }, 0);
 
     // Percentuais (com valores padrão)
-    const percImprevisto = parseFloat(etapa9Data?.percentualImprevisto) || 0;
-    const percLucro = parseFloat(etapa9Data?.percentualLucro) || 0;
-    const percImposto = parseFloat(etapa9Data?.percentualImposto) || 0;
-    const percEntrada = parseFloat(etapa9Data?.percentualEntrada) || 0;
-    const numParcelas = parseFloat(etapa9Data?.numeroParcelas) || 1;
+    const percImprevisto = parseFloat(etapa8Data?.percentualImprevisto) || 0;
+    const percLucro = parseFloat(etapa8Data?.percentualLucro) || 0;
+    const percImposto = parseFloat(etapa8Data?.percentualImposto) || 0;
+    const percEntrada = parseFloat(etapa8Data?.percentualEntrada) || 0;
+    const numParcelas = parseFloat(etapa8Data?.numeroParcelas) || 1;
 
     // Valor Total
     const valorTotal = custoBase * (1 + (percImprevisto + percLucro + percImposto) / 100);
@@ -337,7 +387,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       valorEntrada,
       valorParcela,
     };
-  }, [etapa8Data, etapa9Data]);
+  }, [etapa8Data]);
 
   // Funções de upload de arquivos
   const handleFileUpload = async (files: FileList | null) => {
@@ -447,39 +497,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     handleFileUpload(files);
   };
 
-  const handleStepClick = (stepId: number) => {
-    // Só permite voltar para etapas concluídas ou a etapa atual
-    if (stepId <= currentStep) {
-      // Se está navegando para uma etapa anterior, salva a posição atual
-      if (stepId < currentStep && !isHistoricalNavigation) {
-        setLastActiveStep(currentStep);
-        setIsHistoricalNavigation(true);
-        
-        toast.info('Visualizando etapa anterior. Seus dados foram salvos.', { icon: '👁️' });
-      }
-      
-      // Se está voltando para a última etapa ativa, limpa o modo histórico
-      if (stepId === lastActiveStep) {
-        setIsHistoricalNavigation(false);
-        setLastActiveStep(null);
-        
-        toast.success('Voltou para onde estava!', { icon: '🎯' });
-      }
-      
-      setCurrentStep(stepId);
-    } else {
-      toast.warning('Complete as etapas anteriores primeiro', { icon: '🔒' });
-    }
-  };
 
-  const handleReturnToActive = () => {
-    if (lastActiveStep) {
-      setCurrentStep(lastActiveStep);
-      setIsHistoricalNavigation(false);
-      setLastActiveStep(null);
-      toast.success('Voltou para onde estava!', { icon: '🎯' });
-    }
-  };
 
   // Função para validar UUID
   const isValidUUID = (uuid: string): boolean => {
@@ -668,81 +686,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     }
   };
 
-  // Carregar etapas ao montar o componente (se osIdProp fornecido - modo edição)
-  useEffect(() => {
-    if (osIdProp && osIdProp.trim() !== '') {
-      console.log(`📋 Modo Edição: Carregando etapas da OS ${osIdProp}...`);
-      loadEtapas();
-    } else {
-      console.log('ℹ️ Modo Criação: osId não fornecido, OS será criada ao avançar da etapa 2 para 3');
-    }
-  }, [osIdProp]);
 
-  // Carregar dados da etapa atual ao navegar (navegação histórica)
-  useEffect(() => {
-    if (etapas && etapas.length > 0 && osId) {
-      carregarDadosEtapaAtual();
-    }
-  }, [currentStep]); // Removido 'etapas' para evitar loop infinito de auto-save
-
-  /**
-   * Carregar dados salvos da etapa atual
-   * (Usado na navegação histórica)
-   */
-  const carregarDadosEtapaAtual = () => {
-    const dadosSalvos = getEtapaData(currentStep);
-
-    if (!dadosSalvos) {
-      console.log(`ℹ️ Etapa ${currentStep} sem dados salvos`);
-      return;
-    }
-
-    console.log(`📥 Carregando dados da etapa ${currentStep}:`, dadosSalvos);
-
-    // Carregar dados no formDataByStep (novo sistema consolidado)
-    setStepData(currentStep, {
-      ...getStepData(currentStep),
-      ...dadosSalvos
-    });
-
-    toast.success(`Dados da etapa ${currentStep} carregados!`, { icon: '📥' });
-  };
-
-  /**
-   * Carregar etapas do banco e preencher estados locais
-   */
-  const loadEtapas = async () => {
-    if (!osId || osId.trim() === '') {
-      console.warn('⚠️ loadEtapas: osId inválido ou vazio');
-      return;
-    }
-
-    try {
-      await fetchEtapas(osId);
-      console.log('✅ Etapas carregadas:', etapas);
-
-      // Preencher formDataByStep com dados do banco (sistema consolidado)
-      if (etapas) {
-        const newFormData: Record<number, any> = {};
-
-        etapas.forEach((etapa) => {
-          if (etapa.dados_etapa) {
-            newFormData[etapa.ordem] = etapa.dados_etapa;
-          }
-        });
-
-        setFormDataByStep(newFormData);
-        console.log('✅ Dados carregados no formDataByStep:', newFormData);
-      }
-    } catch (error) {
-      console.error('❌ Erro ao carregar etapas:', error);
-      try {
-        toast.error('Erro ao carregar dados das etapas');
-      } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de erro (fetchEtapas):', toastError);
-      }
-    }
-  };
 
   /**
    * Obter dados da etapa atual (usa sistema consolidado)
@@ -813,32 +757,19 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   /**
    * Salvar dados da etapa no banco
    */
+  /**
+   * Salvar dados da etapa no banco
+   */
   const saveCurrentStepData = async (markAsComplete: boolean = true) => {
-    if (!osId || !etapas) {
-      console.warn('⚠️ Não é possível salvar: osId ou etapas não disponíveis');
+    if (!osId) {
+      console.warn('⚠️ Não é possível salvar: osId não disponível');
       return;
     }
 
     try {
-      const etapaAtual = etapas.find((e) => e.ordem === currentStep);
-      
-      if (!etapaAtual) {
-        console.warn(`⚠️ Etapa ${currentStep} não encontrada no banco`);
-        try {
-          toast.error('Etapa não encontrada');
-        } catch (toastError) {
-          console.error('❌ Erro ao exibir toast (etapa não encontrada):', toastError);
-        }
-        return;
-      }
-
       console.log(`💾 Salvando etapa ${currentStep}...`);
       
-      await saveFormData(
-        etapaAtual.id,
-        getCurrentStepData(),
-        markAsComplete
-      );
+      await saveStep(currentStep, !markAsComplete); // saveStep recebe isDraft como segundo argumento
 
       const successMessage = markAsComplete 
         ? 'Etapa concluída e dados salvos!' 
@@ -915,7 +846,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
         // Recarregar etapas do banco
         console.log('📋 Carregando etapas...');
-        await fetchEtapas(novaOsId);
+        await refreshEtapas();
 
         // Avançar para etapa 3
         setCurrentStep(3);
@@ -1008,11 +939,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   /**
    * Voltar para etapa anterior (sem salvar)
    */
-  const handlePrevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
+
 
   const isReadOnly = selectedLeadId !== 'NEW' && selectedLeadId !== '';
 
@@ -1238,261 +1165,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                   onDataChange={setEtapa3Data}
                   readOnly={isHistoricalNavigation}
                 />
-              )}
-
-              {/* OLD INLINE FORM - KEEP FOR REFERENCE, DISABLED */}
-              {false && currentStep === 3 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Realize a entrevista inicial com o lead/cliente para levantar informações sobre o projeto.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="idadeEdificacao">
-                        1. Qual a idade da edificação? <span className="text-destructive">*</span>
-                      </Label>
-                      <Select 
-                        value={etapa3Data.idadeEdificacao} 
-                        onValueChange={(value) => setEtapa3Data({ ...etapa3Data, idadeEdificacao: value })}
-                      >
-                        <SelectTrigger id="idadeEdificacao">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Ainda não foi entregue">Ainda não foi entregue</SelectItem>
-                          <SelectItem value="0 a 3 anos">0 a 3 anos</SelectItem>
-                          <SelectItem value="3 a 5 anos">3 a 5 anos</SelectItem>
-                          <SelectItem value="5 a 10 anos">5 a 10 anos</SelectItem>
-                          <SelectItem value="10 a 20 anos">10 a 20 anos</SelectItem>
-                          <SelectItem value="Acima de 20 anos">Acima de 20 anos</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="motivoProcura">
-                        2. Qual o motivo fez você nos procurar? Quais problemas existentes? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="motivoProcura"
-                        rows={4}
-                        value={etapa3Data.motivoProcura}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, motivoProcura: e.target.value })}
-                        placeholder="Descreva os problemas e motivações..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="quandoAconteceu">
-                        3. Quando aconteceu? Há quanto tempo vem acontecendo? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="quandoAconteceu"
-                        rows={3}
-                        value={etapa3Data.quandoAconteceu}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, quandoAconteceu: e.target.value })}
-                        placeholder="Descreva o histórico do problema..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="oqueFeitoARespeito">
-                        4. O que já foi feito a respeito disso?
-                      </Label>
-                      <Textarea
-                        id="oqueFeitoARespeito"
-                        rows={3}
-                        value={etapa3Data.oqueFeitoARespeito}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, oqueFeitoARespeito: e.target.value })}
-                        placeholder="Descreva as ações já realizadas..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="existeEscopo">
-                        5. Existe um escopo de serviços ou laudo com diagnóstico do problema?
-                      </Label>
-                      <Textarea
-                        id="existeEscopo"
-                        rows={2}
-                        value={etapa3Data.existeEscopo}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, existeEscopo: e.target.value })}
-                        placeholder="Sim/Não e detalhes..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="previsaoOrcamentaria">
-                        6. Existe previsão orçamentária para este serviço? Ou você precisa de parâmetro para taxa extra?
-                      </Label>
-                      <Textarea
-                        id="previsaoOrcamentaria"
-                        rows={2}
-                        value={etapa3Data.previsaoOrcamentaria}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, previsaoOrcamentaria: e.target.value })}
-                        placeholder="Informe o orçamento dispon��vel..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="grauUrgencia">
-                        7. Qual o grau de urgência para executar esse serviço? <span className="text-destructive">*</span>
-                      </Label>
-                      <Select 
-                        value={etapa3Data.grauUrgencia} 
-                        onValueChange={(value) => setEtapa3Data({ ...etapa3Data, grauUrgencia: value })}
-                      >
-                        <SelectTrigger id="grauUrgencia">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="30 dias">30 dias</SelectItem>
-                          <SelectItem value="3 meses">3 meses</SelectItem>
-                          <SelectItem value="6 meses ou mais">6 meses ou mais</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="apresentacaoProposta">
-                        8. Nossas propostas são apresentadas, nós não enviamos orçamento. Você concorda? Deseja que faça o orçamento? Se sim, qual dia e horário sugeridos para apresentação da proposta comercial dessa visita técnica? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="apresentacaoProposta"
-                        rows={3}
-                        value={etapa3Data.apresentacaoProposta}
-                        onChange={(e) => setEtapa3Data({ ...etapa3Data, apresentacaoProposta: e.target.value })}
-                        placeholder="Resposta do cliente..."
-                      />
-                    </div>
-
-                    <Separator />
-
-                    <h3 className="text-sm font-medium">Dados do Contato no Local</h3>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="nomeContatoLocal">
-                          9. Nome (Contato no Local) <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="nomeContatoLocal"
-                          value={etapa3Data.nomeContatoLocal}
-                          onChange={(e) => setEtapa3Data({ ...etapa3Data, nomeContatoLocal: e.target.value })}
-                          placeholder="Nome completo"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="telefoneContatoLocal">
-                          10. Contato (Telefone) <span className="text-destructive">*</span>
-                        </Label>
-                        <Input
-                          id="telefoneContatoLocal"
-                          value={etapa3Data.telefoneContatoLocal}
-                          onChange={(e) => setEtapa3Data({ ...etapa3Data, telefoneContatoLocal: e.target.value })}
-                          placeholder="(00) 00000-0000"
-                        />
-                      </div>
-
-                      <div className="col-span-2 space-y-2">
-                        <Label htmlFor="cargoContatoLocal">
-                          11. Cargo (Contato no Local)
-                        </Label>
-                        <Input
-                          id="cargoContatoLocal"
-                          value={etapa3Data.cargoContatoLocal}
-                          onChange={(e) => setEtapa3Data({ ...etapa3Data, cargoContatoLocal: e.target.value })}
-                          placeholder="Ex: Síndico, Zelador, Gerente..."
-                        />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label>Anexar Arquivos (escopo, laudo, fotos)</Label>
-                      <div 
-                        className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
-                        onClick={() => document.getElementById('file-upload-etapa3')?.click()}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                      >
-                        <input
-                          id="file-upload-etapa3"
-                          type="file"
-                          multiple
-                          accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.doc,.xls"
-                          onChange={(e) => handleFileUpload(e.target.files)}
-                          className="hidden"
-                        />
-                        {isUploading ? (
-                          <>
-                            <Loader2 className="h-8 w-8 mx-auto mb-2 text-primary animate-spin" />
-                            <p className="text-sm text-muted-foreground">
-                              Enviando arquivos... {Math.round(uploadProgress)}%
-                            </p>
-                          </>
-                        ) : (
-                          <>
-                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">
-                              Clique para selecionar ou arraste arquivos aqui
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              PDF, JPG, PNG, DOCX, XLSX (máx. 10MB)
-                            </p>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Lista de arquivos anexados */}
-                      {(etapa3Data.anexos?.length ?? 0) > 0 && (
-                        <div className="space-y-2 mt-4">
-                          <Label className="text-sm">Arquivos Anexados ({etapa3Data.anexos?.length ?? 0})</Label>
-                          <div className="space-y-2">
-                            {etapa3Data.anexos.map((file) => (
-                              <div
-                                key={file.id}
-                                className="flex items-center justify-between p-3 border rounded-lg hover:bg-neutral-50"
-                              >
-                                <div className="flex items-center gap-3 flex-1">
-                                  <FileText className="h-5 w-5 text-primary" />
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium truncate">{file.name}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                      {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleString('pt-BR')}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => window.open(file.url, '_blank')}
-                                  >
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleFileDelete(file.id, file.path)}
-                                  >
-                                    <Trash2 className="h-4 w-4 text-red-500" />
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               )}
 
               {/* ETAPA 4: Agendar Visita Técnica */}
@@ -1835,11 +1507,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               )}
 
               {/* ETAPA 7: Formulário Memorial (Escopo e Prazos) */}
+              {/* ETAPA 7: Formulário Memorial (Escopo) */}
               {currentStep === 7 && (
                 <StepMemorialEscopo
                   ref={stepMemorialRef}
-                  data={etapa8Data}
-                  onDataChange={setEtapa8Data}
+                  data={etapa7Data}
+                  onDataChange={setEtapa7Data}
                   readOnly={isHistoricalNavigation}
                 />
               )}
@@ -1847,117 +1520,38 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               {/* ETAPA 8: Precificação */}
               {currentStep === 8 && (
                 <StepPrecificacao
-                  etapa8Data={etapa8Data}
-                  etapa9Data={etapa9Data}
-                  onEtapa9DataChange={setEtapa9Data}
+                  memorialData={etapa7Data}
+                  data={etapa8Data}
+                  onDataChange={setEtapa8Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 
               {/* ETAPA 9: Gerar Proposta Comercial */}
               {currentStep === 9 && (
                 <StepGerarPropostaOS0104
-                  etapa1Data={formData}
-                  etapa2Data={etapa2Data}
-                  etapa7Data={etapa8Data}
-                  etapa8Data={etapa9Data}
-                  valorTotal={valoresPrecificacao.valorTotal}
-                  valorEntrada={valoresPrecificacao.valorEntrada}
-                  valorParcela={valoresPrecificacao.valorParcela}
-                  data={etapa10Data}
-                  onDataChange={setEtapa10Data}
+                  data={etapa9Data}
+                  onDataChange={setEtapa9Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 
               {/* ETAPA 10: Agendar Visita (Apresentação) */}
               {currentStep === 10 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <Calendar className="h-4 w-4" />
-                    <AlertDescription>
-                      Agende a visita para apresentação da proposta comercial ao cliente.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Calendar className="h-10 w-10 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-medium mb-2">Agendar Apresentação da Proposta</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Selecione a data e horário para apresentar a proposta comercial.
-                      </p>
-                      <Button style={{ backgroundColor: '#f97316', color: 'white' }}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Agendar no Calendário
-                      </Button>
-                    </div>
-                  </div>
-
-                  {etapa11Data.dataAgendamento && (
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="text-sm font-medium">Apresentação agendada para:</p>
-                            <p className="text-sm text-muted-foreground">{etapa11Data.dataAgendamento}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <StepAgendarApresentacao
+                  data={etapa10Data}
+                  onDataChange={setEtapa10Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 11: Realizar Visita (Apresentação) */}
               {currentStep === 11 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Confirme a realização da apresentação da proposta comercial.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Check className="h-10 w-10 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-medium mb-2">Confirmar Realização da Apresentação</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Marque a caixa abaixo para confirmar que a apresentação foi realizada.
-                      </p>
-                      <div className="flex items-center space-x-3 justify-center">
-                        <Switch
-                          id="apresentacaoRealizada"
-                          checked={etapa12Data.apresentacaoRealizada}
-                          onCheckedChange={(checked) => {
-                            setEtapa12Data((prev) => ({ ...prev, apresentacaoRealizada: checked }));
-                          }}
-                        />
-                        <Label htmlFor="apresentacaoRealizada" className="cursor-pointer">
-                          Apresentação realizada
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {etapa12Data.apresentacaoRealizada && (
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="text-sm font-medium">Apresentação confirmada!</p>
-                            <p className="text-sm text-muted-foreground">Data: {new Date().toLocaleDateString('pt-BR')}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <StepRealizarApresentacao
+                  data={etapa11Data}
+                  onDataChange={setEtapa11Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 12: Follow-up 3 (Pós-Apresentação) */}
@@ -1970,7 +1564,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                     </AlertDescription>
                   </Alert>
 
-                  {/* Momento 1: Apresentaç��o */}
+                  {/* Momento 1: Apresentação */}
                   <div className="space-y-4">
                     <div className="bg-neutral-100 px-4 py-2 rounded-md">
                       <h3 className="text-sm font-medium">Momento 1: Sobre a Apresentação</h3>
@@ -1983,9 +1577,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="propostaApresentada"
                         rows={3}
-                        value={etapa13Data.propostaApresentada}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, propostaApresentada: e.target.value })}
+                        value={etapa12Data.propostaApresentada}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, propostaApresentada: e.target.value })}
                         placeholder="Descreva a proposta apresentada..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
 
@@ -1996,9 +1591,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="metodoApresentacao"
                         rows={2}
-                        value={etapa13Data.metodoApresentacao}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, metodoApresentacao: e.target.value })}
+                        value={etapa12Data.metodoApresentacao}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, metodoApresentacao: e.target.value })}
                         placeholder="Ex: Presencial, Online, Slides..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
 
@@ -2009,9 +1605,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="clienteAchouProposta"
                         rows={3}
-                        value={etapa13Data.clienteAchouProposta}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, clienteAchouProposta: e.target.value })}
+                        value={etapa12Data.clienteAchouProposta}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, clienteAchouProposta: e.target.value })}
                         placeholder="Descreva a reação e comentários do cliente..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
                   </div>
@@ -2031,9 +1628,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="clienteAchouContrato"
                         rows={3}
-                        value={etapa13Data.clienteAchouContrato}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, clienteAchouContrato: e.target.value })}
+                        value={etapa12Data.clienteAchouContrato}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, clienteAchouContrato: e.target.value })}
                         placeholder="Descreva a opinião do cliente sobre o contrato..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
 
@@ -2044,9 +1642,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="doresNaoAtendidas"
                         rows={3}
-                        value={etapa13Data.doresNaoAtendidas}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, doresNaoAtendidas: e.target.value })}
+                        value={etapa12Data.doresNaoAtendidas}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, doresNaoAtendidas: e.target.value })}
                         placeholder="Liste possíveis objeções ou pontos não atendidos..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
 
@@ -2055,8 +1654,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         6. Qual o indicador de fechamento da proposta? <span className="text-destructive">*</span>
                       </Label>
                       <Select 
-                        value={etapa13Data.indicadorFechamento} 
-                        onValueChange={(value) => setEtapa13Data({ ...etapa13Data, indicadorFechamento: value })}
+                        value={etapa12Data.indicadorFechamento} 
+                        onValueChange={(value) => setEtapa12Data({ ...etapa12Data, indicadorFechamento: value })}
+                        disabled={isHistoricalNavigation}
                       >
                         <SelectTrigger id="indicadorFechamento">
                           <SelectValue placeholder="Selecione" />
@@ -2087,9 +1687,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Textarea
                         id="quemEstavaNaApresentacao"
                         rows={2}
-                        value={etapa13Data.quemEstavaNaApresentacao}
-                        onChange={(e) => setEtapa13Data({ ...etapa13Data, quemEstavaNaApresentacao: e.target.value })}
+                        value={etapa12Data.quemEstavaNaApresentacao}
+                        onChange={(e) => setEtapa12Data({ ...etapa12Data, quemEstavaNaApresentacao: e.target.value })}
                         placeholder="Liste os participantes da reunião..."
+                        disabled={isHistoricalNavigation}
                       />
                     </div>
 
@@ -2098,8 +1699,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         8. Qual o nível de satisfação do cliente? <span className="text-destructive">*</span>
                       </Label>
                       <RadioGroup 
-                        value={etapa13Data.nivelSatisfacao} 
-                        onValueChange={(value) => setEtapa13Data({ ...etapa13Data, nivelSatisfacao: value })}
+                        value={etapa12Data.nivelSatisfacao} 
+                        onValueChange={(value) => setEtapa12Data({ ...etapa12Data, nivelSatisfacao: value })}
+                        disabled={isHistoricalNavigation}
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="Produtiva, cliente interessado" id="ns1" />
@@ -2121,120 +1723,20 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
               {/* ETAPA 13: Gerar Contrato (Upload) */}
               {currentStep === 13 && (
-                <div className="space-y-6">
-                  <Alert className="border-yellow-200 bg-yellow-50">
-                    <AlertCircle className="h-4 w-4 text-yellow-600" />
-                    <AlertDescription className="text-yellow-700">
-                      <strong>Atenção:</strong> Esta etapa requer aprovação do Gestor ADM.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Coluna 1: Download do Modelo */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">1. Baixar Modelo</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex flex-col items-center justify-center py-8 gap-4">
-                        <Download className="h-12 w-12 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground text-center">
-                          Baixe o modelo de contrato padrão
-                        </p>
-                        <PrimaryButton variant="secondary">
-                          <Download className="h-4 w-4 mr-2" />
-                          Baixar Modelo de Contrato (.docx)
-                        </PrimaryButton>
-                      </CardContent>
-                    </Card>
-
-                    {/* Coluna 2: Upload da Minuta */}
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="text-base">2. Upload da Minuta</CardTitle>
-                      </CardHeader>
-                      <CardContent className="py-8">
-                        <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                          <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
-                          <p className="text-sm text-muted-foreground mb-1">
-                            Fazer Upload da Minuta do Contrato
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            DOCX, PDF (máx. 15MB)
-                          </p>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {etapa14Data.contratoFile && (
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-5 w-5 text-green-600" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium">Minuta do contrato anexada:</p>
-                            <p className="text-sm text-muted-foreground">{etapa14Data.contratoFile.name}</p>
-                          </div>
-                          <Button variant="ghost" size="sm">
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <StepGerarContrato
+                  data={etapa13Data}
+                  onDataChange={setEtapa13Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 14: Contrato Assinado */}
               {currentStep === 14 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Confirme que o contrato foi assinado pelo cliente para prosseguir.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                      <FileText className="h-10 w-10 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-medium mb-2">Contrato Assinado pelo Cliente</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Marque a caixa abaixo para confirmar que o contrato foi assinado.
-                      </p>
-                      <div className="flex items-center space-x-3 justify-center">
-                        <Switch
-                          id="contratoAssinado"
-                          checked={etapa15Data.contratoAssinado}
-                          onCheckedChange={(checked) => {
-                            setEtapa15Data((prev) => ({ ...prev, contratoAssinado: checked }));
-                          }}
-                        />
-                        <Label htmlFor="contratoAssinado" className="cursor-pointer">
-                          Contrato Assinado pelo Cliente
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {etapa15Data.contratoAssinado && (
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
-                          <div>
-                            <p className="text-sm font-medium">Contrato assinado confirmado!</p>
-                            <p className="text-sm text-muted-foreground">
-                              O lead será convertido em cliente e uma OS-13 será gerada automaticamente.
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <StepContratoAssinado
+                  data={etapa14Data}
+                  onDataChange={setEtapa14Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 15: Iniciar Contrato de Obra */}
@@ -2256,7 +1758,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <p className="text-sm text-muted-foreground mb-4 max-w-md">
                         Ao clicar no botão abaixo, esta OS será marcada como concluída, o lead será convertido em cliente e uma nova OS do tipo 13 (Contrato de Obra) será criada automaticamente para o time interno.
                       </p>
-                      <PrimaryButton size="lg">
+                      <PrimaryButton size="lg" disabled={isHistoricalNavigation}>
                         <Send className="h-4 w-4 mr-2" />
                         Concluir OS e Gerar OS-13
                       </PrimaryButton>

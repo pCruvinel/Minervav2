@@ -3,12 +3,13 @@ import { Upload, FileText, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepDocumentosSSTProps {
+export interface StepDocumentosSSTProps {
   data: { documentosAnexados: string[] };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepDocumentosSST({ data, onDataChange }: StepDocumentosSSTProps) {
+export function StepDocumentosSST({ data, onDataChange, readOnly }: StepDocumentosSSTProps) {
   const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,7 +81,7 @@ export function StepDocumentosSST({ data, onDataChange }: StepDocumentosSSTProps
             multiple
             accept=".pdf,.doc,.docx"
             onChange={handleFileUpload}
-            disabled={uploading}
+            disabled={uploading || readOnly}
           />
           <label htmlFor="file-upload-sst" className="cursor-pointer">
             <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
@@ -129,6 +130,7 @@ export function StepDocumentosSST({ data, onDataChange }: StepDocumentosSSTProps
                 <button
                   onClick={() => handleRemove(index)}
                   className="p-2 rounded-lg hover:bg-red-50 text-red-500"
+                  disabled={readOnly}
                 >
                   <X className="w-4 h-4" />
                 </button>

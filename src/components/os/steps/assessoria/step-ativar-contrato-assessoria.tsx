@@ -7,9 +7,10 @@ import { CheckCircle } from 'lucide-react';
 interface StepAtivarContratoAssessoriaProps {
   tipoOS: 'OS-05' | 'OS-06';
   onAtivarContrato: () => void;
+  readOnly?: boolean;
 }
 
-export function StepAtivarContratoAssessoria({ tipoOS, onAtivarContrato }: StepAtivarContratoAssessoriaProps) {
+export function StepAtivarContratoAssessoria({ tipoOS, onAtivarContrato, readOnly = false }: StepAtivarContratoAssessoriaProps) {
   return (
     <div className="space-y-6">
       <Alert className="bg-primary/10 border-primary/20">
@@ -32,6 +33,7 @@ export function StepAtivarContratoAssessoria({ tipoOS, onAtivarContrato }: StepA
         <PrimaryButton
           size="lg"
           onClick={onAtivarContrato}
+          disabled={readOnly}
         >
           <CheckCircle className="w-5 h-5 mr-2" />
           Ativar Contrato

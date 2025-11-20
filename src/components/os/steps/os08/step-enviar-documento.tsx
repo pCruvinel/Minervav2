@@ -13,12 +13,14 @@ interface StepEnviarDocumentoProps {
     dataEnvio: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepEnviarDocumento({ data, onDataChange }: StepEnviarDocumentoProps) {
+export function StepEnviarDocumento({ data, onDataChange, readOnly }: StepEnviarDocumentoProps) {
   const [isSending, setIsSending] = React.useState(false);
 
   const handleEnviarDocumento = async () => {
+    if (readOnly) return;
     setIsSending(true);
     
     try {
@@ -140,7 +142,7 @@ export function StepEnviarDocumento({ data, onDataChange }: StepEnviarDocumentoP
           <div className="flex flex-col items-center gap-4 py-8 border-t border-neutral-200">
             <PrimaryButton
               onClick={handleEnviarDocumento}
-              disabled={isSending}
+              disabled={isSending || readOnly}
               className="px-8 py-3"
             >
               {isSending ? (

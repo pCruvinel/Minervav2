@@ -6,10 +6,10 @@
 
 export type RoleLevel =
   | 'DIRETORIA'
-  | 'GESTOR_COMERCIAL'
+  | 'GESTOR_ADMINISTRATIVO'
   | 'GESTOR_ASSESSORIA'
   | 'GESTOR_OBRAS'
-  | 'COLABORADOR_COMERCIAL'
+  | 'COLABORADOR_ADMINISTRATIVO'
   | 'COLABORADOR_ASSESSORIA'
   | 'COLABORADOR_OBRAS'
   | 'MOBRA';
@@ -122,10 +122,10 @@ export enum NivelHierarquico {
 
 export const ROLE_PARA_NIVEL: Record<RoleLevel, NivelHierarquico> = {
   'MOBRA': NivelHierarquico.MOBRA,
-  'COLABORADOR_COMERCIAL': NivelHierarquico.COLABORADOR,
+  'COLABORADOR_ADMINISTRATIVO': NivelHierarquico.COLABORADOR,
   'COLABORADOR_ASSESSORIA': NivelHierarquico.COLABORADOR,
   'COLABORADOR_OBRAS': NivelHierarquico.COLABORADOR,
-  'GESTOR_COMERCIAL': NivelHierarquico.GESTOR,
+  'GESTOR_ADMINISTRATIVO': NivelHierarquico.GESTOR,
   'GESTOR_ASSESSORIA': NivelHierarquico.GESTOR,
   'GESTOR_OBRAS': NivelHierarquico.GESTOR,
   'DIRETORIA': NivelHierarquico.DIRETORIA,
@@ -148,7 +148,7 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, {
     acesso_setores: ['*'],
   },
 
-  'GESTOR_COMERCIAL': {
+  'GESTOR_ADMINISTRATIVO': {
     pode_delegar_para: ['*'],
     pode_aprovar_setores: ['COM'],
     acesso_modulos: ['administrativo', 'financeiro'],
@@ -169,7 +169,7 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, {
     acesso_setores: ['OBR'],
   },
 
-  'COLABORADOR_COMERCIAL': {
+  'COLABORADOR_ADMINISTRATIVO': {
     pode_delegar_para: [],
     pode_aprovar_setores: [],
     acesso_modulos: ['operacional'],
@@ -204,17 +204,17 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, {
 
 export const ROLE_NAMES: Record<RoleLevel, string> = {
   'DIRETORIA': 'Diretoria',
-  'GESTOR_COMERCIAL': 'Gestor Comercial',
+  'GESTOR_ADMINISTRATIVO': 'Gestor Administrativo',
   'GESTOR_ASSESSORIA': 'Gestor Assessoria Técnica',
   'GESTOR_OBRAS': 'Gestor de Obras',
-  'COLABORADOR_COMERCIAL': 'Colaborador Comercial',
+  'COLABORADOR_ADMINISTRATIVO': 'Colaborador Administrativo',
   'COLABORADOR_ASSESSORIA': 'Colaborador Assessoria',
   'COLABORADOR_OBRAS': 'Colaborador Obras',
   'MOBRA': 'Mão de Obra',
 };
 
 export const SETOR_NAMES: Record<Setor, string> = {
-  'COM': 'Comercial',
+  'COM': 'Administrativo',
   'ASS': 'Assessoria Técnica',
   'OBR': 'Obras',
 };

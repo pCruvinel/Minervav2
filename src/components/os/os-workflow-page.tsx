@@ -132,24 +132,24 @@ export function OSWorkflowPage({ onBack }: OSWorkflowPageProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Tipo de Edificação</Label>
-                  <Input value="Condomínio" disabled />
+                  <Input value="Condomínio" readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>Qtd. Unidades Autônomas</Label>
-                  <Input value="48" disabled />
+                  <Input value="48" readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>Qtd. Blocos</Label>
-                  <Input value="2" disabled />
+                  <Input value="2" readOnly disabled />
                 </div>
                 <div className="space-y-2">
                   <Label>Contato (Nome)</Label>
-                  <Input value="Sra. Helena" disabled />
+                  <Input value="Sra. Helena" readOnly disabled />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label>CNPJ</Label>
-                <Input value="00.123.456/0001-00" disabled />
+                <Input value="00.123.456/0001-00" readOnly disabled />
               </div>
             </div>
           </StepWrapper>

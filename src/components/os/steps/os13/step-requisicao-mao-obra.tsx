@@ -5,12 +5,13 @@ import { Alert, AlertDescription } from '../../../ui/alert';
 import { Users, Plus, CheckCircle2, AlertCircle, ExternalLink, Clock } from 'lucide-react';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepRequisicaoMaoObraProps {
+export interface StepRequisicaoMaoObraProps {
   data: { os10Criada: boolean; os10Id: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepRequisicaoMaoObra({ data, onDataChange }: StepRequisicaoMaoObraProps) {
+export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequisicaoMaoObraProps) {
   const handleCriarOS10 = () => {
     const novoId = `OS-${Math.floor(Math.random() * 10000)}`;
     onDataChange({ os10Criada: true, os10Id: novoId });
@@ -80,6 +81,7 @@ export function StepRequisicaoMaoObra({ data, onDataChange }: StepRequisicaoMaoO
                 onClick={handleCriarOS10}
                 className="bg-primary hover:bg-primary/90"
                 style={{ backgroundColor: '#D3AF37' }}
+                disabled={readOnly}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar OS-10

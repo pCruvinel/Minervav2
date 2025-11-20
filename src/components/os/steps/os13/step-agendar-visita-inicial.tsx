@@ -8,12 +8,13 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '../../../ui/utils';
 
-interface StepAgendarVisitaInicialProps {
+export interface StepAgendarVisitaInicialProps {
   data: { dataVisita: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepAgendarVisitaInicial({ data, onDataChange }: StepAgendarVisitaInicialProps) {
+export function StepAgendarVisitaInicial({ data, onDataChange, readOnly }: StepAgendarVisitaInicialProps) {
   const dataVisita = data.dataVisita ? new Date(data.dataVisita) : undefined;
   const isComplete = !!data.dataVisita;
 
@@ -77,6 +78,7 @@ export function StepAgendarVisitaInicial({ data, onDataChange }: StepAgendarVisi
                 'w-full justify-start text-left',
                 !dataVisita && 'text-muted-foreground'
               )}
+              disabled={readOnly}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dataVisita ? format(dataVisita, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
@@ -88,7 +90,7 @@ export function StepAgendarVisitaInicial({ data, onDataChange }: StepAgendarVisi
               selected={dataVisita}
               onSelect={handleDateSelect}
               locale={ptBR}
-              disabled={(date) => date < new Date()}
+              disabled={(date: Date) => date < new Date() || !!readOnly}
               initialFocus
             />
           </PopoverContent>

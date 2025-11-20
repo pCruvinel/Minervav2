@@ -12,9 +12,10 @@ interface StepContratoAssinadoProps {
     dataAssinatura: string;
   };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepContratoAssinado({ data, onDataChange }: StepContratoAssinadoProps) {
+export function StepContratoAssinado({ data, onDataChange, readOnly = false }: StepContratoAssinadoProps) {
   return (
     <div className="space-y-6">
       <Alert>
@@ -29,11 +30,12 @@ export function StepContratoAssinado({ data, onDataChange }: StepContratoAssinad
           <Checkbox
             id="contrato-assinado"
             checked={data.contratoAssinado}
-            onCheckedChange={(checked) => onDataChange({ 
+            onCheckedChange={(checked: boolean | 'indeterminate') => !readOnly && onDataChange({ 
               ...data, 
-              contratoAssinado: checked as boolean,
-              dataAssinatura: checked ? new Date().toISOString().split('T')[0] : ''
+              contratoAssinado: checked === true,
+              dataAssinatura: checked === true ? new Date().toISOString().split('T')[0] : ''
             })}
+            disabled={readOnly}
           />
           <Label htmlFor="contrato-assinado" className="cursor-pointer">
             Confirmar que o contrato foi assinado por todas as partes
@@ -46,7 +48,8 @@ export function StepContratoAssinado({ data, onDataChange }: StepContratoAssinad
             <Input
               type="date"
               value={data.dataAssinatura}
-              onChange={(e) => onDataChange({ ...data, dataAssinatura: e.target.value })}
+              onChange={(e) => !readOnly && onDataChange({ ...data, dataAssinatura: e.target.value })}
+              disabled={readOnly}
             />
           </div>
         )}

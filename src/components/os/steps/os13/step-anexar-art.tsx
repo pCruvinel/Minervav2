@@ -3,12 +3,13 @@ import { Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { toast } from '../../../../lib/utils/safe-toast';
 
-interface StepAnexarARTProps {
+export interface StepAnexarARTProps {
   data: { artAnexada: string };
   onDataChange: (data: any) => void;
+  readOnly?: boolean;
 }
 
-export function StepAnexarART({ data, onDataChange }: StepAnexarARTProps) {
+export function StepAnexarART({ data, onDataChange, readOnly }: StepAnexarARTProps) {
   const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -75,7 +76,7 @@ export function StepAnexarART({ data, onDataChange }: StepAnexarARTProps) {
             className="hidden"
             accept=".pdf"
             onChange={handleFileUpload}
-            disabled={uploading}
+            disabled={uploading || readOnly}
           />
           <label htmlFor="file-upload-art" className="cursor-pointer">
             <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
@@ -107,6 +108,7 @@ export function StepAnexarART({ data, onDataChange }: StepAnexarARTProps) {
           <button
             onClick={() => onDataChange({ artAnexada: '' })}
             className="text-sm text-red-500 hover:underline"
+            disabled={readOnly}
           >
             Remover
           </button>
