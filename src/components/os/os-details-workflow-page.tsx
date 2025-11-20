@@ -29,9 +29,9 @@ import {
 import { Separator } from '../ui/separator';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
-import { StepIdentificacaoLeadCompleto } from './steps/shared/step-identificacao-lead-completo';
+import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
 import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-followup-1';
-import { StepMemorialEscopo } from './steps/shared/step-memorial-escopo';
+import { StepMemorialEscopo, type StepMemorialEscopoHandle } from './steps/shared/step-memorial-escopo';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarPropostaOS0104 } from './steps/shared/step-gerar-proposta-os01-04';
 import { useEtapas } from '../../lib/hooks/use-etapas';
@@ -94,18 +94,38 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const [lastActiveStep, setLastActiveStep] = useState<number | null>(null);
   const [isHistoricalNavigation, setIsHistoricalNavigation] = useState(false);
 
-  // Ref para o componente StepFollowup1 (para validação imperativa)
+  // Refs para componentes com validação imperativa
+  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
+  const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
 
   // Calcular quais etapas estão concluídas (status = APROVADA)
   const completedSteps = useMemo(() => {
     if (!etapas || etapas.length === 0) return [];
-    
+
     return etapas
       .filter((etapa: any) => etapa.status === 'APROVADA')
       .map((etapa: any) => etapa.numero_etapa);
   }, [etapas]);
-  
+
+  // Verificar se o formulário da etapa atual está inválido
+  const isCurrentStepInvalid = useMemo(() => {
+    // Não validar em modo de navegação histórica (read-only)
+    if (isHistoricalNavigation) return false;
+
+    // Verificar validação para cada etapa com formulário
+    switch (currentStep) {
+      case 1:
+        return stepLeadRef.current?.isFormValid() === false;
+      case 3:
+        return stepFollowup1Ref.current?.isFormValid() === false;
+      case 7:
+        return stepMemorialRef.current?.isFormValid() === false;
+      default:
+        return false; // Etapas sem validação obrigatória
+    }
+  }, [currentStep, isHistoricalNavigation]);
+
   // ========================================
   // ESTADO CONSOLIDADO DO FORMULÁRIO
   // ========================================
@@ -1135,6 +1155,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               {currentStep === 1 && (
                 <ErrorBoundary>
                   <StepIdentificacaoLeadCompleto
+                    ref={stepLeadRef}
                     selectedLeadId={selectedLeadId}
                     onSelectLead={handleSelectLead}
                     showCombobox={showLeadCombobox}
@@ -1816,6 +1837,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               {/* ETAPA 7: Formulário Memorial (Escopo e Prazos) */}
               {currentStep === 7 && (
                 <StepMemorialEscopo
+                  ref={stepMemorialRef}
                   data={etapa8Data}
                   onDataChange={setEtapa8Data}
                   readOnly={isHistoricalNavigation}
@@ -2287,6 +2309,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               loadingText={currentStep === 2 ? 'Criando OS no Supabase...' : 'Processando...'}
               readOnlyMode={isHistoricalNavigation}
               onReturnToActive={handleReturnToActive}
+              isFormInvalid={isCurrentStepInvalid}
+              invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
             />
           </Card>
         </div>
