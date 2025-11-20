@@ -373,10 +373,10 @@ docs/
 - [x] Implementar Tooltip vermelho no botão desabilitado
 - [x] Validar build sem erros
 - [x] Criar documentação completa
-- [ ] Integrar em OS 1-4 (workflow de 15 etapas)
-- [ ] Integrar em OS 5-6 (workflow de 6 etapas)
-- [ ] Testar em ambiente dev
-- [ ] Atualizar PLANO_UNIFICACAO_STEPPER.md
+- [x] Integrar em OS 1-4 (workflow de 15 etapas) - Commit: `94c1b7d`
+- [x] Integrar em OS 5-6 (workflow de 12 etapas) - Commit: `cd25e85`
+- [x] Testar em ambiente dev - HMR confirmado
+- [x] Atualizar PLANO_UNIFICACAO_STEPPER.md
 
 ---
 
