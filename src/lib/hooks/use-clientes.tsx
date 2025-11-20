@@ -1,59 +1,35 @@
 /**
  * Hook para gerenciamento de clientes
- * MODO FRONTEND ONLY - Sem dependências do Supabase
+ * Integrado com backend Supabase via clientesAPI
  */
 
 import { useState, useEffect } from 'react';
-
-// Mock de dados de clientes
-const mockClientes = [
-  {
-    id: '1',
-    nome_razao_social: 'João Silva',
-    nome: 'João Silva',
-    email: 'joao@email.com',
-    telefone: '(11) 98765-4321',
-    cpf_cnpj: '123.456.789-00',
-    tipo: 'LEAD',
-    tipo_cliente: 'PESSOA_FISICA',
-    endereco: 'Rua A, 123',
-    cidade: 'São Paulo',
-    estado: 'SP',
-    cep: '01234-567',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    nome_razao_social: 'Maria Santos',
-    nome: 'Maria Santos',
-    email: 'maria@email.com',
-    telefone: '(11) 91234-5678',
-    cpf_cnpj: '987.654.321-00',
-    tipo: 'LEAD',
-    tipo_cliente: 'PESSOA_FISICA',
-    endereco: 'Av. B, 456',
-    cidade: 'São Paulo',
-    estado: 'SP',
-    cep: '02345-678',
-    created_at: new Date().toISOString(),
-  },
-];
+import { clientesAPI } from '../api-client';
 
 export function useClientes(tipo?: string) {
-  const [clientes, setClientes] = useState<any[]>(mockClientes);
+  const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const refetch = () => {
-    setLoading(true);
-    // Simular delay de rede
-    setTimeout(() => {
-      const filtrados = tipo 
-        ? mockClientes.filter(c => c.tipo === tipo)
-        : mockClientes;
-      setClientes(filtrados);
+  const refetch = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('🔄 Carregando clientes do backend...', tipo ? `com filtro: ${tipo}` : '');
+
+      // Chamar API real do backend
+      const dados = await clientesAPI.list(tipo === 'LEAD' ? 'LEAD' : undefined);
+
+      console.log('✅ Clientes carregados:', dados);
+      setClientes(dados || []);
+    } catch (err) {
+      console.error('❌ Erro ao carregar clientes:', err);
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setClientes([]);
+    } finally {
       setLoading(false);
-    }, 300);
+    }
   };
 
   useEffect(() => {
@@ -65,27 +41,32 @@ export function useClientes(tipo?: string) {
 
 export function useCreateCliente() {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   const mutate = async (clienteData: any) => {
-    setLoading(true);
-    
-    // Simular criação no backend
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const novoCliente = {
-          ...clienteData,
-          id: Math.random().toString(36).substr(2, 9),
-          created_at: new Date().toISOString(),
-        };
-        
-        mockClientes.push(novoCliente);
-        setLoading(false);
-        resolve(novoCliente);
-      }, 500);
-    });
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('📝 Criando cliente no backend...', clienteData);
+
+      // Chamar API real do backend (que retorna UUID válido do Supabase)
+      const novoCliente = await clientesAPI.create(clienteData);
+
+      console.log('✅ Cliente criado com UUID válido:', novoCliente.id);
+      setLoading(false);
+
+      return novoCliente;
+    } catch (err) {
+      console.error('❌ Erro ao criar cliente:', err);
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      setLoading(false);
+      throw errorObj;
+    }
   };
 
-  return { mutate, loading };
+  return { mutate, loading, error };
 }
 
 export function transformFormToCliente(formData: any) {

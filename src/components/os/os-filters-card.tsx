@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { User } from '../../lib/types';
-import { tiposOS, mockUsers } from '../../lib/mock-data';
+import { useTiposOS } from '../../lib/hooks/use-tipos-os';
+import { mockUsers } from '../../lib/mock-data';
 
 interface OSFiltersCardProps {
   currentUser: User;
@@ -32,6 +33,9 @@ export function OSFiltersCard({
   onSetorChange,
   onResponsavelChange,
 }: OSFiltersCardProps) {
+  // Carregar tipos de OS do backend
+  const { tiposOS, loading: loadingTipos } = useTiposOS();
+
   const canViewSetorFilter = currentUser.role === 'diretoria' || currentUser.role === 'gestor_adm';
   const canViewResponsavelFilter = currentUser.role !== 'colaborador';
 
@@ -66,15 +70,15 @@ export function OSFiltersCard({
           </Select>
 
           {/* Filtro por Tipo de OS */}
-          <Select value={tipoOSFilter} onValueChange={onTipoOSChange}>
+          <Select value={tipoOSFilter} onValueChange={onTipoOSChange} disabled={loadingTipos}>
             <SelectTrigger>
-              <SelectValue placeholder="Filtrar por Tipo" />
+              <SelectValue placeholder={loadingTipos ? "Carregando tipos..." : "Filtrar por Tipo"} />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="todos">Todos os Tipos</SelectItem>
               {tiposOS.map((tipo) => (
-                <SelectItem key={tipo.id} value={tipo.id}>
-                  {tipo.label}
+                <SelectItem key={tipo.id} value={tipo.codigo}>
+                  {tipo.codigo} - {tipo.nome}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -110,11 +110,11 @@
   
   /* ==========================================
    * TIPOGRAFIA
-   * Nota: Google Fonts carregadas via @import no globals.css
+   * Nota: Google Fonts carregadas via FontLoader component
    * Fontes de fallback garantem renderização mesmo sem conexão
    * ========================================== */
-  --font-family-sans: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 
-    'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif, 
+  --font-family-sans: 'Roboto', system-ui, -apple-system, BlinkMacSystemFont,
+    'Segoe UI', 'Helvetica Neue', 'Arial', sans-serif,
     'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
   --font-family-serif: 'Lora', 'Georgia', 'Cambria', 'Times New Roman', 'Times', serif;
   --font-family-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', 'Monaco', 'Cascadia Code', 

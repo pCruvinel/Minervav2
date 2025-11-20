@@ -15,8 +15,10 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
+import { useClientes } from '../../lib/hooks/use-clientes';
 
 interface Cliente {
   id: string;
@@ -32,89 +34,29 @@ interface Cliente {
   cpf?: string;
 }
 
-// Mock de clientes
-const mockClientes: Cliente[] = [
-  {
-    id: 'cli-1',
-    codigoCC: 'CC-001',
-    nomeRazaoSocial: 'Empreendimentos ABC S.A.',
-    tipoContrato: 'ASSESSORIA',
-    status: 'ATIVO',
-    dataInicio: '2024-01-01',
-    valorMensal: 4200.00,
-    proximaFatura: '2024-12-05',
-    responsavel: 'Carlos Eduardo Silva',
-    cnpj: '12.345.678/0001-90',
-  },
-  {
-    id: 'cli-2',
-    codigoCC: 'CC-002',
-    nomeRazaoSocial: 'Shopping Norte Ltda',
-    tipoContrato: 'OBRAS',
-    status: 'ATIVO',
-    dataInicio: '2024-08-15',
-    valorMensal: 95000.00,
-    proximaFatura: '2024-12-10',
-    responsavel: 'Marina Costa',
-    cnpj: '98.765.432/0001-11',
-  },
-  {
-    id: 'cli-3',
-    codigoCC: 'CC-003',
-    nomeRazaoSocial: 'Construtora Silva Ltda',
-    tipoContrato: 'OBRAS',
-    status: 'ATIVO',
-    dataInicio: '2024-06-01',
-    valorMensal: 128000.00,
-    proximaFatura: '2024-11-30',
-    responsavel: 'João Silva',
-    cnpj: '11.222.333/0001-44',
-  },
-  {
-    id: 'cli-4',
-    codigoCC: 'CC-004',
-    nomeRazaoSocial: 'Administradora Central',
-    tipoContrato: 'ASSESSORIA',
-    status: 'ATIVO',
-    dataInicio: '2024-10-01',
-    valorMensal: 15000.00,
-    proximaFatura: '2024-12-15',
-    responsavel: 'Ana Paula Santos',
-    cnpj: '55.666.777/0001-88',
-  },
-  {
-    id: 'cli-5',
-    codigoCC: 'CC-005',
-    nomeRazaoSocial: 'Condomínio Residencial Vista Linda',
-    tipoContrato: 'ASSESSORIA',
-    status: 'INATIVO',
-    dataInicio: '2023-03-01',
-    valorMensal: 3800.00,
-    proximaFatura: '-',
-    responsavel: 'Roberto Alves',
-    cnpj: '22.333.444/0001-55',
-  },
-  {
-    id: 'cli-6',
-    codigoCC: 'CC-006',
-    nomeRazaoSocial: 'Indústria Moderna S.A.',
-    tipoContrato: 'OBRAS',
-    status: 'INATIVO',
-    dataInicio: '2023-09-01',
-    valorMensal: 250000.00,
-    proximaFatura: '-',
-    responsavel: 'Fernando Costa',
-    cnpj: '33.444.555/0001-66',
-  },
-];
-
 interface ClientesListaPageProps {
   onClienteClick?: (clienteId: string) => void;
   onNovoContrato?: () => void;
 }
 
 export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesListaPageProps) {
-  const [clientes] = useState(mockClientes);
+  // Carregar clientes do backend - filtrando apenas clientes ativos (não leads)
+  const { clientes: clientesBackend, loading: loadingClientes, error: errorClientes } = useClientes('CLIENTE_ATIVO');
+
+  // Mapear dados do backend para o formato esperado pelo componente
+  const clientes: Cliente[] = clientesBackend.map((cliente: any) => ({
+    id: cliente.id,
+    codigoCC: cliente.codigo_cc || '-',
+    nomeRazaoSocial: cliente.nome_razao_social || cliente.nome || 'Cliente sem nome',
+    tipoContrato: 'ASSESSORIA', // TODO: adicionar campo no banco
+    status: cliente.status === 'CLIENTE_ATIVO' ? 'ATIVO' : 'INATIVO',
+    dataInicio: cliente.created_at ? new Date(cliente.created_at).toLocaleDateString('pt-BR') : '-',
+    valorMensal: 0, // TODO: adicionar campo no banco
+    proximaFatura: '-', // TODO: calcular do banco
+    responsavel: cliente.responsavel?.nome_completo || '-',
+    cnpj: cliente.tipo_cliente !== 'PESSOA_FISICA' ? cliente.cpf_cnpj : undefined,
+    cpf: cliente.tipo_cliente === 'PESSOA_FISICA' ? cliente.cpf_cnpj : undefined,
+  }));
   const [filtro, setFiltro] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('');
   const [filtroStatus, setFiltroStatus] = useState<string>('');

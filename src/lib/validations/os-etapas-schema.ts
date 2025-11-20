@@ -33,7 +33,26 @@ export const etapa1Schema = z.object({
     .min(10, { message: 'Telefone deve ter pelo menos 10 dígitos' })
     .optional()
     .describe('Telefone de contato'),
-}).strict();
+
+  // Campos adicionais do lead (mantidos para compatibilidade e futura expansão)
+  tipo: z.string().optional(),
+  nomeResponsavel: z.string().optional(),
+  cargoResponsavel: z.string().optional(),
+  tipoEdificacao: z.string().optional(),
+  qtdUnidades: z.string().optional(),
+  qtdBlocos: z.string().optional(),
+  qtdPavimentos: z.string().optional(),
+  tipoTelhado: z.string().optional(),
+  possuiElevador: z.boolean().optional(),
+  possuiPiscina: z.boolean().optional(),
+  cep: z.string().optional(),
+  endereco: z.string().optional(),
+  numero: z.string().optional(),
+  complemento: z.string().optional(),
+  bairro: z.string().optional(),
+  cidade: z.string().optional(),
+  estado: z.string().optional(),
+});
 
 export type Etapa1Data = z.infer<typeof etapa1Schema>;
 
@@ -57,19 +76,62 @@ export type Etapa2Data = z.infer<typeof etapa2Schema>;
 // ETAPA 3: Follow-up 1 (Entrevista Inicial)
 // ============================================================
 export const etapa3Schema = z.object({
-  dataEntrevista: z.string()
-    .min(1, { message: 'Data da entrevista é obrigatória' })
-    .describe('Data da entrevista inicial'),
+  // Campos obrigatórios do formulário
+  idadeEdificacao: z.string()
+    .min(1, { message: 'Idade da edificação é obrigatória' })
+    .describe('Qual a idade da edificação?'),
 
-  interessePrincipal: z.string()
-    .min(1, { message: 'Interesse principal é obrigatório' })
-    .describe('Qual o principal interesse do cliente'),
+  motivoProcura: z.string()
+    .min(10, { message: 'Motivo da procura deve ter pelo menos 10 caracteres' })
+    .describe('Qual o motivo fez você nos procurar?'),
 
-  observacoes: z.string()
-    .min(10, { message: 'Observações devem ter pelo menos 10 caracteres' })
+  quandoAconteceu: z.string()
+    .min(10, { message: 'Histórico deve ter pelo menos 10 caracteres' })
+    .describe('Quando aconteceu? Há quanto tempo?'),
+
+  grauUrgencia: z.string()
+    .min(1, { message: 'Grau de urgência é obrigatório' })
+    .describe('Qual o grau de urgência para executar esse serviço?'),
+
+  apresentacaoProposta: z.string()
+    .min(10, { message: 'Resposta sobre apresentação é obrigatória' })
+    .describe('Concordância e agendamento para apresentação da proposta'),
+
+  nomeContatoLocal: z.string()
+    .min(3, { message: 'Nome do contato no local é obrigatório' })
+    .describe('Nome do contato no local'),
+
+  telefoneContatoLocal: z.string()
+    .min(10, { message: 'Telefone do contato no local é obrigatório' })
+    .describe('Telefone do contato no local'),
+
+  // Campos opcionais
+  oqueFeitoARespeito: z.string()
     .optional()
-    .describe('Observações da entrevista'),
-}).strict();
+    .describe('O que já foi feito a respeito disso?'),
+
+  existeEscopo: z.string()
+    .optional()
+    .describe('Existe escopo de serviços ou laudo?'),
+
+  previsaoOrcamentaria: z.string()
+    .optional()
+    .describe('Existe previsão orçamentária?'),
+
+  cargoContatoLocal: z.string()
+    .optional()
+    .describe('Cargo do contato no local'),
+
+  anexos: z.array(z.object({
+    id: z.string().optional(),
+    url: z.string(),
+    nome: z.string(),
+    tamanho: z.number().optional(),
+  }))
+    .optional()
+    .default([])
+    .describe('Arquivos anexados (escopo, laudo, fotos)'),
+});
 
 export type Etapa3Data = z.infer<typeof etapa3Schema>;
 
@@ -153,32 +215,58 @@ export type Etapa6Data = z.infer<typeof etapa6Schema>;
 // ETAPA 7: Formulário Memorial (Escopo)
 // ============================================================
 export const etapa7Schema = z.object({
-  idadeEdificacao: z.string()
-    .min(1, { message: 'Idade da edificação é obrigatória' })
-    .describe('Idade da edificação em anos'),
+  objetivo: z.string()
+    .min(10, { message: 'Objetivo deve ter pelo menos 10 caracteres' })
+    .describe('Objetivo da contratação do serviço'),
 
-  tipoEdificacao: z.string()
-    .min(1, { message: 'Tipo de edificação é obrigatório' })
-    .describe('Tipo: Residencial, Comercial, etc'),
+  etapasPrincipais: z.array(z.object({
+    nome: z.string()
+      .min(1, { message: 'Nome da etapa é obrigatório' })
+      .describe('Nome da etapa principal'),
+    subetapas: z.array(z.object({
+      nome: z.string()
+        .min(1, { message: 'Nome da sub-etapa é obrigatório' })
+        .describe('Descrição da sub-etapa'),
+      m2: z.string()
+        .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+          message: 'm² deve ser um número positivo',
+        })
+        .describe('Metragem quadrada'),
+      diasUteis: z.string()
+        .refine((val) => !isNaN(parseInt(val)) && parseInt(val) > 0, {
+          message: 'Dias úteis deve ser um número positivo',
+        })
+        .describe('Quantidade de dias úteis'),
+      total: z.string()
+        .refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) >= 0, {
+          message: 'Total deve ser um número positivo',
+        })
+        .describe('Valor total em R$'),
+    }))
+      .min(1, { message: 'Cada etapa deve ter pelo menos uma sub-etapa' })
+      .describe('Sub-etapas de execução'),
+  }))
+    .min(1, { message: 'Deve haver pelo menos uma etapa principal' })
+    .describe('Etapas principais do projeto'),
 
-  areaConstruida: z.string()
-    .min(1, { message: 'Área construída é obrigatória' })
-    .describe('Área total construída em m²'),
+  planejamentoInicial: z.string()
+    .refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 0, {
+      message: 'Planejamento deve ser um número positivo',
+    })
+    .describe('Dias úteis para planejamento'),
 
-  descricaoEscopo: z.string()
-    .min(20, { message: 'Descrição do escopo deve ter pelo menos 20 caracteres' })
-    .describe('Descrição detalhada do escopo dos trabalhos'),
+  logisticaTransporte: z.string()
+    .refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 0, {
+      message: 'Logística deve ser um número positivo',
+    })
+    .describe('Dias úteis para logística e transporte'),
 
-  motivoProcura: z.string()
-    .min(1, { message: 'Motivo da procura é obrigatório' })
-    .describe('Qual o motivo da procura pelos serviços'),
-}).partial().refine(
-  (data) => data.idadeEdificacao && data.tipoEdificacao && data.descricaoEscopo,
-  {
-    message: 'Idade, tipo, área e escopo são obrigatórios',
-    path: ['idadeEdificacao'],
-  }
-);
+  preparacaoArea: z.string()
+    .refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 0, {
+      message: 'Preparação deve ser um número positivo',
+    })
+    .describe('Dias úteis para preparação de área'),
+}).strict();
 
 export type Etapa7Data = z.infer<typeof etapa7Schema>;
 
