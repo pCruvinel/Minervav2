@@ -13,11 +13,11 @@
 
 | Categoria | Total | Concluído | Pendente | % Completo |
 |-----------|-------|-----------|----------|------------|
-| 🔴 **CRÍTICO** | 8 | 4 | 4 | 50% |
+| 🔴 **CRÍTICO** | 8 | 5 | 3 | 63% |
 | 🟡 **ALTO** | 5 | 0 | 5 | 0% |
 | 🟢 **MÉDIO** | 12 | 0 | 12 | 0% |
 | ⚪ **BAIXO** | 4 | 0 | 4 | 0% |
-| **TOTAL** | **29** | **4** | **25** | **14%** |
+| **TOTAL** | **29** | **5** | **24** | **17%** |
 
 **Tempo Estimado Total:** ~16 semanas (1 dev) ou ~6-8 semanas (2-3 devs)
 
@@ -72,7 +72,27 @@
 
 ---
 
-### ✅ 4. Credenciais Hardcoded Migradas para .env
+### ✅ 4. Imports Supabase Padronizados
+- **Data:** 2025-11-21
+- **Commit:** `e14db79`
+- **Arquivos:** 5 componentes atualizados para usar `@/lib/supabase`
+- **Problema:** Imports inconsistentes usando caminhos relativos
+- **Correção:**
+  - Criado `src/lib/supabase.ts` (arquivo principal)
+  - Padronizados imports para usar path alias `@/lib/supabase`
+  - Removidos imports relativos `../supabase` e `../../lib/supabase`
+- **Verificação:**
+  ```bash
+  npm run build
+  # Build passa com sucesso
+  npm run dev
+  # HMR funcionando corretamente
+  ```
+- **Impacto:** ✅ Código consistente seguindo diretrizes do projeto
+
+---
+
+### ✅ 5. Credenciais Hardcoded Migradas para .env
 - **Data:** 2025-11-21
 - **Commit:** `85a711b`
 - **Arquivos:** `src/utils/supabase/info.tsx` deletado, `.env` criado
@@ -95,111 +115,6 @@
 ---
 
 ## 🔴 CRÍTICO (Fazer AGORA - Bloqueia Produção)
-
-### 🔴 4. Corrigir Imports de supabase.ts
-- [ ] **Pendente**
-- **Arquivos Afetados:** ~15+ componentes
-- **Problema:** Código referencia `import { supabase } from '../lib/supabase'` mas arquivo não existe
-- **Arquivo Real:** `src/lib/supabase-client.ts`
-- **Correção:**
-  ```bash
-  # Opção 1: Find & Replace global
-  find src -name "*.tsx" -o -name "*.ts" | xargs sed -i 's/from.*supabase"/from ".\/supabase-client"/g'
-
-  # Opção 2: Renomear arquivo
-  mv src/lib/supabase-client.ts src/lib/supabase.ts
-  ```
-- **Estimativa:** 30 minutos
-- **Responsável:** _______
-- **Sprint:** _______
-- **Verificação:**
-  ```bash
-  npm run build
-  # Deve compilar sem erros de import
-  ```
-
----
-
-### ✅ 5. Migrar Credenciais para .env (URGENTE!)
-- [x] **CONCLUÍDO** - 2025-11-21
-- **Arquivo Problemático:** `src/utils/supabase/info.tsx` (DELETADO)
-- **Problema:** Chaves Supabase hardcoded no código
-- **RISCO:** 🚨 Segurança comprometida se repo for público
-- **Commit:** `85a711b` - security: Migrar credenciais Supabase para variáveis de ambiente
-- **Correção (PASSO A PASSO):**
-
-**1. Rotar chaves no Supabase:**
-  ```
-  1. Acesse: https://supabase.com/dashboard/project/zxfevlkssljndqqhxkjb/settings/api
-  2. Clique em "Reset anon key"
-  3. Copie nova chave
-  ```
-
-**2. Criar arquivo .env:**
-  ```bash
-  # Na raiz do projeto
-  cat > .env <<EOF
-  VITE_SUPABASE_URL=https://zxfevlkssljndqqhxkjb.supabase.co
-  VITE_SUPABASE_ANON_KEY=sua-nova-chave-aqui
-  EOF
-  ```
-
-**3. Adicionar ao .gitignore:**
-  ```bash
-  echo ".env" >> .gitignore
-  echo ".env.local" >> .gitignore
-  echo ".env.*.local" >> .gitignore
-  ```
-
-**4. Atualizar supabase-client.ts:**
-  ```typescript
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase credentials. Check .env file.');
-  }
-  ```
-
-**5. Deletar info.tsx:**
-  ```bash
-  git rm src/utils/supabase/info.tsx
-  git commit -m "security: Remove hardcoded credentials"
-  ```
-
-**6. Criar .env.example:**
-  ```bash
-  cat > .env.example <<EOF
-  VITE_SUPABASE_URL=your-project-url
-  VITE_SUPABASE_ANON_KEY=your-anon-key
-  EOF
-  ```
-
-- **Estimativa:** 1 hora ✅ **REALIZADO**
-- **Responsável:** Claude Code
-- **Sprint:** Sprint 1
-- **Arquivos Modificados:**
-  - [x] `.env` criado (não versionado)
-  - [x] `.env.example` criado
-  - [x] `.gitignore` atualizado
-  - [x] `src/lib/supabase.ts` criado (novo arquivo principal)
-  - [x] `src/lib/api-client.ts` atualizado
-  - [x] `src/lib/utils/supabase-storage.ts` atualizado
-  - [x] `src/components/test-schema-reload.tsx` atualizado
-  - [x] `src/components/admin/seed-usuarios-page.tsx` atualizado
-  - [x] `src/utils/supabase/info.tsx` DELETADO
-- **Verificação:**
-  ```bash
-  npm run dev
-  # ✅ Conectou ao Supabase com novas credenciais
-  grep -r "eyJhbG" src/
-  # ✅ Nenhuma chave hardcoded encontrada
-  npm run build
-  # ✅ Build passou sem erros
-  ```
-- **Impacto:** ✅ Segurança 100% resolvida, credenciais protegidas
-
----
 
 ### 🔴 6. Remover Sistema de Roteamento Duplo
 - [ ] **Pendente**
