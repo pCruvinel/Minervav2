@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '../supabase-client';
+import { supabase } from '@/lib/supabase';
 import { Turno, TurnoComVagas } from './use-turnos';
 import { toast } from 'sonner';
 

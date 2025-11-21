@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
 import { PERMISSOES_POR_ROLE } from '../types';
-import { supabase } from '../supabase-client';
+import { supabase } from '@/lib/supabase';
 import { toast } from '../utils/safe-toast';
 
 // ============================================================

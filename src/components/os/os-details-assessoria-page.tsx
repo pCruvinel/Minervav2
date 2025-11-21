@@ -10,7 +10,7 @@ import { cn } from '../ui/utils';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
 import { toast } from '../../lib/utils/safe-toast';
-import { supabase } from '../../lib/supabase-client';
+import { supabase } from '@/lib/supabase';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
