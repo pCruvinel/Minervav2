@@ -27,5 +27,6 @@
     }
   },
   "include": ["src", "tests"],
+  "exclude": ["node_modules", "scripts/maintenance", "**/*.py", "**/*.sql"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
