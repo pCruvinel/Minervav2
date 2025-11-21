@@ -1,209 +1,122 @@
-// Hook customizado para verificação de permissões - Sistema Hierárquico Minerva ERP
+/**
+ * Hook: use-permissoes
+ *
+ * Hook customizado para gerenciar permissões de usuários no sistema Minerva.
+ * Fornece acesso fácil às permissões baseadas no cargo do usuário autenticado.
+ *
+ * @example
+ * ```tsx
+ * function ComponenteFinanceiro() {
+ *   const { podeAcessarFinanceiro, permissoes } = usePermissoes();
+ *
+ *   if (!podeAcessarFinanceiro) {
+ *     return <div>Acesso negado</div>;
+ *   }
+ *
+ *   return <div>Módulo Financeiro</div>;
+ * }
+ * ```
+ *
+ * @see docs/technical/USUARIOS_SCHEMA.md - Documentação de permissões
+ */
 
-import { useMemo } from 'react';
-import { User, Setor, OrdemServico } from '../types';
-import { PermissaoUtil } from '../auth-utils';
+import { useAuth } from '../contexts/auth-context';
+import {
+  getPermissoes,
+  podeAcessarFinanceiro as checkFinanceiro,
+  podeDelegar as checkDelegar,
+  podeAprovar as checkAprovar,
+  podeGerenciarUsuarios as checkGerenciarUsuarios,
+  podeVerTodasOS as checkVerTodasOS,
+  podeVerSetor as checkVerSetor,
+  getNivelHierarquico,
+  isGestor as checkGestor,
+  isAdminOuDiretoria as checkAdminOuDiretoria,
+  type Permissoes,
+  type SetorSlug
+} from '../types';
 
 /**
- * Hook para gerenciar permissões do usuário atual
- * @param currentUser - Usuário logado atualmente
+ * Interface do retorno do hook usePermissoes
  */
-export function usePermissoes(currentUser: User | null) {
-  
-  const permissoes = useMemo(() => {
-    if (!currentUser) {
-      return {
-        // Quando não há usuário logado, todas as permissões são negadas
-        podeDelegarPara: () => false,
-        podeAprovarTarefa: () => false,
-        obterSetoresAcesso: () => [],
-        temAcessoModulo: () => false,
-        ehDiretoria: false,
-        ehGestor: false,
-        ehColaborador: false,
-        ehMobra: false,
-        temAcessoAOS: () => false,
-        podeEditarOS: () => false,
-        podeReabrirOS: () => false,
-        podeCriarOS: false,
-        podeGerenciarUsuarios: false,
-        podeAcessarFinanceiro: false,
-        podeAcessarAdministrativo: false,
-        obterSetoresDelegacao: () => [],
-        validarDelegacao: () => ({ valido: false, mensagem: 'Usuário não autenticado' }),
-        obterResumoPermissoes: () => null,
-        usuario: null,
-      };
-    }
+export interface UsePermissoesReturn {
+  /** Objeto completo com todas as permissões do usuário */
+  permissoes: Permissoes;
 
-    return {
-      /**
-       * Verifica se pode delegar para um setor/colaborador específico
-       */
-      podeDelegarPara: (setor: Setor, colaborador: User) =>
-        PermissaoUtil.podeDelegarPara(currentUser, setor, colaborador),
+  /** Nível hierárquico do usuário (0-10) */
+  nivel: number;
 
-      /**
-       * Verifica se pode aprovar tarefas de um setor
-       */
-      podeAprovarTarefa: (setor: Setor) =>
-        PermissaoUtil.podeAprovarTarefa(currentUser, setor),
+  /** Pode acessar módulo financeiro */
+  podeAcessarFinanceiro: boolean;
 
-      /**
-       * Obtém lista de setores que o usuário pode acessar
-       */
-      obterSetoresAcesso: () =>
-        PermissaoUtil.obterSetoresAcesso(currentUser),
+  /** Pode delegar tarefas */
+  podeDelegar: boolean;
 
-      /**
-       * Verifica se tem acesso a um módulo específico
-       */
-      temAcessoModulo: (modulo: string) =>
-        PermissaoUtil.temAcessoModulo(currentUser, modulo),
+  /** Pode aprovar etapas */
+  podeAprovar: boolean;
 
-      /**
-       * Verifica se é Diretoria
-       */
-      ehDiretoria: PermissaoUtil.ehDiretoria(currentUser),
+  /** Pode gerenciar usuários */
+  podeGerenciarUsuarios: boolean;
 
-      /**
-       * Verifica se é Gestor (qualquer tipo)
-       */
-      ehGestor: PermissaoUtil.ehGestor(currentUser),
+  /** Pode ver todas as OSs */
+  podeVerTodasOS: boolean;
 
-      /**
-       * Verifica se é Colaborador (qualquer tipo)
-       */
-      ehColaborador: PermissaoUtil.ehColaborador(currentUser),
+  /** Pode criar OSs */
+  podeCriarOS: boolean;
 
-      /**
-       * Verifica se é MOBRA (sem acesso ao sistema)
-       */
-      ehMobra: PermissaoUtil.ehMobra(currentUser),
+  /** Pode cancelar OSs */
+  podeCancelarOS: boolean;
 
-      /**
-       * Verifica se tem acesso a visualizar uma OS específica
-       */
-      temAcessoAOS: (os: OrdemServico) =>
-        PermissaoUtil.temAcessoAOS(currentUser, os),
+  /** É gestor (nível >= 5) */
+  isGestor: boolean;
 
-      /**
-       * Verifica se pode editar uma OS
-       */
-      podeEditarOS: (os: OrdemServico) =>
-        PermissaoUtil.podeEditarOS(currentUser, os),
+  /** É admin ou diretoria (nível >= 9) */
+  isAdminOuDiretoria: boolean;
 
-      /**
-       * Verifica se pode reabrir uma OS concluída
-       */
-      podeReabrirOS: (os: OrdemServico) =>
-        PermissaoUtil.podeReabrirOS(currentUser, os),
-
-      /**
-       * Verifica se pode criar novas OS
-       */
-      podeCriarOS: PermissaoUtil.podeCriarOS(currentUser),
-
-      /**
-       * Verifica se pode gerenciar usuários
-       */
-      podeGerenciarUsuarios: PermissaoUtil.podeGerenciarUsuarios(currentUser),
-
-      /**
-       * Verifica se pode acessar módulo financeiro
-       */
-      podeAcessarFinanceiro: PermissaoUtil.podeAcessarFinanceiro(currentUser),
-
-      /**
-       * Verifica se pode acessar módulo administrativo
-       */
-      podeAcessarAdministrativo: PermissaoUtil.podeAcessarAdministrativo(currentUser),
-
-      /**
-       * Obtém lista de setores para os quais pode delegar
-       */
-      obterSetoresDelegacao: () =>
-        PermissaoUtil.obterSetoresDelegacao(currentUser),
-
-      /**
-       * Valida se uma delegação é permitida
-       */
-      validarDelegacao: (delegado: User, os: OrdemServico) =>
-        PermissaoUtil.validarDelegacao(currentUser, delegado, os),
-
-      /**
-       * Obtém resumo completo das permissões
-       */
-      obterResumoPermissoes: () =>
-        PermissaoUtil.obterResumoPermissoes(currentUser),
-
-      /**
-       * Usuário atual
-       */
-      usuario: currentUser,
-    };
-  }, [currentUser]);
-
-  return permissoes;
+  /** Função para verificar se pode ver um setor específico */
+  podeVerSetor: (setor: SetorSlug) => boolean;
 }
 
 /**
- * Hook simplificado para verificar permissões básicas
+ * Hook para acessar permissões do usuário autenticado
+ *
+ * @returns Objeto com permissões e funções helper
+ *
+ * @example
+ * ```tsx
+ * const { podeAcessarFinanceiro, isGestor, podeVerSetor } = usePermissoes();
+ *
+ * if (podeAcessarFinanceiro) {
+ *   // Mostrar módulo financeiro
+ * }
+ *
+ * if (isGestor) {
+ *   // Mostrar opções de gestão
+ * }
+ *
+ * if (podeVerSetor('obras')) {
+ *   // Mostrar OSs de obras
+ * }
+ * ```
  */
-export function usePermissoesBasicas(currentUser: User | null) {
-  return useMemo(() => ({
-    podeAcessarSistema: currentUser !== null && !PermissaoUtil.ehMobra(currentUser),
-    ehAdmin: currentUser !== null && PermissaoUtil.ehDiretoria(currentUser),
-    ehGestor: currentUser !== null && PermissaoUtil.ehGestor(currentUser),
-    podeCriarOS: currentUser !== null && PermissaoUtil.podeCriarOS(currentUser),
-    podeAcessarFinanceiro: currentUser !== null && PermissaoUtil.podeAcessarFinanceiro(currentUser),
-  }), [currentUser]);
-}
+export function usePermissoes(): UsePermissoesReturn {
+  const { currentUser } = useAuth();
 
-/**
- * Hook para filtrar lista de OS baseado nas permissões do usuário
- */
-export function useFiltrarOSPorPermissao(
-  ordens: OrdemServico[],
-  currentUser: User | null
-): OrdemServico[] {
-  return useMemo(() => {
-    if (!currentUser) return [];
-    
-    return ordens.filter(os => PermissaoUtil.temAcessoAOS(currentUser, os));
-  }, [ordens, currentUser]);
-}
+  const permissoes = getPermissoes(currentUser);
+  const nivel = getNivelHierarquico(currentUser);
 
-/**
- * Hook para filtrar colaboradores que o usuário pode gerenciar/visualizar
- */
-export function useFiltrarColaboradoresPorPermissao(
-  colaboradores: User[],
-  currentUser: User | null
-): User[] {
-  return useMemo(() => {
-    if (!currentUser) return [];
-
-    // Diretoria vê todos
-    if (PermissaoUtil.ehDiretoria(currentUser)) {
-      return colaboradores;
-    }
-
-    // Gestor Comercial vê todos
-    if (currentUser.role_nivel === 'GESTOR_ADMINISTRATIVO') {
-      return colaboradores;
-    }
-
-    // Gestor de Setor vê apenas seu setor
-    if (PermissaoUtil.ehGestor(currentUser)) {
-      return colaboradores.filter(c => c.setor === currentUser.setor);
-    }
-
-    // Colaborador vê apenas ele mesmo
-    if (PermissaoUtil.ehColaborador(currentUser)) {
-      return colaboradores.filter(c => c.id === currentUser.id);
-    }
-
-    return [];
-  }, [colaboradores, currentUser]);
+  return {
+    permissoes,
+    nivel,
+    podeAcessarFinanceiro: checkFinanceiro(currentUser),
+    podeDelegar: checkDelegar(currentUser),
+    podeAprovar: checkAprovar(currentUser),
+    podeGerenciarUsuarios: checkGerenciarUsuarios(currentUser),
+    podeVerTodasOS: checkVerTodasOS(currentUser),
+    podeCriarOS: permissoes.pode_criar_os,
+    podeCancelarOS: permissoes.pode_cancelar_os,
+    isGestor: checkGestor(currentUser),
+    isAdminOuDiretoria: checkAdminOuDiretoria(currentUser),
+    podeVerSetor: (setor: SetorSlug) => checkVerSetor(currentUser, setor)
+  };
 }

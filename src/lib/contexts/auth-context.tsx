@@ -1,22 +1,53 @@
-// Contexto de Autenticação - Sistema Hierárquico Minerva ERP
+/**
+ * Contexto de Autenticação - Sistema Hierárquico Minerva ERP
+ *
+ * Gerencia autenticação de usuários via Supabase Auth e carrega
+ * dados completos do perfil da tabela colaboradores.
+ *
+ * @module contexts/auth-context
+ * @see {@link docs/technical/USUARIOS_SCHEMA.md} - Documentação de usuários
+ */
+
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User } from '../types';
-import { PERMISSOES_POR_ROLE } from '../types';
-import { supabase } from '@/lib/supabase';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { User, getPermissoes, RoleLevel, SetorSlug } from '../types';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from '../utils/safe-toast';
 
 // ============================================================
 // INTERFACE DO CONTEXTO
 // ============================================================
 
+/**
+ * Interface do contexto de autenticação
+ * Fornece estado e funções para gerenciar autenticação
+ */
 interface AuthContextType {
+  /** Usuário autenticado atualmente (null se não autenticado) */
   currentUser: User | null;
+
+  /** Indica se está carregando dados de autenticação */
   isLoading: boolean;
+
+  /** Indica se há um usuário autenticado */
   isAuthenticated: boolean;
+
+  /**
+   * Realiza login com email e senha
+   * @param email - Email do usuário
+   * @param password - Senha do usuário
+   * @returns Promise<boolean> - true se login bem-sucedido
+   */
   login: (email: string, password: string) => Promise<boolean>;
+
+  /** Realiza logout do usuário atual */
   logout: () => void;
+
+  /**
+   * Atualiza dados do usuário localmente
+   * @param user - Dados atualizados do usuário
+   */
   updateUser: (user: User) => void;
 }
 
@@ -44,17 +75,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         // 1. Verificar sessão atual do Supabase Auth
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
+
         if (sessionError) throw sessionError;
-        
+
         if (!session?.user) {
           // Tentar recuperar do localStorage como fallback (apenas para dev/mock)
           // ou limpar estado se não houver sessão
           const storedUser = localStorage.getItem('minerva_current_user');
           if (storedUser) {
-             // Opcional: Validar se o token ainda é válido ou apenas limpar
-             // Por segurança, se não tem sessão no Supabase, melhor limpar
-             localStorage.removeItem('minerva_current_user');
+            // Opcional: Validar se o token ainda é válido ou apenas limpar
+            // Por segurança, se não tem sessão no Supabase, melhor limpar
+            localStorage.removeItem('minerva_current_user');
           }
           setCurrentUser(null);
           setIsLoading(false);
@@ -91,20 +122,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   // Função auxiliar para buscar e formatar dados do usuário
   const fetchUserDetails = async (userId: string) => {
+    console.log('[Auth] Buscando detalhes do usuário:', userId);
     try {
+      // QUERY ATUALIZADA PARA V2.1 (JOIN COM CARGOS E SETORES)
+      // O Supabase faz o join automático se as FKs existirem
       const { data: userData, error } = await supabase
         .from('colaboradores')
-        .select('*')
+        .select(`
+          *,
+          cargos ( slug ),
+          setores ( slug )
+        `)
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Auth] Erro no select colaboradores:', error);
+        throw error;
+      }
+
+      console.log('[Auth] Dados do usuário encontrados:', userData);
 
       if (userData) {
-        // Enriquecer com permissões baseadas no role
         const userWithPermissions = enrichUserWithPermissions(userData);
         setCurrentUser(userWithPermissions);
         localStorage.setItem('minerva_current_user', JSON.stringify(userWithPermissions));
+        console.log('[Auth] Usuário atualizado no estado');
       }
     } catch (error) {
       console.error('Erro ao buscar detalhes do usuário:', error);
@@ -114,50 +157,92 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Função auxiliar para adicionar permissões
-  const enrichUserWithPermissions = (user: any): User => {
-    // Garantir que role_nivel é válido
-    const role = user.role_nivel as keyof typeof PERMISSOES_POR_ROLE;
-    const permissoes = PERMISSOES_POR_ROLE[role] || PERMISSOES_POR_ROLE['COLABORADOR_ADMINISTRATIVO'];
+  // Adaptador: Banco de Dados -> Frontend
+  const enrichUserWithPermissions = (dbData: any): User => {
+    // Extrair slugs das tabelas relacionadas
+    const cargoSlug = Array.isArray(dbData.cargos)
+      ? dbData.cargos[0]?.slug
+      : dbData.cargos?.slug;
+
+    const setorSlug = Array.isArray(dbData.setores)
+      ? dbData.setores[0]?.slug
+      : dbData.setores?.slug;
+
+    const userFormatted: User = {
+      id: dbData.id,
+      email: dbData.email,
+      nome_completo: dbData.nome_completo,
+
+      // Novos campos V2
+      cargo_slug: cargoSlug as RoleLevel,
+      setor_slug: setorSlug as SetorSlug,
+
+      // Compatibilidade com código legado
+      role_nivel: (cargoSlug || 'colaborador') as RoleLevel,
+      setor: (setorSlug || 'obras').toUpperCase(),
+
+      avatar_url: dbData.avatar_url,
+      ativo: dbData.ativo,
+      data_admissao: dbData.data_admissao ? new Date(dbData.data_admissao) : undefined,
+      telefone: dbData.telefone,
+      cpf: dbData.cpf,
+    };
+
+    // 🔒 GUARD: Bloquear acesso de mão de obra
+    const role = userFormatted.cargo_slug || userFormatted.role_nivel;
+    if (role === 'mao_de_obra') {
+      throw new Error('ACESSO_NEGADO_MAO_DE_OBRA');
+    }
+
+    // Obter permissões da matriz centralizada
+    const permissoes = getPermissoes(userFormatted);
 
     return {
-      ...user,
-      pode_delegar: permissoes.pode_delegar_para.length > 0 && permissoes.pode_delegar_para[0] !== '',
-      pode_aprovar: permissoes.pode_aprovar_setores.length > 0 && permissoes.pode_aprovar_setores[0] !== '',
-      setores_acesso: permissoes.acesso_setores.includes('*' as any) 
-        ? ['ADMINISTRATIVO', 'ASSESSORIA', 'OBRAS'] 
-        : permissoes.acesso_setores as any,
-      modulos_acesso: {
-        administrativo: permissoes.acesso_modulos.includes('administrativo'),
-        financeiro: permissoes.acesso_modulos.includes('financeiro'),
-        operacional: permissoes.acesso_modulos.includes('operacional'),
-        recursos_humanos: permissoes.acesso_modulos.includes('recursos_humanos'),
-      }
+      ...userFormatted,
+      pode_delegar: permissoes.pode_delegar,
+      pode_aprovar: permissoes.pode_aprovar,
     };
   };
 
   // Função de login
   const login = async (email: string, password: string): Promise<boolean> => {
+    console.log('[Auth] Iniciando login para:', email);
     setIsLoading(true);
 
     try {
       // Login com Supabase Auth
+      console.log('[Auth] Chamando supabase.auth.signInWithPassword');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Auth] Erro no signInWithPassword:', error);
+        throw error;
+      }
+
+      console.log('[Auth] Login Supabase sucesso:', data.user?.id);
 
       if (data.user) {
         await fetchUserDetails(data.user.id);
+        console.log('[Auth] Detalhes buscados, finalizando login');
+        setIsLoading(false);
         return true;
       }
-      
+
       return false;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro durante login:', error);
-      toast.error('Falha no login. Verifique suas credenciais.');
+
+      // Guard específico para mão de obra
+      if (error?.message === 'ACESSO_NEGADO_MAO_DE_OBRA') {
+        toast.error('Acesso negado. Este perfil não tem permissão para acessar o sistema.');
+        await supabase.auth.signOut(); // Garantir logout
+      } else {
+        toast.error('Falha no login. Verifique suas credenciais.');
+      }
+
       setIsLoading(false);
       return false;
     }
@@ -199,11 +284,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
     throw new Error('useAuth deve ser usado dentro de um AuthProvider');
   }
-  
+
   return context;
 }
 

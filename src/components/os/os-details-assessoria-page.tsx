@@ -10,7 +10,7 @@ import { cn } from '../ui/utils';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
 import { toast } from '../../lib/utils/safe-toast';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
@@ -97,7 +97,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
-  
+
   // Mapeamento de dados para compatibilidade com componentes existentes
   const etapa1Data = formDataByStep[1] || { leadId: '' };
   const etapa2Data = formDataByStep[2] || { tipoOS: '' };
@@ -271,7 +271,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
           </Button>
         </div>
       )}
-      
+
       {/* Stepper Horizontal */}
       <div className="relative">
         <WorkflowStepper
@@ -333,7 +333,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
               )}
             </CardHeader>
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
-              
+
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
                 <StepIdentificacaoLeadCompleto

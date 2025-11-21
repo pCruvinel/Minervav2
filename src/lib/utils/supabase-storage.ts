@@ -1,15 +1,7 @@
-// BACKEND HABILITADO - Upload ativo
-const FRONTEND_ONLY_MODE = false;
+import { supabase } from '@/lib/supabase-client';
 
-// Credenciais do Supabase via variáveis de ambiente
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  throw new Error('Missing Supabase credentials. Check .env file.');
-}
-
-const STORAGE_URL = `${SUPABASE_URL}/storage/v1`;
+// Bucket name
+const BUCKET_NAME = 'uploads';
 
 /**
  * Utilitário para upload de arquivos no Supabase Storage
@@ -114,59 +106,33 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
   // Caminho completo no bucket: uploads/os1/follow-up1/dd-mm-yy-osId-colaboradorId-fileId.ext
   const filePath = `${osNumero}/${etapa}/${fileName}`;
   
-  // MODO FRONTEND ONLY - Simular upload sem chamar Supabase
-  if (FRONTEND_ONLY_MODE) {
-    console.log(`🎭 MOCK Upload: ${filePath}`);
-    
-    // Simular delay de upload
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    // Criar URL local usando FileReader
-    const localUrl = URL.createObjectURL(file);
-    
-    return {
-      id: fileId,
-      name: file.name,
-      path: filePath,
-      size: file.size,
-      type: file.type,
-      url: localUrl,
-      uploadedAt: new Date().toISOString(),
-    };
-  }
-  
-  // URL da API do Supabase Storage
-  const storageUrl = `${STORAGE_URL}/object/uploads/${filePath}`;
-
   try {
     console.log(`📤 Uploading file to: ${filePath}`);
 
-    // Fazer upload usando API REST do Supabase Storage
-    const response = await fetch(storageUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-        'Content-Type': file.type,
-      },
-      body: file,
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Upload error:', errorData);
-      throw new Error(errorData.message || 'Erro ao fazer upload do arquivo');
+    const { data, error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      console.error('❌ Upload error:', error);
+      throw error;
     }
     
-    console.log('✅ File uploaded successfully');
+    console.log('✅ File uploaded successfully', data);
 
     // URL pública do arquivo
-    const publicUrl = `${STORAGE_URL}/object/public/uploads/${filePath}`;
+    const { data: { publicUrl } } = supabase.storage
+      .from(BUCKET_NAME)
+      .getPublicUrl(filePath);
     
     // Retornar informações do arquivo
     return {
       id: fileId,
       name: file.name,
-      path: filePath,
+      path: filePath, // Caminho relativo para salvar no banco
       size: file.size,
       type: file.type,
       url: publicUrl,
@@ -183,29 +149,16 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
  * Deleta arquivo do Supabase Storage
  */
 export async function deleteFile(filePath: string): Promise<void> {
-  // MODO FRONTEND ONLY - Simular exclusão
-  if (FRONTEND_ONLY_MODE) {
-    console.log(`🎭 MOCK Delete: ${filePath}`);
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return;
-  }
-  
-  const storageUrl = `${STORAGE_URL}/object/uploads/${filePath}`;
-
   try {
     console.log(`🗑️ Deleting file: ${filePath}`);
 
-    const response = await fetch(storageUrl, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-      },
-    });
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([filePath]);
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('❌ Delete error:', errorData);
-      throw new Error(errorData.message || 'Erro ao deletar arquivo');
+    if (error) {
+      console.error('❌ Delete error:', error);
+      throw error;
     }
     
     console.log('✅ File deleted successfully');
@@ -217,10 +170,13 @@ export async function deleteFile(filePath: string): Promise<void> {
 }
 
 /**
- * Baixa arquivo do Supabase Storage
+ * Baixa arquivo do Supabase Storage (gera URL pública)
  */
 export function getFileUrl(filePath: string): string {
-  return `${STORAGE_URL}/object/public/uploads/${filePath}`;
+  const { data: { publicUrl } } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(filePath);
+  return publicUrl;
 }
 
 /**

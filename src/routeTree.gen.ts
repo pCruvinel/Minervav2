@@ -29,6 +29,7 @@ import { Route as AuthFinanceiroConciliacaoRouteImport } from './routes/_auth/fi
 import { Route as AuthColaboradoresPresencaTabelaRouteImport } from './routes/_auth/colaboradores/presenca-tabela'
 import { Route as AuthColaboradoresPresencaRouteImport } from './routes/_auth/colaboradores/presenca'
 import { Route as AuthClientesClienteIdRouteImport } from './routes/_auth/clientes/$clienteId'
+import { Route as AuthOsDetailsWorkflowIdRouteImport } from './routes/_auth/os/details-workflow.$id'
 import { Route as AuthOsCriarVistoriaRouteImport } from './routes/_auth/os/criar/vistoria'
 import { Route as AuthOsCriarStartContratoObraRouteImport } from './routes/_auth/os/criar/start-contrato-obra'
 import { Route as AuthOsCriarSolicitacaoReformaRouteImport } from './routes/_auth/os/criar/solicitacao-reforma'
@@ -142,6 +143,11 @@ const AuthClientesClienteIdRoute = AuthClientesClienteIdRouteImport.update({
   path: '/clientes/$clienteId',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthOsDetailsWorkflowIdRoute = AuthOsDetailsWorkflowIdRouteImport.update({
+  id: '/os/details-workflow/$id',
+  path: '/os/details-workflow/$id',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthOsCriarVistoriaRoute = AuthOsCriarVistoriaRouteImport.update({
   id: '/vistoria',
   path: '/vistoria',
@@ -209,6 +215,7 @@ export interface FileRoutesByFullPath {
   '/os/criar/solicitacao-reforma': typeof AuthOsCriarSolicitacaoReformaRoute
   '/os/criar/start-contrato-obra': typeof AuthOsCriarStartContratoObraRoute
   '/os/criar/vistoria': typeof AuthOsCriarVistoriaRoute
+  '/os/details-workflow/$id': typeof AuthOsDetailsWorkflowIdRoute
 }
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
@@ -237,6 +244,7 @@ export interface FileRoutesByTo {
   '/os/criar/solicitacao-reforma': typeof AuthOsCriarSolicitacaoReformaRoute
   '/os/criar/start-contrato-obra': typeof AuthOsCriarStartContratoObraRoute
   '/os/criar/vistoria': typeof AuthOsCriarVistoriaRoute
+  '/os/details-workflow/$id': typeof AuthOsDetailsWorkflowIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/_auth/os/criar/solicitacao-reforma': typeof AuthOsCriarSolicitacaoReformaRoute
   '/_auth/os/criar/start-contrato-obra': typeof AuthOsCriarStartContratoObraRoute
   '/_auth/os/criar/vistoria': typeof AuthOsCriarVistoriaRoute
+  '/_auth/os/details-workflow/$id': typeof AuthOsDetailsWorkflowIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -297,6 +306,7 @@ export interface FileRouteTypes {
     | '/os/criar/solicitacao-reforma'
     | '/os/criar/start-contrato-obra'
     | '/os/criar/vistoria'
+    | '/os/details-workflow/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/login'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/os/criar/solicitacao-reforma'
     | '/os/criar/start-contrato-obra'
     | '/os/criar/vistoria'
+    | '/os/details-workflow/$id'
   id:
     | '__root__'
     | '/_auth'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/_auth/os/criar/solicitacao-reforma'
     | '/_auth/os/criar/start-contrato-obra'
     | '/_auth/os/criar/vistoria'
+    | '/_auth/os/details-workflow/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -503,6 +515,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthClientesClienteIdRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/os/details-workflow/$id': {
+      id: '/_auth/os/details-workflow/$id'
+      path: '/os/details-workflow/$id'
+      fullPath: '/os/details-workflow/$id'
+      preLoaderRoute: typeof AuthOsDetailsWorkflowIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/os/criar/vistoria': {
       id: '/_auth/os/criar/vistoria'
       path: '/vistoria'
@@ -608,6 +627,7 @@ interface AuthRouteChildren {
   AuthConfiguracoesIndexRoute: typeof AuthConfiguracoesIndexRoute
   AuthFinanceiroIndexRoute: typeof AuthFinanceiroIndexRoute
   AuthOsIndexRoute: typeof AuthOsIndexRoute
+  AuthOsDetailsWorkflowIdRoute: typeof AuthOsDetailsWorkflowIdRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -629,6 +649,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthConfiguracoesIndexRoute: AuthConfiguracoesIndexRoute,
   AuthFinanceiroIndexRoute: AuthFinanceiroIndexRoute,
   AuthOsIndexRoute: AuthOsIndexRoute,
+  AuthOsDetailsWorkflowIdRoute: AuthOsDetailsWorkflowIdRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

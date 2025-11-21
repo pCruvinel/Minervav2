@@ -1,3 +1,4 @@
+````markdown
 # CLAUDE.md - Diretrizes do Projeto MinervaV2
 
 ## 🛠 Comandos Principais
@@ -28,45 +29,42 @@
 - Ao navegar passando parâmetros, use a sintaxe tipada do TanStack Router:
   ```typescript
   navigate({ to: '/os/$osId', params: { osId: '123' } })
-2. Integração com Supabase
-Importe o cliente de: @/lib/supabase-client.
+````
 
-NUNCA utilize dados mockados (mock-data.ts) para novas funcionalidades. Conecte diretamente ao banco.
+### 2\. Integração com Supabase
 
-Evite queries N+1. Use .select('*, tabela_relacionada(*)') para buscar dados relacionados em uma única query.
+  - Importe o cliente de: `@/lib/supabase-client`.
+  - **NUNCA** utilize dados mockados (`mock-data.ts`) para novas funcionalidades. Conecte diretamente ao banco.
+  - Evite queries N+1. Use `.select('*, tabela_relacionada(*)')` para buscar dados relacionados em uma única query.
 
-3. Estilo de Código (TypeScript/React)
-Interfaces: Prefira interface sobre type para definições de objetos.
+### 3\. Estilo de Código (TypeScript/React)
 
-Imports: Use Absolute Imports (@/components/...).
+  - **Interfaces**: Prefira `interface` sobre `type` para definições de objetos.
+  - **Imports**: Use Absolute Imports (`@/components/...`).
+  - **Componentes**: Use Function Components com PascalCase.
+  - **Hook Rules**: Memoize arrays/objetos em dependências de `useEffect` usando `useMemo` para evitar re-renders.
 
-Componentes: Use Function Components com PascalCase.
+### 4\. UI/UX e Design System
 
-Hook Rules: Memoize arrays/objetos em dependências de useEffect usando useMemo para evitar re-renders.
+  - Use componentes do shadcn/ui sempre que possível.
+  - **Erro Handling**:
+      - ❌ NÃO use `alert()`.
+      - ❌ NÃO use `console.error` exposto em produção.
+      - ✅ USE `toast.error('Mensagem')` (Sonner).
+      - ✅ USE `logger.error(...)` (se disponível) ou sanitiza logs em prod.
+  - **Formulários**: Use `react-hook-form` + `zod` para validação.
 
-4. UI/UX e Design System
-Use componentes do shadcn/ui sempre que possível.
+### 5\. Segurança
 
-Erro Handling:
+  - **Credenciais**: NUNCA commite chaves de API ou segredos no código. Use `import.meta.env`.
+  - **RLS**: Sempre considere as Row Level Security policies ao criar queries. Não confie apenas na filtragem do frontend.
 
-❌ NÃO use alert().
+## ⚠️ Known Issues / Contexto de Migração
 
-❌ NÃO use console.error exposto em produção.
+  - **Rotas Mistas**: O projeto tem arquivos de rota antigos. Ignore o switch/case gigante no `App.tsx` se estiver refatorando para TanStack Router.
+  - **Dados Mock**: Existem muitos arquivos usando mocks. O objetivo atual é substituí-los por chamadas reais ao Supabase.
+  - **Supabase Client**: Certifique-se de que `supabase-client.ts` trata erros de variáveis de ambiente ausentes.
 
-✅ USE toast.error('Mensagem') (Sonner).
+<!-- end list -->
 
-✅ USE logger.error(...) (se disponível) ou sanitiza logs em prod.
-
-Formulários: Use react-hook-form + zod para validação.
-
-5. Segurança
-Credenciais: NUNCA commite chaves de API ou segredos no código. Use import.meta.env.
-
-RLS: Sempre considere as Row Level Security policies ao criar queries. Não confie apenas na filtragem do frontend.
-
-⚠️ Known Issues / Contexto de Migração
-Rotas Mistas: O projeto tem arquivos de rota antigos. Ignore o switch/case gigante no App.tsx se estiver refatorando para TanStack Router.
-
-Dados Mock: Existem muitos arquivos usando mocks. O objetivo atual é substituí-los por chamadas reais ao Supabase.
-
-Supabase Client: Certifique-se de que supabase-client.ts trata erros de variáveis de ambiente ausentes.
+```

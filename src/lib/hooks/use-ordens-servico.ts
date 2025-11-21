@@ -1,14 +1,38 @@
-import { useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useApi, useMutation } from './use-api';
 import { ordensServicoAPI } from '../api-client';
 import { toast } from '../utils/safe-toast';
+import { supabase } from '@/lib/supabase-client';
+import { normalizeStatusOS, normalizeSetorOS } from '../types';
 
 /**
  * Hook para gerenciar ordens de serviço
  */
 export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
   const { data, loading, error, refetch } = useApi(
-    () => ordensServicoAPI.list(filters),
+    async () => {
+      let query = supabase
+        .from('ordens_servico')
+        .select(`
+          *,
+          clientes (*),
+          colaboradores:responsavel_id (*),
+          tipos_ordem_servico (*),
+          etapa_atual:etapas_os!etapa_atual_id (*)
+        `)
+        .order('data_entrada', { ascending: false });
+
+      if (filters?.status) {
+        query = query.eq('status_geral', filters.status);
+      }
+
+      // Filtro por tipo (precisaria filtrar na relação, mas por enquanto vamos filtrar no client se necessário ou ajustar query)
+      // Supabase suporta filtro em relação: !inner join
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
     {
       onError: (error) => {
         console.error('❌ Erro ao carregar OS:', error);
@@ -26,21 +50,21 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
     return data.map((os: any) => ({
       id: os.id,
       codigo: os.codigo_os,
-      titulo: os.descricao || `${os.tipo_os?.nome || 'Ordem de Serviço'}`,
-      status: mapStatusToLocal(os.status_geral),
+      titulo: os.descricao || `${os.tipos_ordem_servico?.nome || 'Ordem de Serviço'}`,
+      status: normalizeStatusOS(os.status_geral),
       cliente: {
-        id: os.cliente?.id || '',
-        nome: os.cliente?.nome_razao_social || 'Cliente não informado'
+        id: os.clientes?.id || '',
+        nome: os.clientes?.nome_razao_social || 'Cliente não informado'
       },
       tipoOS: {
-        id: os.tipo_os?.codigo?.replace('OS-', '') || '',
-        nome: os.tipo_os?.nome || 'Tipo não informado',
-        setor: mapSetorToLocal(os.tipo_os?.setor_padrao)
+        id: os.tipos_ordem_servico?.codigo?.replace('OS-', '') || '',
+        nome: os.tipos_ordem_servico?.nome || 'Tipo não informado',
+        setor: normalizeSetorOS(os.tipos_ordem_servico?.setor_padrao)
       },
-      responsavel: os.responsavel ? {
-        id: os.responsavel.id,
-        nome: os.responsavel.nome_completo,
-        avatar: getInitials(os.responsavel.nome_completo)
+      responsavel: os.colaboradores ? {
+        id: os.colaboradores.id,
+        nome: os.colaboradores.nome_completo,
+        avatar: getInitials(os.colaboradores.nome_completo)
       } : {
         id: '',
         nome: 'Não atribuído',
@@ -155,56 +179,6 @@ export function useUpdateEtapa(etapaId: string) {
 }
 
 // Funções auxiliares
-function mapStatusToLocal(status: string): string {
-  const statusMap: Record<string, string> = {
-    // Novos valores (MAIÚSCULAS + SNAKE_CASE) - mantém formato
-    'EM_TRIAGEM': 'EM_TRIAGEM',
-    'AGUARDANDO_INFORMACOES': 'AGUARDANDO_INFORMACOES',
-    'EM_ANDAMENTO': 'EM_ANDAMENTO',
-    'EM_VALIDACAO': 'EM_VALIDACAO',
-    'ATRASADA': 'ATRASADA',
-    'CONCLUIDA': 'CONCLUIDA',
-    'CANCELADA': 'CANCELADA',
-
-    // Valores antigos para compatibilidade - converte para novo padrão
-    'Em Triagem': 'EM_TRIAGEM',
-    'Aguardando Informações': 'AGUARDANDO_INFORMACOES',
-    'Em Andamento': 'EM_ANDAMENTO',
-    'Em Validação': 'EM_VALIDACAO',
-    'Atrasada': 'ATRASADA',
-    'Concluída': 'CONCLUIDA',
-    'Concluida': 'CONCLUIDA',
-    'Cancelada': 'CANCELADA',
-
-    // Valores legados (minúsculas + hífen) - converte para novo padrão
-    'em_triagem': 'EM_TRIAGEM',
-    'em-triagem': 'EM_TRIAGEM',
-    'triagem': 'EM_TRIAGEM',
-    'em_andamento': 'EM_ANDAMENTO',
-    'em-andamento': 'EM_ANDAMENTO',
-    'em_validacao': 'EM_VALIDACAO',
-    'em-validacao': 'EM_VALIDACAO',
-    'concluida': 'CONCLUIDA',
-    'cancelada': 'CANCELADA',
-  };
-  return statusMap[status] || 'EM_ANDAMENTO';
-}
-
-function mapSetorToLocal(setor: string | undefined): string {
-  if (!setor) return 'OBRAS';
-  const setorMap: Record<string, string> = {
-    'OBRAS': 'OBRAS',
-    'LABORATORIO': 'OBRAS',
-    'ADM': 'ADMINISTRATIVO',
-    'COMERCIAL': 'ADMINISTRATIVO',
-    'ADMINISTRATIVO': 'ADMINISTRATIVO',
-    'ASSESSORIA': 'ASSESSORIA',
-    'ASS': 'ASSESSORIA',
-    'FINANCEIRO': 'ADMINISTRATIVO',
-  };
-  return setorMap[setor] || 'OBRAS';
-}
-
 function getInitials(nome: string): string {
   if (!nome) return 'NN';
   const parts = nome.trim().split(' ');

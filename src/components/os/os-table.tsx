@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import {
@@ -151,13 +151,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
     return colorMap[status] || 'bg-gray-100 text-gray-700 border-gray-300';
   };
 
-  // Função para verificar se a data está atrasada
-  const isOverdue = (dataPrazo: string, status: string) => {
-    if (status === 'concluida' || status === 'cancelada') return false;
-    const today = new Date();
-    const prazo = new Date(dataPrazo);
-    return prazo < today;
-  };
+
 
   // Função para formatar data
   const formatDate = (dateString: string) => {
@@ -197,7 +191,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                 <TableRow key={os.id}>
                   <TableCell className="font-medium">
                     <button
-                      onClick={() => onNavigate(`/os/${os.id}/workflow`)}
+                      onClick={() => onNavigate(`/os/details-workflow/${os.id}`)}
                       className="text-primary hover:underline"
                     >
                       {os.codigo}
@@ -255,7 +249,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onNavigate(`/os/${os.id}/workflow`)}>
+                        <DropdownMenuItem onClick={() => onNavigate(`/os/details-workflow/${os.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </DropdownMenuItem>

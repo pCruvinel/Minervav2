@@ -1,22 +1,83 @@
+/**
+ * Hook: use-api
+ *
+ * Hook genérico para gerenciar chamadas à API com estados de loading/error.
+ * Fornece controle automático de estado, tratamento de erros e refetch.
+ *
+ * @module hooks/use-api
+ * @see {@link docs/frontend/QUERY_PATTERNS.md} - Padrões de query recomendados
+ */
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 
+/**
+ * Opções de configuração para o hook useApi
+ * @template T - Tipo de dado retornado pela API
+ */
 interface UseApiOptions<T> {
+  /** Dados iniciais antes da primeira requisição */
   initialData?: T;
+
+  /** Callback executado quando a requisição tem sucesso */
   onSuccess?: (data: T) => void;
+
+  /** Callback executado quando a requisição falha */
   onError?: (error: Error) => void;
-  deps?: any[]; // Dependências para controlar quando refetch
+
+  /** Array de dependências que dispara refetch quando mudam */
+  deps?: any[];
 }
 
+/**
+ * Retorno do hook useApi
+ * @template T - Tipo de dado retornado pela API
+ */
 interface UseApiReturn<T> {
+  /** Dados retornados pela API (null enquanto loading ou em caso de erro) */
   data: T | null;
+
+  /** Indica se a requisição está em andamento */
   loading: boolean;
+
+  /** Erro ocorrido durante a requisição (null se sucesso) */
   error: Error | null;
+
+  /** Função para refazer a requisição manualmente */
   refetch: () => Promise<void>;
+
+  /** Função para atualizar os dados localmente sem fazer nova requisição */
   mutate: (newData: T) => void;
 }
 
 /**
- * Hook para fazer chamadas à API com loading/error states
+ * Hook para fazer chamadas à API com gerenciamento automático de estado
+ *
+ * @template T - Tipo de dado retornado pela API
+ * @param apiCall - Função que retorna uma Promise com os dados da API
+ * @param options - Opções de configuração do hook
+ * @returns Objeto com data, loading, error, refetch e mutate
+ *
+ * @example
+ * ```tsx
+ * // Exemplo básico
+ * const { data: users, loading, error } = useApi(() =>
+ *   supabase.from('colaboradores').select('*')
+ * );
+ *
+ * // Com callbacks
+ * const { data, refetch } = useApi(
+ *   () => ordensServicoAPI.list({ status: 'em_andamento' }),
+ *   {
+ *     onSuccess: (data) => toast.success(`${data.length} OSs carregadas`),
+ *     onError: (error) => toast.error(`Erro: ${error.message}`),
+ *     deps: [status] // Refetch quando status mudar
+ *   }
+ * );
+ *
+ * // Atualização otimista
+ * const { data, mutate } = useApi(() => api.getUser(userId));
+ * mutate({ ...data, nome: 'Novo Nome' }); // Atualiza sem refetch
+ * ```
  */
 export function useApi<T>(
   apiCall: () => Promise<T>,
@@ -140,7 +201,44 @@ export function useApi<T>(
 }
 
 /**
- * Hook para mutations (POST, PUT, DELETE)
+ * Hook para operações de mutação (POST, PUT, DELETE)
+ *
+ * Diferente do useApi, useMutation não executa automaticamente.
+ * A requisição só é feita quando você chama a função `mutate`.
+ *
+ * @template T - Tipo de dado retornado pela API
+ * @template V - Tipo de variáveis/dados enviados para a API
+ * @param apiCall - Função que recebe variáveis e retorna Promise com resultado
+ * @param options - Callbacks de sucesso/erro
+ * @returns Objeto com mutate (função para disparar), data, loading e error
+ *
+ * @example
+ * ```tsx
+ * // Criar OS
+ * const { mutate: createOS, loading } = useMutation(
+ *   (data) => ordensServicoAPI.create(data),
+ *   {
+ *     onSuccess: (os) => {
+ *       toast.success(`OS ${os.codigo_os} criada!`);
+ *       navigate(`/os/${os.id}`);
+ *     },
+ *     onError: (error) => toast.error(error.message)
+ *   }
+ * );
+ *
+ * // Disparar mutation
+ * await createOS({
+ *   cliente_id: '123',
+ *   tipo_os_id: '456',
+ *   descricao: 'Nova OS'
+ * });
+ *
+ * // Atualizar OS
+ * const { mutate: updateOS } = useMutation(
+ *   (data) => ordensServicoAPI.update(osId, data)
+ * );
+ * await updateOS({ status_geral: 'concluido' });
+ * ```
  */
 export function useMutation<T, V = any>(
   apiCall: (variables: V) => Promise<T>,

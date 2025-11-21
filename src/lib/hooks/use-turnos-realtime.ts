@@ -11,7 +11,7 @@
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 import { Turno, TurnoComVagas } from './use-turnos';
 import { toast } from 'sonner';
 
@@ -172,7 +172,7 @@ export function useTurnosRealtime(dateRange?: { start: string; end: string }) {
   });
 
   const subscriptionRef = useRef<any>(null);
-  const syncTimeoutRef = useRef<NodeJS.Timeout>();
+  const syncTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   /**
    * Carrega turnos iniciais do cache ou do servidor

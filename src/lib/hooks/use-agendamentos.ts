@@ -11,7 +11,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { useApi, useMutation } from './use-api';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
 // =====================================================

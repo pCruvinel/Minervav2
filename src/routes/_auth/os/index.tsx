@@ -30,7 +30,7 @@ function OSListRoute() {
           // It doesn't pass the ID. This is a bug/limitation in the current OSTable implementation relative to the new routing.
           // We should probably fix OSTable to pass the ID.
           // But for this file, let's just log it.
-          console.warn('Navigation to os-details-workflow requested without ID')
+          // console.warn('Navigation to os-details-workflow requested without ID')
         } else if (route.startsWith('/os/')) {
           navigate({ to: route })
         } else {
