@@ -73,11 +73,12 @@ export interface Delegacao {
   delegado_id: string;
   descricao_tarefa: string;
   data_prazo: string;
-  status_delegacao: 'pendente' | 'concluida' | 'atrasada';
+  status_delegacao: 'PENDENTE' | 'EM_PROGRESSO' | 'CONCLUIDA' | 'REPROVADA' | 'ATRASADA';
   delegante_nome?: string;
   delegado_nome?: string;
   observacoes?: string;
   data_atualizacao?: string;
+  data_delegacao?: string;
   created_at: string;
   data_criacao?: string;
 }

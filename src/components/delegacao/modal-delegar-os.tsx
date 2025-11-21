@@ -124,9 +124,10 @@ export function ModalDelegarOS({
         delegado_nome: resultado.delegado_nome,
         data_delegacao: resultado.created_at,
         data_prazo: resultado.data_prazo,
-        status_delegacao: resultado.status_delegacao.toLowerCase(),
+        status_delegacao: resultado.status_delegacao,
         descricao_tarefa: resultado.descricao_tarefa,
         observacoes: resultado.observacoes,
+        created_at: resultado.created_at,
         data_criacao: resultado.created_at,
         data_atualizacao: resultado.updated_at,
       };

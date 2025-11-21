@@ -28,6 +28,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       descricao_tarefa: 'Realizar levantamento de necessidades do cliente para elaboração de proposta comercial. Identificar escopo completo do projeto e possíveis desafios técnicos.',
       observacoes: 'Cliente já demonstrou interesse em fechar contrato. Prioridade alta.',
       data_criacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -42,6 +43,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       status_delegacao: 'EM_PROGRESSO',
       descricao_tarefa: 'Elaborar parecer técnico sobre viabilidade de reforma estrutural no edifício residencial. Incluir análise de riscos e recomendações.',
       data_criacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -57,6 +59,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       descricao_tarefa: 'Coordenar equipe de execução da reforma do apartamento 302. Garantir cumprimento do cronograma e qualidade da execução.',
       observacoes: 'Atenção: proprietário viajou e deixou chaves com síndico.',
       data_criacao: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -71,6 +74,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       status_delegacao: 'CONCLUIDA',
       descricao_tarefa: 'Realizar follow-up com clientes que receberam propostas na última semana. Registrar feedback e próximos passos.',
       data_criacao: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ]);

@@ -69,7 +69,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
 
   // Função para retornar o Badge de status com as cores corretas (suporta MAIÚSCULAS)
   const getStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { variant: any; label: string; className?: string }> = {
+    const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
       // Novo padrão (MAIÚSCULAS)
       EM_ANDAMENTO: {
         variant: 'secondary',
@@ -197,7 +197,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                 <TableRow key={os.id}>
                   <TableCell className="font-medium">
                     <button
-                      onClick={() => onNavigate('os-details-workflow')}
+                      onClick={() => onNavigate(`/os/${os.id}`)}
                       className="text-primary hover:underline"
                     >
                       {os.codigo}
@@ -255,7 +255,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onNavigate('os-details-workflow')}>
+                        <DropdownMenuItem onClick={() => onNavigate(`/os/${os.id}`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </DropdownMenuItem>
