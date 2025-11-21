@@ -70,6 +70,7 @@
             "test": "vitest",
             "test:ui": "vitest --ui",
             "test:run": "vitest run",
-            "test:coverage": "vitest run --coverage"
+            "test:coverage": "vitest run --coverage",
+            "update-types": "npx supabase gen types typescript --project-id zxfevlkssljndqqhxkjb --schema public > src/types/supabase.ts"
       }
 }
