@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Trash2, Plus, AlertTriangle, Info } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface RateioItem {
   id: string;
@@ -137,17 +138,17 @@ export function ModalClassificarLancamento({
 
   const handleSalvar = () => {
     if (!tipoSelecionado || !setorSelecionado) {
-      alert('Preencha todos os campos obrigatórios');
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
     if (isTipoAplicacao) {
-      alert('Lançamentos do tipo "Aplicação" devem ser desprezados e não classificados.');
+      toast.error('Lançamentos do tipo "Aplicação" devem ser desprezados e não classificados.');
       return;
     }
 
     if (!bloquearCentroCusto && !isRateioValido) {
-      alert('A soma dos rateios deve ser igual a 100% do valor total');
+      toast.error('A soma dos rateios deve ser igual a 100% do valor total');
       return;
     }
 
