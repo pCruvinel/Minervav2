@@ -955,51 +955,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         </div>
       )}
       
-      {/* Indicador de Progresso e Breadcrumb */}
-      <div className="border-b border-neutral-200 bg-white px-6 py-3">
-        <div className="flex items-center justify-between">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>Ordem de Serviço</span>
-            <span>/</span>
-            <span>Workflow</span>
-            <span>/</span>
-            <span className="text-foreground font-medium">
-              Etapa {currentStep}: {steps.find(s => s.id === currentStep)?.title}
-            </span>
-          </div>
 
-          {/* Indicador de Progresso e Auto-save */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                <span className="text-sm font-medium">{completedSteps.length}</span>
-                <span className="text-sm text-muted-foreground">de</span>
-                <span className="text-sm font-medium">{steps.length}</span>
-                <span className="text-sm text-muted-foreground">concluídas</span>
-              </div>
-              <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 transition-all duration-300"
-                  style={{ width: `${(completedSteps.length / steps.length) * 100}%` }}
-                />
-              </div>
-              <span className="text-sm font-semibold text-green-600">
-                {Math.round((completedSteps.length / steps.length) * 100)}%
-              </span>
-            </div>
-
-            {/* Auto-save Status */}
-            <div className="border-l border-gray-200 pl-3 ml-1">
-              <AutoSaveStatus
-                isSaving={isSaving}
-                isSaved={isSaved}
-                className="text-xs"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
 
       {/* Stepper Horizontal com botão de retorno */}
       <div className="relative">
@@ -1804,6 +1760,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               totalSteps={steps.length}
               onPrevStep={handlePrevStep}
               onNextStep={handleNextStep}
+              nextButtonText="Avançar"
               onSaveDraft={handleSaveRascunho}
               showDraftButton={[3, 6, 7, 8].includes(currentStep)} // Mostrar apenas em etapas com formulários extensos
               disableNext={isLoading}
