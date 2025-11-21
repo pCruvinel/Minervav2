@@ -37,7 +37,7 @@ import { ClienteDetalhesPage } from './components/clientes/cliente-detalhes-page
 import { PortalClienteObras } from './components/portal/portal-cliente-obras';
 import { PortalClienteAssessoria } from './components/portal/portal-cliente-assessoria';
 import { UsuariosPermissoesPage } from './components/configuracoes/usuarios-permissoes-page';
-import { MenuPreviewPage } from './components/admin/menu-preview-page';
+import MenuPreviewPage from './components/admin/menu-preview-page';
 // Gestores - Assessoria
 import { DashboardGestorAssessoria } from './components/dashboard/dashboard-gestor-assessoria';
 import { FilaAprovacaoLaudos } from './components/assessoria/fila-aprovacao-laudos';
@@ -83,11 +83,11 @@ function AppContent() {
       delegante_nome: 'Maria Silva Gestora Comercial',
       delegado_id: '55555555-5555-5555-5555-555555555555',
       delegado_nome: 'Ana Claudia Vendedora',
-      data_delegacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'PENDENTE',
+      status_delegacao: 'pendente',
       descricao_tarefa: 'Realizar levantamento de necessidades do cliente para elaboração de proposta comercial.',
       observacoes: 'Cliente já demonstrou interesse em fechar contrato.',
+      created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_criacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -98,10 +98,10 @@ function AppContent() {
       delegante_nome: 'João Pedro Gestor Assessoria',
       delegado_id: '77777777-7777-7777-7777-777777777777',
       delegado_nome: 'Bruno Martins Técnico',
-      data_delegacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'EM_PROGRESSO',
+      status_delegacao: 'pendente',
       descricao_tarefa: 'Elaborar parecer técnico sobre viabilidade de reforma estrutural.',
+      created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       data_criacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
@@ -152,7 +152,7 @@ function AppContent() {
       id: `${comentarios.length + 1}`,
       osId: selectedOS.id,
       userId: currentUser.id,
-      userName: currentUser.name,
+      userName: currentUser.nome_completo,
       userAvatar: currentUser.avatar,
       texto,
       createdAt: new Date().toISOString()
@@ -161,60 +161,50 @@ function AppContent() {
     setComentarios([...comentarios, newComentario]);
   };
 
-  const handleStatusChange = (osId: string, newStatus: OSStatus) => {
-    setOrdensServico(prev => 
-      prev.map(os => 
-        os.id === osId 
-          ? { ...os, status: newStatus, updatedAt: new Date().toISOString() }
-          : os
-      )
-    );
-  };
-
   const getBreadcrumbs = () => {
     const crumbs = [{ label: 'Início', href: '#' }];
-    
+
     if (currentPage === 'os-list') {
-      crumbs.push({ label: 'Ordens de Serviço' });
+      crumbs.push({ label: 'Ordens de Serviço', href: '#' });
     } else if (currentPage === 'os-criar') {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
-      crumbs.push({ label: 'Criar Nova OS' });
+      crumbs.push({ label: 'Criar Nova OS', href: '#' });
     } else if (currentPage === 'os-details' && selectedOS) {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
-      crumbs.push({ label: selectedOS.codigo });
+      crumbs.push({ label: selectedOS.codigo, href: '#' });
     } else if (currentPage === 'os-workflow') {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
-      crumbs.push({ label: 'Fluxo de Trabalho - Obras' });
+      crumbs.push({ label: 'Fluxo de Trabalho - Obras', href: '#' });
     } else if (currentPage === 'os-details-workflow') {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
-      crumbs.push({ label: 'Detalhes e Fluxo de Trabalho' });
+      crumbs.push({ label: 'Detalhes e Fluxo de Trabalho', href: '#' });
     } else if (currentPage === 'wizard-obras-lead') {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
       crumbs.push({ label: 'Criar Nova OS', href: '#' });
-      crumbs.push({ label: 'Novo Lead - Obras (OS 01-04)' });
+      crumbs.push({ label: 'Novo Lead - Obras (OS 01-04)', href: '#' });
     } else if (currentPage.startsWith('wizard-')) {
       crumbs.push({ label: 'Ordens de Serviço', href: '#' });
       crumbs.push({ label: 'Criar Nova OS', href: '#' });
-      crumbs.push({ label: 'Wizard' });
+      crumbs.push({ label: 'Wizard', href: '#' });
     } else if (currentPage === 'dashboard') {
-      crumbs.push({ label: 'Dashboard' });
+      crumbs.push({ label: 'Dashboard', href: '#' });
     } else if (currentPage === 'clientes') {
-      crumbs.push({ label: 'Clientes' });
+      crumbs.push({ label: 'Clientes', href: '#' });
     } else if (currentPage === 'financeiro') {
-      crumbs.push({ label: 'Financeiro' });
+      crumbs.push({ label: 'Financeiro', href: '#' });
     } else if (currentPage === 'financeiro-dashboard') {
-      crumbs.push({ label: 'Financeiro' });
-      crumbs.push({ label: 'Dashboard' });
+      crumbs.push({ label: 'Financeiro', href: '#' });
+      crumbs.push({ label: 'Dashboard', href: '#' });
     } else if (currentPage === 'conciliacao-bancaria') {
-      crumbs.push({ label: 'Financeiro' });
-      crumbs.push({ label: 'Conciliação Bancária' });
+      crumbs.push({ label: 'Financeiro', href: '#' });
+      crumbs.push({ label: 'Conciliação Bancária', href: '#' });
     } else if (currentPage === 'prestacao-contas') {
-      crumbs.push({ label: 'Financeiro' });
-      crumbs.push({ label: 'Prestação de Contas' });
+      crumbs.push({ label: 'Financeiro', href: '#' });
+      crumbs.push({ label: 'Prestação de Contas', href: '#' });
     } else if (currentPage === 'calendario') {
-      crumbs.push({ label: 'Calendário' });
+      crumbs.push({ label: 'Calendário', href: '#' });
     } else if (currentPage === 'configuracoes') {
-      crumbs.push({ label: 'Configurações' });
+      crumbs.push({ label: 'Configurações', href: '#' });
     }
     
     return crumbs;

@@ -31,7 +31,7 @@ import {
   TrendingUp,
   Filter,
 } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import {
   mockUserColaborador,
   mockLeads as initialMockLeads,
@@ -42,7 +42,7 @@ export default function LeadsComercialPage() {
   const mockUser = mockUserColaborador;
   const [leads, setLeads] = useState(initialMockLeads);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingLead, setEditingLead] = useState<(typeof mockLeads)[0] | null>(
+  const [editingLead, setEditingLead] = useState<(typeof initialMockLeads)[0] | null>(
     null
   );
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,7 +74,7 @@ export default function LeadsComercialPage() {
     setIsDialogOpen(true);
   };
 
-  const handleEditarLead = (lead: (typeof mockLeads)[0]) => {
+  const handleEditarLead = (lead: (typeof initialMockLeads)[0]) => {
     setEditingLead(lead);
     setFormData({
       nome: lead.nome,
@@ -84,7 +84,7 @@ export default function LeadsComercialPage() {
       origem: lead.origem,
       status: lead.status,
       potencial: lead.potencial,
-      observacoes: lead.observacoes,
+      observacoes: lead.observacoes || "",
     });
     setIsDialogOpen(true);
   };
@@ -155,8 +155,8 @@ export default function LeadsComercialPage() {
     }
   };
 
-  // Verificar se o usuário é do setor comercial
-  if (mockUser.setor !== "COMERCIAL") {
+  // Verificar se o usuário é do setor administrativo
+  if (mockUser.setor !== "ADMINISTRATIVO") {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <Card className="p-8 border-gray-200 max-w-md">
@@ -164,7 +164,7 @@ export default function LeadsComercialPage() {
             <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h2 className="text-black mb-2">Acesso Restrito</h2>
             <p className="text-gray-600 mb-4">
-              Esta área é exclusiva para colaboradores do setor comercial.
+              Esta área é exclusiva para colaboradores do setor administrativo.
             </p>
             <Button
               onClick={() => window.history.back()}
@@ -428,7 +428,7 @@ export default function LeadsComercialPage() {
                 </Label>
                 <Select
                   value={formData.origem}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setFormData({ ...formData, origem: value })
                   }
                 >
@@ -451,7 +451,7 @@ export default function LeadsComercialPage() {
                 </Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setFormData({ ...formData, status: value })
                   }
                 >
@@ -474,7 +474,7 @@ export default function LeadsComercialPage() {
                 </Label>
                 <Select
                   value={formData.potencial}
-                  onValueChange={(value) =>
+                  onValueChange={(value: string) =>
                     setFormData({ ...formData, potencial: value })
                   }
                 >
