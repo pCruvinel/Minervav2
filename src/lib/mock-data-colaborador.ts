@@ -11,7 +11,7 @@ export const mockUserColaborador = {
   nome: "Carlos Silva",
   email: "carlos.silva@minervaengenharia.com.br",
   role_nivel: 4, // Colaborador
-  setor: "COMERCIAL", // ou "OPERACIONAL"
+  setor: "ADMINISTRATIVO", // ou "OPERACIONAL"
   telefone: "(11) 98765-4321",
   criadoEm: "2024-01-15",
 };

@@ -2,7 +2,6 @@
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   LayoutDashboard,
   ClipboardList,
@@ -62,7 +61,7 @@ const navigationCards = [
     icon: TrendingUp,
     href: "/colaborador/leads",
     color: "bg-orange-500",
-    available: mockUser.setor === "COMERCIAL",
+    available: mockUser.setor === "ADMINISTRATIVO",
   },
 ];
 
@@ -147,7 +146,7 @@ export default function ColaboradorIndexPage() {
                 <div className="w-2 h-2 rounded-full bg-green-500" />
                 <p className="text-gray-700">Visualizar agenda pessoal</p>
               </div>
-              {mockUser.setor === "COMERCIAL" && (
+              {mockUser.setor === "ADMINISTRATIVO" && (
                 <div className="flex items-center gap-3">
                   <div className="w-2 h-2 rounded-full bg-green-500" />
                   <p className="text-gray-700">Gerenciar leads de vendas</p>
@@ -195,7 +194,7 @@ export default function ColaboradorIndexPage() {
                   OS relacionada
                 </p>
               </div>
-              {mockUser.setor === "COMERCIAL" && (
+              {mockUser.setor === "ADMINISTRATIVO" && (
                 <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
                   <h3 className="text-black mb-1">🎯 Leads</h3>
                   <p className="text-gray-700">

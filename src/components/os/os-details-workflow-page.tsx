@@ -179,6 +179,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     }
   }, [currentStep, isHistoricalNavigation]);
 
+
   // ========================================
   // ESTADO CONSOLIDADO DO FORMULÁRIO
   // ========================================
@@ -313,6 +314,36 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const etapa14Data = useMemo(() => getStepData(14), [formDataByStep]);
   const etapa15Data = useMemo(() => getStepData(15), [formDataByStep]);
 
+  // Calcular valores financeiros para a proposta (Etapa 9)
+  const { valorTotal, valorEntrada, valorParcela } = useMemo(() => {
+    // Replicar lógica de cálculo da StepPrecificacao
+    const custoBase = etapa7Data?.etapasPrincipais?.reduce((total: number, etapa: any) => {
+      return total + (etapa.subetapas?.reduce((subTotal: number, sub: any) => {
+        const valor = parseFloat(sub.total?.replace('R$ ', '').replace('.', '').replace(',', '.') || '0') || 0;
+        return subTotal + valor;
+      }, 0) || 0);
+    }, 0) || 0;
+
+    const pImprevisto = parseFloat(etapa8Data?.percentualImprevisto?.replace(',', '.') || '0') / 100;
+    const pLucro = parseFloat(etapa8Data?.percentualLucro?.replace(',', '.') || '0') / 100;
+    const pImposto = parseFloat(etapa8Data?.percentualImposto?.replace(',', '.') || '0') / 100;
+
+    const custoComImprevisto = custoBase * (1 + pImprevisto);
+    const divisor = (1 - (pLucro + pImposto));
+    const precoVenda = divisor > 0 ? custoComImprevisto / divisor : 0;
+    
+    const pEntrada = parseFloat(etapa8Data?.percentualEntrada?.replace(',', '.') || '0') / 100;
+    const vEntrada = precoVenda * pEntrada;
+    const numParcelas = parseInt(etapa8Data?.numeroParcelas || '0');
+    const vParcela = numParcelas > 0 ? (precoVenda - vEntrada) / numParcelas : 0;
+
+    return {
+      valorTotal: precoVenda,
+      valorEntrada: vEntrada,
+      valorParcela: vParcela
+    };
+  }, [etapa7Data, etapa8Data]);
+
   const setEtapa1Data = (data: any) => setStepData(1, data);
   const setEtapa2Data = (data: any) => setStepData(2, data);
   const setEtapa3Data = (data: any) => setStepData(3, data);
@@ -360,9 +391,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     const etapasPrincipais = etapa8Data?.etapasPrincipais || [];
 
     // Custo Base (soma dos totais das sub-etapas)
-    const custoBase = etapasPrincipais.reduce((total, etapa) => {
+    const custoBase = etapasPrincipais.reduce((total: number, etapa: any) => {
       const subetapas = etapa?.subetapas || [];
-      return total + subetapas.reduce((subtotal, sub) => {
+      return total + subetapas.reduce((subtotal: number, sub: any) => {
         return subtotal + (parseFloat(sub?.total) || 0);
       }, 0);
     }, 0);
@@ -428,9 +459,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     setUploadProgress(0);
     
     try {
-      const uploadedFiles = [];
-      
-      for (let i = 0; i < files.length; i++) {
+      const uploadedFiles: any[] = [];
+
+      for (let i: number = 0; i < files.length; i++) {
         const file = files[i];
         
         console.log(`📤 Uploading file ${i + 1}/${files.length}: ${file.name} para ${osNumero}/${etapaNome}`);
@@ -448,7 +479,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       }
       
       // Adicionar arquivos ao estado
-      setEtapa3Data(prev => ({
+      setEtapa3Data((prev: any) => ({
         ...prev,
         anexos: [...(prev.anexos || []), ...uploadedFiles],
       }));
@@ -471,9 +502,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       await deleteFile(filePath);
       
       // Remover do estado
-      setEtapa3Data(prev => ({
+      setEtapa3Data((prev: any) => ({
         ...prev,
-        anexos: (prev.anexos || []).filter(f => f.id !== fileId),
+        anexos: (prev.anexos || []).filter((f: any) => f.id !== fileId),
       }));
       
       toast.success('Arquivo removido com sucesso!');
@@ -1080,9 +1111,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                     <Label htmlFor="tipoOS">
                       Selecione o Tipo de OS <span className="text-destructive">*</span>
                     </Label>
-                    <Select 
-                      value={etapa2Data.tipoOS} 
-                      onValueChange={(value) => setEtapa2Data({ tipoOS: value })}
+                    <Select
+                      value={etapa2Data.tipoOS}
+                      onValueChange={(value: string) => setEtapa2Data({ tipoOS: value })}
                       disabled={isCreatingOS}
                     >
                       <SelectTrigger id="tipoOS">
@@ -1188,8 +1219,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         <Switch
                           id="visitaRealizada"
                           checked={etapa5Data.visitaRealizada}
-                          onCheckedChange={(checked) => {
-                            setEtapa5Data((prev) => ({ ...prev, visitaRealizada: checked }));
+                          onCheckedChange={(checked: boolean) => {
+                            setEtapa5Data((prev: any) => ({ ...prev, visitaRealizada: checked }));
                           }}
                         />
                         <Label htmlFor="visitaRealizada" className="cursor-pointer">
@@ -1239,7 +1270,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="outrasEmpresas"
                         rows={3}
                         value={etapa6Data.outrasEmpresas}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, outrasEmpresas: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, outrasEmpresas: e.target.value })}
                         placeholder="Descreva se há outras empresas realizando visita técnica e quais..."
                       />
                     </div>
@@ -1252,7 +1283,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="comoEsperaResolver"
                         rows={4}
                         value={etapa6Data.comoEsperaResolver}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, comoEsperaResolver: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, comoEsperaResolver: e.target.value })}
                         placeholder="Descreva as expectativas do cliente quanto à solução, materiais e metodologia..."
                       />
                     </div>
@@ -1265,7 +1296,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="expectativaCliente"
                         rows={4}
                         value={etapa6Data.expectativaCliente}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, expectativaCliente: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, expectativaCliente: e.target.value })}
                         placeholder="Descreva as principais expectativas em relação à solução, materiais e metodologia..."
                       />
                     </div>
@@ -1278,7 +1309,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="estadoAncoragem"
                         rows={3}
                         value={etapa6Data.estadoAncoragem}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, estadoAncoragem: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, estadoAncoragem: e.target.value })}
                         placeholder="Descreva o estado atual do sistema de ancoragem..."
                       />
                     </div>
@@ -1298,7 +1329,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       {/* Lista de arquivos anexados com comentários */}
                       {(etapa6Data.fotosAncoragem?.length ?? 0) > 0 && (
                         <div className="mt-4 space-y-2">
-                          {etapa6Data.fotosAncoragem.map((item, index) => (
+                          {etapa6Data.fotosAncoragem.map((item: any, index: number) => (
                             <div key={index} className="border border-neutral-200 rounded-lg p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
@@ -1309,7 +1340,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    const newFiles = etapa6Data.fotosAncoragem.filter((_, i) => i !== index);
+                                    const newFiles = etapa6Data.fotosAncoragem.filter((_: any, i: number) => i !== index);
                                     setEtapa6Data({ ...etapa6Data, fotosAncoragem: newFiles });
                                   }}
                                 >
@@ -1319,7 +1350,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                               <Input
                                 placeholder="Adicionar comentário..."
                                 value={item.comment}
-                                onChange={(e) => {
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                   const newFiles = [...etapa6Data.fotosAncoragem];
                                   newFiles[index].comment = e.target.value;
                                   setEtapa6Data({ ...etapa6Data, fotosAncoragem: newFiles });
@@ -1348,7 +1379,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="quemAcompanhou"
                         rows={3}
                         value={etapa6Data.quemAcompanhou}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, quemAcompanhou: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, quemAcompanhou: e.target.value })}
                         placeholder="Descreva quem acompanhou a visita e suas funções..."
                       />
                     </div>
@@ -1357,9 +1388,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Label>
                         7. Avaliação da Visita <span className="text-destructive">*</span>
                       </Label>
-                      <RadioGroup 
-                        value={etapa6Data.avaliacaoVisita} 
-                        onValueChange={(value) => setEtapa6Data({ ...etapa6Data, avaliacaoVisita: value })}
+                      <RadioGroup
+                        value={etapa6Data.avaliacaoVisita}
+                        onValueChange={(value: string) => setEtapa6Data({ ...etapa6Data, avaliacaoVisita: value })}
                       >
                         <div className="flex items-center space-x-2">
                           <RadioGroupItem value="Produtiva, cliente muito interessado" id="av1" />
@@ -1393,7 +1424,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="estadoGeralEdificacao"
                         rows={4}
                         value={etapa6Data.estadoGeralEdificacao}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, estadoGeralEdificacao: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, estadoGeralEdificacao: e.target.value })}
                         placeholder="Descreva detalhadamente as condições da edificação encontradas..."
                       />
                     </div>
@@ -1406,7 +1437,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         id="servicoResolver"
                         rows={4}
                         value={etapa6Data.servicoResolver}
-                        onChange={(e) => setEtapa6Data({ ...etapa6Data, servicoResolver: e.target.value })}
+                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, servicoResolver: e.target.value })}
                         placeholder="Descreva os serviços recomendados para resolver o problema..."
                       />
                     </div>
@@ -1426,7 +1457,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       {/* Lista de arquivos anexados com comentários */}
                       {(etapa6Data.arquivosGerais?.length ?? 0) > 0 && (
                         <div className="mt-4 space-y-2">
-                          {etapa6Data.arquivosGerais.map((item, index) => (
+                          {etapa6Data.arquivosGerais.map((item: any, index: number) => (
                             <div key={index} className="border border-neutral-200 rounded-lg p-3">
                               <div className="flex items-center justify-between mb-2">
                                 <div className="flex items-center gap-2">
@@ -1437,7 +1468,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => {
-                                    const newFiles = etapa6Data.arquivosGerais.filter((_, i) => i !== index);
+                                    const newFiles = etapa6Data.arquivosGerais.filter((_: any, i: number) => i !== index);
                                     setEtapa6Data({ ...etapa6Data, arquivosGerais: newFiles });
                                   }}
                                 >
@@ -1447,7 +1478,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                               <Input
                                 placeholder="Adicionar comentário..."
                                 value={item.comment}
-                                onChange={(e) => {
+                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                                   const newFiles = [...etapa6Data.arquivosGerais];
                                   newFiles[index].comment = e.target.value;
                                   setEtapa6Data({ ...etapa6Data, arquivosGerais: newFiles });
@@ -1486,6 +1517,13 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
               {/* ETAPA 9: Gerar Proposta Comercial */}
               {currentStep === 9 && (
                 <StepGerarPropostaOS0104
+                  etapa1Data={etapa1Data}
+                  etapa2Data={etapa2Data}
+                  etapa7Data={etapa7Data}
+                  etapa8Data={etapa8Data}
+                  valorTotal={valorTotal}
+                  valorEntrada={valorEntrada}
+                  valorParcela={valorParcela}
                   data={etapa9Data}
                   onDataChange={setEtapa9Data}
                   readOnly={isHistoricalNavigation}
@@ -1609,9 +1647,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Label htmlFor="indicadorFechamento">
                         6. Qual o indicador de fechamento da proposta? <span className="text-destructive">*</span>
                       </Label>
-                      <Select 
-                        value={etapa12Data.indicadorFechamento} 
-                        onValueChange={(value) => setEtapa12Data({ ...etapa12Data, indicadorFechamento: value })}
+                      <Select
+                        value={etapa12Data.indicadorFechamento}
+                        onValueChange={(value: string) => setEtapa12Data({ ...etapa12Data, indicadorFechamento: value })}
                         disabled={isHistoricalNavigation}
                       >
                         <SelectTrigger id="indicadorFechamento">
@@ -1654,9 +1692,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       <Label>
                         8. Qual o nível de satisfação do cliente? <span className="text-destructive">*</span>
                       </Label>
-                      <RadioGroup 
-                        value={etapa12Data.nivelSatisfacao} 
-                        onValueChange={(value) => setEtapa12Data({ ...etapa12Data, nivelSatisfacao: value })}
+                      <RadioGroup
+                        value={etapa12Data.nivelSatisfacao}
+                        onValueChange={(value: string) => setEtapa12Data({ ...etapa12Data, nivelSatisfacao: value })}
                         disabled={isHistoricalNavigation}
                       >
                         <div className="flex items-center space-x-2">

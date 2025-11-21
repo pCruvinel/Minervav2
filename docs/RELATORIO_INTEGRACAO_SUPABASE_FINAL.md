@@ -97,7 +97,7 @@ Dashboard: https://supabase.com/dashboard/project/zxfevlkssljndqqhxkjb/functions
    - Email: `pedro.gestorcomercial@minervaestrutura.com.br`
    - Password: `minerva123`
    - UUID: a0000000-0000-4000-a000-000000000002
-   - Role: GESTOR_COMERCIAL
+   - Role: GESTOR_ADMINISTRATIVO
 
 3. ✅ **Gestor Assessoria**
    - Email: `maria.gestorassessoria@minervaestrutura.com.br`

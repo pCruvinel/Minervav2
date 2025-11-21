@@ -12,7 +12,11 @@
       "Bash(node scripts/run-migrations.js:*)",
       "Bash(grep:*)",
       "Bash(git add:*)",
-      "Bash(npx supabase:*)"
+      "Bash(npx supabase:*)",
+      "Bash(npm run test:run:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node -e:*)",
+      "Bash(node verify-rpc-functions.js:*)"
     ],
     "deny": [],
     "ask": []

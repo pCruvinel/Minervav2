@@ -26,13 +26,13 @@ interface ModalCadastroColaboradorProps {
 }
 
 const FUNCOES = [
-  { value: 'DIRETOR_ADMINISTRATIVO', label: '1 - Diretor(a) Administrativo(a)', setor: 'ADM', gestor: null },
-  { value: 'DIRETOR_TECNICO', label: '2 - Diretor(a) Técnico(a)', setor: 'TECNICO', gestor: null },
-  { value: 'COORDENADOR_ADMINISTRATIVO', label: '3 - Coordenador(a) Administrativo(a)', setor: 'ADM', gestor: 'DIRETOR_ADMINISTRATIVO' },
+  { value: 'DIRETOR_ADMINISTRATIVO', label: '1 - Diretor(a) Administrativo(a)', setor: 'ADMINISTRATIVO', gestor: null },
+  { value: 'DIRETOR_TECNICO', label: '2 - Diretor(a) Técnico(a)', setor: 'ASSESSORIA', gestor: null },
+  { value: 'COORDENADOR_ADMINISTRATIVO', label: '3 - Coordenador(a) Administrativo(a)', setor: 'ADMINISTRATIVO', gestor: 'DIRETOR_ADMINISTRATIVO' },
   { value: 'COORDENADOR_ASSESSORIA', label: '4 - Coordenador de Assessoria Técnica', setor: 'ASSESSORIA', gestor: 'DIRETOR_TECNICO' },
   { value: 'COORDENADOR_OBRAS', label: '5 - Coordenador de Obras', setor: 'OBRAS', gestor: 'DIRETOR_TECNICO' },
-  { value: 'OPERACIONAL_ADMINISTRATIVO', label: '6 - Operacional Administrativo', setor: 'ADM', gestor: 'COORDENADOR_ADMINISTRATIVO' },
-  { value: 'OPERACIONAL_COMERCIAL', label: '7 - Operacional Comercial', setor: 'COMERCIAL', gestor: 'DIRETOR_ADMINISTRATIVO' },
+  { value: 'OPERACIONAL_ADMINISTRATIVO', label: '6 - Operacional Administrativo', setor: 'ADMINISTRATIVO', gestor: 'COORDENADOR_ADMINISTRATIVO' },
+  { value: 'OPERACIONAL_COMERCIAL', label: '7 - Operacional Administrativo II', setor: 'ADMINISTRATIVO', gestor: 'DIRETOR_ADMINISTRATIVO' },
   { value: 'OPERACIONAL_ASSESSORIA', label: '8 - Operacional Assessoria', setor: 'ASSESSORIA', gestor: 'COORDENADOR_ASSESSORIA' },
   { value: 'OPERACIONAL_OBRAS', label: '9 - Operacional Obras', setor: 'OBRAS', gestor: 'COORDENADOR_OBRAS' },
   { value: 'COLABORADOR_OBRA', label: '10 - Colaborador Obra', setor: 'OBRAS', gestor: 'COORDENADOR_OBRAS' },
@@ -113,7 +113,7 @@ export function ModalCadastroColaborador({
   const getRateioFixo = () => {
     if (!funcaoData) return '';
     
-    if (funcaoData.setor === 'ADM' || funcao.includes('DIRETOR')) {
+    if (funcaoData.setor === 'ADMINISTRATIVO' || funcao.includes('DIRETOR')) {
       return 'Escritório';
     } else if (funcaoData.setor === 'OBRAS') {
       return 'Setor Obras';

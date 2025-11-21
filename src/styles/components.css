@@ -1,24 +1,6 @@
 /**
  * Minerva Design System v3.0 - Components
  * Estilos específicos para componentes do sistema
- */
-
-/* ==========================================
- * HEADER
- * ========================================== */
-
-.minerva-header {
-  height: 4rem;
-  background-color: var(--color-white);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1.5rem;
-}
-
-.minerva-header-search {
-  position: relative;
   width: 16rem;
 }
 
@@ -72,23 +54,6 @@
   border-radius: var(--radius-full);
 }
 
-/* ==========================================
- * SIDEBAR
- * ========================================== */
-
-.minerva-sidebar {
-  height: 100vh;
-  background-color: var(--color-neutral-900);
-  color: var(--color-white);
-  display: flex;
-  flex-direction: column;
-  transition: width var(--transition-slow);
-}
-
-.minerva-sidebar.collapsed {
-  width: 4rem;
-}
-
 .minerva-sidebar:not(.collapsed) {
   width: 16rem;
 }
@@ -98,7 +63,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--color-neutral-800);
+  border-bottom: 1px solid var(--color-neutral-200);
 }
 
 .minerva-sidebar-logo-icon {
@@ -117,7 +82,7 @@
 .minerva-sidebar-logo-text {
   font-weight: var(--font-weight-semibold);
   font-size: var(--font-size-base);
-  color: var(--color-white);
+  color: var(--color-neutral-900);
 }
 
 .minerva-sidebar-nav {
@@ -133,7 +98,7 @@
   padding: 0.75rem 1.5rem;
   background-color: transparent;
   border: none;
-  color: var(--color-neutral-400);
+  color: var(--color-neutral-600);
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-medium);
   text-align: left;
@@ -143,12 +108,12 @@
 }
 
 .minerva-sidebar-item:hover {
-  background-color: var(--color-neutral-800);
-  color: var(--color-white);
+  background-color: var(--color-neutral-100);
+  color: var(--color-neutral-900);
 }
 
 .minerva-sidebar-item.active {
-  background-color: var(--color-neutral-900);
+  background-color: var(--color-primary-50);
   color: var(--color-primary);
   border-left-color: var(--color-primary);
 }
@@ -171,7 +136,7 @@
 
 .minerva-sidebar-footer {
   padding: 1rem;
-  border-top: 1px solid var(--color-neutral-800);
+  border-top: 1px solid var(--color-neutral-200);
 }
 
 /* ==========================================

@@ -64,8 +64,60 @@ export function useApi<T>(
       setData(result);
       onSuccessRef.current?.(result);
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
-      console.error('❌ API Error:', error.message, error);
+      let error: Error;
+
+      // Criar mensagem de erro mais descritiva
+      if (err instanceof Error) {
+        error = err;
+
+        // Adicionar contexto para erros comuns
+        if (error.message.includes('500')) {
+          error = new Error(
+            `Erro no servidor (500): ${error.message}. ` +
+            'Verifique se as funções RPC do Supabase têm SECURITY DEFINER configurado corretamente.'
+          );
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          error = new Error(
+            `Erro de autenticação (401): ${error.message}. ` +
+            'Faça login novamente ou verifique suas permissões.'
+          );
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          error = new Error(
+            `Acesso negado (403): ${error.message}. ` +
+            'Você não tem permissão para acessar este recurso.'
+          );
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+          error = new Error(
+            `Recurso não encontrado (404): ${error.message}. ` +
+            'Verifique se o endpoint ou ID está correto.'
+          );
+        } else if (error.message.includes('timeout')) {
+          error = new Error(
+            `Timeout: ${error.message}. ` +
+            'O servidor demorou muito para responder. Tente novamente.'
+          );
+        }
+      } else {
+        // Tratar erros que não são instâncias de Error
+        const errorObj = err as any;
+
+        // Se for um erro do Supabase/PostgREST
+        if (errorObj?.code && errorObj?.message) {
+          error = new Error(
+            `Erro ${errorObj.code}: ${errorObj.message}. ` +
+            (errorObj.hint ? `Dica: ${errorObj.hint}` : '')
+          );
+        } else {
+          error = new Error(String(err));
+        }
+      }
+
+      console.error('❌ API Error:', {
+        message: error.message,
+        originalError: err,
+        stack: error.stack,
+      });
+
       setError(error);
       onErrorRef.current?.(error);
     } finally {
@@ -109,7 +161,55 @@ export function useMutation<T, V = any>(
       onSuccess?.(result);
       return result;
     } catch (err) {
-      const error = err instanceof Error ? err : new Error(String(err));
+      let error: Error;
+
+      // Criar mensagem de erro mais descritiva
+      if (err instanceof Error) {
+        error = err;
+
+        // Adicionar contexto para erros comuns
+        if (error.message.includes('500')) {
+          error = new Error(
+            `Erro no servidor (500): ${error.message}. ` +
+            'Verifique se as funções RPC do Supabase têm SECURITY DEFINER configurado corretamente.'
+          );
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized')) {
+          error = new Error(
+            `Erro de autenticação (401): ${error.message}. ` +
+            'Faça login novamente ou verifique suas permissões.'
+          );
+        } else if (error.message.includes('403') || error.message.includes('Forbidden')) {
+          error = new Error(
+            `Acesso negado (403): ${error.message}. ` +
+            'Você não tem permissão para acessar este recurso.'
+          );
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+          error = new Error(
+            `Recurso não encontrado (404): ${error.message}. ` +
+            'Verifique se o endpoint ou ID está correto.'
+          );
+        }
+      } else {
+        // Tratar erros que não são instâncias de Error
+        const errorObj = err as any;
+
+        // Se for um erro do Supabase/PostgREST
+        if (errorObj?.code && errorObj?.message) {
+          error = new Error(
+            `Erro ${errorObj.code}: ${errorObj.message}. ` +
+            (errorObj.hint ? `Dica: ${errorObj.hint}` : '')
+          );
+        } else {
+          error = new Error(String(err));
+        }
+      }
+
+      console.error('❌ Mutation Error:', {
+        message: error.message,
+        originalError: err,
+        stack: error.stack,
+      });
+
       setError(error);
       onError?.(error);
       throw error;

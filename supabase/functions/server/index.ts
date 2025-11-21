@@ -127,17 +127,7 @@ const normalizeClienteStatus = (status: string | undefined): string | undefined 
   
   // Se já está no formato correto, retornar
   if (validValues.includes(normalized)) {
-    return normalized;
-  }
-
-  // Mapeamento de valores antigos para novos
-  const legacyMap: Record<string, string> = {
-    'ATIVO': 'CLIENTE_ATIVO',
-    'INATIVO': 'CLIENTE_INATIVO'
-  };
-
-  return legacyMap[normalized] || normalized;
-};
+});
 
 // Debug: Schema reload endpoint
 app.post("/make-server-5ad7fd2c/reload-schema", async (c) => {

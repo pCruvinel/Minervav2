@@ -64,9 +64,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       desc: "Acesso total ao sistema"
     },
     { 
-      role: "GESTOR COMERCIAL", 
-      email: "gestor.comercial@minerva.com", 
-      desc: "Gestão comercial e financeira"
+      role: "GESTOR ADMINISTRATIVO", 
+      email: "gestor.administrativo@minerva.com", 
+      desc: "Gestão administrativa e financeira"
     },
     { 
       role: "GESTOR ASSESSORIA", 
@@ -79,9 +79,9 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       desc: "Gestão de obras"
     },
     { 
-      role: "COLABORADOR", 
-      email: "vendedor.1@minerva.com", 
-      desc: "Colaborador comercial"
+      role: "COLABORADOR ADMINISTRATIVO", 
+      email: "colaborador.adm@minerva.com", 
+      desc: "Colaborador administrativo"
     },
   ];
 

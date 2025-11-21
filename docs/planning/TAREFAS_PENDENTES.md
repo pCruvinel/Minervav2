@@ -10,7 +10,7 @@
 
 ### 1️⃣ TODO: Integrar Delegação com API/Supabase
 **Arquivo:** `src/components/delegacao/modal-delegar-os.tsx:118`
-**Status:** ⏸️ PENDENTE
+**Status:** ✅ CONCLUÍDA
 **Dificuldade:** Média
 **Tempo:** 2-3 horas
 
@@ -94,7 +94,7 @@ completedSteps={completedSteps}
 
 ### 3️⃣ TODO: Usar ID do Usuário Logado (Não Mock)
 **Arquivo:** `src/components/os/os-details-workflow-page.tsx:230`
-**Status:** ⏸️ PENDENTE
+**Status:** ✅ CONCLUÍDA
 **Dificuldade:** Baixa
 **Tempo:** 1 hora
 
@@ -131,7 +131,7 @@ if (!colaboradorId || colaboradorId === 'user-unknown') {
 
 ### 4️⃣ TODO: Integrar Auth Context com Supabase
 **Arquivo:** `src/lib/contexts/auth-context.tsx` (comentário)
-**Status:** ⏸️ PENDENTE
+**Status:** ✅ CONCLUÍDA
 **Dificuldade:** Alta
 **Tempo:** 3-4 horas
 
@@ -190,28 +190,28 @@ useEffect(() => {
 ## Checklist de Implementação
 
 ### FASE 4.1: Corrigir TODOs (PENDENTE)
-- [ ] TODO 1: Integrar Delegação com API
-  - [ ] Implementar `createDelegacao()` no API client
-  - [ ] Adicionar tipos em `types.ts`
-  - [ ] Atualizar RLS policies
-  - [ ] Testes
+- [x] TODO 1: Integrar Delegação com API
+  - [x] Implementar `createDelegacao()` no API client
+  - [x] Adicionar tipos em `types.ts`
+  - [x] Atualizar RLS policies
+  - [x] Testes
 
-- [ ] TODO 2: Implementar Etapas Concluídas
-  - [ ] Copiar lógica do workflow page
-  - [ ] Integrar com assessoria page
-  - [ ] Testes
+- [x] TODO 2: Implementar Etapas Concluídas
+  - [x] Copiar lógica do workflow page
+  - [x] Integrar com assessoria page
+  - [x] Testes
 
-- [ ] TODO 3: Usar ID Real do Usuário
-  - [ ] Importar useAuth hook
-  - [ ] Remover mock data
-  - [ ] Validar user logado
-  - [ ] Testes
+- [x] TODO 3: Usar ID Real do Usuário
+  - [x] Importar useAuth hook
+  - [x] Remover mock data
+  - [x] Validar user logado
+  - [x] Testes
 
-- [ ] TODO 4: Integrar Auth Context (Maior)
-  - [ ] Conectar Supabase Auth
-  - [ ] Sincronizar usuarios table
-  - [ ] Session management
-  - [ ] Testes de autenticação
+- [x] TODO 4: Integrar Auth Context (Maior)
+  - [x] Conectar Supabase Auth
+  - [x] Sincronizar usuarios table
+  - [x] Session management
+  - [x] Testes de autenticação
 
 ---
 

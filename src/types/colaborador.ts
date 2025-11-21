@@ -1,7 +1,7 @@
 // Types para o módulo Colaborador
 
 export type UserRole = 1 | 2 | 3 | 4;
-export type UserSetor = "OPERACIONAL" | "COMERCIAL" | "ADMINISTRATIVO" | "TECNICO";
+export type UserSetor = "ADMINISTRATIVO" | "ASSESSORIA" | "OBRAS";
 
 export interface Usuario {
   id: number;

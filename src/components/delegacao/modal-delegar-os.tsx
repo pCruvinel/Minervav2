@@ -169,10 +169,10 @@ export function ModalDelegarOS({
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       DIRETORIA: 'Diretoria',
-      GESTOR_COMERCIAL: 'Gestor Comercial',
+      GESTOR_ADMINISTRATIVO: 'Gestor Administrativo',
       GESTOR_ASSESSORIA: 'Gestor Assessoria',
       GESTOR_OBRAS: 'Gestor Obras',
-      COLABORADOR_COMERCIAL: 'Colaborador',
+      COLABORADOR_ADMINISTRATIVO: 'Colaborador',
       COLABORADOR_ASSESSORIA: 'Colaborador',
       COLABORADOR_OBRAS: 'Colaborador',
     };
@@ -272,9 +272,9 @@ export function ModalDelegarOS({
                             {getRoleLabel(colaborador.role_nivel)}
                           </Badge>
                           <span className="text-xs text-neutral-500">
-                            {colaborador.setor === 'COM' && 'Comercial'}
-                            {colaborador.setor === 'ASS' && 'Assessoria'}
-                            {colaborador.setor === 'OBR' && 'Obras'}
+                            {colaborador.setor === 'ADMINISTRATIVO' && 'Administrativo'}
+                            {colaborador.setor === 'ASSESSORIA' && 'Assessoria'}
+                            {colaborador.setor === 'OBRAS' && 'Obras'}
                           </span>
                         </div>
                       </div>

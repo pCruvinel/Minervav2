@@ -10,8 +10,6 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  Bug,
-  UserPlus,
   PieChart,
   CreditCard,
   Plus,
@@ -24,8 +22,7 @@ import {
   ClipboardCheck,
   Building2,
   Globe,
-  Shield,
-  Eye
+  Shield
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '../../lib/contexts/auth-context';
@@ -47,12 +44,12 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
   'DIRETORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   
   // GESTORES: Acesso completo
-  'GESTOR_COMERCIAL': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'GESTOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   'GESTOR_ASSESSORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   'GESTOR_OBRAS': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   
   // COLABORADORES: Acesso limitado (Dashboard, Ordem de Serviço, Clientes, Calendário)
-  'COLABORADOR_COMERCIAL': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'COLABORADOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'clientes', 'calendario'],
   'COLABORADOR_ASSESSORIA': ['dashboard', 'projetos', 'clientes', 'calendario'],
   'COLABORADOR_OBRAS': ['dashboard', 'projetos', 'clientes', 'calendario'],
   
@@ -64,7 +61,7 @@ const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { 
     id: 'projetos', 
-    label: 'Projetos / OS', 
+    label: 'Ordem de Serviço', 
     icon: FileText,
     submenu: [
       { id: 'os-criar', label: 'Nova OS', icon: Plus },
@@ -111,12 +108,6 @@ const menuItems = [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield },
     ]
   },
-];
-
-const debugItems = [
-  { id: 'debug-schema', label: 'Debug Schema', icon: Bug },
-  { id: 'seed-usuarios', label: 'Seed Usuários', icon: UserPlus },
-  { id: 'menu-preview', label: 'Preview de Menu', icon: Eye },
 ];
 
 export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }: SidebarProps) {
@@ -203,32 +194,6 @@ export function Sidebar({ currentPage, onNavigate, collapsed, onToggleCollapse }
                 </div>
               )}
             </div>
-          );
-        })}
-        
-        {/* Separator */}
-        {!collapsed && (
-          <div className="px-4 py-2 mt-4">
-            <div className="border-t border-neutral-200"></div>
-            <p className="text-xs text-neutral-500 mt-2">Debug</p>
-          </div>
-        )}
-        
-        {/* Debug Items */}
-        {debugItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentPage === item.id;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              className={`minerva-sidebar-item ${isActive ? 'active' : ''}`}
-              title={collapsed ? item.label : undefined}
-            >
-              <Icon className="minerva-sidebar-item-icon" />
-              {!collapsed && <span className="minerva-sidebar-item-text">{item.label}</span>}
-            </button>
           );
         })}
       </nav>

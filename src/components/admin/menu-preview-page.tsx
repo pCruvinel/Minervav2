@@ -55,12 +55,12 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
   'DIRETORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   
   // GESTORES: Acesso completo
-  'GESTOR_COMERCIAL': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'GESTOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   'GESTOR_ASSESSORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   'GESTOR_OBRAS': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
   
   // COLABORADORES: Acesso limitado
-  'COLABORADOR_COMERCIAL': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'COLABORADOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'clientes', 'calendario'],
   'COLABORADOR_ASSESSORIA': ['dashboard', 'projetos', 'clientes', 'calendario'],
   'COLABORADOR_OBRAS': ['dashboard', 'projetos', 'clientes', 'calendario'],
   
@@ -72,15 +72,15 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 // COMPONENTE PRINCIPAL
 // ============================================================
 
-export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
-  const [selectedRole, setSelectedRole] = useState<RoleLevel>('COLABORADOR_COMERCIAL');
+export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
+  const [selectedRole, setSelectedRole] = useState<RoleLevel>('COLABORADOR_ADMINISTRATIVO');
 
   const availableRoles: RoleLevel[] = [
     'DIRETORIA',
-    'GESTOR_COMERCIAL',
+    'GESTOR_ADMINISTRATIVO',
     'GESTOR_ASSESSORIA',
     'GESTOR_OBRAS',
-    'COLABORADOR_COMERCIAL',
+    'COLABORADOR_ADMINISTRATIVO',
     'COLABORADOR_ASSESSORIA',
     'COLABORADOR_OBRAS',
     'MOBRA',

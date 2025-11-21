@@ -191,15 +191,18 @@ function mapStatusToLocal(status: string): string {
 }
 
 function mapSetorToLocal(setor: string | undefined): string {
-  if (!setor) return 'obras';
+  if (!setor) return 'OBRAS';
   const setorMap: Record<string, string> = {
-    'OBRAS': 'obras',
-    'LABORATORIO': 'laboratorio',
-    'ADM': 'adm',
-    'COMERCIAL': 'comercial',
-    'FINANCEIRO': 'financeiro',
+    'OBRAS': 'OBRAS',
+    'LABORATORIO': 'OBRAS',
+    'ADM': 'ADMINISTRATIVO',
+    'COMERCIAL': 'ADMINISTRATIVO',
+    'ADMINISTRATIVO': 'ADMINISTRATIVO',
+    'ASSESSORIA': 'ASSESSORIA',
+    'ASS': 'ASSESSORIA',
+    'FINANCEIRO': 'ADMINISTRATIVO',
   };
-  return setorMap[setor] || 'obras';
+  return setorMap[setor] || 'OBRAS';
 }
 
 function getInitials(nome: string): string {

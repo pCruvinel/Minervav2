@@ -18,55 +18,46 @@ export type RoleLevel =
 // TIPOS DE SETORES
 // ============================================================
 
-export type Setor = 'COM' | 'ASS' | 'OBR';
+export type Setor = 'ADMINISTRATIVO' | 'ASSESSORIA' | 'OBRAS';
 
 // Compatibilidade com código legado
 export type SetorLegacy = 'assessoria' | 'obras';
 
-// ============================================================
-// STATUS DE ORDEM DE SERVIÇO
-// ============================================================
-
-export type OSStatus =
-  | 'EM_TRIAGEM'
-  | 'AGUARDANDO_INFORMACOES'
-  | 'EM_ANDAMENTO'
-  | 'EM_VALIDACAO'
-  | 'ATRASADA'
-  | 'CONCLUIDA'
+export type OSStatus = 
+  | 'EM_TRIAGEM' 
+  | 'AGUARDANDO_INFORMACOES' 
+  | 'EM_ANDAMENTO' 
+  | 'EM_VALIDACAO' 
+  | 'ATRASADA' 
+  | 'CONCLUIDA' 
   | 'CANCELADA';
 
-// Status de Etapa
-export type EtapaStatus =
-  | 'PENDENTE'
-  | 'EM_ANDAMENTO'
-  | 'AGUARDANDO_APROVACAO'
-  | 'APROVADA'
+export type EtapaStatus = 
+  | 'PENDENTE' 
+  | 'EM_ANDAMENTO' 
+  | 'AGUARDANDO_APROVACAO' 
+  | 'APROVADA' 
   | 'REJEITADA';
-
-// ============================================================
-// INTERFACE DE USUÁRIO EXPANDIDA
-// ============================================================
 
 export interface User {
   id: string;
-  nome_completo: string;
   email: string;
+  nome_completo: string;
   role_nivel: RoleLevel;
   setor: Setor;
-  supervisor_id?: string;  // UUID do supervisor
-  supervisor_nome?: string; // Nome do supervisor
-  status_colaborador: 'ativo' | 'inativo' | 'suspenso';
-  data_admissao: Date;
+  avatar_url?: string;
+  avatar?: string; // Compatibilidade
+  supervisor_id?: string;
+  supervisor_nome?: string;
+  status_colaborador?: 'ativo' | 'inativo';
+  data_admissao?: Date;
   telefone?: string;
   cpf?: string;
-  endereco?: string;
-  avatar?: string;
-
-  // Metadados de controle (calculados dinamicamente)
+  
+  // Permissões calculadas
   pode_delegar: boolean;
   pode_aprovar: boolean;
-  setores_acesso: Setor[]; // Setores que pode visualizar
+  setores_acesso: Setor[];
   modulos_acesso: {
     administrativo: boolean;
     financeiro: boolean;
@@ -75,38 +66,29 @@ export interface User {
   };
 }
 
-// ============================================================
-// INTERFACE DE DELEGAÇÃO
-// ============================================================
-
 export interface Delegacao {
   id: string;
   os_id: string;
   delegante_id: string;
-  delegante_nome: string;
   delegado_id: string;
-  delegado_nome: string;
-  data_delegacao: Date;
-  data_prazo?: Date;
-  status_delegacao: 'pendente' | 'em_progresso' | 'concluida' | 'reprovada';
   descricao_tarefa: string;
+  data_prazo: string;
+  status_delegacao: 'pendente' | 'concluida' | 'atrasada';
+  delegante_nome?: string;
+  delegado_nome?: string;
   observacoes?: string;
-  data_atualizacao: Date;
+  data_atualizacao?: string;
+  created_at: string;
+  data_criacao?: string;
 }
-
-// ============================================================
-// INTERFACE DE APROVAÇÃO
-// ============================================================
 
 export interface Aprovacao {
   id: string;
-  delegacao_id: string;
-  responsavel_id: string;
-  responsavel_nome: string;
-  status_aprovacao: 'pendente' | 'aprovada' | 'reprovada';
-  observacoes_aprovacao?: string;
-  data_aprovacao?: Date;
-  data_criacao: Date;
+  os_id: string;
+  aprovador_id: string;
+  status_aprovacao: 'aprovada' | 'reprovada';
+  data_aprovacao: string;
+  observacoes?: string;
 }
 
 // ============================================================
@@ -150,44 +132,44 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, {
 
   'GESTOR_ADMINISTRATIVO': {
     pode_delegar_para: ['*'],
-    pode_aprovar_setores: ['COM'],
+    pode_aprovar_setores: ['ADMINISTRATIVO'],
     acesso_modulos: ['administrativo', 'financeiro'],
     acesso_setores: ['*'],
   },
 
   'GESTOR_ASSESSORIA': {
-    pode_delegar_para: ['ASS'],
-    pode_aprovar_setores: ['ASS'],
+    pode_delegar_para: ['ASSESSORIA'],
+    pode_aprovar_setores: ['ASSESSORIA'],
     acesso_modulos: ['operacional'],
-    acesso_setores: ['ASS'],
+    acesso_setores: ['ASSESSORIA'],
   },
 
   'GESTOR_OBRAS': {
-    pode_delegar_para: ['OBR'],
-    pode_aprovar_setores: ['OBR'],
+    pode_delegar_para: ['OBRAS'],
+    pode_aprovar_setores: ['OBRAS'],
     acesso_modulos: ['operacional'],
-    acesso_setores: ['OBR'],
+    acesso_setores: ['OBRAS'],
   },
 
   'COLABORADOR_ADMINISTRATIVO': {
     pode_delegar_para: [],
     pode_aprovar_setores: [],
     acesso_modulos: ['operacional'],
-    acesso_setores: ['COM'],
+    acesso_setores: ['ADMINISTRATIVO'],
   },
 
   'COLABORADOR_ASSESSORIA': {
     pode_delegar_para: [],
     pode_aprovar_setores: [],
     acesso_modulos: ['operacional'],
-    acesso_setores: ['ASS'],
+    acesso_setores: ['ASSESSORIA'],
   },
 
   'COLABORADOR_OBRAS': {
     pode_delegar_para: [],
     pode_aprovar_setores: [],
     acesso_modulos: ['operacional'],
-    acesso_setores: ['OBR'],
+    acesso_setores: ['OBRAS'],
   },
 
   'MOBRA': {
@@ -214,9 +196,9 @@ export const ROLE_NAMES: Record<RoleLevel, string> = {
 };
 
 export const SETOR_NAMES: Record<Setor, string> = {
-  'COM': 'Administrativo',
-  'ASS': 'Assessoria Técnica',
-  'OBR': 'Obras',
+  'ADMINISTRATIVO': 'Administrativo',
+  'ASSESSORIA': 'Assessoria Técnica',
+  'OBRAS': 'Obras',
 };
 
 // ============================================================
@@ -235,6 +217,7 @@ export interface OrdemServico {
   codigo: string;
   cliente: string;
   tipo: string;
+  titulo: string;
   descricao: string;
   status: OSStatus;
   setor: Setor;

@@ -190,7 +190,7 @@ export function useFiltrarColaboradoresPorPermissao(
     }
 
     // Gestor Comercial vê todos
-    if (currentUser.role_nivel === 'GESTOR_COMERCIAL') {
+    if (currentUser.role_nivel === 'GESTOR_ADMINISTRATIVO') {
       return colaboradores;
     }
 
