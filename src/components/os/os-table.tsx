@@ -197,7 +197,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                 <TableRow key={os.id}>
                   <TableCell className="font-medium">
                     <button
-                      onClick={() => onNavigate(`/os/${os.id}`)}
+                      onClick={() => onNavigate(`/os/${os.id}/workflow`)}
                       className="text-primary hover:underline"
                     >
                       {os.codigo}
@@ -255,7 +255,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onNavigate(`/os/${os.id}`)}>
+                        <DropdownMenuItem onClick={() => onNavigate(`/os/${os.id}/workflow`)}>
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </DropdownMenuItem>
