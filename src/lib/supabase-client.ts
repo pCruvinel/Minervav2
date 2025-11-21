@@ -2,22 +2,21 @@
  * Supabase Client Configuration
  *
  * Cliente Supabase configurado para autenticação e operações de banco de dados.
- * Utiliza as credenciais do projeto configuradas em `utils/supabase/info.tsx`.
+ * Utiliza variáveis de ambiente para maior segurança.
  *
  * @module supabase-client
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
 
-// Construir URL do Supabase
-const supabaseUrl = `https://${projectId}.supabase.co`;
-const supabaseAnonKey = publicAnonKey;
+// Obter credenciais das variáveis de ambiente
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 // Validação de credenciais
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    'Credenciais do Supabase não configuradas. Verifique o arquivo utils/supabase/info.tsx'
+    'Credenciais do Supabase não configuradas. Verifique se as variáveis VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY estão definidas no arquivo .env'
   );
 }
 
@@ -57,10 +56,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // Log de inicialização (apenas em desenvolvimento)
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   console.log('✅ Supabase Client inicializado');
   console.log(`📍 URL: ${supabaseUrl}`);
-  console.log(`🔑 Project ID: ${projectId}`);
 }
 
 /**
