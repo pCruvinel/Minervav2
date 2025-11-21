@@ -7,7 +7,9 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Loader2, CheckCircle2, AlertCircle, Users, Shield, UserCog, User } from 'lucide-react';
 import { toast } from '../../lib/utils/safe-toast';
-import { projectId, publicAnonKey } from '../../utils/supabase/info';
+// Credenciais do Supabase via variáveis de ambiente
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 interface SeedResultado {
   email: string;
@@ -83,12 +85,12 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-5ad7fd2c/seed-usuarios`,
+        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/seed-usuarios`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         }
       );

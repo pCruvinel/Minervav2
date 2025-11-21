@@ -1,7 +1,13 @@
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+// Credenciais do Supabase via variáveis de ambiente
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error('Missing Supabase credentials. Check .env file.');
+}
 
 // API HABILITADA - Conectado ao Supabase
-const API_BASE_URL = `https://${projectId}.supabase.co/functions/v1/make-server-5ad7fd2c`;
+const API_BASE_URL = `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c`;
 const FRONTEND_ONLY_MODE = false; // Backend habilitado
 
 interface RequestOptions {
@@ -48,7 +54,7 @@ async function apiRequest<T>(endpoint: string, options: RequestOptions = {}): Pr
   
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${publicAnonKey}`,
+    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
   };
   
   const config: RequestInit = {

@@ -5,7 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Button } from './ui/button';
 import { Alert, AlertDescription } from './ui/alert';
 import { AlertCircle, CheckCircle2, RefreshCw, Database } from 'lucide-react';
-import { projectId, publicAnonKey } from '../utils/supabase/info';
+// Credenciais do Supabase via variáveis de ambiente
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 /**
  * Componente de debug para testar e recarregar o schema do PostgREST
@@ -34,12 +36,12 @@ export function TestSchemaReload() {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-5ad7fd2c/reload-schema`,
+        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/reload-schema`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${publicAnonKey}`,
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
           },
         }
       );
@@ -85,10 +87,10 @@ export function TestSchemaReload() {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/make-server-5ad7fd2c/debug/table-structure`,
+        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/debug/table-structure`,
         {
           headers: {
-            'Authorization': `Bearer ${publicAnonKey}`
+            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
           }
         }
       );
@@ -217,13 +219,13 @@ export function TestSchemaReload() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Project ID:</span>
-            <code className="bg-neutral-100 px-2 py-1 rounded">{projectId}</code>
+            <span className="text-muted-foreground">Supabase URL:</span>
+            <code className="bg-neutral-100 px-2 py-1 rounded text-xs">{SUPABASE_URL}</code>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">API URL:</span>
             <code className="bg-neutral-100 px-2 py-1 rounded text-xs">
-              https://{projectId}.supabase.co/functions/v1/
+              {SUPABASE_URL}/functions/v1/
             </code>
           </div>
         </CardContent>
