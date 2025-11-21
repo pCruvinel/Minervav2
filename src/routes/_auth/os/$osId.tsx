@@ -1,8 +1,8 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OSDetailsPage } from '../../components/os/os-details-page'
-import { mockOrdensServico, mockComentarios, mockDocumentos, mockHistorico } from '../../lib/mock-data'
+import { OSDetailsPage } from '../../../components/os/os-details-page'
+import { mockOrdensServico, mockComentarios, mockDocumentos, mockHistorico } from '../../../lib/mock-data'
 import { useState, useEffect } from 'react'
-import { OrdemServico } from '../../lib/types'
+import { OrdemServico } from '../../../lib/types'
 
 export const Route = createFileRoute('/_auth/os/$osId')({
   component: OSDetailsRoute,

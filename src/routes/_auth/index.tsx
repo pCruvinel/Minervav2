@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { DashboardPage } from '../components/dashboard/dashboard-page'
-import { mockOrdensServico } from '../lib/mock-data'
+import { DashboardPage } from '../../components/dashboard/dashboard-page'
+import { mockOrdensServico } from '../../lib/mock-data'
 import { useState } from 'react'
-import { Delegacao } from '../lib/types'
+import { Delegacao } from '../../lib/types'
 
 export const Route = createFileRoute('/_auth/')({
   component: DashboardRoute,
