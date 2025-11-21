@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../ui/alert';
 import { Info, Calculator } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { toast } from 'sonner';
 
 interface ModalCustoFlutuanteProps {
   open: boolean;
@@ -86,12 +87,12 @@ export function ModalCustoFlutuante({
 
   const handleSalvar = () => {
     if (!colaboradorId || !tipoCusto) {
-      alert('Preencha todos os campos obrigatórios');
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
     if (isCustoFlutuante && !categoriaCusto) {
-      alert('Selecione a categoria do custo flutuante');
+      toast.error('Selecione a categoria do custo flutuante');
       return;
     }
 

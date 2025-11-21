@@ -13,6 +13,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { toast } from 'sonner';
 
 interface ModalNovaContaProps {
   open: boolean;
@@ -30,7 +31,7 @@ export function ModalNovaConta({ open, onClose, onSalvar }: ModalNovaContaProps)
 
   const handleSalvar = () => {
     if (!favorecido || !descricao || !valor || !vencimento) {
-      alert('Preencha todos os campos obrigatórios');
+      toast.error('Preencha todos os campos obrigatórios');
       return;
     }
 
