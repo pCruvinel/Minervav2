@@ -277,7 +277,7 @@ export function PortalClienteObras() {
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Parcela {parcela.numero}/13</span>
-                      {parcela.status === 'PAGO' ? (
+                      {parcela.status === 'pago' ? (
                         <Badge className="bg-green-100 text-green-800">Pago</Badge>
                       ) : (
                         <Badge variant="outline">Em Aberto</Badge>

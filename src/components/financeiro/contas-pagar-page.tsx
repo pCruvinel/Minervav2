@@ -28,13 +28,13 @@ const mockContas: ContaPagar[] = [
   {
     id: 'pag-1',
     favorecido: 'João Silva',
-    tipoFavorecido: 'COLABORADOR',
+    tipoFavorecido: 'colaborador',
     descricao: 'Salário - Nov/2024',
-    tipo: 'SALARIO',
+    tipo: 'salario',
     vencimento: '2024-11-05',
     valor: 4095.00,
     valorPago: 4095.00,
-    status: 'PAGO',
+    status: 'pago',
     dataPagamento: '2024-11-05',
     comprovanteId: 'comp-sal-001',
     recorrente: true,
@@ -42,13 +42,13 @@ const mockContas: ContaPagar[] = [
   {
     id: 'pag-2',
     favorecido: 'Maria Santos',
-    tipoFavorecido: 'COLABORADOR',
+    tipoFavorecido: 'colaborador',
     descricao: 'Salário - Nov/2024',
-    tipo: 'SALARIO',
+    tipo: 'salario',
     vencimento: '2024-11-05',
     valor: 2628.00,
     valorPago: 2628.00,
-    status: 'PAGO',
+    status: 'pago',
     dataPagamento: '2024-11-05',
     comprovanteId: 'comp-sal-002',
     recorrente: true,
@@ -56,46 +56,46 @@ const mockContas: ContaPagar[] = [
   {
     id: 'pag-3',
     favorecido: 'Pedro Oliveira',
-    tipoFavorecido: 'COLABORADOR',
+    tipoFavorecido: 'colaborador',
     descricao: 'Salário - Nov/2024',
-    tipo: 'SALARIO',
+    tipo: 'salario',
     vencimento: '2024-11-05',
     valor: 3120.00,
-    status: 'ATRASADO',
+    status: 'atrasado',
     recorrente: true,
   },
   {
     id: 'pag-4',
     favorecido: 'Ana Costa',
-    tipoFavorecido: 'COLABORADOR',
+    tipoFavorecido: 'colaborador',
     descricao: 'Salário - Nov/2024',
-    tipo: 'SALARIO',
+    tipo: 'salario',
     vencimento: '2024-11-05',
     valor: 4672.00,
-    status: 'ATRASADO',
+    status: 'atrasado',
     recorrente: true,
   },
   {
     id: 'pag-5',
     favorecido: 'João Silva',
-    tipoFavorecido: 'COLABORADOR',
+    tipoFavorecido: 'colaborador',
     descricao: 'Salário - Dez/2024',
-    tipo: 'SALARIO',
+    tipo: 'salario',
     vencimento: '2024-12-05',
     valor: 4095.00,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
     recorrente: true,
   },
   {
     id: 'pag-6',
     favorecido: 'Imobiliária Boa Vista',
-    tipoFavorecido: 'FORNECEDOR',
+    tipoFavorecido: 'fornecedor',
     descricao: 'Aluguel Escritório - Nov/2024',
-    tipo: 'CONTA_FIXA',
+    tipo: 'conta_fixa',
     vencimento: '2024-11-10',
     valor: 5500.00,
     valorPago: 5500.00,
-    status: 'PAGO',
+    status: 'pago',
     dataPagamento: '2024-11-10',
     comprovanteId: 'comp-aluguel-001',
     recorrente: true,
@@ -103,35 +103,35 @@ const mockContas: ContaPagar[] = [
   {
     id: 'pag-7',
     favorecido: 'Imobiliária Boa Vista',
-    tipoFavorecido: 'FORNECEDOR',
+    tipoFavorecido: 'fornecedor',
     descricao: 'Aluguel Escritório - Dez/2024',
-    tipo: 'CONTA_FIXA',
+    tipo: 'conta_fixa',
     vencimento: '2024-12-10',
     valor: 5500.00,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
     recorrente: true,
   },
   {
     id: 'pag-8',
     favorecido: 'Companhia Elétrica',
-    tipoFavorecido: 'FORNECEDOR',
+    tipoFavorecido: 'fornecedor',
     descricao: 'Energia Elétrica - Out/2024',
-    tipo: 'CONTA_FIXA',
+    tipo: 'conta_fixa',
     vencimento: '2024-11-15',
     valor: 780.00,
-    status: 'ATRASADO',
+    status: 'atrasado',
     recorrente: true,
   },
   {
     id: 'pag-9',
     favorecido: 'Provedora Internet Ltda',
-    tipoFavorecido: 'FORNECEDOR',
+    tipoFavorecido: 'fornecedor',
     descricao: 'Internet Escritório - Nov/2024',
-    tipo: 'CONTA_FIXA',
+    tipo: 'conta_fixa',
     vencimento: '2024-11-20',
     valor: 350.00,
     valorPago: 350.00,
-    status: 'PAGO',
+    status: 'pago',
     dataPagamento: '2024-11-20',
     comprovanteId: 'comp-internet-001',
     recorrente: true,
@@ -139,12 +139,12 @@ const mockContas: ContaPagar[] = [
   {
     id: 'pag-10',
     favorecido: 'Fornecedor de Materiais XYZ',
-    tipoFavorecido: 'FORNECEDOR',
+    tipoFavorecido: 'fornecedor',
     descricao: 'Materiais para Obra - Shopping Norte',
-    tipo: 'DESPESA_VARIAVEL',
+    tipo: 'despesa_variavel',
     vencimento: '2024-11-25',
     valor: 8500.00,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
     recorrente: false,
   },
 ];
@@ -169,7 +169,7 @@ export function ContasPagarPage() {
   };
 
   const isAtrasado = (conta: ContaPagar) => {
-    if (conta.status === 'PAGO') return false;
+    if (conta.status === 'pago') return false;
     const hoje = new Date();
     const vencimento = new Date(conta.vencimento);
     return hoje > vencimento;
@@ -177,24 +177,24 @@ export function ContasPagarPage() {
 
   const getStatusBadge = (conta: ContaPagar) => {
     // Atualizar status se atrasado
-    const status = isAtrasado(conta) ? 'ATRASADO' : conta.status;
+    const status = isAtrasado(conta) ? 'atrasado' : conta.status;
 
     switch (status) {
-      case 'PAGO':
+      case 'pago':
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
             <CheckCircle className="h-3 w-3 mr-1" />
             Pago
           </Badge>
         );
-      case 'ATRASADO':
+      case 'atrasado':
         return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" />
             Atrasado
           </Badge>
         );
-      case 'EM_ABERTO':
+      case 'em_aberto':
         return (
           <Badge variant="outline">
             <Clock className="h-3 w-3 mr-1" />
@@ -206,9 +206,9 @@ export function ContasPagarPage() {
 
   const getTipoBadge = (tipo: ContaPagarTipo) => {
     const config = {
-      SALARIO: { label: 'Salário', className: 'bg-blue-100 text-blue-800' },
-      CONTA_FIXA: { label: 'Conta Fixa', className: 'bg-purple-100 text-purple-800' },
-      DESPESA_VARIAVEL: { label: 'Despesa Variável', className: 'bg-amber-100 text-amber-800' },
+      salario: { label: 'Salário', className: 'bg-blue-100 text-blue-800' },
+      conta_fixa: { label: 'Conta Fixa', className: 'bg-purple-100 text-purple-800' },
+      despesa_variavel: { label: 'Despesa Variável', className: 'bg-amber-100 text-amber-800' },
     };
 
     const { label, className } = config[tipo];
@@ -223,7 +223,7 @@ export function ContasPagarPage() {
     if (isAtrasado(conta)) {
       return 'bg-red-50 border-l-4 border-l-red-500';
     }
-    if (conta.status === 'PAGO') {
+    if (conta.status === 'pago') {
       return 'bg-green-50/50';
     }
     return '';
@@ -237,7 +237,7 @@ export function ContasPagarPage() {
     }
 
     if (filtroStatus) {
-      const statusAtual = isAtrasado(c) ? 'ATRASADO' : c.status;
+      const statusAtual = isAtrasado(c) ? 'atrasado' : c.status;
       if (statusAtual !== filtroStatus) return false;
     }
 
@@ -249,12 +249,12 @@ export function ContasPagarPage() {
   // Calcular totais
   const totais = contasFiltradas.reduce(
     (acc, c) => {
-      const status = isAtrasado(c) ? 'ATRASADO' : c.status;
+      const status = isAtrasado(c) ? 'atrasado' : c.status;
       return {
         total: acc.total + c.valor,
         pago: acc.pago + (c.valorPago || 0),
-        emAberto: acc.emAberto + (status === 'EM_ABERTO' ? c.valor : 0),
-        atrasado: acc.atrasado + (status === 'ATRASADO' ? c.valor : 0),
+        emAberto: acc.emAberto + (status === 'em_aberto' ? c.valor : 0),
+        atrasado: acc.atrasado + (status === 'atrasado' ? c.valor : 0),
       };
     },
     { total: 0, pago: 0, emAberto: 0, atrasado: 0 }
@@ -268,12 +268,12 @@ export function ContasPagarPage() {
     const novaConta: ContaPagar = {
       id: `pag-${contas.length + 1}`,
       favorecido: dados.favorecido,
-      tipoFavorecido: 'FORNECEDOR',
+      tipoFavorecido: 'fornecedor',
       descricao: dados.descricao,
-      tipo: 'CONTA_FIXA',
+      tipo: 'conta_fixa',
       vencimento: dados.vencimento,
       valor: parseFloat(dados.valor),
-      status: 'EM_ABERTO',
+      status: 'em_aberto',
       recorrente: dados.recorrente || false,
     };
 
@@ -332,7 +332,7 @@ export function ContasPagarPage() {
             </div>
             <h3 className="text-2xl text-green-600">{formatCurrency(totais.pago)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {contasFiltradas.filter(c => c.status === 'PAGO').length} conciliada(s)
+              {contasFiltradas.filter(c => c.status === 'pago').length} conciliada(s)
             </p>
           </CardContent>
         </Card>
@@ -345,7 +345,7 @@ export function ContasPagarPage() {
             </div>
             <h3 className="text-2xl text-blue-600">{formatCurrency(totais.emAberto)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {contasFiltradas.filter(c => c.status === 'EM_ABERTO' && !isAtrasado(c)).length} conta(s)
+              {contasFiltradas.filter(c => c.status === 'em_aberto' && !isAtrasado(c)).length} conta(s)
             </p>
           </CardContent>
         </Card>
@@ -377,9 +377,9 @@ export function ContasPagarPage() {
                     <SelectValue placeholder="Filtrar por tipo..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="SALARIO">Salário</SelectItem>
-                    <SelectItem value="CONTA_FIXA">Conta Fixa</SelectItem>
-                    <SelectItem value="DESPESA_VARIAVEL">Despesa Variável</SelectItem>
+                    <SelectItem value="salario">Salário</SelectItem>
+                    <SelectItem value="conta_fixa">Conta Fixa</SelectItem>
+                    <SelectItem value="despesa_variavel">Despesa Variável</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -391,9 +391,9 @@ export function ContasPagarPage() {
                     <SelectValue placeholder="Filtrar por status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EM_ABERTO">Em Aberto</SelectItem>
-                    <SelectItem value="PAGO">Pago</SelectItem>
-                    <SelectItem value="ATRASADO">Atrasado</SelectItem>
+                    <SelectItem value="em_aberto">Em Aberto</SelectItem>
+                    <SelectItem value="pago">Pago</SelectItem>
+                    <SelectItem value="atrasado">Atrasado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -430,7 +430,7 @@ export function ContasPagarPage() {
                 <TableRow key={conta.id} className={getRowClassName(conta)}>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      {conta.tipoFavorecido === 'COLABORADOR' ? (
+                      {conta.tipoFavorecido === 'colaborador' ? (
                         <User className="h-4 w-4 text-primary" />
                       ) : (
                         <Building2 className="h-4 w-4 text-muted-foreground" />
@@ -438,7 +438,7 @@ export function ContasPagarPage() {
                       <div>
                         <p className="font-medium">{conta.favorecido}</p>
                         <p className="text-xs text-muted-foreground">
-                          {conta.tipoFavorecido === 'COLABORADOR' ? 'Colaborador' : 'Fornecedor'}
+                          {conta.tipoFavorecido === 'colaborador' ? 'Colaborador' : 'Fornecedor'}
                         </p>
                       </div>
                     </div>
@@ -477,7 +477,7 @@ export function ContasPagarPage() {
                   </TableCell>
                   <TableCell>{getStatusBadge(conta)}</TableCell>
                   <TableCell className="text-center">
-                    {conta.status === 'PAGO' && conta.comprovanteId && (
+                    {conta.status === 'pago' && conta.comprovanteId && (
                       <Button
                         variant="ghost"
                         size="sm"

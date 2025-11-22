@@ -30,7 +30,7 @@ export default function ColaboradorDashboardPage() {
   );
 
   const mockKPIs = useMemo(() => ({
-    osEmAberto: minhasOS.filter((os) => os.status !== "CONCLUIDO").length,
+    osEmAberto: minhasOS.filter((os) => os.status !== "concluido").length,
     tarefasHoje: minhasOS.filter((os) => {
       const hoje = new Date().toISOString().split("T")[0];
       return os.prazo === hoje;
@@ -38,7 +38,7 @@ export default function ColaboradorDashboardPage() {
     prazosVencidos: minhasOS.filter((os) => {
       const hoje = new Date();
       const prazo = new Date(os.prazo);
-      return prazo < hoje && os.status !== "CONCLUIDO";
+      return prazo < hoje && os.status !== "concluido";
     }).length,
   }), [minhasOS]);
 
