@@ -1,9 +1,16 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { FinanceiroDashboardPage } from '../../../components/financeiro/financeiro-dashboard-page'
 
 export const Route = createFileRoute('/_auth/financeiro/')({
-  component: RouteComponent,
+  component: FinanceiroIndexRoute,
 })
 
-function RouteComponent() {
-  return <div>Hello "/_auth/financeiro/"!</div>
+function FinanceiroIndexRoute() {
+  const navigate = useNavigate()
+
+  return (
+    <FinanceiroDashboardPage
+      onNavigate={(page) => navigate({ to: `/financeiro/${page}` as any })}
+    />
+  )
 }
