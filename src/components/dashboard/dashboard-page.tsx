@@ -54,7 +54,7 @@ export function DashboardPage({
   // Determinar qual dashboard mostrar baseado no role
   const renderDashboard = () => {
     // DIRETORIA - Dashboard completo com visão geral
-    if (currentUser.role_nivel === 'DIRETORIA') {
+    if (currentUser.role_nivel === 'diretoria' || currentUser.role_nivel === 'admin') {
       return (
         <DashboardDiretoria
           ordensServico={ordensServico}
@@ -66,7 +66,7 @@ export function DashboardPage({
     }
 
     // GESTORES - Dashboard do setor
-    if (currentUser.role_nivel.startsWith('GESTOR_')) {
+    if (currentUser.role_nivel?.startsWith('gestor_')) {
       return (
         <DashboardGestor
           currentUser={currentUser}
@@ -80,7 +80,7 @@ export function DashboardPage({
     }
 
     // COLABORADORES - Dashboard de tarefas pessoais
-    if (currentUser.role_nivel.startsWith('COLABORADOR_')) {
+    if (currentUser.role_nivel === 'colaborador') {
       return (
         <DashboardColaborador
           currentUser={currentUser}

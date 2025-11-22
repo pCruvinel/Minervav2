@@ -12,45 +12,33 @@ interface OSStatusChartProps {
   height?: number;
 }
 
-export function OSStatusChart({ 
-  ordensServico, 
+export function OSStatusChart({
+  ordensServico,
   title = 'Ordens de Serviço por Status',
-  height = 300 
+  height = 300
 }: OSStatusChartProps) {
   // Agrupar OS por status
   const statusCount = React.useMemo(() => {
     const counts: Record<string, number> = {};
 
     ordensServico.forEach(os => {
-      const status = os.status || 'SEM_STATUS';
+      const status = os.status_geral || 'Em Triagem';
       counts[status] = (counts[status] || 0) + 1;
     });
 
     // Mapear para formato do gráfico
     const statusLabels: Record<string, string> = {
-      RASCUNHO: 'Rascunho',
-      PENDENTE: 'Pendente',
-      EM_TRIAGEM: 'Em Triagem',
-      EM_ANDAMENTO: 'Em Andamento',
-      AGUARDANDO_APROVACAO: 'Aguardando Aprovação',
-      APROVADA: 'Aprovada',
-      EM_EXECUCAO: 'Em Execução',
-      CONCLUIDA: 'Concluída',
-      CANCELADA: 'Cancelada',
-      ARQUIVADA: 'Arquivada',
+      em_triagem: 'Em Triagem',
+      em_andamento: 'Em Andamento',
+      concluido: 'Concluído',
+      cancelado: 'Cancelado',
     };
 
     const statusColors: Record<string, string> = {
-      RASCUNHO: '#9ca3af', // neutral
-      PENDENTE: '#fbbf24', // amber
-      EM_TRIAGEM: '#60a5fa', // blue
-      EM_ANDAMENTO: '#3b82f6', // blue-600
-      AGUARDANDO_APROVACAO: '#f59e0b', // amber-500
-      APROVADA: '#10b981', // green
-      EM_EXECUCAO: '#8b5cf6', // violet
-      CONCLUIDA: '#22c55e', // green-500
-      CANCELADA: '#ef4444', // red
-      ARQUIVADA: '#6b7280', // neutral-500
+      em_triagem: '#60a5fa', // blue
+      em_andamento: '#3b82f6', // blue-600
+      concluido: '#22c55e', // green-500
+      cancelado: '#ef4444', // red
     };
 
     return Object.entries(counts)
@@ -68,7 +56,7 @@ export function OSStatusChart({
     if (active && payload && payload.length) {
       const data = payload[0];
       const percentage = ((data.value / totalOS) * 100).toFixed(1);
-      
+
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-neutral-200">
           <p className="text-sm font-medium mb-1">{data.payload.name}</p>
@@ -108,8 +96,8 @@ export function OSStatusChart({
         <ResponsiveContainer width="100%" height={height}>
           <BarChart data={statusCount} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis 
-              dataKey="name" 
+            <XAxis
+              dataKey="name"
               tick={{ fontSize: 12 }}
               angle={-45}
               textAnchor="end"

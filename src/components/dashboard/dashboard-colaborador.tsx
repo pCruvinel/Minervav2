@@ -1,11 +1,11 @@
 // Dashboard do Colaborador - Sistema Minerva ERP
 'use client';
 
-import React, { useMemo } from 'react';
-import { 
-  ListTodo, 
-  Clock, 
-  CheckCircle2, 
+import { useMemo } from 'react';
+import {
+  ListTodo,
+  Clock,
+  CheckCircle2,
   AlertCircle,
   Calendar,
   TrendingUp,
@@ -18,7 +18,7 @@ import { OrdemServico, Delegacao, User } from '../../lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { formatarDataRelativa, calcularDiasAtraso } from '../../lib/utils/date-utils';
+import { calcularDiasAtraso } from '../../lib/utils/date-utils';
 
 interface DashboardColaboradorProps {
   currentUser: User;
@@ -29,7 +29,7 @@ interface DashboardColaboradorProps {
   onViewAllOS?: () => void;
 }
 
-export function DashboardColaborador({ 
+export function DashboardColaborador({
   currentUser,
   ordensServico,
   delegacoes,
@@ -50,36 +50,36 @@ export function DashboardColaborador({
   const metrics = useMemo(() => {
     // OS
     const totalOS = minhasOS.length;
-    const osEmAndamento = minhasOS.filter(os => 
-      os.status === 'EM_ANDAMENTO' || os.status === 'EM_EXECUCAO'
+    const osEmAndamento = minhasOS.filter(os =>
+      (os as any).status === 'em_andamento' || (os as any).status === 'em_execucao'
     ).length;
-    const osConcluidas = minhasOS.filter(os => os.status === 'CONCLUIDA').length;
+    const osConcluidas = minhasOS.filter(os => (os as any).status === 'concluido').length;
 
     // Delegações
     const totalDelegacoes = minhasDelegacoes.length;
-    const delegacoesPendentes = minhasDelegacoes.filter(d => 
-      d.status_delegacao === 'PENDENTE'
+    const delegacoesPendentes = minhasDelegacoes.filter(d =>
+      d.status_delegacao === 'pendente'
     ).length;
-    const delegacoesEmProgresso = minhasDelegacoes.filter(d => 
-      d.status_delegacao === 'EM_PROGRESSO'
+    const delegacoesEmProgresso = minhasDelegacoes.filter(d =>
+      d.status_delegacao === 'aceita'
     ).length;
-    const delegacoesConcluidas = minhasDelegacoes.filter(d => 
-      d.status_delegacao === 'CONCLUIDA'
+    const delegacoesConcluidas = minhasDelegacoes.filter(d =>
+      d.status_delegacao === 'concluida'
     ).length;
 
     // Tarefas atrasadas
     const delegacoesAtrasadas = minhasDelegacoes.filter(d => {
-      if (d.status_delegacao === 'CONCLUIDA' || d.status_delegacao === 'REPROVADA') {
+      if (d.status_delegacao === 'concluida' || d.status_delegacao === 'recusada') {
         return false;
       }
-      const prazo = new Date(d.data_prazo);
+      const prazo = new Date(d.data_prazo || '');
       const hoje = new Date();
       return prazo < hoje;
     }).length;
 
     // Performance
-    const taxaConclusao = totalDelegacoes > 0 
-      ? Math.round((delegacoesConcluidas / totalDelegacoes) * 100) 
+    const taxaConclusao = totalDelegacoes > 0
+      ? Math.round((delegacoesConcluidas / totalDelegacoes) * 100)
       : 0;
 
     return {
@@ -98,10 +98,10 @@ export function DashboardColaborador({
   // Próximas tarefas (ordenadas por prazo)
   const proximasTarefas = useMemo(() => {
     return minhasDelegacoes
-      .filter(d => d.status_delegacao === 'PENDENTE' || d.status_delegacao === 'EM_PROGRESSO')
+      .filter(d => d.status_delegacao === 'pendente' || d.status_delegacao === 'aceita')
       .sort((a, b) => {
-        const dateA = new Date(a.data_prazo);
-        const dateB = new Date(b.data_prazo);
+        const dateA = new Date(a.data_prazo || '');
+        const dateB = new Date(b.data_prazo || '');
         return dateA.getTime() - dateB.getTime();
       })
       .slice(0, 5);
@@ -109,20 +109,20 @@ export function DashboardColaborador({
 
   const getStatusBadge = (status: Delegacao['status_delegacao']) => {
     const configs = {
-      PENDENTE: {
+      pendente: {
         label: 'Pendente',
         className: 'bg-amber-100 text-amber-700 border-amber-200',
       },
-      EM_PROGRESSO: {
+      aceita: {
         label: 'Em Progresso',
         className: 'bg-blue-100 text-blue-700 border-blue-200',
       },
-      CONCLUIDA: {
+      concluida: {
         label: 'Concluída',
         className: 'bg-green-100 text-green-700 border-green-200',
       },
-      REPROVADA: {
-        label: 'Reprovada',
+      recusada: {
+        label: 'Recusada',
         className: 'bg-red-100 text-red-700 border-red-200',
       },
     };
@@ -250,8 +250,8 @@ export function DashboardColaborador({
           ) : (
             <div className="space-y-3">
               {proximasTarefas.map((delegacao) => {
-                const prazoVencido = isPrazoVencido(delegacao.data_prazo);
-                const prazoProximo = isPrazoProximo(delegacao.data_prazo);
+                const prazoVencido = isPrazoVencido(delegacao.data_prazo || '');
+                const prazoProximo = isPrazoProximo(delegacao.data_prazo || '');
 
                 return (
                   <div
@@ -283,13 +283,13 @@ export function DashboardColaborador({
                       <div className="flex items-center gap-4 text-xs text-neutral-600">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          <span>Prazo: {new Date(delegacao.data_prazo).toLocaleDateString('pt-BR')}</span>
+                          <span>Prazo: {delegacao.data_prazo ? new Date(delegacao.data_prazo).toLocaleDateString('pt-BR') : 'Sem prazo'}</span>
                         </div>
-                        
+
                         {prazoVencido && (
                           <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
                             <AlertCircle className="w-3 h-3 mr-1" />
-                            {calcularDiasAtraso(delegacao.data_prazo)} dias atrasado
+                            {calcularDiasAtraso(delegacao.data_prazo || '')} dias atrasado
                           </Badge>
                         )}
 
@@ -301,13 +301,13 @@ export function DashboardColaborador({
                         )}
                       </div>
 
-                      {delegacao.status_delegacao === 'PENDENTE' && (
+                      {delegacao.status_delegacao === 'pendente' && (
                         <Button size="sm" variant="outline">
                           Iniciar
                         </Button>
                       )}
 
-                      {delegacao.status_delegacao === 'EM_PROGRESSO' && (
+                      {delegacao.status_delegacao === 'aceita' && (
                         <Button size="sm" className="bg-green-600 hover:bg-green-700">
                           Concluir
                         </Button>
@@ -359,7 +359,7 @@ export function DashboardColaborador({
                   Atenção: Tarefas Atrasadas
                 </h3>
                 <p className="text-sm text-red-700">
-                  Você tem {metrics.delegacoesAtrasadas} {metrics.delegacoesAtrasadas === 1 ? 'tarefa atrasada' : 'tarefas atrasadas'}. 
+                  Você tem {metrics.delegacoesAtrasadas} {metrics.delegacoesAtrasadas === 1 ? 'tarefa atrasada' : 'tarefas atrasadas'}.
                   Priorize sua conclusão.
                 </p>
               </div>

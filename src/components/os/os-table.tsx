@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import {
@@ -28,33 +29,20 @@ import {
 import { Button } from '../ui/button';
 import { MoreHorizontal, Eye, Edit, XCircle, Loader2 } from 'lucide-react';
 
-interface OrdemServicoData {
-  id: string;
-  codigo: string;
-  titulo: string;
-  status: string;
-  cliente: { id: string; nome: string };
-  tipoOS: { id: string; nome: string; setor: string };
-  responsavel: { id: string; nome: string; avatar: string };
-  etapaAtual: { numero: number; titulo: string; status: string } | null;
-  dataInicio: string;
-  dataPrazo: string;
-  criadoEm: string;
-}
+import { OrdemServico } from '../../lib/types';
 
 interface OSTableProps {
-  ordensServico: OrdemServicoData[];
+  ordensServico: OrdemServico[];
   canViewSetorColumn: boolean;
-  onNavigate: (route: string) => void;
   onCancelOS?: (osId: string) => Promise<void>;
   isCancelling?: boolean;
 }
 
-export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCancelOS, isCancelling = false }: OSTableProps) {
+export function OSTable({ ordensServico, canViewSetorColumn, onCancelOS, isCancelling = false }: OSTableProps) {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [selectedOS, setSelectedOS] = useState<OrdemServicoData | null>(null);
+  const [selectedOS, setSelectedOS] = useState<OrdemServico | null>(null);
 
-  const handleCancelClick = (os: OrdemServicoData) => {
+  const handleCancelClick = (os: OrdemServico) => {
     setSelectedOS(os);
     setCancelDialogOpen(true);
   };
@@ -67,44 +55,9 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
     }
   };
 
-  // Função para retornar o Badge de status com as cores corretas (suporta MAIÚSCULAS)
+  // Função para retornar o Badge de status com as cores corretas
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { variant: "default" | "secondary" | "destructive" | "outline"; label: string; className?: string }> = {
-      // Novo padrão (MAIÚSCULAS)
-      EM_ANDAMENTO: {
-        variant: 'secondary',
-        label: 'Em Andamento',
-        className: 'bg-[rgb(221,192,99)] text-black hover:bg-[rgb(221,192,99)]'
-      },
-      AGUARDANDO_INFORMACOES: {
-        variant: 'default',
-        label: 'Aguardando Informações',
-        className: 'bg-[rgb(245,158,11)] text-white hover:bg-[rgb(245,158,11)]'
-      },
-      ATRASADA: {
-        variant: 'destructive',
-        label: 'Atrasada',
-        className: 'bg-[rgb(239,68,68)] text-white hover:bg-[rgb(239,68,68)]'
-      },
-      CONCLUIDA: {
-        variant: 'default',
-        label: 'Concluída',
-        className: 'bg-[rgb(34,197,94)] text-white hover:bg-[rgb(34,197,94)]'
-      },
-      EM_TRIAGEM: {
-        variant: 'outline',
-        label: 'Em Triagem'
-      },
-      EM_VALIDACAO: {
-        variant: 'default',
-        label: 'Em Validação',
-        className: 'bg-blue-500 text-white hover:bg-blue-500'
-      },
-      CANCELADA: {
-        variant: 'outline',
-        label: 'Cancelada'
-      },
-      // Legado (minúsculas) - mantido para compatibilidade
       em_andamento: {
         variant: 'secondary',
         label: 'Em Andamento',
@@ -138,19 +91,6 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
     const config = statusConfig[status] || { variant: 'outline', label: status };
     return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
   };
-
-  // Função para retornar cores baseadas no status da etapa
-  const getEtapaStatusColor = (status: string) => {
-    const colorMap: Record<string, string> = {
-      'PENDENTE': 'bg-gray-100 text-gray-700 border-gray-300',
-      'EM_ANDAMENTO': 'bg-yellow-100 text-yellow-700 border-yellow-300',
-      'AGUARDANDO_APROVACAO': 'bg-orange-100 text-orange-700 border-orange-300',
-      'APROVADA': 'bg-green-100 text-green-700 border-green-300',
-      'REJEITADA': 'bg-red-100 text-red-700 border-red-300',
-    };
-    return colorMap[status] || 'bg-gray-100 text-gray-700 border-gray-300';
-  };
-
 
 
   // Função para formatar data
@@ -190,56 +130,40 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
               ordensServico.map((os) => (
                 <TableRow key={os.id}>
                   <TableCell className="font-medium">
-                    <button
-                      onClick={() => onNavigate(`/os/details-workflow/${os.id}`)}
+                    <Link
+                      to="/os/$osId"
+                      params={{ osId: os.id }}
                       className="text-primary hover:underline"
                     >
-                      {os.codigo}
-                    </button>
+                      {os.codigo_os}
+                    </Link>
                   </TableCell>
-                  <TableCell>{getStatusBadge(os.status)}</TableCell>
+                  <TableCell>{getStatusBadge(os.status_geral)}</TableCell>
                   <TableCell>
-                    {os.etapaAtual ? (
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant="outline"
-                          className={`text-xs font-semibold border ${getEtapaStatusColor(os.etapaAtual.status)}`}
-                          title={`Status: ${os.etapaAtual.status}`}
-                        >
-                          E{os.etapaAtual.numero}
-                        </Badge>
-                        <span
-                          className="text-sm truncate max-w-[140px]"
-                          title={`${os.etapaAtual.titulo} (${os.etapaAtual.status})`}
-                        >
-                          {os.etapaAtual.titulo}
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
+                    {/* Etapa Atual - Mockado ou precisa vir do backend */}
+                    <span className="text-sm text-muted-foreground">-</span>
                   </TableCell>
-                  <TableCell>{os.cliente.nome}</TableCell>
+                  <TableCell>{os.cliente_nome}</TableCell>
                   <TableCell className="max-w-[200px] truncate">
-                    {os.tipoOS.nome}
+                    {os.tipo_os_nome}
                   </TableCell>
                   {canViewSetorColumn && (
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {os.tipoOS.setor}
+                        {os.setor_nome || '-'}
                       </Badge>
                     </TableCell>
                   )}
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <Avatar className="h-8 w-8">
-                        <AvatarFallback>{os.responsavel.avatar}</AvatarFallback>
+                        <AvatarFallback>{os.responsavel_nome?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{os.responsavel.nome}</span>
+                      <span className="text-sm">{os.responsavel_nome}</span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {os.dataInicio ? formatDate(os.dataInicio) : '-'}
+                    {os.data_entrada ? formatDate(os.data_entrada) : '-'}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -249,9 +173,11 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onNavigate(`/os/details-workflow/${os.id}`)}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Ver Detalhes
+                        <DropdownMenuItem asChild>
+                          <Link to="/os/$osId" params={{ osId: os.id }} className="cursor-pointer w-full flex items-center">
+                            <Eye className="h-4 w-4 mr-2" />
+                            Ver Detalhes
+                          </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Edit className="h-4 w-4 mr-2" />
@@ -276,7 +202,7 @@ export function OSTable({ ordensServico, canViewSetorColumn, onNavigate, onCance
           <AlertDialogHeader>
             <AlertDialogTitle>Cancelar Ordem de Serviço</AlertDialogTitle>
             <AlertDialogDescription>
-              Você tem certeza que deseja cancelar a ordem de serviço {selectedOS?.codigo}?
+              Você tem certeza que deseja cancelar a ordem de serviço {selectedOS?.codigo_os}?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

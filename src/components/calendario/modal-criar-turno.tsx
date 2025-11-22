@@ -15,6 +15,7 @@ import { Checkbox } from '../ui/checkbox';
 import { toast } from 'sonner';
 import { useCreateTurno } from '../../lib/hooks/use-turnos';
 import { Loader2, AlertCircle } from 'lucide-react';
+import { useSetores } from '../../lib/hooks/use-setores';
 
 interface ModalCriarTurnoProps {
   open: boolean;
@@ -31,7 +32,7 @@ const coresTurno = [
   { nome: 'Dourado', valor: '#D3AF37' }
 ];
 
-const setoresDisponiveis = ['Assessoria', 'Comercial', 'Obras'];
+
 
 interface ValidationErrors {
   horaInicio?: string;
@@ -55,6 +56,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const { mutate: criarTurno, loading: criando } = useCreateTurno();
+  const { setores: setoresDisponiveis, loading: loadingSetores } = useSetores();
 
   // Validar horários
   const validarHorarios = (): boolean => {
@@ -196,7 +198,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const handleTodosSetores = (checked: boolean) => {
     setTodosSetores(checked);
     if (checked) {
-      setSetoresSelecionados(setoresDisponiveis);
+      setSetoresSelecionados(setoresDisponiveis.map(s => s.slug));
     } else {
       setSetoresSelecionados([]);
     }
@@ -215,7 +217,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
         horaInicio,
         horaFim,
         vagasTotal: parseInt(numeroVagas),
-        setores: todosSetores ? setoresDisponiveis : setoresSelecionados,
+        setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
         cor: corSelecionada,
         tipoRecorrencia: recorrencia,
         dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
@@ -457,25 +459,32 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   Todos
                 </Label>
               </div>
-              {setoresDisponiveis.map((setor) => (
-                <div key={setor} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={setor}
-                    checked={setoresSelecionados.includes(setor)}
-                    onCheckedChange={() => {
-                      handleToggleSetor(setor);
-                      setErrors((prev) => {
-                        const novo = { ...prev };
-                        delete novo.setores;
-                        return novo;
-                      });
-                    }}
-                  />
-                  <Label htmlFor={setor} className="cursor-pointer font-normal">
-                    {setor}
-                  </Label>
+              {loadingSetores ? (
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Carregando setores...
                 </div>
-              ))}
+              ) : (
+                setoresDisponiveis.map((setor) => (
+                  <div key={setor.id} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={setor.id}
+                      checked={setoresSelecionados.includes(setor.slug)}
+                      onCheckedChange={() => {
+                        handleToggleSetor(setor.slug);
+                        setErrors((prev) => {
+                          const novo = { ...prev };
+                          delete novo.setores;
+                          return novo;
+                        });
+                      }}
+                    />
+                    <Label htmlFor={setor.id} className="cursor-pointer font-normal">
+                      {setor.nome}
+                    </Label>
+                  </div>
+                ))
+              )}
             </div>
             {errors.setores && (
               <p className="text-sm text-red-600 flex items-center gap-1 mt-2">

@@ -1,11 +1,14 @@
-import { useState, useMemo, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { CalendarioSemana } from './calendario-semana';
 import { CalendarioMes } from './calendario-mes';
 import { CalendarioDia } from './calendario-dia';
 import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
 import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
+
+// Lazy load modal
+const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
 
 type VisualizacaoTipo = 'mes' | 'semana' | 'dia';
 
@@ -46,6 +49,7 @@ const getEndOfWeek = (data: Date): Date => {
 export function CalendarioPage() {
   const [dataAtual, setDataAtual] = useState(new Date());
   const [visualizacao, setVisualizacao] = useState<VisualizacaoTipo>('semana');
+  const [modalCriarTurno, setModalCriarTurno] = useState(false);
 
   // Calcular range de datas baseado na visualização
   const dateRange = useMemo(() => {
@@ -202,41 +206,61 @@ export function CalendarioPage() {
               </Button>
             </div>
           </div>
-        </div>
 
-        {/* Conteúdo do Calendário */}
-        <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
-          {visualizacao === 'semana' && (
-            <CalendarioSemana
-              dataAtual={dataAtual}
-              turnosPorDia={turnosPorDia}
-              agendamentos={agendamentos}
-              loading={loading}
-              error={error}
-              onRefresh={handleRefetch}
-            />
-          )}
-          {visualizacao === 'mes' && (
-            <CalendarioMes
-              dataAtual={dataAtual}
-              turnosPorDia={turnosPorDia}
-              loading={loading}
-              error={error}
-              onRefresh={handleRefetch}
-            />
-          )}
-          {visualizacao === 'dia' && (
-            <CalendarioDia
-              dataAtual={dataAtual}
-              turnosPorDia={turnosPorDia}
-              agendamentos={agendamentos}
-              loading={loading}
-              error={error}
-              onRefresh={handleRefetch}
-            />
-          )}
+          {/* Botão Configurar Novo Turno */}
+          <div className="ml-4 pl-4 border-l border-neutral-200">
+            <Button
+              onClick={() => setModalCriarTurno(true)}
+              className="bg-primary hover:bg-primary/90"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Configurar Novo Turno
+            </Button>
+          </div>
         </div>
       </div>
+
+      {/* Conteúdo do Calendário */}
+      <div className="bg-white rounded-lg shadow-sm border border-neutral-200">
+        {visualizacao === 'semana' && (
+          <CalendarioSemana
+            dataAtual={dataAtual}
+            turnosPorDia={turnosPorDia}
+            agendamentos={agendamentos}
+            loading={loading}
+            error={error}
+            onRefresh={handleRefetch}
+          />
+        )}
+        {visualizacao === 'mes' && (
+          <CalendarioMes
+            dataAtual={dataAtual}
+            turnosPorDia={turnosPorDia}
+            loading={loading}
+            error={error}
+            onRefresh={handleRefetch}
+          />
+        )}
+        {visualizacao === 'dia' && (
+          <CalendarioDia
+            dataAtual={dataAtual}
+            turnosPorDia={turnosPorDia}
+            agendamentos={agendamentos}
+            loading={loading}
+            error={error}
+            onRefresh={handleRefetch}
+          />
+        )}
+      </div>
+
+      {/* Modais */}
+      <Suspense fallback={null}>
+        <ModalCriarTurno
+          open={modalCriarTurno}
+          onClose={() => setModalCriarTurno(false)}
+          onSuccess={handleRefetch}
+        />
+      </Suspense>
     </div>
   );
 }

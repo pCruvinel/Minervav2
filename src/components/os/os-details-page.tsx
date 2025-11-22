@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { Avatar, AvatarFallback } from '../ui/avatar';
-import { 
-  ArrowLeft, 
-  FileText, 
-  Upload, 
-  Download, 
+import {
+  ArrowLeft,
+  FileText,
+  Upload,
+  Download,
   Calendar,
   User,
   Clock,
@@ -22,7 +23,7 @@ interface OSDetailsPageProps {
   comentarios: Comentario[];
   documentos: Documento[];
   historico: HistoricoItem[];
-  onBack: () => void;
+  onBack?: () => void;
   onAddComentario: (texto: string) => void;
 }
 
@@ -47,13 +48,12 @@ const getHistoricoIcon = (tipo: string) => {
   }
 };
 
-export function OSDetailsPage({ 
-  ordemServico, 
-  comentarios, 
-  documentos, 
+export function OSDetailsPage({
+  ordemServico,
+  comentarios,
+  documentos,
   historico,
-  onBack,
-  onAddComentario 
+  onAddComentario
 }: OSDetailsPageProps) {
   const [novoComentario, setNovoComentario] = useState('');
 
@@ -62,7 +62,7 @@ export function OSDetailsPage({
       toast.error('Digite um comentário antes de adicionar');
       return;
     }
-    
+
     onAddComentario(novoComentario);
     setNovoComentario('');
     toast.success('Comentário adicionado com sucesso!');
@@ -96,15 +96,17 @@ export function OSDetailsPage({
         <Button
           variant="ghost"
           size="sm"
-          onClick={onBack}
+          asChild
           className="gap-2 rounded-md"
         >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar
+          <Link to="/os">
+            <ArrowLeft className="w-4 h-4" />
+            Voltar
+          </Link>
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">{ordemServico.codigo}</h1>
-          <p className="text-neutral-600 font-normal">{ordemServico.cliente}</p>
+          <h1 className="text-3xl font-bold">{ordemServico.codigo_os}</h1>
+          <p className="text-neutral-600 font-normal">{ordemServico.cliente_nome}</p>
         </div>
       </div>
 
@@ -117,7 +119,7 @@ export function OSDetailsPage({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl font-semibold">Detalhes da OS</CardTitle>
-                {getStatusBadge(ordemServico.status)}
+                {getStatusBadge(ordemServico.status_geral)}
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -127,34 +129,34 @@ export function OSDetailsPage({
                     <User className="w-4 h-4" />
                     <span>Cliente</span>
                   </div>
-                  <p className="font-normal">{ordemServico.cliente}</p>
+                  <p className="font-normal">{ordemServico.cliente_nome}</p>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
                     <FileText className="w-4 h-4" />
                     <span>Tipo de Serviço</span>
                   </div>
-                  <p className="font-normal">{ordemServico.tipo}</p>
+                  <p className="font-normal">{ordemServico.tipo_os_nome}</p>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
                     <Calendar className="w-4 h-4" />
                     <span>Data de Início</span>
                   </div>
-                  <p className="font-normal">{formatDate(ordemServico.prazoInicio)}</p>
+                  <p className="font-normal">{ordemServico.data_entrada ? formatDate(ordemServico.data_entrada) : '-'}</p>
                 </div>
-                
+
                 <div>
                   <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
                     <Clock className="w-4 h-4" />
                     <span>Prazo de Entrega</span>
                   </div>
-                  <p className="font-normal">{formatDate(ordemServico.prazoFim)}</p>
+                  <p className="font-normal">{ordemServico.data_prazo ? formatDate(ordemServico.data_prazo) : '-'}</p>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
                   <User className="w-4 h-4" />
@@ -163,16 +165,15 @@ export function OSDetailsPage({
                 <div className="flex items-center gap-2">
                   <Avatar className="w-8 h-8">
                     <AvatarFallback className="bg-primary text-white font-medium">
-                      {ordemServico.responsavel.avatar}
+                      {ordemServico.responsavel_nome?.substring(0, 2).toUpperCase() || '??'}
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{ordemServico.responsavel.name}</p>
-                    <p className="text-xs text-neutral-500 font-normal">{ordemServico.responsavel.email}</p>
+                    <p className="font-medium">{ordemServico.responsavel_nome || 'Não atribuído'}</p>
                   </div>
                 </div>
               </div>
-              
+
               <div>
                 <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
                   <FileText className="w-4 h-4" />
@@ -207,8 +208,8 @@ export function OSDetailsPage({
               ) : (
                 <div className="space-y-2">
                   {documentos.map(doc => (
-                    <div 
-                      key={doc.id} 
+                    <div
+                      key={doc.id}
                       className="flex items-center justify-between p-3 bg-neutral-50 rounded-md hover:bg-neutral-100 transition-colors border border-border"
                     >
                       <div className="flex items-center gap-3">

@@ -1,22 +1,21 @@
 // Dashboard da Diretoria - Sistema Minerva ERP
 'use client';
 
-import React, { useMemo } from 'react';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
+import { useMemo } from 'react';
+import {
+  FileText,
+  Clock,
+  CheckCircle2,
   AlertTriangle,
   Users,
   Building2,
-  TrendingUp,
-  Calendar
+  TrendingUp
 } from 'lucide-react';
 import { MetricCard } from './metric-card';
 import { OSStatusChart } from './os-status-chart';
 import { OSSetorChart } from './os-setor-chart';
 import { RecentOSList } from './recent-os-list';
-import { OrdemServico, Delegacao } from '../../lib/types';
+import { OrdemServico, Delegacao, normalizeSetorOS } from '../../lib/types';
 
 interface DashboardDiretoriaProps {
   ordensServico: OrdemServico[];
@@ -25,7 +24,7 @@ interface DashboardDiretoriaProps {
   onViewAllOS?: () => void;
 }
 
-export function DashboardDiretoria({ 
+export function DashboardDiretoria({
   ordensServico,
   delegacoes,
   onOSClick,
@@ -34,14 +33,14 @@ export function DashboardDiretoria({
   // Calcular métricas
   const metrics = useMemo(() => {
     const total = ordensServico.length;
-    const emAndamento = ordensServico.filter(os => 
-      os.status === 'EM_ANDAMENTO' || os.status === 'EM_EXECUCAO'
+    const emAndamento = ordensServico.filter(os =>
+      (os as any).status === 'em_andamento' || (os as any).status === 'em_execucao'
     ).length;
-    const concluidas = ordensServico.filter(os => os.status === 'CONCLUIDA').length;
+    const concluidas = ordensServico.filter(os => (os as any).status === 'concluido').length;
     const atrasadas = ordensServico.filter(os => {
       // Considerar atrasadas: pendentes há mais de 7 dias
-      if (os.status === 'PENDENTE' || os.status === 'EM_TRIAGEM') {
-        const createdAt = new Date(os.createdAt || os.data_criacao || 0);
+      if ((os as any).status === 'pendente' || (os as any).status === 'em_triagem') {
+        const createdAt = new Date(os.created_at || (os as any).data_criacao || 0);
         const daysSince = Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
         return daysSince > 7;
       }
@@ -49,22 +48,22 @@ export function DashboardDiretoria({
     }).length;
 
     // Delegações pendentes que precisam de aprovação
-    const delegacoesPendentes = delegacoes.filter(d => 
-      d.status_delegacao === 'CONCLUIDA'
+    const delegacoesPendentes = delegacoes.filter(d =>
+      d.status_delegacao === 'concluida'
     ).length;
 
     // Taxa de conclusão (últimos 30 dias)
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
+
     const osUltimos30Dias = ordensServico.filter(os => {
-      const createdAt = new Date(os.createdAt || os.data_criacao || 0);
+      const createdAt = new Date(os.created_at || (os as any).data_criacao || 0);
       return createdAt >= thirtyDaysAgo;
     });
 
-    const concluidasUltimos30 = osUltimos30Dias.filter(os => os.status === 'CONCLUIDA').length;
-    const taxaConclusao = osUltimos30Dias.length > 0 
-      ? Math.round((concluidasUltimos30 / osUltimos30Dias.length) * 100) 
+    const concluidasUltimos30 = osUltimos30Dias.filter(os => (os as any).status === 'concluido').length;
+    const taxaConclusao = osUltimos30Dias.length > 0
+      ? Math.round((concluidasUltimos30 / osUltimos30Dias.length) * 100)
       : 0;
 
     return {
@@ -80,9 +79,18 @@ export function DashboardDiretoria({
   // Dividir OS por setor
   const osPorSetor = useMemo(() => {
     return {
-      comercial: ordensServico.filter(os => os.setor === 'COM'),
-      assessoria: ordensServico.filter(os => os.setor === 'ASS'),
-      obras: ordensServico.filter(os => os.setor === 'OBR'),
+      comercial: ordensServico.filter(os => {
+        const setor = (os as any).setor || (os as any).tipoOS?.setor;
+        return normalizeSetorOS(setor) === 'administrativo'; // Comercial -> Administrativo
+      }),
+      assessoria: ordensServico.filter(os => {
+        const setor = (os as any).setor || (os as any).tipoOS?.setor;
+        return normalizeSetorOS(setor) === 'assessoria';
+      }),
+      obras: ordensServico.filter(os => {
+        const setor = (os as any).setor || (os as any).tipoOS?.setor;
+        return normalizeSetorOS(setor) === 'obras';
+      }),
     };
   }, [ordensServico]);
 
@@ -154,7 +162,7 @@ export function DashboardDiretoria({
           value={osPorSetor.comercial.length}
           icon={Users}
           variant="default"
-          description={`${osPorSetor.comercial.filter(os => os.status === 'EM_ANDAMENTO').length} em andamento`}
+          description={`${osPorSetor.comercial.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
         />
 
         <MetricCard
@@ -162,7 +170,7 @@ export function DashboardDiretoria({
           value={osPorSetor.assessoria.length}
           icon={Building2}
           variant="default"
-          description={`${osPorSetor.assessoria.filter(os => os.status === 'EM_ANDAMENTO').length} em andamento`}
+          description={`${osPorSetor.assessoria.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
         />
 
         <MetricCard
@@ -170,7 +178,7 @@ export function DashboardDiretoria({
           value={osPorSetor.obras.length}
           icon={TrendingUp}
           variant="default"
-          description={`${osPorSetor.obras.filter(os => os.status === 'EM_ANDAMENTO').length} em andamento`}
+          description={`${osPorSetor.obras.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
         />
       </div>
 
@@ -224,7 +232,7 @@ export function DashboardDiretoria({
                   Atenção: OS Atrasadas
                 </h3>
                 <p className="text-sm text-red-700">
-                  Existem {metrics.atrasadas} ordens de serviço pendentes há mais de 7 dias. 
+                  Existem {metrics.atrasadas} ordens de serviço pendentes há mais de 7 dias.
                   Revise e tome ações necessárias.
                 </p>
               </div>
@@ -241,7 +249,7 @@ export function DashboardDiretoria({
                 Performance do Mês
               </h3>
               <p className="text-sm text-green-700">
-                Taxa de conclusão de {metrics.taxaConclusao}% nos últimos 30 dias. 
+                Taxa de conclusão de {metrics.taxaConclusao}% nos últimos 30 dias.
                 {metrics.taxaConclusao >= 80 ? ' Excelente desempenho!' : ' Continue melhorando!'}
               </p>
             </div>

@@ -126,7 +126,7 @@ export function useEtapas() {
 
       const newEtapa = await ordensServicoAPI.createEtapa(osId, {
         ...data,
-        status: data.status || 'PENDENTE',
+        status: data.status || 'pendente',
       });
 
       console.log('✅ Etapa criada:', newEtapa);
@@ -205,10 +205,10 @@ export function useEtapas() {
     };
 
     if (markAsComplete) {
-      updateData.status = 'APROVADA'; // Status padronizado
+      updateData.status = 'concluida'; // Status padronizado
       updateData.data_conclusao = new Date().toISOString();
     } else {
-      updateData.status = 'EM_ANDAMENTO'; // Status padronizado
+      updateData.status = 'em_andamento'; // Status padronizado
       if (!etapas?.find(e => e.id === etapaId)?.data_inicio) {
         updateData.data_inicio = new Date().toISOString();
       }

@@ -1,21 +1,20 @@
 // Dashboard do Gestor - Sistema Minerva ERP
 'use client';
 
-import React, { useMemo } from 'react';
-import { 
-  FileText, 
-  Clock, 
-  CheckCircle2, 
+import { useMemo } from 'react';
+import {
+  FileText,
+  Clock,
+  CheckCircle2,
   AlertTriangle,
   Users,
   UserPlus,
-  TrendingUp,
   Target
 } from 'lucide-react';
 import { MetricCard } from './metric-card';
 import { OSStatusChart } from './os-status-chart';
 import { RecentOSList } from './recent-os-list';
-import { OrdemServico, Delegacao, User } from '../../lib/types';
+import { OrdemServico, Delegacao, User, normalizeSetorOS } from '../../lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
@@ -29,7 +28,7 @@ interface DashboardGestorProps {
   onDelegarClick?: () => void;
 }
 
-export function DashboardGestor({ 
+export function DashboardGestor({
   currentUser,
   ordensServico,
   delegacoes,
@@ -39,32 +38,36 @@ export function DashboardGestor({
 }: DashboardGestorProps) {
   // Filtrar OS do setor do gestor
   const osDoSetor = useMemo(() => {
-    return ordensServico.filter(os => os.setor === currentUser.setor);
+    return ordensServico.filter(os => {
+      // Fallback para encontrar o setor, já que a interface pode não ter o campo explícito
+      const setorOS = (os as any).setor || (os as any).tipoOS?.setor;
+      return normalizeSetorOS(setorOS) === normalizeSetorOS(currentUser.setor);
+    });
   }, [ordensServico, currentUser]);
 
   // Calcular métricas
   const metrics = useMemo(() => {
     const total = osDoSetor.length;
-    const emAndamento = osDoSetor.filter(os => 
-      os.status === 'EM_ANDAMENTO' || os.status === 'EM_EXECUCAO'
+    const emAndamento = osDoSetor.filter(os =>
+      (os as any).status === 'em_andamento' || (os as any).status === 'em_execucao'
     ).length;
-    const concluidas = osDoSetor.filter(os => os.status === 'CONCLUIDA').length;
+    const concluidas = osDoSetor.filter(os => (os as any).status === 'concluido').length;
     const minhasOS = osDoSetor.filter(os => os.responsavel_id === currentUser.id).length;
 
     // Delegações enviadas pelo gestor
-    const delegacoesEnviadas = delegacoes.filter(d => 
+    const delegacoesEnviadas = delegacoes.filter(d =>
       d.delegante_id === currentUser.id
     );
-    const delegacoesAtivas = delegacoesEnviadas.filter(d => 
-      d.status_delegacao === 'PENDENTE' || d.status_delegacao === 'EM_PROGRESSO'
+    const delegacoesAtivas = delegacoesEnviadas.filter(d =>
+      d.status_delegacao === 'pendente' || d.status_delegacao === 'aceita'
     ).length;
-    const aguardandoAprovacao = delegacoesEnviadas.filter(d => 
-      d.status_delegacao === 'CONCLUIDA'
+    const aguardandoAprovacao = delegacoesEnviadas.filter(d =>
+      d.status_delegacao === 'concluida'
     ).length;
 
     // Taxa de conclusão do setor
-    const taxaConclusao = total > 0 
-      ? Math.round((concluidas / total) * 100) 
+    const taxaConclusao = total > 0
+      ? Math.round((concluidas / total) * 100)
       : 0;
 
     return {
@@ -86,13 +89,13 @@ export function DashboardGestor({
       .filter(d => d.delegante_id === currentUser.id)
       .forEach(d => {
         const existing = colaboradoresMap.get(d.delegado_id) || {
-          nome: d.delegado_nome,
+          nome: d.delegado_nome || 'Desconhecido',
           tarefas: 0,
           concluidas: 0,
         };
 
         existing.tarefas++;
-        if (d.status_delegacao === 'CONCLUIDA') {
+        if (d.status_delegacao === 'concluida') {
           existing.concluidas++;
         }
 
@@ -103,8 +106,8 @@ export function DashboardGestor({
       .map(([id, data]) => ({
         id,
         ...data,
-        performance: data.tarefas > 0 
-          ? Math.round((data.concluidas / data.tarefas) * 100) 
+        performance: data.tarefas > 0
+          ? Math.round((data.concluidas / data.tarefas) * 100)
           : 0,
       }))
       .sort((a, b) => b.performance - a.performance);
@@ -132,7 +135,7 @@ export function DashboardGestor({
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold mb-2">
-          Dashboard - {getSetorLabel(currentUser.setor)}
+          Dashboard - {getSetorLabel(currentUser.setor || '')}
         </h1>
         <p className="text-neutral-600">
           Gerencie as ordens de serviço do seu setor
@@ -142,7 +145,7 @@ export function DashboardGestor({
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricCard
-          title={`OS do ${getSetorLabel(currentUser.setor)}`}
+          title={`OS do ${getSetorLabel(currentUser.setor || '')}`}
           value={metrics.total}
           icon={FileText}
           variant="primary"
@@ -210,12 +213,12 @@ export function DashboardGestor({
 
       {/* Gráficos e Listas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OSStatusChart 
-          ordensServico={osDoSetor} 
-          title={`Status - ${getSetorLabel(currentUser.setor)}`}
+        <OSStatusChart
+          ordensServico={osDoSetor}
+          title={`Status - ${getSetorLabel(currentUser.setor || '')}`}
           height={300}
         />
-        
+
         <RecentOSList
           ordensServico={osDoSetor}
           limit={6}
@@ -237,7 +240,7 @@ export function DashboardGestor({
           <CardContent>
             <div className="space-y-3">
               {equipe.map((colaborador) => (
-                <div 
+                <div
                   key={colaborador.id}
                   className="flex items-center gap-4 p-4 rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors"
                 >
@@ -298,7 +301,7 @@ export function DashboardGestor({
         )}
 
         {/* Delegar Tarefas */}
-        <div 
+        <div
           className="bg-primary/5 border border-primary/20 rounded-lg p-6 cursor-pointer hover:bg-primary/10 transition-colors"
           onClick={onDelegarClick}
         >

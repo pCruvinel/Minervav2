@@ -26,9 +26,9 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { toast } from 'sonner';
+import { RoleLevel, ROLE_LABELS, PERMISSOES_POR_ROLE } from '../../lib/types';
 
-type PerfilAcesso = 'DIRETORIA' | 'GESTOR_ADM' | 'GESTOR_TECNICO' | 'OPERACIONAL' | 'SEM_ACESSO';
-type StatusUsuario = 'ATIVO' | 'BLOQUEADO' | 'INATIVO';
+type StatusUsuario = 'ativo' | 'bloqueado' | 'inativo';
 
 interface Usuario {
   id: string;
@@ -36,7 +36,7 @@ interface Usuario {
   cargo: string;
   funcao: string;
   email: string;
-  perfil: PerfilAcesso;
+  perfil: RoleLevel;
   status: StatusUsuario;
   ultimoAcesso?: string;
   dataCriacao: string;
@@ -48,10 +48,10 @@ const mockUsuarios: Usuario[] = [
     id: 'usr-1',
     nome: 'Roberto Minerva',
     cargo: 'Diretor Geral',
-    funcao: 'DIRETORIA',
+    funcao: 'diretoria',
     email: 'roberto.minerva@minervaeng.com.br',
-    perfil: 'DIRETORIA',
-    status: 'ATIVO',
+    perfil: 'diretoria',
+    status: 'ativo',
     ultimoAcesso: '2024-11-17 14:30',
     dataCriacao: '2024-01-01',
   },
@@ -59,10 +59,10 @@ const mockUsuarios: Usuario[] = [
     id: 'usr-2',
     nome: 'Ana Costa',
     cargo: 'Gerente Administrativo',
-    funcao: 'GESTOR_ADM',
+    funcao: 'gestor_administrativo',
     email: 'ana.costa@minervaeng.com.br',
-    perfil: 'GESTOR_ADM',
-    status: 'ATIVO',
+    perfil: 'gestor_administrativo',
+    status: 'ativo',
     ultimoAcesso: '2024-11-17 09:15',
     dataCriacao: '2024-01-01',
   },
@@ -70,10 +70,10 @@ const mockUsuarios: Usuario[] = [
     id: 'usr-3',
     nome: 'Maria Santos',
     cargo: 'Engenheira Civil',
-    funcao: 'GESTOR_TECNICO',
+    funcao: 'gestor_obras',
     email: 'maria.santos@minervaeng.com.br',
-    perfil: 'GESTOR_TECNICO',
-    status: 'ATIVO',
+    perfil: 'gestor_obras',
+    status: 'ativo',
     ultimoAcesso: '2024-11-16 18:45',
     dataCriacao: '2024-02-01',
   },
@@ -81,10 +81,10 @@ const mockUsuarios: Usuario[] = [
     id: 'usr-4',
     nome: 'Pedro Oliveira',
     cargo: 'Auxiliar Administrativo',
-    funcao: 'OPERACIONAL',
+    funcao: 'colaborador',
     email: 'pedro.oliveira@minervaeng.com.br',
-    perfil: 'OPERACIONAL',
-    status: 'ATIVO',
+    perfil: 'colaborador',
+    status: 'ativo',
     ultimoAcesso: '2024-11-17 10:20',
     dataCriacao: '2024-03-01',
   },
@@ -92,122 +92,40 @@ const mockUsuarios: Usuario[] = [
     id: 'usr-5',
     nome: 'João Silva',
     cargo: 'Pedreiro',
-    funcao: 'COLABORADOR_OBRA',
+    funcao: 'mao_de_obra',
     email: '',
-    perfil: 'SEM_ACESSO',
-    status: 'INATIVO',
+    perfil: 'mao_de_obra',
+    status: 'inativo',
     dataCriacao: '2024-04-01',
   },
   {
     id: 'usr-6',
     nome: 'Carlos Mendes',
     cargo: 'Servente',
-    funcao: 'COLABORADOR_OBRA',
+    funcao: 'mao_de_obra',
     email: '',
-    perfil: 'SEM_ACESSO',
-    status: 'INATIVO',
+    perfil: 'mao_de_obra',
+    status: 'inativo',
     dataCriacao: '2024-04-01',
   },
   {
     id: 'usr-7',
     nome: 'Beatriz Lima',
     cargo: 'Arquiteta',
-    funcao: 'GESTOR_TECNICO',
+    funcao: 'gestor_assessoria',
     email: 'beatriz.lima@minervaeng.com.br',
-    perfil: 'GESTOR_TECNICO',
-    status: 'BLOQUEADO',
+    perfil: 'gestor_assessoria',
+    status: 'bloqueado',
     ultimoAcesso: '2024-10-15 16:30',
     dataCriacao: '2024-05-01',
   },
 ];
 
-interface MatrizPermissao {
-  perfil: PerfilAcesso;
-  nivel: number;
-  descricao: string;
-  permissoes: string[];
-  restricoes: string[];
-}
-
-const matrizPermissoes: MatrizPermissao[] = [
-  {
-    perfil: 'DIRETORIA',
-    nivel: 1,
-    descricao: 'Acesso total ao sistema',
-    permissoes: [
-      'Visualizar todos os módulos',
-      'Aprovar e rejeitar OS de todos os níveis',
-      'Acessar dados financeiros completos (incluindo salários)',
-      'Gerenciar usuários e permissões',
-      'Visualizar dashboards executivos',
-      'Exportar relatórios sensíveis',
-    ],
-    restricoes: [],
-  },
-  {
-    perfil: 'GESTOR_ADM',
-    nivel: 2,
-    descricao: 'Gestão administrativa e financeira',
-    permissoes: [
-      'Acessar módulo Financeiro completo',
-      'Visualizar e editar dados de colaboradores',
-      'Aprovar OS financeiras e administrativas',
-      'Gerenciar contas a pagar/receber',
-      'Criar e editar clientes',
-      'Acessar controle de presença',
-    ],
-    restricoes: [
-      'Não pode aprovar OS técnicas (Obras/Assessoria)',
-      'Não pode alterar permissões de outros usuários',
-    ],
-  },
-  {
-    perfil: 'GESTOR_TECNICO',
-    nivel: 3,
-    descricao: 'Gestão técnica e operacional',
-    permissoes: [
-      'Aprovar OS técnicas (Tipo 1-4, 7-8)',
-      'Visualizar projetos e obras',
-      'Criar e editar OS operacionais',
-      'Acessar relatórios de obra',
-      'Gerenciar cronogramas',
-    ],
-    restricoes: [
-      'Não visualiza salários dos colaboradores',
-      'Não acessa módulo de Contas a Pagar (Salários)',
-      'Não pode gerenciar usuários',
-      'Não acessa dados financeiros sensíveis',
-    ],
-  },
-  {
-    perfil: 'OPERACIONAL',
-    nivel: 4,
-    descricao: 'Execução e consulta limitada',
-    permissoes: [
-      'Criar OS de nível operacional',
-      'Visualizar OS atribuídas a si',
-      'Registrar prestação de contas (próprias)',
-      'Acessar calendário de tarefas',
-      'Consultar documentos públicos',
-    ],
-    restricoes: [
-      'Não pode aprovar OS',
-      'Não visualiza dados financeiros',
-      'Não acessa módulo de colaboradores',
-      'Acesso somente-leitura a maioria dos módulos',
-    ],
-  },
-  {
-    perfil: 'SEM_ACESSO',
-    nivel: 5,
-    descricao: 'Colaboradores de obra sem acesso ao sistema',
-    permissoes: [],
-    restricoes: [
-      'Sem login no sistema web',
-      'Acesso apenas via registro de presença pelo gestor',
-    ],
-  },
-];
+// Usar matriz de permissões do sistema
+const matrizPermissoes = Object.entries(PERMISSOES_POR_ROLE).map(([role, perms]) => ({
+  perfil: role as RoleLevel,
+  ...perms,
+}));
 
 interface UsuariosPermissoesPageProps {
   onBack?: () => void;
@@ -225,38 +143,41 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
-    return date.toLocaleString('pt-BR', { 
-      day: '2-digit', 
-      month: '2-digit', 
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
     });
   };
 
-  const getPerfilBadge = (perfil: PerfilAcesso) => {
-    const config = {
-      DIRETORIA: { label: 'Diretoria (N1)', className: 'bg-purple-100 text-purple-800', icon: Shield },
-      GESTOR_ADM: { label: 'Gestor ADM (N2)', className: 'bg-blue-100 text-blue-800', icon: Shield },
-      GESTOR_TECNICO: { label: 'Gestor Técnico (N3)', className: 'bg-green-100 text-green-800', icon: Shield },
-      OPERACIONAL: { label: 'Operacional (N4)', className: 'bg-amber-100 text-amber-800', icon: User },
-      SEM_ACESSO: { label: 'Sem Acesso', className: 'bg-neutral-100 text-neutral-800', icon: Lock },
+  const getPerfilBadge = (perfil: RoleLevel) => {
+    const perms = PERMISSOES_POR_ROLE[perfil];
+    const config: Record<RoleLevel, { className: string; icon: typeof Shield }> = {
+      admin: { className: 'bg-purple-100 text-purple-800', icon: Shield },
+      diretoria: { className: 'bg-purple-100 text-purple-800', icon: Shield },
+      gestor_administrativo: { className: 'bg-blue-100 text-blue-800', icon: Shield },
+      gestor_obras: { className: 'bg-green-100 text-green-800', icon: Shield },
+      gestor_assessoria: { className: 'bg-teal-100 text-teal-800', icon: Shield },
+      colaborador: { className: 'bg-amber-100 text-amber-800', icon: User },
+      mao_de_obra: { className: 'bg-neutral-100 text-neutral-800', icon: Lock },
     };
 
-    const { label, className, icon: Icon } = config[perfil];
+    const { className, icon: Icon } = config[perfil];
     return (
       <Badge className={className}>
         <Icon className="h-3 w-3 mr-1" />
-        {label}
+        {ROLE_LABELS[perfil]} (N{perms.nivel})
       </Badge>
     );
   };
 
   const getStatusBadge = (status: StatusUsuario) => {
-    const config = {
-      ATIVO: { label: 'Ativo', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
-      BLOQUEADO: { label: 'Bloqueado', icon: Lock, className: 'bg-red-100 text-red-800' },
-      INATIVO: { label: 'Inativo', icon: XCircle, className: 'bg-neutral-100 text-neutral-800' },
+    const config: Record<StatusUsuario, { label: string; icon: typeof CheckCircle; className: string }> = {
+      ativo: { label: 'Ativo', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
+      bloqueado: { label: 'Bloqueado', icon: Lock, className: 'bg-red-100 text-red-800' },
+      inativo: { label: 'Inativo', icon: XCircle, className: 'bg-neutral-100 text-neutral-800' },
     };
 
     const { label, icon: Icon, className } = config[status];
@@ -271,7 +192,7 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
   // Aplicar filtros
   const usuariosFiltrados = usuarios.filter((u) => {
     if (filtro && !u.nome.toLowerCase().includes(filtro.toLowerCase()) &&
-        !u.email.toLowerCase().includes(filtro.toLowerCase())) {
+      !u.email.toLowerCase().includes(filtro.toLowerCase())) {
       return false;
     }
 
@@ -284,9 +205,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
   // Estatísticas
   const stats = {
     total: usuarios.length,
-    ativos: usuarios.filter(u => u.status === 'ATIVO').length,
-    bloqueados: usuarios.filter(u => u.status === 'BLOQUEADO').length,
-    semAcesso: usuarios.filter(u => u.perfil === 'SEM_ACESSO').length,
+    ativos: usuarios.filter(u => u.status === 'ativo').length,
+    bloqueados: usuarios.filter(u => u.status === 'bloqueado').length,
+    semAcesso: usuarios.filter(u => u.perfil === 'mao_de_obra').length,
   };
 
   const handleEditarAcesso = (usuario: Usuario) => {
@@ -387,11 +308,13 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
                     <SelectValue placeholder="Filtrar por perfil..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="DIRETORIA">Diretoria</SelectItem>
-                    <SelectItem value="GESTOR_ADM">Gestor ADM</SelectItem>
-                    <SelectItem value="GESTOR_TECNICO">Gestor Técnico</SelectItem>
-                    <SelectItem value="OPERACIONAL">Operacional</SelectItem>
-                    <SelectItem value="SEM_ACESSO">Sem Acesso</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="diretoria">Diretoria</SelectItem>
+                    <SelectItem value="gestor_administrativo">Gestor Administrativo</SelectItem>
+                    <SelectItem value="gestor_obras">Gestor Obras</SelectItem>
+                    <SelectItem value="gestor_assessoria">Gestor Assessoria</SelectItem>
+                    <SelectItem value="colaborador">Colaborador</SelectItem>
+                    <SelectItem value="mao_de_obra">Mão de Obra</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -403,9 +326,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
                     <SelectValue placeholder="Filtrar por status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ATIVO">Ativo</SelectItem>
-                    <SelectItem value="BLOQUEADO">Bloqueado</SelectItem>
-                    <SelectItem value="INATIVO">Inativo</SelectItem>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="bloqueado">Bloqueado</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -437,11 +360,11 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
             </TableHeader>
             <TableBody>
               {usuariosFiltrados.map((usuario) => (
-                <TableRow 
+                <TableRow
                   key={usuario.id}
                   className={cn(
                     "hover:bg-neutral-50",
-                    usuario.perfil === 'SEM_ACESSO' && "opacity-60"
+                    usuario.perfil === 'mao_de_obra' && "opacity-60"
                   )}
                 >
                   <TableCell>
@@ -480,7 +403,7 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
                     {getStatusBadge(usuario.status)}
                   </TableCell>
                   <TableCell className="text-center">
-                    {usuario.perfil !== 'SEM_ACESSO' && (
+                    {usuario.perfil !== 'mao_de_obra' && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -532,13 +455,13 @@ interface ModalEditarAcessoProps {
 }
 
 function ModalEditarAcesso({ open, onClose, usuario }: ModalEditarAcessoProps) {
-  const [perfil, setPerfil] = useState<PerfilAcesso>('OPERACIONAL');
+  const [perfil, setPerfil] = useState<RoleLevel>('colaborador');
   const [bloqueado, setBloqueado] = useState(false);
 
   React.useEffect(() => {
     if (usuario) {
       setPerfil(usuario.perfil);
-      setBloqueado(usuario.status === 'BLOQUEADO');
+      setBloqueado(usuario.status === 'bloqueado');
     }
   }, [usuario]);
 
@@ -595,15 +518,17 @@ function ModalEditarAcesso({ open, onClose, usuario }: ModalEditarAcessoProps) {
           {/* Alterar Perfil */}
           <div className="space-y-2">
             <Label>Perfil de Acesso</Label>
-            <Select value={perfil} onValueChange={(value) => setPerfil(value as PerfilAcesso)}>
+            <Select value={perfil} onValueChange={(value) => setPerfil(value as RoleLevel)}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="DIRETORIA">🛡️ Diretoria (Nível 1) - Acesso Total</SelectItem>
-                <SelectItem value="GESTOR_ADM">🛡️ Gestor ADM (Nível 2) - Administrativo/Financeiro</SelectItem>
-                <SelectItem value="GESTOR_TECNICO">🛡️ Gestor Técnico (Nível 3) - Obras/Assessoria</SelectItem>
-                <SelectItem value="OPERACIONAL">👤 Operacional (Nível 4) - Execução Limitada</SelectItem>
+                <SelectItem value="admin">🛡️ Admin (Nível 10) - Acesso Total Sistema</SelectItem>
+                <SelectItem value="diretoria">🛡️ Diretoria (Nível 9) - Acesso Total</SelectItem>
+                <SelectItem value="gestor_administrativo">🛡️ Gestor Administrativo (Nível 5) - Adm/Financeiro</SelectItem>
+                <SelectItem value="gestor_obras">🛡️ Gestor Obras (Nível 5) - Obras</SelectItem>
+                <SelectItem value="gestor_assessoria">🛡️ Gestor Assessoria (Nível 5) - Assessoria</SelectItem>
+                <SelectItem value="colaborador">👤 Colaborador (Nível 1) - Execução Limitada</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
@@ -679,17 +604,17 @@ function ModalMatrizPermissoes({ open, onClose }: ModalMatrizPermissoesProps) {
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold",
-                      matriz.nivel === 1 && "bg-purple-100 text-purple-800",
-                      matriz.nivel === 2 && "bg-blue-100 text-blue-800",
-                      matriz.nivel === 3 && "bg-green-100 text-green-800",
-                      matriz.nivel === 4 && "bg-amber-100 text-amber-800",
-                      matriz.nivel === 5 && "bg-neutral-100 text-neutral-800"
+                      matriz.nivel === 10 && "bg-purple-100 text-purple-800",
+                      matriz.nivel === 9 && "bg-purple-100 text-purple-800",
+                      matriz.nivel === 5 && "bg-blue-100 text-blue-800",
+                      matriz.nivel === 1 && "bg-amber-100 text-amber-800",
+                      matriz.nivel === 0 && "bg-neutral-100 text-neutral-800"
                     )}>
                       N{matriz.nivel}
                     </div>
                     <div>
                       <CardTitle className="text-lg">
-                        {matriz.perfil.replace('_', ' ')}
+                        {ROLE_LABELS[matriz.perfil]}
                       </CardTitle>
                       <p className="text-sm text-muted-foreground mt-1">
                         {matriz.descricao}
@@ -699,41 +624,70 @@ function ModalMatrizPermissoes({ open, onClose }: ModalMatrizPermissoesProps) {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {matriz.permissoes.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      Permissões
-                    </p>
-                    <ul className="space-y-1">
-                      {matriz.permissoes.map((perm, idx) => (
-                        <li key={idx} className="text-sm flex items-start gap-2">
-                          <span className="text-green-600 mt-1">✓</span>
-                          <span>{perm}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+                <div>
+                  <p className="text-sm font-medium mb-2 flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    Permissões
+                  </p>
+                  <ul className="space-y-1">
+                    {matriz.pode_ver_todas_os && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Visualizar todas as OSs</span>
+                      </li>
+                    )}
+                    {matriz.pode_acessar_financeiro && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Acessar módulo financeiro</span>
+                      </li>
+                    )}
+                    {matriz.pode_delegar && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Delegar tarefas</span>
+                      </li>
+                    )}
+                    {matriz.pode_aprovar && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Aprovar etapas de workflow</span>
+                      </li>
+                    )}
+                    {matriz.pode_gerenciar_usuarios && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Gerenciar usuários e permissões</span>
+                      </li>
+                    )}
+                    {matriz.pode_criar_os && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Criar ordens de serviço</span>
+                      </li>
+                    )}
+                    {matriz.pode_cancelar_os && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Cancelar ordens de serviço</span>
+                      </li>
+                    )}
+                    {matriz.setores_visiveis === 'todos' && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Visualizar todos os setores</span>
+                      </li>
+                    )}
+                    {Array.isArray(matriz.setores_visiveis) && matriz.setores_visiveis.length > 0 && (
+                      <li className="text-sm flex items-start gap-2">
+                        <span className="text-green-600 mt-1">✓</span>
+                        <span>Visualizar setores: {matriz.setores_visiveis.join(', ')}</span>
+                      </li>
+                    )}
+                  </ul>
+                </div>
 
-                {matriz.restricoes.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-red-600" />
-                      Restrições
-                    </p>
-                    <ul className="space-y-1">
-                      {matriz.restricoes.map((rest, idx) => (
-                        <li key={idx} className="text-sm flex items-start gap-2">
-                          <span className="text-red-600 mt-1">✗</span>
-                          <span>{rest}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
-                {matriz.perfil === 'SEM_ACESSO' && (
+                {matriz.perfil === 'mao_de_obra' && (
                   <Alert>
                     <Lock className="h-4 w-4" />
                     <AlertDescription className="text-sm">

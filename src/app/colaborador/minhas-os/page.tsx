@@ -51,14 +51,14 @@ export default function MinhasOSPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "ATRASADO":
-        return "bg-red-100 text-red-800 border-red-200";
-      case "EM_ANDAMENTO":
+      case "em_andamento":
         return "bg-blue-100 text-blue-800 border-blue-200";
-      case "PENDENTE":
+      case "em_triagem":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "CONCLUIDO":
+      case "concluido":
         return "bg-green-100 text-green-800 border-green-200";
+      case "cancelado":
+        return "bg-red-100 text-red-800 border-red-200";
       default:
         return "bg-gray-100 text-gray-800 border-gray-200";
     }
@@ -121,10 +121,10 @@ export default function MinhasOSPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="TODOS">Todos os Status</SelectItem>
-                  <SelectItem value="PENDENTE">Pendente</SelectItem>
-                  <SelectItem value="EM_ANDAMENTO">Em Andamento</SelectItem>
-                  <SelectItem value="ATRASADO">Atrasado</SelectItem>
-                  <SelectItem value="CONCLUIDO">Concluído</SelectItem>
+                  <SelectItem value="em_triagem">Em Triagem</SelectItem>
+                  <SelectItem value="em_andamento">Em Andamento</SelectItem>
+                  <SelectItem value="concluido">Concluído</SelectItem>
+                  <SelectItem value="cancelado">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
 

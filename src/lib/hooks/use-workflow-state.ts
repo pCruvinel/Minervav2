@@ -49,7 +49,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
       // Determine last completed step to set current step if not in historical mode
       // This logic might need to be customized or optional
       const lastCompleted = etapas.reduce((max, step) => {
-        return step.status === 'APROVADA' && step.ordem > max ? step.ordem : max;
+        return step.status === 'concluida' && step.ordem > max ? step.ordem : max;
       }, 0);
 
       if (lastCompleted > 0 && !isHistoricalNavigation) {
@@ -64,7 +64,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
   const completedSteps = useMemo(() => {
     if (!etapas) return [];
     return etapas
-      .filter(e => e.status === 'APROVADA')
+      .filter(e => e.status === 'concluida')
       .map(e => e.ordem);
   }, [etapas]);
 

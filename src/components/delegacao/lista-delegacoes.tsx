@@ -40,7 +40,7 @@ export function ListaDelegacoes({
 }: ListaDelegacoesProps) {
   const { currentUser } = useAuth();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [filtroStatus, setFiltroStatus] = useState<'todas' | 'pendentes' | 'em_progresso' | 'concluidas' | 'reprovadas'>('todas');
+  const [filtroStatus, setFiltroStatus] = useState<'todas' | 'pendente' | 'aceita' | 'concluida' | 'recusada'>('todas');
 
   // Filtrar delegações por tipo
   const delegacoesFiltradas = useMemo(() => {
@@ -51,10 +51,10 @@ export function ListaDelegacoes({
 
     const aplicarFiltroStatus = (lista: Delegacao[]) => {
       if (filtroStatus === 'todas') return lista;
-      if (filtroStatus === 'pendentes') return lista.filter(d => d.status_delegacao === 'PENDENTE');
-      if (filtroStatus === 'em_progresso') return lista.filter(d => d.status_delegacao === 'EM_PROGRESSO');
-      if (filtroStatus === 'concluidas') return lista.filter(d => d.status_delegacao === 'CONCLUIDA');
-      if (filtroStatus === 'reprovadas') return lista.filter(d => d.status_delegacao === 'REPROVADA');
+      if (filtroStatus === 'pendente') return lista.filter(d => d.status_delegacao === 'pendente');
+      if (filtroStatus === 'aceita') return lista.filter(d => d.status_delegacao === 'aceita');
+      if (filtroStatus === 'concluida') return lista.filter(d => d.status_delegacao === 'concluida');
+      if (filtroStatus === 'recusada') return lista.filter(d => d.status_delegacao === 'recusada');
       return lista;
     };
 
@@ -66,23 +66,23 @@ export function ListaDelegacoes({
 
   const getStatusBadge = (status: Delegacao['status_delegacao']) => {
     const configs = {
-      PENDENTE: {
+      pendente: {
         label: 'Pendente',
         className: 'bg-amber-100 text-amber-700 border-amber-200',
         icon: Clock,
       },
-      EM_PROGRESSO: {
+      aceita: {
         label: 'Em Progresso',
         className: 'bg-blue-100 text-blue-700 border-blue-200',
         icon: AlertCircle,
       },
-      CONCLUIDA: {
+      concluida: {
         label: 'Concluída',
         className: 'bg-green-100 text-green-700 border-green-200',
         icon: CheckCircle2,
       },
-      REPROVADA: {
-        label: 'Reprovada',
+      recusada: {
+        label: 'Recusada',
         className: 'bg-red-100 text-red-700 border-red-200',
         icon: XCircle,
       },
@@ -114,8 +114,8 @@ export function ListaDelegacoes({
     return diffDias <= 3 && diffDias >= 0;
   };
 
-  const isPrazoVencido = (dataPrazo: string, status: string) => {
-    if (status === 'CONCLUIDA' || status === 'REPROVADA') return false;
+  const isPrazoVencido = (dataPrazo: string | undefined, status: string) => {
+    if (!dataPrazo || status === 'concluida' || status === 'recusada') return false;
     const prazo = new Date(dataPrazo);
     const hoje = new Date();
     return prazo < hoje;
@@ -141,21 +141,21 @@ export function ListaDelegacoes({
             <div className="flex items-start gap-3 flex-1 min-w-0">
               <Avatar className="w-10 h-10 flex-shrink-0">
                 <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                  {getInitials(tipo === 'recebida' ? delegacao.delegante_nome : delegacao.delegado_nome)}
+                  {getInitials(tipo === 'recebida' ? (delegacao.delegante_nome || 'Desconhecido') : (delegacao.delegado_nome || 'Desconhecido'))}
                 </AvatarFallback>
               </Avatar>
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="text-sm font-medium truncate">
-                    {tipo === 'recebida' 
-                      ? `Delegado por ${delegacao.delegante_nome}`
-                      : `Delegado para ${delegacao.delegado_nome}`
+                    {tipo === 'recebida'
+                      ? `Delegado por ${delegacao.delegante_nome || 'Desconhecido'}`
+                      : `Delegado para ${delegacao.delegado_nome || 'Desconhecido'}`
                     }
                   </p>
                 </div>
                 <p className="text-xs text-neutral-500">
-                  {formatarData(delegacao.data_delegacao)}
+                  {formatarData(delegacao.created_at)}
                 </p>
               </div>
             </div>
@@ -177,11 +177,11 @@ export function ListaDelegacoes({
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-neutral-400" />
               <span className="text-sm text-neutral-600">
-                Prazo: <span className="font-medium">{formatarData(delegacao.data_prazo)}</span>
+                Prazo: <span className="font-medium">{delegacao.data_prazo ? formatarData(delegacao.data_prazo) : 'Não definido'}</span>
               </span>
             </div>
 
-            {prazoVencido && (
+            {prazoVencido && delegacao.data_prazo && (
               <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 {calcularDiasAtraso(delegacao.data_prazo)} dias atrasado
@@ -218,7 +218,7 @@ export function ListaDelegacoes({
             </Button>
 
             {/* Ações */}
-            {tipo === 'recebida' && delegacao.status_delegacao === 'PENDENTE' && onIniciar && (
+            {tipo === 'recebida' && delegacao.status_delegacao === 'pendente' && onIniciar && (
               <Button
                 size="sm"
                 onClick={() => onIniciar(delegacao.id)}
@@ -228,7 +228,7 @@ export function ListaDelegacoes({
               </Button>
             )}
 
-            {tipo === 'recebida' && delegacao.status_delegacao === 'EM_PROGRESSO' && onConcluir && (
+            {tipo === 'recebida' && delegacao.status_delegacao === 'aceita' && onConcluir && (
               <Button
                 size="sm"
                 onClick={() => onConcluir(delegacao.id)}
@@ -255,19 +255,19 @@ export function ListaDelegacoes({
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <p className="text-neutral-500 mb-1">Delegado por:</p>
-                  <p className="font-medium">{delegacao.delegante_nome}</p>
+                  <p className="font-medium">{delegacao.delegante_nome || 'Desconhecido'}</p>
                 </div>
                 <div>
                   <p className="text-neutral-500 mb-1">Responsável:</p>
-                  <p className="font-medium">{delegacao.delegado_nome}</p>
+                  <p className="font-medium">{delegacao.delegado_nome || 'Desconhecido'}</p>
                 </div>
                 <div>
                   <p className="text-neutral-500 mb-1">Data de criação:</p>
-                  <p className="font-medium">{formatarData(delegacao.data_criacao)}</p>
+                  <p className="font-medium">{formatarData(delegacao.created_at)}</p>
                 </div>
                 <div>
                   <p className="text-neutral-500 mb-1">Última atualização:</p>
-                  <p className="font-medium">{formatarData(delegacao.data_atualizacao)}</p>
+                  <p className="font-medium">{formatarData(delegacao.updated_at)}</p>
                 </div>
               </div>
             </div>

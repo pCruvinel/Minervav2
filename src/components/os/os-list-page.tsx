@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -13,103 +13,54 @@ import { ordensServicoAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
 
 // Mock data para fallback (caso API falhe)
-const mockOrdensServico = [
+// Mock data para fallback (caso API falhe)
+const mockOrdensServico: any[] = [
   {
     id: '1',
-    codigo: 'OS-2025-001',
-    titulo: 'Perícia de Fachada - Edifício Central',
-    status: 'em_andamento',
-    cliente: { id: '1', nome: 'Construtora ABC Ltda' },
-    tipoOS: { id: '01', nome: 'OS 01: Perícia de Fachada', setor: 'obras' },
-    responsavel: { id: '1', nome: 'João Silva', avatar: 'JS' },
-    dataPrazo: '2025-01-30',
-    criadoEm: '2025-01-10'
+    codigo_os: 'OS-2025-001',
+    descricao: 'Perícia de Fachada - Edifício Central',
+    status_geral: 'em_andamento',
+    cliente_nome: 'Construtora ABC Ltda',
+    tipo_os_nome: 'OS 01: Perícia de Fachada',
+    responsavel_nome: 'João Silva',
+    responsavel_id: '1',
+    data_prazo: '2025-01-30',
+    created_at: '2025-01-10',
+    data_entrada: '2025-01-10'
   },
   {
     id: '2',
-    codigo: 'OS-2025-002',
-    titulo: 'Revitalização de Fachada - Condomínio Solar',
-    status: 'aguardando_aprovacao',
-    cliente: { id: '2', nome: 'Incorporadora XYZ' },
-    tipoOS: { id: '02', nome: 'OS 02: Revitalização de Fachada', setor: 'obras' },
-    responsavel: { id: '3', nome: 'Pedro Oliveira', avatar: 'PO' },
-    dataPrazo: '2025-02-15',
-    criadoEm: '2025-01-12'
+    codigo_os: 'OS-2025-002',
+    descricao: 'Revitalização de Fachada - Condomínio Solar',
+    status_geral: 'aguardando_aprovacao',
+    cliente_nome: 'Incorporadora XYZ',
+    tipo_os_nome: 'OS 02: Revitalização de Fachada',
+    responsavel_nome: 'Pedro Oliveira',
+    responsavel_id: '3',
+    data_prazo: '2025-02-15',
+    created_at: '2025-01-12',
+    data_entrada: '2025-01-12'
   },
   {
     id: '3',
-    codigo: 'OS-2025-003',
-    titulo: 'Assessoria Técnica - Shopping Norte',
-    status: 'atrasada',
-    cliente: { id: '5', nome: 'Grupo Omega' },
-    tipoOS: { id: '05', nome: 'OS 05: Assessoria técnica mensal', setor: 'assessoria' },
-    responsavel: { id: '2', nome: 'Maria Santos', avatar: 'MS' },
-    dataPrazo: '2025-01-15',
-    criadoEm: '2025-01-05'
-  },
-  {
-    id: '4',
-    codigo: 'OS-2025-004',
-    titulo: 'Laudo Pontual - Edifício Atlântico',
-    status: 'concluida',
-    cliente: { id: '3', nome: 'Empreendimentos Delta' },
-    tipoOS: { id: '06', nome: 'OS 06: Laudo pontual', setor: 'assessoria' },
-    responsavel: { id: '1', nome: 'João Silva', avatar: 'JS' },
-    dataPrazo: '2025-01-20',
-    criadoEm: '2025-01-08'
-  },
-  {
-    id: '5',
-    codigo: 'OS-2025-005',
-    titulo: 'Reforço Estrutural - Ponte Viaduto',
-    status: 'em_andamento',
-    cliente: { id: '4', nome: 'Construtora Sigma' },
-    tipoOS: { id: '03', nome: 'OS 03: Reforço Estrutural', setor: 'obras' },
-    responsavel: { id: '3', nome: 'Pedro Oliveira', avatar: 'PO' },
-    dataPrazo: '2025-03-01',
-    criadoEm: '2025-01-14'
-  },
-  {
-    id: '6',
-    codigo: 'OS-2025-006',
-    titulo: 'Requisição de Compras - Materiais Diversos',
-    status: 'em_andamento',
-    cliente: { id: '6', nome: 'Incorporadora Beta' },
-    tipoOS: { id: '09', nome: 'OS 09: Requisição de Compras', setor: 'obras' },
-    responsavel: { id: '4', nome: 'Ana Costa', avatar: 'AC' },
-    dataPrazo: '2025-01-25',
-    criadoEm: '2025-01-16'
-  },
-  {
-    id: '7',
-    codigo: 'OS-2025-007',
-    titulo: 'Start de Contrato - Residencial Vila Nova',
-    status: 'aguardando_aprovacao',
-    cliente: { id: '7', nome: 'Construtora Alvorada' },
-    tipoOS: { id: '13', nome: 'OS 13: Start de Contrato de Obra', setor: 'obras' },
-    responsavel: { id: '1', nome: 'João Silva', avatar: 'JS' },
-    dataPrazo: '2025-02-10',
-    criadoEm: '2025-01-18'
-  },
-  {
-    id: '8',
-    codigo: 'OS-2024-045',
-    titulo: 'Vistoria Técnica - Edifício Empresarial',
-    status: 'concluida',
-    cliente: { id: '8', nome: 'Empreendimentos Sul' },
-    tipoOS: { id: '08', nome: 'OS 08: Vistoria/Inspeção', setor: 'assessoria' },
-    responsavel: { id: '2', nome: 'Maria Santos', avatar: 'MS' },
-    dataPrazo: '2024-12-30',
-    criadoEm: '2024-12-15'
+    codigo_os: 'OS-2025-003',
+    descricao: 'Assessoria Técnica - Shopping Norte',
+    status_geral: 'atrasada',
+    cliente_nome: 'Grupo Omega',
+    tipo_os_nome: 'OS 05: Assessoria técnica mensal',
+    responsavel_nome: 'Maria Santos',
+    responsavel_id: '2',
+    data_prazo: '2025-01-15',
+    created_at: '2025-01-05',
+    data_entrada: '2025-01-05'
   }
 ];
 
 interface OSListPageProps {
   currentUser: User;
-  onNavigate: (route: string) => void;
 }
 
-export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
+export function OSListPage({ currentUser }: OSListPageProps) {
   // Estados de filtros
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('todos');
@@ -120,12 +71,11 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Buscar OS da API usando hook customizado
-  const { 
-    ordensServico: ordensServicoFromAPI, 
-    loading, 
+  const {
+    ordensServico: ordensServicoFromAPI,
+    loading,
     error,
-    refetch,
-    raw: ordensServicoAPI_data
+    refetch
   } = useOrdensServico();
 
   // 🔍 DEBUG: Verificar dados recebidos da API
@@ -143,17 +93,17 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
     console.log('🔍 [FILTROS-DEBUG] Antes dos filtros RLS:', filtered.length);
 
     // Aplicar RLS baseado no papel do usuário
-    if (currentUser.role === 'colaborador') {
+    if (currentUser.role_nivel === 'colaborador') {
       // Colaborador vê apenas suas próprias OS
       filtered = filtered.filter(os => os.responsavel.id === currentUser.id);
       console.log(`🔍 [RLS-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
-    } else if (currentUser.role === 'gestor') {
+    } else if (currentUser.role_nivel?.startsWith('gestor')) {
       // Gestor vê apenas OS do seu setor
-      filtered = filtered.filter(os => os.tipoOS.setor === currentUser.setor);
+      filtered = filtered.filter(os => os.tipo_os_nome.toLowerCase().includes(currentUser.setor || ''));
       console.log(`🔍 [RLS-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
     }
     // Diretoria e Gestor ADM veem todas
-    console.log(`🔍 [RLS] Role: ${currentUser.role}, OS após RLS: ${filtered.length}`);
+    console.log(`🔍 [RLS] Role: ${currentUser.role_nivel}, OS após RLS: ${filtered.length}`);
 
     // Aplicar filtros de busca
     if (searchTerm) {
@@ -221,13 +171,14 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
   };
 
   // Verificar se o usuário pode ver a coluna Setor
-  const canViewSetorColumn = currentUser.role === 'diretoria' || currentUser.role === 'gestor_adm';
+  const canViewSetorColumn = currentUser.role_nivel === 'diretoria' || currentUser.role_nivel === 'gestor_administrativo';
 
   return (
     <div className="min-h-screen bg-neutral-100 p-6">
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header da Página */}
-        <OSListHeader onCreateClick={() => onNavigate('os-criar')} />
+        {/* Header da Página */}
+        <OSListHeader />
 
 
 
@@ -253,9 +204,9 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
               <strong>Erro ao conectar com banco de dados:</strong> {error.message}
               <br />
               <span className="text-xs">Exibindo dados de exemplo (mock). </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
+              <Button
+                variant="ghost"
+                size="sm"
                 className="ml-2 h-6"
                 onClick={refetch}
               >
@@ -310,7 +261,6 @@ export function OSListPage({ currentUser, onNavigate }: OSListPageProps) {
             <OSTable
               ordensServico={ordensServico}
               canViewSetorColumn={canViewSetorColumn}
-              onNavigate={onNavigate}
               onCancelOS={handleCancelOS}
               isCancelling={isCancelling}
             />

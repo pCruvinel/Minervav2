@@ -1,12 +1,10 @@
 import { useState, useMemo, lazy, Suspense, memo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { Button } from '../ui/button';
-import { Plus } from 'lucide-react';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { SkeletonTurnoGrid } from '../ui/skeleton';
 
 // Lazy load modais para melhor performance (carregam só quando abertos)
-const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
 const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
 
 interface CalendarioSemanaProps {
@@ -26,7 +24,6 @@ function CalendarioSemanaComponent({
   error,
   onRefresh
 }: CalendarioSemanaProps) {
-  const [modalCriarTurno, setModalCriarTurno] = useState(false);
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
 
@@ -54,7 +51,7 @@ function CalendarioSemanaComponent({
 
   // Dias da semana (Seg - Dom, 7 dias)
   const diasSemana = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'];
-  
+
   // Horários (08:00 - 18:00)
   const horarios = [
     '08:00', '09:00', '10:00', '11:00', '12:00',
@@ -62,21 +59,35 @@ function CalendarioSemanaComponent({
   ];
 
   const ALTURA_SLOT = 80; // Altura de cada slot de horário em pixels
+  const HORA_INICIO_DIA = 8; // 08:00
 
-  // Calcular posição e altura do turno
+  // Calcular posição e altura do turno baseado em horas decimais
   const calcularEstiloTurno = (turno: TurnoComVagas) => {
-    const [horaInicio] = turno.horaInicio.split(':').map(Number);
-    const [horaFim] = turno.horaFim.split(':').map(Number);
+    // Parse hora:minuto para decimal (ex: "08:30" => 8.5)
+    const parseHora = (horaStr: string): number => {
+      const [hora, minuto] = horaStr.split(':').map(Number);
+      return hora + minuto / 60;
+    };
 
-    const indexInicio = horarios.findIndex(h => h === turno.horaInicio);
+    const horaInicio = parseHora(turno.horaInicio);
+    const horaFim = parseHora(turno.horaFim);
+
+    // Calcular offset do início do dia (08:00)
+    const offsetInicio = horaInicio - HORA_INICIO_DIA;
     const duracao = horaFim - horaInicio;
 
+    // Se o turno começa antes das 8h ou depois das 18h, ajustar
+    if (offsetInicio < 0 || horaInicio > 18) {
+      console.warn(`Turno fora do horário do calendário: ${turno.horaInicio} - ${turno.horaFim}`);
+      return { top: '0px', height: '0px', display: 'none' };
+    }
+
     return {
-      top: `${indexInicio * ALTURA_SLOT}px`,
+      top: `${offsetInicio * ALTURA_SLOT}px`,
       height: `${duracao * ALTURA_SLOT - 8}px` // -8 para padding
     };
   };
-  
+
   // Preparar dados para renderização
   const turnosPorDiaIndex = useMemo(() => {
     if (!turnosPorDia) return new Map();
@@ -120,17 +131,23 @@ function CalendarioSemanaComponent({
   return (
     <>
       <div className="p-6">
-        {/* Botão Admin */}
-        <div className="mb-4 flex justify-end">
-          <Button
-            onClick={() => setModalCriarTurno(true)}
-            className="bg-primary hover:bg-primary/90"
-            disabled={loading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Configurar Novo Turno
-          </Button>
-        </div>
+
+
+        {/* Error State */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+            <p className="font-medium">Erro ao carregar turnos</p>
+            <p className="text-sm mt-1">{error.message}</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              className="mt-2"
+            >
+              Tentar novamente
+            </Button>
+          </div>
+        )}
 
         {loading && (
           <div className="border border-neutral-200 rounded-lg overflow-hidden p-6">
@@ -141,79 +158,82 @@ function CalendarioSemanaComponent({
         {!loading && (
           <>
             {/* Grade do Calendário */}
-            <div className="border border-neutral-200 rounded-lg overflow-hidden">
-          {/* Cabeçalho com dias da semana */}
-          <div className="grid grid-cols-[100px_repeat(7,1fr)] bg-neutral-100 border-b border-neutral-200">
-            <div className="p-3 border-r border-neutral-200"></div>
-            {diasSemana.map((dia, index) => (
-              <div key={dia} className="p-3 text-center border-r last:border-r-0 border-neutral-200">
-                <div>{dia}</div>
-                <div className="text-sm text-neutral-600">
-                  {diasDaSemana[index].getDate()}/{diasDaSemana[index].getMonth() + 1}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Grade de horários */}
-          <div className="grid grid-cols-[100px_repeat(7,1fr)]">
-            {/* Coluna de horários */}
-            <div>
-              {horarios.map((horario) => (
-                <div
-                  key={horario}
-                  className="h-[80px] p-3 border-r border-b last:border-b-0 border-neutral-200 bg-neutral-50 flex items-start"
-                >
-                  <span className="text-sm text-neutral-600">{horario}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* Colunas para cada dia */}
-            {[0, 1, 2, 3, 4, 5, 6].map((diaIndex) => (
-              <div key={diaIndex} className="border-r last:border-r-0 border-neutral-200 relative">
-                {/* Grid de fundo com horários */}
-                {horarios.map((horario) => (
-                  <div
-                    key={horario}
-                    className="h-[80px] border-b last:border-b-0 border-neutral-200"
-                  />
+            <div className="border border-neutral-200 rounded-lg overflow-hidden bg-white overflow-x-auto">
+              {/* Cabeçalho com dias da semana */}
+              <div
+                className="grid bg-neutral-100 border-b border-neutral-200 min-w-[800px]"
+                style={{ gridTemplateColumns: '100px repeat(7, 1fr)' }}
+              >
+                <div className="p-3 border-r border-neutral-200 sticky left-0 bg-neutral-100 z-20"></div>
+                {diasSemana.map((dia, index) => (
+                  <div key={dia} className="p-3 text-center border-r last:border-r-0 border-neutral-200">
+                    <div className="font-medium">{dia}</div>
+                    <div className="text-sm text-neutral-600">
+                      {diasDaSemana[index].getDate()}/{diasDaSemana[index].getMonth() + 1}
+                    </div>
+                  </div>
                 ))}
-
-                {/* Turnos posicionados absolutamente */}
-                <div className="absolute inset-0 p-2 pointer-events-none">
-                  {(turnosPorDiaIndex.get(diaIndex) || []).map(turno => {
-                    const estilo = calcularEstiloTurno(turno);
-                    return (
-                      <div
-                        key={turno.id}
-                        className="absolute left-2 right-2 pointer-events-auto"
-                        style={estilo}
-                      >
-                        <BlocoTurno
-                          turno={turno}
-                          onClick={() => handleClickTurno(turno)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
               </div>
-            ))}
-          </div>
+
+              {/* Grade de horários */}
+              <div
+                className="grid min-w-[800px]"
+                style={{ gridTemplateColumns: '100px repeat(7, 1fr)' }}
+              >
+                {/* Coluna de horários */}
+                <div className="sticky left-0 bg-white z-20 border-r border-neutral-200">
+                  {horarios.map((horario) => (
+                    <div
+                      key={horario}
+                      className="h-[80px] p-3 border-b last:border-b-0 border-neutral-200 bg-neutral-50 flex items-start justify-center"
+                    >
+                      <span className="text-sm text-neutral-600 font-medium">{horario}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Colunas para cada dia */}
+                {[0, 1, 2, 3, 4, 5, 6].map((diaIndex) => (
+                  <div key={diaIndex} className="border-r last:border-r-0 border-neutral-200 relative bg-white">
+                    {/* Grid de fundo com horários */}
+                    {horarios.map((horario) => (
+                      <div
+                        key={horario}
+                        className="h-[80px] border-b last:border-b-0 border-neutral-100"
+                      />
+                    ))}
+
+                    {/* Turnos posicionados absolutamente */}
+                    <div className="absolute inset-0 p-2 pointer-events-none">
+                      {(turnosPorDiaIndex.get(diaIndex) || []).map((turno: TurnoComVagas & { dia: number }) => {
+                        const estilo = calcularEstiloTurno(turno);
+                        // Verificar se estilo.display === 'none' (turno fora do range)
+                        if (estilo.display === 'none') return null;
+
+                        return (
+                          <div
+                            key={turno.id}
+                            className="absolute left-2 right-2 pointer-events-auto z-10"
+                            style={estilo}
+                          >
+                            <BlocoTurno
+                              turno={turno}
+                              onClick={() => handleClickTurno(turno as TurnoComVagas & { dia: number })}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </>
         )}
       </div>
 
       {/* Modais - Lazy loaded para melhor performance */}
-      <Suspense fallback={null}>
-        <ModalCriarTurno
-          open={modalCriarTurno}
-          onClose={() => setModalCriarTurno(false)}
-          onSuccess={handleRefresh}
-        />
-      </Suspense>
+
 
       <Suspense fallback={null}>
         <ModalNovoAgendamento

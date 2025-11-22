@@ -17,7 +17,9 @@
       "Bash(npx tsc:*)",
       "Bash(node -e:*)",
       "Bash(node verify-rpc-functions.js:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(npm run dev:*)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

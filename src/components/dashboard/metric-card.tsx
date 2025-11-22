@@ -1,7 +1,7 @@
 // Card de Métrica - Sistema Minerva ERP
 'use client';
 
-import React from 'react';
+import { Link } from '@tanstack/react-router';
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { Card, CardContent } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -18,6 +18,7 @@ interface MetricCardProps {
   };
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
   onClick?: () => void;
+  to?: string;
 }
 
 export function MetricCard({
@@ -28,6 +29,7 @@ export function MetricCard({
   trend,
   variant = 'default',
   onClick,
+  to,
 }: MetricCardProps) {
   const variantStyles = {
     default: {
@@ -61,7 +63,7 @@ export function MetricCard({
 
   const getTrendIcon = () => {
     if (!trend) return null;
-    
+
     if (trend.direction === 'up') {
       return <TrendingUp className="w-3 h-3" />;
     } else if (trend.direction === 'down') {
@@ -73,7 +75,7 @@ export function MetricCard({
 
   const getTrendColor = () => {
     if (!trend) return '';
-    
+
     if (trend.direction === 'up') {
       return 'text-green-600 bg-green-50 border-green-200';
     } else if (trend.direction === 'down') {
@@ -83,11 +85,11 @@ export function MetricCard({
     }
   };
 
-  return (
-    <Card 
+  const cardContent = (
+    <Card
       className={`
         transition-all hover:shadow-md
-        ${onClick ? 'cursor-pointer hover:border-primary' : ''}
+        ${(onClick || to) ? 'cursor-pointer hover:border-primary' : ''}
       `}
       onClick={onClick}
     >
@@ -100,8 +102,8 @@ export function MetricCard({
           </div>
 
           {trend && (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className={`${getTrendColor()} flex items-center gap-1 text-xs`}
             >
               {getTrendIcon()}
@@ -113,11 +115,11 @@ export function MetricCard({
         <div>
           <p className="text-sm text-neutral-600 mb-1">{title}</p>
           <p className="text-3xl font-semibold mb-2">{value}</p>
-          
+
           {description && (
             <p className="text-xs text-neutral-500">{description}</p>
           )}
-          
+
           {trend && (
             <p className="text-xs text-neutral-500 mt-2">
               {trend.label}
@@ -127,4 +129,14 @@ export function MetricCard({
       </CardContent>
     </Card>
   );
+
+  if (to) {
+    return (
+      <Link to={to} className="block h-full">
+        {cardContent}
+      </Link>
+    );
+  }
+
+  return cardContent;
 }

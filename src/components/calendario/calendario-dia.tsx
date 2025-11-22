@@ -42,17 +42,31 @@ export function CalendarioDia({
   ];
 
   const ALTURA_SLOT = 100; // Altura de cada slot de horário em pixels
+  const HORA_INICIO_DIA = 8; // 08:00
 
-  // Calcular posição e altura do turno
+  // Calcular posição e altura do turno baseado em horas decimais
   const calcularEstiloTurno = (turno: TurnoComVagas) => {
-    const [horaInicio] = turno.horaInicio.split(':').map(Number);
-    const [horaFim] = turno.horaFim.split(':').map(Number);
+    // Parse hora:minuto para decimal (ex: "08:30" => 8.5)
+    const parseHora = (horaStr: string): number => {
+      const [hora, minuto] = horaStr.split(':').map(Number);
+      return hora + minuto / 60;
+    };
 
-    const indexInicio = horarios.findIndex(h => h === turno.horaInicio);
+    const horaInicio = parseHora(turno.horaInicio);
+    const horaFim = parseHora(turno.horaFim);
+
+    // Calcular offset do início do dia (08:00)
+    const offsetInicio = horaInicio - HORA_INICIO_DIA;
     const duracao = horaFim - horaInicio;
 
+    // Se o turno começa antes das 8h ou depois das 18h, ajustar
+    if (offsetInicio < 0 || horaInicio > 18) {
+      console.warn(`Turno fora do horário do calendário: ${turno.horaInicio} - ${turno.horaFim}`);
+      return { top: '0px', height: '0px', display: 'none' };
+    }
+
     return {
-      top: `${indexInicio * ALTURA_SLOT}px`,
+      top: `${offsetInicio * ALTURA_SLOT}px`,
       height: `${duracao * ALTURA_SLOT - 8}px` // -8 para padding
     };
   };
@@ -104,6 +118,15 @@ export function CalendarioDia({
             Erro ao carregar turnos: {error instanceof Error ? error.message : String(error)}
           </AlertDescription>
         </Alert>
+        <div className="mt-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+          >
+            Tentar novamente
+          </Button>
+        </div>
       </div>
     );
   }
@@ -155,16 +178,19 @@ export function CalendarioDia({
               {/* Turnos posicionados absolutamente */}
               <div className="absolute inset-0 p-3 pointer-events-none">
                 {turnosDia.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-neutral-400">
+                  <div className="flex items-center justify-center h-full text-neutral-400 pointer-events-none">
                     <p>Sem turnos cadastrados para este dia</p>
                   </div>
                 ) : (
                   turnosDia.map(turno => {
                     const estilo = calcularEstiloTurno(turno);
+                    // Verificar se estilo.display === 'none' (turno fora do range)
+                    if (estilo.display === 'none') return null;
+
                     return (
                       <div
                         key={turno.id}
-                        className="absolute left-3 right-3 max-w-2xl pointer-events-auto"
+                        className="absolute left-3 right-3 max-w-2xl pointer-events-auto z-10"
                         style={estilo}
                       >
                         <BlocoTurno

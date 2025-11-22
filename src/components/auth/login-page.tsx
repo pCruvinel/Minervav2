@@ -6,7 +6,6 @@ import { PrimaryButton } from "../ui/primary-button";
 import { toast } from "../../lib/utils/safe-toast";
 import { MinervaLogo } from "../layout/minerva-logo";
 import { useAuth } from "../../lib/contexts/auth-context";
-import { PermissaoUtil } from "../../lib/auth-utils";
 
 interface LoginPageProps {
   onLoginSuccess?: () => void;
@@ -58,29 +57,29 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
   // Credenciais de demonstração
   const demoCredentials = [
-    { 
-      role: "DIRETORIA", 
-      email: "diretoria@minerva.com", 
+    {
+      role: "Diretoria",
+      email: "diretoria@minerva.com",
       desc: "Acesso total ao sistema"
     },
-    { 
-      role: "GESTOR ADMINISTRATIVO", 
-      email: "gestor.administrativo@minerva.com", 
+    {
+      role: "Gestor Administrativo",
+      email: "gestor.administrativo@minerva.com",
       desc: "Gestão administrativa e financeira"
     },
-    { 
-      role: "GESTOR ASSESSORIA", 
-      email: "gestor.assessoria@minerva.com", 
+    {
+      role: "Gestor Assessoria",
+      email: "gestor.assessoria@minerva.com",
       desc: "Gestão da assessoria técnica"
     },
-    { 
-      role: "GESTOR OBRAS", 
-      email: "gestor.obras@minerva.com", 
+    {
+      role: "Gestor Obras",
+      email: "gestor.obras@minerva.com",
       desc: "Gestão de obras"
     },
-    { 
-      role: "COLABORADOR ADMINISTRATIVO", 
-      email: "colaborador.adm@minerva.com", 
+    {
+      role: "Colaborador",
+      email: "colaborador.adm@minerva.com",
       desc: "Colaborador administrativo"
     },
   ];

@@ -2,6 +2,7 @@
 'use client';
 
 import React from 'react';
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -17,8 +18,8 @@ interface RecentOSListProps {
   onViewAll?: () => void;
 }
 
-export function RecentOSList({ 
-  ordensServico, 
+export function RecentOSList({
+  ordensServico,
   limit = 5,
   title = 'Ordens de Serviço Recentes',
   onOSClick,
@@ -28,8 +29,8 @@ export function RecentOSList({
   const recentOS = React.useMemo(() => {
     return [...ordensServico]
       .sort((a, b) => {
-        const dateA = new Date(a.createdAt || a.data_criacao || 0);
-        const dateB = new Date(b.createdAt || b.data_criacao || 0);
+        const dateA = new Date(a.created_at || 0);
+        const dateB = new Date(b.created_at || 0);
         return dateB.getTime() - dateA.getTime();
       })
       .slice(0, limit);
@@ -37,47 +38,27 @@ export function RecentOSList({
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; className: string }> = {
-      RASCUNHO: { 
-        label: 'Rascunho', 
-        className: 'bg-neutral-100 text-neutral-700 border-neutral-200' 
+      em_triagem: {
+        label: 'Em Triagem',
+        className: 'bg-blue-100 text-blue-700 border-blue-200'
       },
-      PENDENTE: { 
-        label: 'Pendente', 
-        className: 'bg-amber-100 text-amber-700 border-amber-200' 
+      em_andamento: {
+        label: 'Em Andamento',
+        className: 'bg-blue-100 text-blue-700 border-blue-200'
       },
-      EM_TRIAGEM: { 
-        label: 'Em Triagem', 
-        className: 'bg-blue-100 text-blue-700 border-blue-200' 
+      concluido: {
+        label: 'Concluído',
+        className: 'bg-green-100 text-green-700 border-green-200'
       },
-      EM_ANDAMENTO: { 
-        label: 'Em Andamento', 
-        className: 'bg-blue-100 text-blue-700 border-blue-200' 
-      },
-      AGUARDANDO_APROVACAO: { 
-        label: 'Aguardando', 
-        className: 'bg-amber-100 text-amber-700 border-amber-200' 
-      },
-      APROVADA: { 
-        label: 'Aprovada', 
-        className: 'bg-green-100 text-green-700 border-green-200' 
-      },
-      EM_EXECUCAO: { 
-        label: 'Em Execução', 
-        className: 'bg-violet-100 text-violet-700 border-violet-200' 
-      },
-      CONCLUIDA: { 
-        label: 'Concluída', 
-        className: 'bg-green-100 text-green-700 border-green-200' 
-      },
-      CANCELADA: { 
-        label: 'Cancelada', 
-        className: 'bg-red-100 text-red-700 border-red-200' 
+      cancelado: {
+        label: 'Cancelado',
+        className: 'bg-red-100 text-red-700 border-red-200'
       },
     };
 
-    const config = statusConfig[status] || { 
-      label: status, 
-      className: 'bg-neutral-100 text-neutral-700 border-neutral-200' 
+    const config = statusConfig[status] || {
+      label: status,
+      className: 'bg-neutral-100 text-neutral-700 border-neutral-200'
     };
 
     return (
@@ -85,15 +66,6 @@ export function RecentOSList({
         {config.label}
       </Badge>
     );
-  };
-
-  const getSetorLabel = (setor: string) => {
-    const labels: Record<string, string> = {
-      COM: 'Comercial',
-      ASS: 'Assessoria',
-      OBR: 'Obras',
-    };
-    return labels[setor] || setor;
   };
 
   if (ordensServico.length === 0) {
@@ -124,42 +96,42 @@ export function RecentOSList({
             {ordensServico.length} {ordensServico.length === 1 ? 'ordem' : 'ordens'} no total
           </p>
         </div>
-        {onViewAll && ordensServico.length > limit && (
+        {ordensServico.length > limit && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={onViewAll}
+            asChild
             className="gap-1"
           >
-            Ver todas
-            <ChevronRight className="w-4 h-4" />
+            <Link to="/os">
+              Ver todas
+              <ChevronRight className="w-4 h-4" />
+            </Link>
           </Button>
         )}
       </CardHeader>
       <CardContent className="space-y-3">
         {recentOS.map((os) => (
-          <div
+          <Link
             key={os.id}
-            className={`
-              p-4 rounded-lg border border-neutral-200 transition-all
-              ${onOSClick ? 'cursor-pointer hover:border-primary hover:bg-primary/5' : ''}
-            `}
-            onClick={() => onOSClick?.(os)}
+            to="/os/$osId"
+            params={{ osId: os.id }}
+            className="block p-4 rounded-lg border border-neutral-200 transition-all cursor-pointer hover:border-primary hover:bg-primary/5"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3 mb-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <p className="font-medium text-sm truncate">
-                    {os.codigo}
+                    {os.codigo_os}
                   </p>
-                  {getStatusBadge(os.status)}
+                  {getStatusBadge(os.status_geral)}
                 </div>
                 <p className="text-sm text-neutral-700 truncate">
-                  {os.titulo}
+                  {os.descricao}
                 </p>
               </div>
-              
+
               {onOSClick && (
                 <ChevronRight className="w-5 h-5 text-neutral-400 flex-shrink-0" />
               )}
@@ -167,26 +139,21 @@ export function RecentOSList({
 
             {/* Details */}
             <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
-              {os.cliente && (
+              {os.cliente_nome && (
                 <div className="flex items-center gap-1">
                   <User className="w-3 h-3" />
-                  <span className="truncate max-w-[150px]">{os.cliente}</span>
-                </div>
-              )}
-              
-              {os.setor && (
-                <div className="flex items-center gap-1">
-                  <Building2 className="w-3 h-3" />
-                  <span>{getSetorLabel(os.setor)}</span>
+                  <span className="truncate max-w-[150px]">{os.cliente_nome}</span>
                 </div>
               )}
 
+              {/* Setor removido temporariamente pois não existe no tipo OrdemServico */}
+
               <div className="flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                <span>{formatarDataRelativa(os.createdAt || os.data_criacao || new Date().toISOString())}</span>
+                <span>{formatarDataRelativa(os.created_at || new Date().toISOString())}</span>
               </div>
             </div>
-          </div>
+          </Link>
         ))}
       </CardContent>
     </Card>

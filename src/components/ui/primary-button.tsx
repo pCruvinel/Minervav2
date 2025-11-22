@@ -15,6 +15,7 @@ interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
+  asChild?: boolean;
 }
 
 const variantStyles = {
@@ -53,6 +54,7 @@ export function PrimaryButton({
   fullWidth = false,
   className,
   disabled,
+  asChild = false,
   ...props
 }: PrimaryButtonProps) {
   const variantStyle = variantStyles[variant];
@@ -70,6 +72,7 @@ export function PrimaryButton({
         className
       )}
       disabled={isDisabled}
+      asChild={asChild}
       {...props}
     >
       {isLoading ? (
@@ -77,6 +80,8 @@ export function PrimaryButton({
           <Loader2 className="h-4 w-4 animate-spin mr-2" />
           {loadingText}
         </>
+      ) : asChild ? (
+        children
       ) : (
         <>
           {icon && iconPosition === 'left' && (

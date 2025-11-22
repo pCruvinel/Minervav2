@@ -1,13 +1,13 @@
 // OS 07: Termo de Comunicação de Reforma - Sistema Minerva ERP
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { ArrowLeft, Link as LinkIcon, CheckCircle2, Copy, ExternalLink, Clock } from 'lucide-react';
+import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { PrimaryButton } from '../ui/primary-button';
 import { Badge } from '../ui/badge';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { toast } from '../../lib/utils/safe-toast';
 
@@ -19,14 +19,87 @@ type EtapaOS07 = 'identificacao' | 'aguardando_cliente' | 'analise' | 'gerar_pdf
 
 export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   const [etapaAtual, setEtapaAtual] = useState<EtapaOS07>('identificacao');
-  const [condominio, setCondominio] = useState('');
+  // const [condominio, setCondominio] = useState(''); // Substituído pelo formData
   const [osId, setOsId] = useState('');
   const [linkFormulario, setLinkFormulario] = useState('');
 
+  // Estado para StepIdentificacaoLeadCompleto
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
+  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+
+  const [formData, setFormData] = useState({
+    nome: '',
+    cpfCnpj: '',
+    tipo: '',
+    nomeResponsavel: '',
+    cargoResponsavel: '',
+    telefone: '',
+    email: '',
+    tipoEdificacao: '',
+    qtdUnidades: '',
+    qtdBlocos: '',
+    qtdPavimentos: '',
+    tipoTelhado: '',
+    possuiElevador: false,
+    possuiPiscina: false,
+    cep: '',
+    endereco: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+  });
+
+  const handleSelectLead = (leadId: string, leadData?: any) => {
+    setSelectedLeadId(leadId);
+    if (leadData) {
+      setFormData(prev => ({
+        ...prev,
+        nome: leadData.nome_razao_social || '',
+        cpfCnpj: leadData.cpf_cnpj || '',
+        email: leadData.email || '',
+        telefone: leadData.telefone || '',
+        tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
+        nomeResponsavel: leadData.nome_responsavel || '',
+        cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
+        tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
+        qtdUnidades: leadData.endereco?.qtd_unidades || '',
+        qtdBlocos: leadData.endereco?.qtd_blocos || '',
+        qtdPavimentos: leadData.endereco?.qtd_pavimentos || '',
+        tipoTelhado: leadData.endereco?.tipo_telhado || '',
+        possuiElevador: leadData.endereco?.possui_elevador || false,
+        possuiPiscina: leadData.endereco?.possui_piscina || false,
+        cep: leadData.endereco?.cep || '',
+        endereco: leadData.endereco?.rua || '',
+        numero: leadData.endereco?.numero || '',
+        complemento: leadData.endereco?.complemento || '',
+        bairro: leadData.endereco?.bairro || '',
+        cidade: leadData.endereco?.cidade || '',
+        estado: leadData.endereco?.estado || '',
+      }));
+    }
+  };
+
+  const handleSaveNewLead = () => {
+    setShowNewLeadDialog(false);
+    // Em um cenário real, o hook useCreateCliente dentro do componente já salvou no banco
+    // e chamou onSelectLead com o novo ID.
+    // Aqui apenas garantimos que o dialog feche.
+  };
+
   // Etapa 1: Identificação do Cliente
   const handleIdentificarCliente = () => {
-    if (!condominio.trim()) {
-      toast.error('Selecione o condomínio');
+    // Validar formulário
+    if (stepLeadRef.current && !stepLeadRef.current.validate()) {
+      toast.error('Preencha os campos obrigatórios do cliente');
+      return;
+    }
+
+    if (!selectedLeadId) {
+      toast.error('Selecione um cliente/lead');
       return;
     }
 
@@ -75,26 +148,24 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
           <div>
             <CardTitle>Identificação do Cliente/Lead</CardTitle>
             <p className="text-sm text-neutral-600 mt-1">
-              Selecione o condomínio que solicitará a reforma
+              Selecione o condomínio ou cliente que solicitará a reforma
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Label htmlFor="condominio">
-            Condomínio <span className="text-red-500">*</span>
-          </Label>
-          <Input
-            id="condominio"
-            placeholder="Digite o nome do condomínio"
-            value={condominio}
-            onChange={(e) => setCondominio(e.target.value)}
-          />
-          <p className="text-xs text-neutral-500">
-            O condomínio será vinculado a esta Ordem de Serviço
-          </p>
-        </div>
+        <StepIdentificacaoLeadCompleto
+          ref={stepLeadRef}
+          selectedLeadId={selectedLeadId}
+          onSelectLead={handleSelectLead}
+          showCombobox={showLeadCombobox}
+          onShowComboboxChange={setShowLeadCombobox}
+          showNewLeadDialog={showNewLeadDialog}
+          onShowNewLeadDialogChange={setShowNewLeadDialog}
+          formData={formData}
+          onFormDataChange={setFormData}
+          onSaveNewLead={handleSaveNewLead}
+        />
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
           {onBack && (
@@ -144,7 +215,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
           </div>
           <div className="space-y-1">
             <p className="text-xs text-neutral-600">
-              Condomínio: <span className="font-medium">{condominio}</span>
+              Condomínio: <span className="font-medium">{formData.nome}</span>
             </p>
           </div>
         </div>
@@ -152,7 +223,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
         {/* Link do Formulário */}
         <div className="space-y-3">
           <Label>Link do Formulário Público</Label>
-          
+
           <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-3">
               <LinkIcon className="w-5 h-5 text-cyan-600" />
@@ -160,7 +231,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
                 Formulário de Comunicação de Reforma
               </p>
             </div>
-            
+
             <div className="bg-neutral-50 border border-neutral-200 rounded p-3 mb-4">
               <p className="text-sm font-mono text-neutral-700 break-all">
                 {linkFormulario}
@@ -245,7 +316,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
                 Formulário Recebido com Sucesso
               </p>
               <p className="text-sm text-green-700">
-                O cliente preencheu e enviou todos os dados necessários. 
+                O cliente preencheu e enviou todos os dados necessários.
                 Prossiga para a análise técnica.
               </p>
             </div>

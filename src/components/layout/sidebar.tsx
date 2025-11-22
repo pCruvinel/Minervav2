@@ -39,21 +39,22 @@ interface SidebarProps {
 // ============================================================
 
 const visibilityByRole: Record<RoleLevel, string[]> = {
-  // DIRETORIA: Acesso completo
-  'DIRETORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  
-  // GESTORES: Acesso completo
-  'GESTOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'GESTOR_ASSESSORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'GESTOR_OBRAS': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  
-  // COLABORADORES: Acesso limitado (Dashboard, Ordem de Serviço, Clientes, Calendário)
-  'COLABORADOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'COLABORADOR_ASSESSORIA': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'COLABORADOR_OBRAS': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  
-  // MOBRA: Acesso mínimo
-  'MOBRA': ['dashboard'],
+  // Admin: Acesso total
+  'admin': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Diretoria: Acesso completo
+  'diretoria': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Gestores: Acesso completo (financeiro pode ser restrito por gestor_obras/assessoria)
+  'gestor_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'gestor_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+  'gestor_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+
+  // Colaborador: Acesso limitado
+  'colaborador': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // Mão de obra: Sem acesso ao sistema
+  'mao_de_obra': [],
 };
 
 const menuItems = [
@@ -140,10 +141,11 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     if (!currentUser) {
       return menuItems;
     }
-    
-    // Obter lista de itens visíveis para o role do usuário
-    const visibleItemIds = visibilityByRole[currentUser.role_nivel] || [];
-    
+
+    // Obter lista de itens visíveis para o role do usuário (usar cargo_slug)
+    const roleSlug = currentUser.cargo_slug || currentUser.role_nivel || 'colaborador';
+    const visibleItemIds = visibilityByRole[roleSlug] || [];
+
     // Filtrar menuItems baseado na visibilidade
     return menuItems.filter(item => visibleItemIds.includes(item.id));
   };

@@ -1,7 +1,7 @@
 // Badge de Aprovações Pendentes - Sistema Hierárquico Minerva ERP
 'use client';
 
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Bell, CheckCircle2 } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
@@ -12,7 +12,7 @@ import {
 } from '../ui/popover';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { useAuth } from '../../lib/contexts/auth-context';
-import { Delegacao } from '../../lib/types';
+import { Delegacao, podeAprovar } from '../../lib/types';
 import { formatarDataRelativa } from '../../lib/utils/date-utils';
 
 interface BadgeAprovacoesPendentesProps {
@@ -35,16 +35,12 @@ export function BadgeAprovacoesPendentes({
     if (!currentUser) return [];
 
     // Apenas gestores e diretoria podem aprovar
-    const podeAprovar = 
-      currentUser.role_nivel === 'DIRETORIA' ||
-      currentUser.role_nivel.startsWith('GESTOR_');
-
-    if (!podeAprovar) return [];
+    if (!podeAprovar(currentUser)) return [];
 
     // Filtrar delegações concluídas que aguardam aprovação
     return delegacoes.filter(d => {
       // Deve estar concluída
-      if (d.status_delegacao !== 'CONCLUIDA') return false;
+      if (d.status_delegacao !== 'concluida') return false;
 
       // Deve ter sido delegada pelo usuário atual (gestor aprova o que ele delegou)
       if (d.delegante_id !== currentUser.id) return false;
@@ -112,7 +108,7 @@ export function BadgeAprovacoesPendentes({
               <div className="flex items-start gap-3">
                 <Avatar className="w-10 h-10 flex-shrink-0">
                   <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                    {getInitials(delegacao.delegado_nome)}
+                    {getInitials(delegacao.delegado_nome || 'Desconhecido')}
                   </AvatarFallback>
                 </Avatar>
 
@@ -120,10 +116,10 @@ export function BadgeAprovacoesPendentes({
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">
-                        {delegacao.delegado_nome}
+                        {delegacao.delegado_nome || 'Desconhecido'}
                       </p>
                       <p className="text-xs text-neutral-500">
-                        {formatarDataRelativa(delegacao.data_atualizacao)}
+                        {formatarDataRelativa(delegacao.updated_at)}
                       </p>
                     </div>
                     <Badge

@@ -673,7 +673,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         tipo_os_id: tipoOSEncontrado.id,
         descricao: `${etapa2Data.tipoOS} - ${nomeCliente}`,
         // criado_por_id será preenchido automaticamente pelo servidor com colaborador "Sistema"
-        status_geral: 'EM_ANDAMENTO', // Novo padrão: MAIÚSCULAS + SNAKE_CASE
+        status_geral: 'em_andamento',
       });
 
       console.log('✅ OS criada:', novaOS);
@@ -688,7 +688,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       const etapasCriadas = [];
       
       for (let i = 1; i <= 15; i++) {
-        const statusEtapa = i <= 2 ? 'APROVADA' : (i === 3 ? 'EM_ANDAMENTO' : 'PENDENTE'); // Novo padrão: MAIÚSCULAS + SNAKE_CASE
+        const statusEtapa = i <= 2 ? 'concluida' : (i === 3 ? 'em_andamento' : 'pendente');
         
         let dadosEtapa = {};
         if (i === 1) {

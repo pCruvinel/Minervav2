@@ -6,7 +6,7 @@ import {
   Setor,
   NivelHierarquico,
   ROLE_PARA_NIVEL,
-  PERMISSOES_POR_ROLE,
+  PERMISSOES_POR_ROLE_LEGADO,
   ROLE_NAMES,
   SETOR_NAMES,
   OrdemServico
@@ -65,13 +65,13 @@ export class PermissaoUtil {
    * Verifica se um usuário pode aprovar uma tarefa de determinado setor
    */
   static podeAprovarTarefa(usuario: User, tarefaSetor: Setor): boolean {
-    const permissoes = PERMISSOES_POR_ROLE[usuario.role_nivel];
-    
+    const permissoes = PERMISSOES_POR_ROLE_LEGADO[usuario.role_nivel];
+
     // Verifica se pode aprovar todos os setores (*)
     if (permissoes.pode_aprovar_setores.includes('*' as any)) {
       return true;
     }
-    
+
     // Verifica se pode aprovar o setor específico
     return permissoes.pode_aprovar_setores.includes(tarefaSetor);
   }
@@ -80,13 +80,13 @@ export class PermissaoUtil {
    * Retorna os setores que um usuário pode visualizar
    */
   static obterSetoresAcesso(usuario: User): Setor[] {
-    const permissoes = PERMISSOES_POR_ROLE[usuario.role_nivel];
-    
+    const permissoes = PERMISSOES_POR_ROLE_LEGADO[usuario.role_nivel];
+
     // Se tem acesso a todos (*), retorna todos os setores
     if (permissoes.acesso_setores.includes('*' as any)) {
       return ['COM', 'ASS', 'OBR'];
     }
-    
+
     return permissoes.acesso_setores as Setor[];
   }
 
@@ -94,8 +94,8 @@ export class PermissaoUtil {
    * Verifica se um usuário tem acesso a um módulo específico
    */
   static temAcessoModulo(usuario: User, modulo: string): boolean {
-    const permissoes = PERMISSOES_POR_ROLE[usuario.role_nivel];
-    return permissoes.acesso_modulos.includes(modulo);
+    const permissoes = PERMISSOES_POR_ROLE_LEGADO[usuario.role_nivel];
+    return permissoes.acesso_modulos.includes(modulo) || permissoes.acesso_modulos.includes('*');
   }
 
   /**
@@ -229,7 +229,7 @@ export class PermissaoUtil {
    * (apenas Diretoria com justificativa)
    */
   static podeReabrirOS(usuario: User, os: OrdemServico): boolean {
-    return this.ehDiretoria(usuario) && os.status === 'CONCLUIDA';
+    return this.ehDiretoria(usuario) && os.status === 'concluido';
   }
 
   /**
@@ -270,12 +270,12 @@ export class PermissaoUtil {
    * Retorna lista de setores para os quais um usuário pode delegar
    */
   static obterSetoresDelegacao(usuario: User): Setor[] {
-    const permissoes = PERMISSOES_POR_ROLE[usuario.role_nivel];
-    
+    const permissoes = PERMISSOES_POR_ROLE_LEGADO[usuario.role_nivel];
+
     if (permissoes.pode_delegar_para.includes('*' as any)) {
       return ['COM', 'ASS', 'OBR'];
     }
-    
+
     return permissoes.pode_delegar_para as Setor[];
   }
 
@@ -340,14 +340,14 @@ export class PermissaoUtil {
     return {
       nivel: `Nível ${this.obterNivelHierarquico(usuario)}`,
       role: this.obterNomeRole(usuario.role_nivel),
-      setor: this.obterNomeSetor(usuario.setor),
+      setor: usuario.setor ? this.obterNomeSetor(usuario.setor as Setor) : 'N/A',
       pode_criar_os: this.podeCriarOS(usuario),
-      pode_delegar: usuario.pode_delegar,
-      pode_aprovar: usuario.pode_aprovar,
+      pode_delegar: usuario.pode_delegar || false,
+      pode_aprovar: usuario.pode_aprovar || false,
       pode_reabrir_os: false, // Apenas em OS específica
       pode_gerenciar_usuarios: this.podeGerenciarUsuarios(usuario),
       setores_acesso: this.obterSetoresAcesso(usuario).map(s => this.obterNomeSetor(s)),
-      modulos_acesso: PERMISSOES_POR_ROLE[usuario.role_nivel].acesso_modulos,
+      modulos_acesso: PERMISSOES_POR_ROLE_LEGADO[usuario.role_nivel].acesso_modulos,
     };
   }
 }

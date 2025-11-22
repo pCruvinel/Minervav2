@@ -77,6 +77,14 @@ function CalendarioMesComponent({
             Erro ao carregar turnos: {error instanceof Error ? error.message : String(error)}
           </AlertDescription>
         </Alert>
+        <div className="mt-3">
+          <button
+            onClick={onRefresh}
+            className="text-sm text-primary hover:underline"
+          >
+            Tentar novamente
+          </button>
+        </div>
       </div>
     );
   }
@@ -126,28 +134,41 @@ function CalendarioMesComponent({
                     </div>
 
                     {/* Turnos do dia */}
-                    <div className="space-y-1">
+                    <div className="space-y-1 overflow-y-auto max-h-20">
                       {turnos.length === 0 ? (
                         <p className="text-xs text-neutral-400">Sem turnos</p>
                       ) : (
-                        turnos.map((turno, idx) => {
+                        turnos.slice(0, 3).map((turno, idx) => {
                           const vagasOcupadas = turno.vagasOcupadas || 0;
                           const vagasTotal = turno.vagasTotal || 1;
+                          const percentualOcupado = (vagasOcupadas / vagasTotal) * 100;
+
                           return (
                             <div
                               key={idx}
-                              className="rounded px-2 py-1.5 text-xs cursor-pointer hover:opacity-90 transition-opacity"
+                              className="rounded px-2 py-1 text-xs cursor-pointer hover:opacity-90 transition-opacity"
                               style={{ backgroundColor: turno.cor || '#DBEAFE' }}
+                              title={`${turno.horaInicio} - ${turno.horaFim} | ${vagasOcupadas}/${vagasTotal} vagas`}
                             >
-                              <div className="flex items-center justify-between">
-                                <Users className="h-3 w-3" />
-                                <span>
-                                  {vagasOcupadas}/{vagasTotal}
+                              <div className="flex items-center justify-between gap-1">
+                                <span className="text-[10px] font-medium truncate">
+                                  {turno.horaInicio}
                                 </span>
+                                <div className="flex items-center gap-1">
+                                  <Users className="h-3 w-3" />
+                                  <span className={percentualOcupado === 100 ? 'font-bold text-red-700' : ''}>
+                                    {vagasOcupadas}/{vagasTotal}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );
                         })
+                      )}
+                      {turnos.length > 3 && (
+                        <p className="text-[10px] text-neutral-500 font-medium">
+                          +{turnos.length - 3} mais
+                        </p>
                       )}
                     </div>
                   </>

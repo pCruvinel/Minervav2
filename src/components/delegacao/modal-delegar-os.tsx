@@ -13,8 +13,7 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { toast } from '../../lib/utils/safe-toast';
 import { useAuth } from '../../lib/contexts/auth-context';
-import { PermissaoUtil } from '../../lib/auth-utils';
-import { User, OrdemServico, Delegacao } from '../../lib/types';
+import { User, OrdemServico, Delegacao, podeDelegar, isGestor, isAdminOuDiretoria, ROLE_LABELS } from '../../lib/types';
 import { mockUsers } from '../../lib/mock-data';
 import { ordensServicoAPI } from '../../lib/api-client';
 
@@ -42,16 +41,28 @@ export function ModalDelegarOS({
   const colaboradoresDisponiveis = useMemo(() => {
     if (!currentUser) return [];
 
-    // Usar PermissaoUtil para verificar quem pode receber delegação
+    // Verificar se usuário atual pode delegar
+    if (!podeDelegar(currentUser)) return [];
+
     return mockUsers.filter(user => {
       // Não delegar para si mesmo
       if (user.id === currentUser.id) return false;
 
-      // Não delegar para MOBRA (sem acesso ao sistema)
-      if (user.role_nivel === 'MOBRA') return false;
+      // Não delegar para mao_de_obra (sem acesso ao sistema)
+      if (user.cargo_slug === 'mao_de_obra') return false;
 
-      // Verificar se pode delegar para este colaborador (usando método correto)
-      return PermissaoUtil.podeDelegarPara(currentUser, user.setor, user);
+      // Admin e Diretoria podem delegar para qualquer um
+      if (isAdminOuDiretoria(currentUser)) return true;
+
+      // Gestor Administrativo pode delegar para qualquer setor
+      if (currentUser.cargo_slug === 'gestor_administrativo') return true;
+
+      // Gestor de setor pode delegar apenas para seu setor
+      if (isGestor(currentUser)) {
+        return user.setor_slug === currentUser.setor_slug;
+      }
+
+      return false;
     });
   }, [currentUser]);
 
@@ -109,7 +120,7 @@ export function ModalDelegarOS({
         descricao_tarefa: descricaoTarefa.trim(),
         observacoes: observacoes.trim() || undefined,
         data_prazo: dataPrazo,
-        status_delegacao: 'PENDENTE',
+        status_delegacao: 'pendente',
       });
 
       console.log('✅ Delegação criada com sucesso:', resultado);
@@ -128,6 +139,7 @@ export function ModalDelegarOS({
         descricao_tarefa: resultado.descricao_tarefa,
         observacoes: resultado.observacoes,
         created_at: resultado.created_at,
+        updated_at: resultado.updated_at,
         data_criacao: resultado.created_at,
         data_atualizacao: resultado.updated_at,
       };
@@ -162,22 +174,13 @@ export function ModalDelegarOS({
   };
 
   const getRoleBadgeColor = (role: string) => {
-    if (role === 'DIRETORIA') return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (role.startsWith('GESTOR_')) return 'bg-blue-100 text-blue-700 border-blue-200';
+    if (role === 'diretoria') return 'bg-purple-100 text-purple-700 border-purple-200';
+    if (role.startsWith('gestor_')) return 'bg-blue-100 text-blue-700 border-blue-200';
     return 'bg-neutral-100 text-neutral-700 border-neutral-200';
   };
 
   const getRoleLabel = (role: string) => {
-    const labels: Record<string, string> = {
-      DIRETORIA: 'Diretoria',
-      GESTOR_ADMINISTRATIVO: 'Gestor Administrativo',
-      GESTOR_ASSESSORIA: 'Gestor Assessoria',
-      GESTOR_OBRAS: 'Gestor Obras',
-      COLABORADOR_ADMINISTRATIVO: 'Colaborador',
-      COLABORADOR_ASSESSORIA: 'Colaborador',
-      COLABORADOR_OBRAS: 'Colaborador',
-    };
-    return labels[role] || role;
+    return ROLE_LABELS[role as keyof typeof ROLE_LABELS] || role;
   };
 
   if (!currentUser) return null;
@@ -199,16 +202,16 @@ export function ModalDelegarOS({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm text-neutral-600">Código:</span>
-                <span className="text-sm font-medium">{os.codigo}</span>
+                <span className="text-sm font-medium">{os.codigo_os}</span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span className="text-sm text-neutral-600">Título:</span>
-                <span className="text-sm font-medium text-right">{os.titulo}</span>
+                <span className="text-sm text-neutral-600">Descrição:</span>
+                <span className="text-sm font-medium text-right">{os.descricao}</span>
               </div>
-              {os.cliente && (
+              {os.cliente_nome && (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-neutral-600">Cliente:</span>
-                  <span className="text-sm font-medium">{os.cliente}</span>
+                  <span className="text-sm font-medium">{os.cliente_nome}</span>
                 </div>
               )}
             </div>
@@ -250,7 +253,7 @@ export function ModalDelegarOS({
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={colaborador.avatar} alt={colaborador.nome_completo} />
+                        <AvatarImage src={colaborador.avatar_url} alt={colaborador.nome_completo} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm">
                           {getInitials(colaborador.nome_completo)}
                         </AvatarFallback>
@@ -266,16 +269,14 @@ export function ModalDelegarOS({
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge 
-                            variant="outline" 
-                            className={`text-xs ${getRoleBadgeColor(colaborador.role_nivel)}`}
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${getRoleBadgeColor(colaborador.cargo_slug || '')}`}
                           >
-                            {getRoleLabel(colaborador.role_nivel)}
+                            {getRoleLabel(colaborador.cargo_slug || '')}
                           </Badge>
-                          <span className="text-xs text-neutral-500">
-                            {colaborador.setor === 'ADMINISTRATIVO' && 'Administrativo'}
-                            {colaborador.setor === 'ASSESSORIA' && 'Assessoria'}
-                            {colaborador.setor === 'OBRAS' && 'Obras'}
+                          <span className="text-xs text-neutral-500 capitalize">
+                            {colaborador.setor_slug || colaborador.setor || ''}
                           </span>
                         </div>
                       </div>

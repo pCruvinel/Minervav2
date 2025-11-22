@@ -77,23 +77,23 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
 
             {/* User Dropdown */}
             <div className="relative">
-              <button 
+              <button
                 className="minerva-dropdown-trigger"
                 onClick={() => setShowDropdown(!showDropdown)}
               >
                 <div className="minerva-avatar bg-primary text-white">
-                  {user.avatar}
+                  {user.avatar_url}
                 </div>
                 <div className="text-left hidden md:block">
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-neutral-600 capitalize">{user.role}</p>
+                  <p className="text-sm font-medium">{user.nome_completo}</p>
+                  <p className="text-xs text-neutral-600 capitalize">{user.role_nivel}</p>
                 </div>
               </button>
-              
+
               {showDropdown && (
                 <>
-                  <div 
-                    className="fixed top-0 left-0 right-0 bottom-0 z-10" 
+                  <div
+                    className="fixed top-0 left-0 right-0 bottom-0 z-10"
                     onClick={() => setShowDropdown(false)}
                   />
                   <div className="minerva-dropdown-content absolute right-0 top-full mt-2 z-20">
@@ -105,8 +105,8 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
                       <p className="text-sm text-neutral-600">{user.email}</p>
                     </div>
                     <div className="minerva-dropdown-separator" />
-                    <button 
-                      onClick={onLogout} 
+                    <button
+                      onClick={onLogout}
                       className="minerva-dropdown-item text-error font-medium w-full"
                     >
                       <LogOut className="w-4 h-4" />

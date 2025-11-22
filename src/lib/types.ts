@@ -20,6 +20,11 @@ export type RoleLevel =
 
 export type SetorSlug = 'administrativo' | 'assessoria' | 'obras' | 'diretoria';
 
+// Alias para compatibilidade com código legado
+export type Setor = 'COM' | 'ASS' | 'OBR';
+
+export type NivelHierarquico = number;
+
 // ============================================================
 // ENUMS DO BANCO DE DADOS (MINÚSCULOS - CRUCIAL)
 // ============================================================
@@ -111,6 +116,12 @@ export interface OrdemServico {
   cliente_nome?: string;
   tipo_os_nome?: string;
   responsavel_nome?: string;
+  setor_nome?: string;
+
+  // Campos para compatibilidade com código legado
+  setor?: string;
+  delegada_para_id?: string;
+  responsavel?: User;
 }
 
 export interface Delegacao {
@@ -122,13 +133,19 @@ export interface Delegacao {
   descricao_tarefa: string;
   observacoes?: string;
   data_prazo?: string;
-  
+
   // Campos de visualização (Join/View)
   delegante_nome?: string;
   delegado_nome?: string;
-  
+
+  // Timestamps do banco
   created_at: string;
   updated_at: string;
+
+  // Campos legados/compatibilidade (mapeados para created_at/updated_at)
+  data_delegacao?: string;
+  data_criacao?: string;
+  data_atualizacao?: string;
 }
 
 export interface Cliente {
@@ -519,3 +536,111 @@ export function normalizeSetorOS(setor: string | undefined | null): SetorSlug {
 
   return setorMap[setorNormalizado] || 'obras';
 }
+
+// ============================================================
+// TIPOS AUXILIARES (UI/COMPONENTS)
+// ============================================================
+
+export interface Comentario {
+  id: string;
+  texto: string;
+  userName: string;
+  userAvatar?: string;
+  createdAt: string;
+  os_id?: string;
+  user_id?: string;
+}
+
+export interface Documento {
+  id: string;
+  nome: string;
+  url?: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  tipo?: string;
+  tamanho?: number;
+}
+
+export interface HistoricoItem {
+  id: string;
+  tipo: 'status' | 'comentario' | 'documento' | 'atribuicao' | 'criacao' | 'edicao';
+  descricao: string;
+  userName: string;
+  createdAt: string;
+  metadados?: any;
+}
+
+// ============================================================
+// CONSTANTES LEGADAS PARA COMPATIBILIDADE
+// ============================================================
+
+export const ROLE_PARA_NIVEL: Record<RoleLevel, NivelHierarquico> = {
+  'admin': 10,
+  'diretoria': 9,
+  'gestor_administrativo': 5,
+  'gestor_assessoria': 5,
+  'gestor_obras': 5,
+  'colaborador': 1,
+  'mao_de_obra': 0,
+};
+
+export const SETOR_NAMES: Record<Setor, string> = {
+  'COM': 'Comercial',
+  'ASS': 'Assessoria',
+  'OBR': 'Obras',
+};
+
+export const ROLE_NAMES: Record<RoleLevel, string> = ROLE_LABELS;
+
+// Interface de Permissões Legada (para auth-utils.ts)
+export interface PermissoesLegadas {
+  acesso_setores: Setor[] | ['*'];
+  pode_delegar_para: Setor[] | ['*'];
+  pode_aprovar_setores: Setor[] | ['*'];
+  acesso_modulos: string[];
+}
+
+export const PERMISSOES_POR_ROLE_LEGADO: Record<RoleLevel, PermissoesLegadas> = {
+  'admin': {
+    acesso_setores: ['*'],
+    pode_delegar_para: ['*'],
+    pode_aprovar_setores: ['*'],
+    acesso_modulos: ['*'],
+  },
+  'diretoria': {
+    acesso_setores: ['*'],
+    pode_delegar_para: ['*'],
+    pode_aprovar_setores: ['*'],
+    acesso_modulos: ['financeiro', 'administrativo', 'comercial', 'obras', 'assessoria'],
+  },
+  'gestor_administrativo': {
+    acesso_setores: ['*'],
+    pode_delegar_para: ['*'],
+    pode_aprovar_setores: ['*'],
+    acesso_modulos: ['financeiro', 'administrativo', 'comercial', 'obras', 'assessoria'],
+  },
+  'gestor_obras': {
+    acesso_setores: ['OBR'],
+    pode_delegar_para: ['OBR'],
+    pode_aprovar_setores: ['OBR'],
+    acesso_modulos: ['obras'],
+  },
+  'gestor_assessoria': {
+    acesso_setores: ['ASS'],
+    pode_delegar_para: ['ASS'],
+    pode_aprovar_setores: ['ASS'],
+    acesso_modulos: ['assessoria'],
+  },
+  'colaborador': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: ['tarefas'],
+  },
+  'mao_de_obra': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: [],
+  },
+};

@@ -24,11 +24,12 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       delegado_nome: 'Ana Claudia Vendedora',
       data_delegacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'PENDENTE',
+      status_delegacao: 'pendente',
       descricao_tarefa: 'Realizar levantamento de necessidades do cliente para elaboração de proposta comercial. Identificar escopo completo do projeto e possíveis desafios técnicos.',
       observacoes: 'Cliente já demonstrou interesse em fechar contrato. Prioridade alta.',
       data_criacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -40,10 +41,11 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       delegado_nome: 'Bruno Martins Técnico',
       data_delegacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'EM_PROGRESSO',
+      status_delegacao: 'aceita',
       descricao_tarefa: 'Elaborar parecer técnico sobre viabilidade de reforma estrutural no edifício residencial. Incluir análise de riscos e recomendações.',
       data_criacao: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -55,11 +57,12 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       delegado_nome: 'Marcelo Costa Encarregado',
       data_delegacao: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'PENDENTE',
+      status_delegacao: 'pendente',
       descricao_tarefa: 'Coordenar equipe de execução da reforma do apartamento 302. Garantir cumprimento do cronograma e qualidade da execução.',
       observacoes: 'Atenção: proprietário viajou e deixou chaves com síndico.',
       data_criacao: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
     },
     {
@@ -71,10 +74,11 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
       delegado_nome: 'Fernando Luis Vendedor',
       data_delegacao: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       data_prazo: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      status_delegacao: 'CONCLUIDA',
+      status_delegacao: 'concluida',
       descricao_tarefa: 'Realizar follow-up com clientes que receberam propostas na última semana. Registrar feedback e próximos passos.',
       data_criacao: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
       created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
       data_atualizacao: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
     },
   ]);
@@ -85,7 +89,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
         d.id === delegacaoId
           ? {
               ...d,
-              status_delegacao: 'EM_PROGRESSO' as const,
+              status_delegacao: 'aceita' as const,
               data_atualizacao: new Date().toISOString(),
             }
           : d
@@ -100,7 +104,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
         d.id === delegacaoId
           ? {
               ...d,
-              status_delegacao: 'CONCLUIDA' as const,
+              status_delegacao: 'concluida' as const,
               data_atualizacao: new Date().toISOString(),
             }
           : d
@@ -120,7 +124,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
         d.id === delegacaoId
           ? {
               ...d,
-              status_delegacao: 'REPROVADA' as const,
+              status_delegacao: 'recusada' as const,
               data_atualizacao: new Date().toISOString(),
             }
           : d

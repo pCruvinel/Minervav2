@@ -132,6 +132,55 @@ TABLE public.clientes (
 );
 ```
 
+### 2.4 Sistema de Calendário (Turnos e Agendamentos)
+
+```sql
+TABLE public.turnos (
+  id uuid PK,
+  hora_inicio time NOT NULL,
+  hora_fim time NOT NULL,
+  vagas_total integer NOT NULL DEFAULT 1,
+  setores jsonb NOT NULL DEFAULT '[]', -- Array de setores permitidos
+  cor varchar(7) NOT NULL DEFAULT '#3B82F6', -- Cor hex para visualização
+  tipo_recorrencia varchar(20), -- 'todos', 'uteis', 'custom'
+  data_inicio date, -- Início da validade
+  data_fim date, -- Fim da validade
+  dias_semana integer[], -- [0-6]: 0=Dom, 6=Sab (para tipo 'custom')
+  ativo boolean DEFAULT true,
+  criado_por uuid FK(colaboradores.id),
+  criado_em timestamp,
+  atualizado_em timestamp
+  -- Policy: Admin/Diretoria full access | Gestores read all | Colaboradores read ativos
+);
+
+TABLE public.agendamentos (
+  id uuid PK,
+  turno_id uuid FK(turnos.id) ON DELETE CASCADE,
+  data date NOT NULL,
+  horario_inicio time NOT NULL,
+  horario_fim time NOT NULL,
+  duracao_horas numeric(4,2) NOT NULL,
+  categoria varchar(100) NOT NULL, -- Ex: "Atendimento", "Reunião"
+  setor varchar(50) NOT NULL, -- 'obras', 'assessoria'
+  solicitante_nome varchar(255),
+  solicitante_contato varchar(100),
+  solicitante_observacoes text,
+  os_id uuid FK(ordens_servico.id) ON DELETE SET NULL,
+  status varchar(20) DEFAULT 'confirmado', -- 'confirmado', 'cancelado', 'realizado', 'ausente'
+  cancelado_em timestamp,
+  cancelado_motivo text,
+  criado_por uuid FK(colaboradores.id),
+  criado_em timestamp,
+  atualizado_em timestamp
+  -- Policy: Admin/Diretoria full | Gestores por setor | Colaboradores create + read próprios
+);
+
+-- Funções RPC disponíveis:
+-- obter_turnos_disponiveis(p_data DATE) -> retorna turnos com vagas ocupadas
+-- verificar_vagas_turno(p_turno_id, p_data, p_horario_inicio, p_horario_fim) -> boolean
+-- obter_estatisticas_turno(p_turno_id, p_data_inicio, p_data_fim) -> estatísticas
+```
+
 -----
 
 ## 3\. Reference: Valid Values (Minúsculo)

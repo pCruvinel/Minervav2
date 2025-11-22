@@ -75,38 +75,38 @@ export const toast = {
     }
   },
   
-  promise: (...args: any[]) => {
+  promise: (promise: Promise<any> | (() => Promise<any>), options?: any) => {
     try {
       if (!sonnerToast || typeof sonnerToast.promise !== 'function') {
         console.warn('⚠️ Sonner promise não está disponível');
         return Promise.resolve();
       }
-      return sonnerToast.promise(...args);
+      return sonnerToast.promise(promise, options);
     } catch (error) {
       console.warn('❌ Toast promise não pôde ser exibido:', error);
       return Promise.resolve();
     }
   },
   
-  custom: (...args: any[]) => {
+  custom: (jsx: any, options?: any) => {
     try {
       if (!sonnerToast || typeof sonnerToast.custom !== 'function') {
         console.warn('⚠️ Sonner custom não está disponível');
         return;
       }
-      return sonnerToast.custom(...args);
+      return sonnerToast.custom(jsx, options);
     } catch (error) {
       console.warn('❌ Toast custom não pôde ser exibido:', error);
     }
   },
   
-  dismiss: (...args: any[]) => {
+  dismiss: (id?: string | number) => {
     try {
       if (!sonnerToast || typeof sonnerToast.dismiss !== 'function') {
         console.warn('⚠️ Sonner dismiss não está disponível');
         return;
       }
-      return sonnerToast.dismiss(...args);
+      return sonnerToast.dismiss(id);
     } catch (error) {
       console.warn('❌ Toast dismiss falhou:', error);
     }

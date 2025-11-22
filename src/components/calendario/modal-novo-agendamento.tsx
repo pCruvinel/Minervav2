@@ -19,6 +19,7 @@ import {
 import { toast } from 'sonner';
 import { Calendar, Clock, Loader2, AlertCircle } from 'lucide-react';
 import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
+import { useSetores } from '../../lib/hooks/use-setores';
 
 interface ModalNovoAgendamentoProps {
   open: boolean;
@@ -35,7 +36,7 @@ const categorias = [
   'Visita Semanal'
 ];
 
-const setores = ['Assessoria', 'Comercial', 'Obras'];
+
 
 interface ValidationErrors {
   categoria?: string;
@@ -52,6 +53,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
   const [errors, setErrors] = useState<ValidationErrors>({});
 
   const { mutate: criarAgendamento, loading: criando } = useCreateAgendamento();
+  const { setores: setoresDisponiveis, loading: loadingSetores } = useSetores();
   const verificarDisponibilidade = useVerificarDisponibilidade();
 
   // Resetar horário de início quando o modal abrir
@@ -170,10 +172,10 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
   // Gerar horários disponíveis dentro do turno
   const gerarHorariosDisponiveis = () => {
     if (!turno) return [];
-    
+
     const [horaInicio] = turno.horaInicio.split(':').map(Number);
     const [horaFim] = turno.horaFim.split(':').map(Number);
-    
+
     const horarios = [];
     for (let h = horaInicio; h < horaFim; h++) {
       horarios.push(`${String(h).padStart(2, '0')}:00`);
@@ -184,37 +186,20 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
   // Gerar durações disponíveis baseado no horário de início selecionado
   const gerarDuracoesDisponiveis = () => {
     if (!turno || !horarioInicio) return [1];
-    
+
     const [horaInicio] = horarioInicio.split(':').map(Number);
     const [horaFimTurno] = turno.horaFim.split(':').map(Number);
-    
+
     const maxDuracao = horaFimTurno - horaInicio;
     const duracoes = [];
-    
+
     for (let d = 1; d <= maxDuracao; d++) {
       duracoes.push(d);
     }
     return duracoes;
   };
 
-  const validarHorario = () => {
-    if (!turno) return null;
-    
-    const [horaInicio] = horarioInicio.split(':').map(Number);
-    const [horaInicioTurno] = turno.horaInicio.split(':').map(Number);
-    const [horaFimTurno] = turno.horaFim.split(':').map(Number);
-    const horaFim = horaInicio + parseInt(duracao);
-    
-    if (horaInicio < horaInicioTurno || horaInicio >= horaFimTurno) {
-      return 'O horário de início deve estar dentro do turno';
-    }
-    
-    if (horaFim > horaFimTurno) {
-      return 'O agendamento ultrapassa o horário de fim do turno';
-    }
-    
-    return null;
-  };
+
 
   const handleConfirmar = async () => {
     // Validar formulário completo
@@ -313,148 +298,150 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
             </div>
           </div>
 
-          {/* Categoria */}
-          <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-red-50 border border-red-200' : ''}`}>
-            <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : ''}>
-              Categoria *
-            </Label>
-            <Select value={categoria} onValueChange={(value: string) => {
-              setCategoria(value);
-              setErrors((prev) => {
-                const novo = { ...prev };
-                delete novo.categoria;
-                return novo;
-              });
-            }}>
-              <SelectTrigger id="categoria" className={errors.categoria ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione a categoria" />
-              </SelectTrigger>
-              <SelectContent>
-                {categorias.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.categoria && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.categoria}
-              </p>
-            )}
-          </div>
-
-          {/* Setor */}
-          <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-red-50 border border-red-200' : ''}`}>
-            <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : ''}>
-              Setor *
-            </Label>
-            <Select value={setor} onValueChange={(value: string) => {
-              setSetor(value);
-              setErrors((prev) => {
-                const novo = { ...prev };
-                delete novo.setor;
-                return novo;
-              });
-            }}>
-              <SelectTrigger id="setor" className={errors.setor ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione o setor" />
-              </SelectTrigger>
-              <SelectContent>
-                {setores
-                  .filter(s => turno.setores.includes(s))
-                  .map((set) => (
-                    <SelectItem key={set} value={set}>
-                      {set}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Categoria */}
+            <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-red-50 border border-red-200' : ''}`}>
+              <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : ''}>
+                Categoria *
+              </Label>
+              <Select value={categoria} onValueChange={(value: string) => {
+                setCategoria(value);
+                setErrors((prev) => {
+                  const novo = { ...prev };
+                  delete novo.categoria;
+                  return novo;
+                });
+              }}>
+                <SelectTrigger id="categoria" className={errors.categoria ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Selecione a categoria" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categorias.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-neutral-600">
-              Setores permitidos: {turno.setores.join(', ')}
-            </p>
-            {errors.setor && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.setor}
-              </p>
-            )}
-          </div>
+                </SelectContent>
+              </Select>
+              {errors.categoria && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.categoria}
+                </p>
+              )}
+            </div>
 
-          {/* Horário de Início */}
-          <div className={`space-y-2 p-3 rounded-lg ${errors.horarioInicio ? 'bg-red-50 border border-red-200' : ''}`}>
-            <Label htmlFor="horarioInicio" className={errors.horarioInicio ? 'text-red-700' : ''}>
-              Horário de Início *
-            </Label>
-            <Select value={horarioInicio} onValueChange={(value: string) => {
-              setHorarioInicio(value);
-              setErrors((prev) => {
-                const novo = { ...prev };
-                delete novo.horarioInicio;
-                return novo;
-              });
-            }}>
-              <SelectTrigger id="horarioInicio" className={errors.horarioInicio ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione o horário de início" />
-              </SelectTrigger>
-              <SelectContent>
-                {gerarHorariosDisponiveis().map((hora) => (
-                  <SelectItem key={hora} value={hora}>
-                    {hora}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.horarioInicio && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.horarioInicio}
-              </p>
-            )}
-          </div>
+            {/* Setor */}
+            <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-red-50 border border-red-200' : ''}`}>
+              <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : ''}>
+                Setor *
+              </Label>
+              <Select value={setor} onValueChange={(value: string) => {
+                setSetor(value);
+                setErrors((prev) => {
+                  const novo = { ...prev };
+                  delete novo.setor;
+                  return novo;
+                });
+              }} disabled={loadingSetores}>
+                <SelectTrigger id="setor" className={errors.setor ? 'border-red-500' : ''}>
+                  <SelectValue placeholder={loadingSetores ? "Carregando..." : "Selecione o setor"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {setoresDisponiveis
+                    .filter(s => turno.setores.includes(s.slug))
+                    .map((set) => (
+                      <SelectItem key={set.id} value={set.nome}>
+                        {set.nome}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+              {/* <p className="text-xs text-neutral-600">
+                Setores permitidos: {turno.setores.join(', ')}
+              </p> */}
+              {errors.setor && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.setor}
+                </p>
+              )}
+            </div>
 
-          {/* Duração */}
-          <div className={`space-y-2 p-3 rounded-lg ${errors.duracao ? 'bg-red-50 border border-red-200' : ''}`}>
-            <Label htmlFor="duracao" className={errors.duracao ? 'text-red-700' : ''}>
-              Duração (horas) *
-            </Label>
-            <Select value={duracao} onValueChange={(value: string) => {
-              setDuracao(value);
-              setErrors((prev) => {
-                const novo = { ...prev };
-                delete novo.duracao;
-                return novo;
-              });
-            }}>
-              <SelectTrigger id="duracao" className={errors.duracao ? 'border-red-500' : ''}>
-                <SelectValue placeholder="Selecione a duração" />
-              </SelectTrigger>
-              <SelectContent>
-                {gerarDuracoesDisponiveis().map((d) => (
-                  <SelectItem key={d} value={`${d}`}>
-                    {`${d}h`}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.duracao && (
-              <p className="text-sm text-red-600 flex items-center gap-1">
-                <AlertCircle className="h-4 w-4" />
-                {errors.duracao}
-              </p>
-            )}
+            {/* Horário de Início */}
+            <div className={`space-y-2 p-3 rounded-lg ${errors.horarioInicio ? 'bg-red-50 border border-red-200' : ''}`}>
+              <Label htmlFor="horarioInicio" className={errors.horarioInicio ? 'text-red-700' : ''}>
+                Horário de Início *
+              </Label>
+              <Select value={horarioInicio} onValueChange={(value: string) => {
+                setHorarioInicio(value);
+                setErrors((prev) => {
+                  const novo = { ...prev };
+                  delete novo.horarioInicio;
+                  return novo;
+                });
+              }}>
+                <SelectTrigger id="horarioInicio" className={errors.horarioInicio ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Selecione o horário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gerarHorariosDisponiveis().map((hora) => (
+                    <SelectItem key={hora} value={hora}>
+                      {hora}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.horarioInicio && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.horarioInicio}
+                </p>
+              )}
+            </div>
+
+            {/* Duração */}
+            <div className={`space-y-2 p-3 rounded-lg ${errors.duracao ? 'bg-red-50 border border-red-200' : ''}`}>
+              <Label htmlFor="duracao" className={errors.duracao ? 'text-red-700' : ''}>
+                Duração (horas) *
+              </Label>
+              <Select value={duracao} onValueChange={(value: string) => {
+                setDuracao(value);
+                setErrors((prev) => {
+                  const novo = { ...prev };
+                  delete novo.duracao;
+                  return novo;
+                });
+              }}>
+                <SelectTrigger id="duracao" className={errors.duracao ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Selecione a duração" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gerarDuracoesDisponiveis().map((d) => (
+                    <SelectItem key={d} value={`${d}`}>
+                      {`${d}h`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.duracao && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="h-4 w-4" />
+                  {errors.duracao}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Preview do Horário Calculado */}
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
+          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mt-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 <div>
                   <p className="text-sm text-neutral-600">Horário do agendamento</p>
                   <p className="font-medium">
-                    {horarioInicio} - {calcularHorarioFim()}
+                    {horarioInicio ? `${horarioInicio} - ${calcularHorarioFim()}` : '--:--'}
                   </p>
                 </div>
               </div>
