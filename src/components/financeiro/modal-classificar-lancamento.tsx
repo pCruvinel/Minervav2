@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Trash2, Plus, AlertTriangle, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { FinanceiroCategoria } from '../../lib/types';
 
 interface RateioItem {
   id: string;
@@ -33,7 +34,7 @@ interface ModalClassificarLancamentoProps {
     tipo: 'ENTRADA' | 'SAIDA';
   } | null;
   onSalvar: (dados: {
-    tipo: string;
+    tipo: FinanceiroCategoria;
     setor: string;
     rateios: RateioItem[];
     anexoNF?: string;
@@ -41,7 +42,7 @@ interface ModalClassificarLancamentoProps {
   onAbrirCustoFlutuante?: () => void;
 }
 
-const TIPOS_CUSTO = [
+const TIPOS_CUSTO: { value: FinanceiroCategoria; label: string }[] = [
   { value: 'MAO_DE_OBRA', label: 'Mão de Obra' },
   { value: 'MATERIAL', label: 'Material' },
   { value: 'EQUIPAMENTO', label: 'Equipamento' },
@@ -82,7 +83,7 @@ export function ModalClassificarLancamento({
   const isTipoEscritorio = tipoSelecionado === 'ESCRITORIO';
   const isTipoMaoDeObra = tipoSelecionado === 'MAO_DE_OBRA';
   const isSetorObras = setorSelecionado === 'OBRAS';
-  
+
   // Bloquear CC se: Escritório OU (Setor Obras E Mão de Obra)
   const bloquearCentroCusto = isTipoEscritorio || (isSetorObras && isTipoMaoDeObra);
 
@@ -102,19 +103,20 @@ export function ModalClassificarLancamento({
     }
   };
 
-  const handleAtualizarRateio = (id: string, campo: 'centroCusto' | 'valor' | 'percentual', valor: any) => {
+  const handleAtualizarRateio = (id: string, campo: 'centroCusto' | 'valor' | 'percentual', valor: string | number) => {
     setRateios(rateios.map(r => {
       if (r.id === id) {
         if (campo === 'percentual') {
-          const percentual = parseFloat(valor) || 0;
+          const percentual = typeof valor === 'string' ? parseFloat(valor) || 0 : valor;
           const valorCalculado = (lancamento?.valor || 0) * (percentual / 100);
           return { ...r, percentual, valor: valorCalculado };
         } else if (campo === 'valor') {
-          const valorNum = parseFloat(valor) || 0;
+          const valorNum = typeof valor === 'string' ? parseFloat(valor) || 0 : valor;
           const percentual = ((valorNum / (lancamento?.valor || 1)) * 100);
           return { ...r, valor: valorNum, percentual };
         } else {
-          return { ...r, [campo]: valor };
+          // Ensure centroCusto is treated as string
+          return { ...r, [campo]: String(valor) };
         }
       }
       return r;
@@ -124,7 +126,7 @@ export function ModalClassificarLancamento({
   const handleDistribuirIgualmente = () => {
     const percentualPorItem = 100 / rateios.length;
     const valorPorItem = (lancamento?.valor || 0) / rateios.length;
-    
+
     setRateios(rateios.map(r => ({
       ...r,
       percentual: percentualPorItem,
@@ -159,7 +161,7 @@ export function ModalClassificarLancamento({
     }
 
     onSalvar({
-      tipo: tipoSelecionado,
+      tipo: tipoSelecionado as FinanceiroCategoria,
       setor: setorSelecionado,
       rateios: bloquearCentroCusto ? [{ ...rateios[0], centroCusto: 'N/A - Bloqueado' }] : rateios,
     });
@@ -248,7 +250,7 @@ export function ModalClassificarLancamento({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Regra de Negócio:</strong> Para o tipo "{TIPOS_CUSTO.find(t => t.value === tipoSelecionado)?.label}" 
+                <strong>Regra de Negócio:</strong> Para o tipo "{TIPOS_CUSTO.find(t => t.value === tipoSelecionado)?.label}"
                 {isSetorObras && ' no setor "Obras"'}, o campo Centro de Custo será bloqueado automaticamente.
               </AlertDescription>
             </Alert>
@@ -258,7 +260,7 @@ export function ModalClassificarLancamento({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Próxima Etapa:</strong> Após salvar, você será redirecionado para classificar este custo como 
+                <strong>Próxima Etapa:</strong> Após salvar, você será redirecionado para classificar este custo como
                 Custo Flutuante (EPI, Bônus) ou Custo Geral (Salário).
               </AlertDescription>
             </Alert>
@@ -282,7 +284,7 @@ export function ModalClassificarLancamento({
               </div>
 
               <div className="space-y-3">
-                {rateios.map((rateio, index) => (
+                {rateios.map((rateio) => (
                   <div key={rateio.id} className="flex gap-2 items-start p-3 bg-neutral-50 rounded-lg">
                     <div className="flex-1 grid grid-cols-3 gap-2">
                       <div className="col-span-1 space-y-1">
@@ -368,7 +370,7 @@ export function ModalClassificarLancamento({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleSalvar}
             disabled={!tipoSelecionado || !setorSelecionado || isTipoAplicacao || (!bloquearCentroCusto && !isRateioValido)}
           >

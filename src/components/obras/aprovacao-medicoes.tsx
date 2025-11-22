@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -251,7 +251,7 @@ export function AprovacaoMedicoes() {
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         {medicao.statusAprovacao === 'AGUARDANDO_VALIDACAO' ||
-                        medicao.statusAprovacao === 'EM_ANALISE' ? (
+                          medicao.statusAprovacao === 'EM_ANALISE' ? (
                           <Button
                             size="sm"
                             onClick={() => handleAbrirRevisar(medicao)}

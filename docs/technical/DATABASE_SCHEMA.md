@@ -1,198 +1,238 @@
-Com certeza\! Atualizar a documentação é crucial para que futuras IAs (e desenvolvedores) entendam que o sistema migrou para a **Arquitetura V2.1** (Relacional e Minúscula).
-
-Aqui estão os dois documentos reescritos seguindo a **Regra de Ouro** (Lógica de Negócio + Schema Compacto).
-
------
-
-### 1\. Arquivo: `docs/technical/DATABASE_SCHEMA.md`
-
-Este é o documento técnico principal. Ele explica para a IA *como* o banco funciona.
-
-````markdown
 # AI Context: Minerva Database Schema (v2.1)
 
-**Contexto:** ERP para empresa de engenharia/construção (Minerva).
-**Arquitetura:** Supabase (PostgreSQL).
-**Modelo de Permissão:** Relacional e Dinâmico (RBAC via tabelas `cargos` e `setores`).
-**Padrão de Dados:** Snake Case e Minúsculo (ex: `em_triagem`, `concluido`).
-**Última Atualização:** 21/11/2025
+> **SYSTEM NOTE:** Este documento descreve a "Verdade" do banco de dados. Se houver conflito entre este arquivo e o código, este arquivo prevalece em lógica de negócio.
+
+**Contexto:** ERP para Engenharia/Construção.
+**Stack:** Supabase (PostgreSQL).
+**Auth:** `auth.users` (Supabase Auth) vinculado 1:1 com `public.colaboradores`.
+**Padrão:** Tabelas no plural, campos em *snake_case*.
 
 ---
 
-## 1. Lógica de Negócio e Permissões (Crucial)
+## 1. Lógica de Acesso & RLS (Row Level Security)
 
-### 🧠 Hierarquia de Acesso (Quem manda em quem)
-O sistema utiliza RLS (Row Level Security) rigoroso baseado no `cargo_id` e `setor_id` do usuário.
-**Não usamos mais ENUMs para cargos, usamos a tabela `cargos`.**
+O sistema não usa apenas `roles` simples. Ele usa uma matriz de **Cargo x Setor**.
 
-1.  **Nível 10 - Admin/TI (`admin`)**: Acesso "God Mode". Vê tudo.
-2.  **Nível 9 - Diretoria (`diretoria`)**: Acesso total a todas as tabelas, incluindo **Financeiro**. Pode delegar para qualquer um.
-3.  **Nível 5 - Gestores (Acesso Cruzado vs Isolado)**:
-    * **Gestor Administrativo:** É um "Super Gerente". Vê o setor `administrativo` **E TAMBÉM** `obras` e `assessoria`. Tem acesso total ao **Financeiro**.
-    * **Gestor de Obras:** Isolado. Vê/Edita apenas dados do setor `obras`. **SEM** acesso ao Financeiro.
-    * **Gestor de Assessoria:** Isolado. Vê/Edita apenas dados do setor `assessoria`. **SEM** acesso ao Financeiro.
-4.  **Nível 1 - Colaborador (`colaborador`)**:
-    * Vê apenas o próprio perfil.
-    * Vê apenas OSs onde é o `responsavel_id` ou foi explicitamente delegado (`delegacoes`).
-    * Não pode delegar tarefas.
-5.  **Nível 0 - Mão de Obra (`mao_de_obra`)**:
-    * **BLOQUEADO:** Não consegue fazer login (RLS impede leitura do próprio user).
-    * Serve apenas para constar em custos, cronogramas e listas de presença.
+### Hierarquia de Cargos (Tabela `cargos`)
+| Slug | Nível | Permissões |
+| :--- | :--- | :--- |
+| `admin` | 10 | **Superuser.** Vê tudo, edita tudo. |
+| `diretoria` | 9 | **Vê tudo** (incluindo Financeiro). Pode delegar para qualquer um. |
+| `gestor_administrativo` | 5 | **Cross-Sector.** Vê/Edita Financeiro + Obras + Assessoria. |
+| `gestor_obras` | 5 | **Isolado.** Apenas dados do setor `obras`. Sem Financeiro. |
+| `gestor_assessoria` | 5 | **Isolado.** Apenas dados do setor `assessoria`. Sem Financeiro. |
+| `colaborador` | 1 | **Operacional.** Vê apenas o próprio perfil e tarefas onde é responsável. |
+| `mao_de_obra` | 0 | **Sem Login.** Apenas para registro de custos/presença. |
 
-### 🛡️ Regras de Delegação (Trigger `validar_regras_delegacao`)
-O banco impede inserções na tabela `delegacoes` que violem estas regras:
-* `diretoria` / `admin` -> Delegam para **Todos**.
-* `gestor_administrativo` -> Delega para **Obras** ou **Assessoria**.
-* `gestor_obras` -> Delega apenas para **Obras**.
-* `gestor_assessoria` -> Delega apenas para **Assessoria**.
+### Regras de Delegação (Trigger)
+A tabela `delegacoes` possui um gatilho (`validar_regras_delegacao`) que impede delegações cruzadas inválidas:
+* **Gestor Obras** só delega para equipe de Obras.
+* **Gestor Assessoria** só delega para equipe de Assessoria.
+* **Diretoria/Admin** delegam para qualquer um.
 
 ---
 
-## 2. Definição do Schema (Compacto)
+## 2. Estrutura de Dados (Compact Schema)
 
-### 2.1 Organização & Acessos
+Abaixo a definição relacional simplificada.
+*Legenda: `PK` = Primary Key, `FK` = Foreign Key, `Enum` = Valores fixos permitidos.*
+
+### 2.1 Núcleo de Acesso (RH & Auth)
 
 ```sql
-TABLE public.cargos (
+public.cargos (
   id uuid PK,
-  nome text, -- Ex: "Gestor de Obras"
-  slug text UNIQUE, -- 'admin', 'diretoria', 'gestor_administrativo', 'gestor_obras', 'gestor_assessoria', 'colaborador', 'mao_de_obra'
-  nivel_acesso int -- 10=Admin, 9=Diretoria, 5=Gestor, 1=Operacional, 0=Bloqueado
+  nome text,       -- Ex: "Gestor de Obras"
+  slug text UNIQUE -- [admin, diretoria, gestor_administrativo, gestor_obras, gestor_assessoria, colaborador]
+  nivel_acesso int -- 10=Admin, 5=Gestor, 1=Colaborador
 );
 
-TABLE public.setores (
+public.setores (
   id uuid PK,
-  nome text, -- "Obras", "Assessoria"
-  slug text UNIQUE -- 'obras', 'assessoria', 'administrativo', 'diretoria'
+  nome text,       -- Ex: "Obras"
+  slug text UNIQUE -- [obras, assessoria, administrativo, diretoria]
 );
 
-TABLE public.colaboradores (
-  id uuid PK FK(auth.users), -- 1:1 com Auth
+public.colaboradores (
+  id uuid PK FK(auth.users), -- O ID é o mesmo do Supabase Auth
   nome_completo text,
   email text,
-  cargo_id uuid FK(cargos.id),
-  setor_id uuid FK(setores.id),
-  ativo boolean DEFAULT true
-  -- Trigger: handle_new_user() cria automaticamente ao registrar no Auth
+  cargo_id uuid FK(public.cargos),
+  setor_id uuid FK(public.setores),
+  ativo boolean,
+  custo_mensal numeric
 );
 ````
 
 ### 2.2 Core Business (Ordens de Serviço)
 
 ```sql
-TABLE public.ordens_servico (
+public.ordens_servico (
   id uuid PK,
-  codigo_os varchar UNIQUE, -- 'OS-2024-001' (Gerado auto por trigger)
-  cliente_id uuid FK(clientes.id),
-  tipo_os_id uuid FK(tipos_os.id),
-  responsavel_id uuid FK(colaboradores.id),
-  criado_por_id uuid FK(colaboradores.id),
-  status_geral enum, -- 'em_triagem', 'em_andamento', 'concluido', 'cancelado'
+  codigo_os text UNIQUE,        -- Gerado auto (Ex: 'OS-2024-001')
+  cliente_id uuid FK(public.clientes),
+  tipo_os_id uuid FK(public.tipos_os),
+  responsavel_id uuid FK(public.colaboradores),
+  criado_por_id uuid FK(public.colaboradores),
+  status_geral text,            -- Enum: [em_triagem, em_andamento, concluido, cancelado]
   valor_contrato numeric,
-  descricao text
+  valor_proposta numeric,
+  descricao text,
+  cc_id uuid FK(public.centros_custo),
+  data_prazo timestamp,
+  data_conclusao timestamp
 );
 
-TABLE public.os_etapas (
+public.os_etapas (
   id uuid PK,
-  os_id uuid FK(ordens_servico.id),
+  os_id uuid FK(public.ordens_servico),
   nome_etapa text,
-  status enum, -- 'pendente', 'em_andamento', 'concluida', 'bloqueada'
-  dados_etapa jsonb -- Formulários dinâmicos
+  status text,                  -- Enum: [pendente, em_andamento, concluida]
+  ordem int,
+  dados_etapa jsonb,            -- Payload dinâmico do formulário da etapa
+  responsavel_id uuid FK(public.colaboradores)
 );
 
-TABLE public.delegacoes (
+public.delegacoes (
   id uuid PK,
-  os_id uuid FK(ordens_servico.id),
-  delegante_id uuid FK(colaboradores.id), -- Quem mandou
-  delegado_id uuid FK(colaboradores.id), -- Quem vai fazer
-  status_delegacao enum, -- 'pendente', 'aceita', 'recusada', 'concluida'
-  descricao_tarefa text
-  -- Trigger: validar_regras_delegacao() roda BEFORE INSERT
+  os_id uuid FK(public.ordens_servico),
+  delegante_id uuid FK(public.colaboradores),
+  delegado_id uuid FK(public.colaboradores),
+  status_delegacao text,        -- Enum: [pendente, aceita, recusada, concluida]
+  descricao_tarefa text,
+  data_prazo date
 );
 ```
 
 ### 2.3 Financeiro & CRM
 
+> **Atenção:** A tabela `financeiro_lancamentos` é protegida por RLS estrito. Apenas Admin, Diretoria e Gestor Administrativo conseguem fazer `SELECT`.
+
 ```sql
-TABLE public.financeiro_lancamentos (
+public.financeiro_lancamentos (
   id uuid PK,
   descricao text,
   valor numeric,
-  tipo enum, -- 'receita', 'despesa'
+  tipo text,                    -- Enum: [receita, despesa]
   data_vencimento date,
-  cc_id uuid FK(centros_custo.id)
-  -- Policy: Apenas 'admin', 'diretoria', 'gestor_administrativo' podem ler/escrever
+  data_pagamento date,
+  conciliado boolean,
+  cc_id uuid FK(public.centros_custo),
+  cliente_id uuid FK(public.clientes)
 );
 
-TABLE public.clientes (
+public.clientes (
   id uuid PK,
   nome_razao_social text,
-  status enum, -- 'lead', 'ativo', 'inativo', 'blacklist'
-  responsavel_id uuid FK(colaboradores.id)
+  cpf_cnpj text,
+  status text,                  -- Enum: [lead, ativo, inativo]
+  responsavel_id uuid FK(public.colaboradores),
+  email text,
+  telefone text
 );
 ```
 
-### 2.4 Sistema de Calendário (Turnos e Agendamentos)
+### 2.4 Calendário & Agendamento
 
 ```sql
-TABLE public.turnos (
+public.turnos (
   id uuid PK,
-  hora_inicio time NOT NULL,
-  hora_fim time NOT NULL,
-  vagas_total integer NOT NULL DEFAULT 1,
-  setores jsonb NOT NULL DEFAULT '[]', -- Array de setores permitidos
-  cor varchar(7) NOT NULL DEFAULT '#3B82F6', -- Cor hex para visualização
-  tipo_recorrencia varchar(20), -- 'todos', 'uteis', 'custom'
-  data_inicio date, -- Início da validade
-  data_fim date, -- Fim da validade
-  dias_semana integer[], -- [0-6]: 0=Dom, 6=Sab (para tipo 'custom')
-  ativo boolean DEFAULT true,
-  criado_por uuid FK(colaboradores.id),
-  criado_em timestamp,
-  atualizado_em timestamp
-  -- Policy: Admin/Diretoria full access | Gestores read all | Colaboradores read ativos
+  hora_inicio time,
+  hora_fim time,
+  vagas_total int,
+  setores jsonb,                -- Array de slugs de setores permitidos: ['obras', 'assessoria']
+  tipo_recorrencia text,        -- Enum: [todos, uteis, custom]
+  dias_semana int[],            -- Usado se recorrencia='custom' (0=Dom, 6=Sab)
+  cor text,
+  ativo boolean
 );
 
-TABLE public.agendamentos (
+public.agendamentos (
   id uuid PK,
-  turno_id uuid FK(turnos.id) ON DELETE CASCADE,
-  data date NOT NULL,
-  horario_inicio time NOT NULL,
-  horario_fim time NOT NULL,
-  duracao_horas numeric(4,2) NOT NULL,
-  categoria varchar(100) NOT NULL, -- Ex: "Atendimento", "Reunião"
-  setor varchar(50) NOT NULL, -- 'obras', 'assessoria'
-  solicitante_nome varchar(255),
-  solicitante_contato varchar(100),
-  solicitante_observacoes text,
-  os_id uuid FK(ordens_servico.id) ON DELETE SET NULL,
-  status varchar(20) DEFAULT 'confirmado', -- 'confirmado', 'cancelado', 'realizado', 'ausente'
-  cancelado_em timestamp,
-  cancelado_motivo text,
-  criado_por uuid FK(colaboradores.id),
-  criado_em timestamp,
-  atualizado_em timestamp
-  -- Policy: Admin/Diretoria full | Gestores por setor | Colaboradores create + read próprios
+  turno_id uuid FK(public.turnos),
+  data date,
+  horario_inicio time,
+  horario_fim time,
+  os_id uuid FK(public.ordens_servico) NULLABLE,
+  status text,                  -- Enum: [confirmado, cancelado, realizado, ausente]
+  categoria text,               -- Ex: "Vistoria", "Reunião"
+  solicitante_nome text,        -- Se for agendamento externo
+  setor text                    -- Setor do agendamento (obras/assessoria)
+);
+```
+
+### 2.5 Configuração & Auditoria
+
+```sql
+public.centros_custo (
+  id uuid PK,
+  nome text,           -- Ex: "Obra Edifício X"
+  valor_global numeric,
+  cliente_id uuid FK(public.clientes),
+  ativo boolean
 );
 
--- Funções RPC disponíveis:
--- obter_turnos_disponiveis(p_data DATE) -> retorna turnos com vagas ocupadas
--- verificar_vagas_turno(p_turno_id, p_data, p_horario_inicio, p_horario_fim) -> boolean
--- obter_estatisticas_turno(p_turno_id, p_data_inicio, p_data_fim) -> estatísticas
+public.tipos_os (
+  id uuid PK,
+  nome text,           -- Ex: "Instalação Elétrica"
+  codigo text UNIQUE,  -- Ex: "INST-ELET"
+  setor_padrao_id uuid FK(public.setores),
+  ativo boolean
+);
+
+public.os_historico_status (
+  id uuid PK,
+  os_id uuid FK(public.ordens_servico),
+  status_anterior text,
+  status_novo text,
+  alterado_por_id uuid FK(public.colaboradores),
+  created_at timestamp
+);
+
+public.audit_log (
+  id uuid PK,
+  usuario_id uuid FK(public.colaboradores),
+  acao text,           -- Ex: "DELETE", "UPDATE"
+  tabela_afetada text,
+  registro_id_afetado text,
+  dados_antigos jsonb,
+  dados_novos jsonb,
+  created_at timestamp
+);
 ```
 
 -----
 
-## 3\. Reference: Valid Values (Minúsculo)
+## 3\. Referência de Valores (Enums)
 
-O banco é estrito. Use exatamente estes valores (lowercase):
+O sistema espera que strings exatas sejam usadas (Case Sensitive: **Sempre minúsculo**).
 
-  * **Cargos (Slugs):** `admin`, `diretoria`, `gestor_administrativo`, `gestor_obras`, `gestor_assessoria`, `colaborador`, `mao_de_obra`.
-  * **Setores (Slugs):** `diretoria`, `administrativo`, `obras`, `assessoria`.
-  * **OS Status:** `em_triagem`, `em_andamento`, `concluido`, `cancelado`.
-  * **Delegacao Status:** `pendente`, `aceita`, `concluida`, `recusada`.
+**Status de OS (`os_status_geral`)**
+
+  * `em_triagem`
+  * `aguardando_informacoes`
+  * `em_andamento`
+  * `concluido`
+  * `cancelado`
+
+**Status de Cliente (`cliente_status`)**
+
+  * `lead`
+  * `ativo`
+  * `inativo`
+
+**Tipos Financeiros (`financeiro_tipo`)**
+
+  * `receita`
+  * `despesa`
+
+**Status Delegação (`delegacao_status`)**
+
+  * `pendente`
+  * `aceita`
+  * `recusada`
+  * `concluida`
 
 <!-- end list -->
 
-````
-
+```

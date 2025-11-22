@@ -172,6 +172,51 @@ export interface FinanceiroLancamento {
   cliente_id?: string;
 }
 
+export type FinanceiroCategoria =
+  | 'mao_de_obra'
+  | 'material'
+  | 'equipamento'
+  | 'aplicacao'
+  | 'escritorio'
+  | 'impostos'
+  | 'outros';
+
+export type ContaPagarTipo = 'salario' | 'conta_fixa' | 'despesa_variavel';
+
+export type ContaPagarStatus = 'em_aberto' | 'pago' | 'atrasado';
+
+export type ContaReceberStatus = 'em_aberto' | 'conciliado' | 'inadimplente';
+
+export interface ContaPagar {
+  id: string;
+  favorecido: string;
+  tipoFavorecido: 'colaborador' | 'fornecedor';
+  descricao: string;
+  tipo: ContaPagarTipo;
+  vencimento: string;
+  valor: number;
+  valorPago?: number;
+  status: ContaPagarStatus;
+  dataPagamento?: string;
+  comprovanteId?: string;
+  recorrente: boolean;
+  categoria?: FinanceiroCategoria;
+}
+
+export interface ContaReceber {
+  id: string;
+  cliente: string;
+  centroCusto: string;
+  contrato: string;
+  parcela: string;
+  vencimento: string;
+  valorPrevisto: number;
+  valorRecebido?: number;
+  status: ContaReceberStatus;
+  dataConciliacao?: string;
+  comprovanteId?: string;
+}
+
 // ============================================================
 // HELPERS DE EXIBIÇÃO (Labels para UI)
 // ============================================================

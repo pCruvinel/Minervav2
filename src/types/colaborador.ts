@@ -1,16 +1,24 @@
 // Types para o módulo Colaborador
+import { RoleLevel, SetorSlug, OSStatus, ClienteStatus } from "@/lib/types";
 
-export type UserRole = 1 | 2 | 3 | 4;
-export type UserSetor = "ADMINISTRATIVO" | "ASSESSORIA" | "OBRAS";
+export type UserRole = RoleLevel;
+export type UserSetor = SetorSlug;
 
 export interface Usuario {
-  id: number;
+  id: string;
   nome: string;
   email?: string;
   role_nivel: UserRole;
   setor: UserSetor;
   telefone?: string;
   avatar?: string;
+  
+  // Campos adicionais para compatibilidade
+  cargo_slug?: RoleLevel;
+  setor_slug?: SetorSlug;
+  ativo?: boolean;
+  data_admissao?: Date | string;
+  cpf?: string;
 }
 
 // Ordem de Serviço
@@ -19,13 +27,7 @@ export type TipoOS =
   | "OS_05" | "OS_06" | "OS_07" | "OS_08" 
   | "OS_09" | "OS_10" | "OS_11" | "OS_12" | "OS_13";
 
-export type StatusOS = 
-  | "PENDENTE" 
-  | "EM_ANDAMENTO" 
-  | "ATRASADO" 
-  | "CONCLUIDO" 
-  | "CANCELADO"
-  | "AGUARDANDO_APROVACAO";
+export type StatusOS = OSStatus | "AGUARDANDO_APROVACAO" | "ATRASADO" | "PENDENTE";
 
 export type Prioridade = "ALTA" | "MEDIA" | "BAIXA";
 
@@ -47,7 +49,7 @@ export type EtapaOS =
   | "FINALIZACAO";
 
 export interface OrdemServico {
-  id: number;
+  id: string;
   codigo: string;
   tipo: TipoOS;
   cliente: string;
@@ -65,10 +67,11 @@ export interface OrdemServico {
 
 // Cliente
 export type TipoCliente = "PESSOA_FISICA" | "PESSOA_JURIDICA";
-export type StatusCliente = "ATIVO" | "INATIVO" | "PROSPECTO";
+// Usando ClienteStatus do types.ts mas mantendo compatibilidade se necessário
+export type StatusCliente = ClienteStatus | "PROSPECTO";
 
 export interface Cliente {
-  id: number;
+  id: string;
   nome: string;
   cpf?: string;
   cnpj?: string;
@@ -90,9 +93,9 @@ export type TipoEvento =
   | "ENTREGA";
 
 export interface EventoAgenda {
-  id: number;
+  id: string;
   titulo: string;
-  osId: number;
+  osId: string;
   osCodigo: string;
   cliente: string;
   endereco: string;
@@ -125,7 +128,7 @@ export type StatusLead =
 export type PotencialLead = "ALTO" | "MEDIO" | "BAIXO";
 
 export interface Lead {
-  id: number;
+  id: string;
   nome: string; // Nome da empresa
   contato: string; // Nome do contato
   telefone: string;
@@ -149,7 +152,7 @@ export interface ChecklistVistoria {
 }
 
 export interface FormularioExecucao {
-  osId: number;
+  osId: string;
   etapa: EtapaOS;
   observacoes: string;
   checklistItems?: ChecklistVistoria;
@@ -178,3 +181,4 @@ export interface NavigationCard {
   available: boolean;
   badge?: string;
 }
+

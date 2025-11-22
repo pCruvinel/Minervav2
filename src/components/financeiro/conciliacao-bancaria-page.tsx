@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -8,18 +8,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Badge } from '../ui/badge';
 import { Calendar } from '../ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { 
+import {
   Calendar as CalendarIcon,
   Filter,
-  Download,
   FileText,
   FileSpreadsheet,
   Search,
   Edit,
   Check,
   X,
-  Paperclip,
-  Split
+  Paperclip
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { format } from 'date-fns';
@@ -28,8 +26,9 @@ import { ModalClassificarLancamento } from './modal-classificar-lancamento';
 import { ModalCustoFlutuante } from './modal-custo-flutuante';
 import { toast } from 'sonner';
 
-// Tipos de Custo conforme planilha da cliente
-const TIPOS_CUSTO = [
+import { FinanceiroCategoria } from '../../lib/types';
+
+const TIPOS_CUSTO: FinanceiroCategoria[] = [
   'MAO_DE_OBRA',
   'MATERIAL',
   'EQUIPAMENTO',
@@ -53,7 +52,7 @@ interface LancamentoBancario {
   entrada: number | null;
   saida: number | null;
   status: 'PENDENTE' | 'CLASSIFICADO' | 'RATEADO';
-  tipo?: string;
+  tipo?: FinanceiroCategoria;
   setor?: string;
   centroCusto?: string;
   anexoNF?: string;
@@ -139,7 +138,7 @@ export function ConciliacaoBancariaPage() {
   const [filtroCentroCusto, setFiltroCentroCusto] = useState<string>('');
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<LancamentoBancario>>({});
-  
+
   // Estados dos modais
   const [modalClassificarOpen, setModalClassificarOpen] = useState(false);
   const [modalCustoFlutuanteOpen, setModalCustoFlutuanteOpen] = useState(false);
@@ -157,7 +156,7 @@ export function ConciliacaoBancariaPage() {
     }).format(value);
   };
 
-  const formatTipo = (tipo: string) => {
+  const formatTipo = (tipo: FinanceiroCategoria | string) => {
     const map: Record<string, string> = {
       'MAO_DE_OBRA': 'Mão de Obra',
       'MATERIAL': 'Material',
@@ -192,27 +191,27 @@ export function ConciliacaoBancariaPage() {
 
   const handleSalvarClassificacaoModal = (dados: any) => {
     if (!lancamentoSelecionado) return;
-    
+
     // Atualizar lançamento com dados do rateio
     setLancamentos(prev =>
       prev.map(lanc =>
         lanc.id === lancamentoSelecionado.id
           ? {
-              ...lanc,
-              tipo: dados.tipo,
-              setor: dados.setor,
-              centroCusto: dados.rateios.length > 1 
-                ? `Rateado entre ${dados.rateios.length} CCs`
-                : dados.rateios[0]?.centroCusto,
-              status: dados.rateios.length > 1 ? 'RATEADO' : 'CLASSIFICADO' as const
-            }
+            ...lanc,
+            tipo: dados.tipo,
+            setor: dados.setor,
+            centroCusto: dados.rateios.length > 1
+              ? `Rateado entre ${dados.rateios.length} CCs`
+              : dados.rateios[0]?.centroCusto,
+            status: dados.rateios.length > 1 ? 'RATEADO' : 'CLASSIFICADO' as const
+          }
           : lanc
       )
     );
-    
+
     setModalClassificarOpen(false);
     setLancamentoSelecionado(null);
-    
+
     toast.success('Lançamento classificado com sucesso!');
   };
 
@@ -223,15 +222,15 @@ export function ConciliacaoBancariaPage() {
 
   const handleSalvarCustoFlutuante = (dados: any) => {
     if (!lancamentoSelecionado) return;
-    
+
     console.log('Custo Flutuante salvo:', dados);
-    
+
     setModalCustoFlutuanteOpen(false);
     setLancamentoSelecionado(null);
-    
+
     toast.success(
-      dados.recalcularCustoDia 
-        ? 'Custo flutuante registrado! Custo-Dia recalculado.' 
+      dados.recalcularCustoDia
+        ? 'Custo flutuante registrado! Custo-Dia recalculado.'
         : 'Custo geral registrado com sucesso!'
     );
   };
@@ -485,22 +484,22 @@ export function ConciliacaoBancariaPage() {
                             lancamento.status === 'CLASSIFICADO'
                               ? 'default'
                               : lancamento.status === 'RATEADO'
-                              ? 'secondary'
-                              : 'outline'
+                                ? 'secondary'
+                                : 'outline'
                           }
                         >
                           {lancamento.status === 'CLASSIFICADO'
                             ? 'Classificado'
                             : lancamento.status === 'RATEADO'
-                            ? 'Rateado'
-                            : 'Pendente'}
+                              ? 'Rateado'
+                              : 'Pendente'}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {isEditando ? (
                           <Select
                             value={editForm.tipo}
-                            onValueChange={(value) => setEditForm({ ...editForm, tipo: value })}
+                            onValueChange={(value) => setEditForm({ ...editForm, tipo: value as FinanceiroCategoria })}
                           >
                             <SelectTrigger className="h-8">
                               <SelectValue placeholder="Selecione..." />

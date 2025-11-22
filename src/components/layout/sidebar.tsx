@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  DollarSign, 
-  Calendar, 
+import { useState, useEffect } from 'react';
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  DollarSign,
+  Calendar,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -21,7 +21,6 @@ import {
   UserCog,
   ClipboardCheck,
   Building2,
-  Globe,
   Shield
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
@@ -59,9 +58,9 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/' },
-  { 
-    id: 'projetos', 
-    label: 'Ordem de Serviço', 
+  {
+    id: 'projetos',
+    label: 'Ordem de Serviço',
     icon: FileText,
     submenu: [
       { id: 'os-criar', label: 'Nova OS', icon: Plus, to: '/os/criar' },
@@ -69,9 +68,9 @@ const menuItems = [
       { id: 'historico-os', label: 'Histórico', icon: History, to: '/os' }, // TODO: Create history route
     ]
   },
-  { 
-    id: 'financeiro', 
-    label: 'Financeiro', 
+  {
+    id: 'financeiro',
+    label: 'Financeiro',
     icon: DollarSign,
     submenu: [
       { id: 'financeiro-dashboard', label: 'Dashboard Financeiro', icon: PieChart, to: '/financeiro' },
@@ -81,18 +80,18 @@ const menuItems = [
       { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
     ]
   },
-  { 
-    id: 'colaboradores', 
-    label: 'Colaboradores', 
+  {
+    id: 'colaboradores',
+    label: 'Colaboradores',
     icon: Users,
     submenu: [
       { id: 'colaboradores-lista', label: 'Gestão de Colaboradores', icon: UserCog, to: '/colaboradores' },
       { id: 'controle-presenca', label: 'Controle de Presença', icon: ClipboardCheck, to: '/colaboradores/presenca-tabela' },
     ]
   },
-  { 
-    id: 'clientes', 
-    label: 'Clientes', 
+  {
+    id: 'clientes',
+    label: 'Clientes',
     icon: Building2,
     submenu: [
       { id: 'clientes-lista', label: 'Meus Clientes', icon: Users, to: '/clientes' },
@@ -100,9 +99,9 @@ const menuItems = [
     ]
   },
   { id: 'calendario', label: 'Calendário', icon: Calendar, to: '/calendario' },
-  { 
-    id: 'configuracoes', 
-    label: 'Configurações', 
+  {
+    id: 'configuracoes',
+    label: 'Configurações',
     icon: Settings,
     submenu: [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield, to: '/configuracoes' },
@@ -114,10 +113,10 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   const { currentUser } = useAuth();
   const location = useLocation();
   const currentPath = location.pathname;
-  
+
   // Initialize open submenu based on current path
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(() => {
-    const activeItem = menuItems.find(item => 
+    const activeItem = menuItems.find(item =>
       item.submenu?.some(sub => currentPath.startsWith(sub.to))
     );
     return activeItem ? activeItem.id : null;
@@ -126,15 +125,15 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
   // Update open submenu when path changes (optional, but good for deep linking)
   useEffect(() => {
     if (collapsed) return;
-    
-    const activeItem = menuItems.find(item => 
+
+    const activeItem = menuItems.find(item =>
       item.submenu?.some(sub => currentPath.startsWith(sub.to))
     );
     if (activeItem) {
       setOpenSubmenu(activeItem.id);
     }
   }, [currentPath, collapsed]);
-  
+
   // Filtrar itens do menu baseado no perfil do usuário
   const getVisibleMenuItems = () => {
     // Se não houver usuário logado, mostrar menu completo (fallback)
@@ -149,9 +148,9 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
     // Filtrar menuItems baseado na visibilidade
     return menuItems.filter(item => visibleItemIds.includes(item.id));
   };
-  
+
   const visibleMenuItems = getVisibleMenuItems();
-  
+
   return (
     <div className={`minerva-sidebar ${collapsed ? 'collapsed' : ''}`}>
       {/* Logo */}
@@ -168,12 +167,12 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
         {visibleMenuItems.map((item) => {
           const Icon = item.icon;
           const isSubmenuOpen = openSubmenu === item.id;
-          
+
           // Check if any child is active to highlight parent
-          const isParentActive = item.submenu?.some(sub => 
+          const isParentActive = item.submenu?.some(sub =>
             currentPath === sub.to || currentPath.startsWith(sub.to + '/')
           );
-          
+
           // If item has submenu, render button to toggle
           if (item.submenu) {
             return (
@@ -192,13 +191,13 @@ export function Sidebar({ collapsed, onToggleCollapse }: SidebarProps) {
                     </span>
                   )}
                 </button>
-                
+
                 {/* Submenu */}
                 {isSubmenuOpen && !collapsed && (
                   <div className="ml-4 mt-1 space-y-1">
                     {item.submenu.map((subItem) => {
                       const SubIcon = subItem.icon;
-                      
+
                       return (
                         <Link
                           key={subItem.id}

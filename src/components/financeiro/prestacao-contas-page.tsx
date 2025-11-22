@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -6,10 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Label } from '../ui/label';
 import {
-  ArrowLeft,
-  FileText,
-  TrendingUp,
-  TrendingDown,
   AlertCircle,
   CheckCircle,
   Clock,
@@ -18,6 +14,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Alert, AlertDescription } from '../ui/alert';
+import { FinanceiroCategoria } from '../../lib/types';
 
 interface ProjetoFinanceiro {
   id: string;
@@ -36,7 +33,7 @@ interface ProjetoFinanceiro {
     realizado: number;
   };
   detalhamentoCustos?: {
-    tipo: string;
+    tipo: FinanceiroCategoria;
     previsto: number;
     realizado: number;
   }[];
@@ -350,9 +347,8 @@ export function PrestacaoContasPage() {
                             <>
                               <p className="text-sm text-muted-foreground mb-1">Lucro Realizado</p>
                               <p
-                                className={`text-xl font-medium ${
-                                  lucro >= 0 ? 'text-green-600' : 'text-red-600'
-                                }`}
+                                className={`text-xl font-medium ${lucro >= 0 ? 'text-green-600' : 'text-red-600'
+                                  }`}
                               >
                                 {formatCurrency(lucro)}
                               </p>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -22,7 +22,7 @@ export function AnaliseReformas() {
   const [modalAnalisar, setModalAnalisar] = useState(false);
   const [novoStatus, setNovoStatus] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
   const tipoReformaLabel: Record<string, string> = {
     ESTRUTURAL: 'Estrutural',
@@ -32,27 +32,27 @@ export function AnaliseReformas() {
   };
 
   const statusDocLabel: Record<string, string> = {
-    PENDENTE_ART: 'Pendente ART',
-    ART_ENVIADA: 'ART Enviada',
-    RRT_ENVIADA: 'RRT Enviada',
-    COMPLETO: 'Completo',
+    pendente_art: 'Pendente ART',
+    art_enviada: 'ART Enviada',
+    rrt_enviada: 'RRT Enviada',
+    completo: 'Completo',
   };
 
   const statusAprovacaoLabel: Record<string, string> = {
-    AGUARDANDO_ANALISE: 'Aguardando Análise',
-    EM_ANALISE: 'Em Análise',
-    APROVADO: 'Aprovado',
-    REPROVADO: 'Reprovado',
-    PENDENTE_DOCUMENTACAO: 'Pendente Documentação',
+    aguardando_analise: 'Aguardando Análise',
+    em_analise: 'Em Análise',
+    aprovado: 'Aprovado',
+    reprovado: 'Reprovado',
+    pendente_documentacao: 'Pendente Documentação',
   };
 
   const statusDocBadgeVariant = (status: string) => {
     switch (status) {
-      case 'COMPLETO':
+      case 'completo':
         return 'outline';
-      case 'PENDENTE_ART':
-      case 'ART_ENVIADA':
-      case 'RRT_ENVIADA':
+      case 'pendente_art':
+      case 'art_enviada':
+      case 'rrt_enviada':
         return 'secondary';
       default:
         return 'outline';
@@ -61,15 +61,15 @@ export function AnaliseReformas() {
 
   const statusAprovacaoBadgeVariant = (status: string) => {
     switch (status) {
-      case 'AGUARDANDO_ANALISE':
+      case 'aguardando_analise':
         return 'default';
-      case 'EM_ANALISE':
+      case 'em_analise':
         return 'secondary';
-      case 'APROVADO':
+      case 'aprovado':
         return 'outline';
-      case 'REPROVADO':
+      case 'reprovado':
         return 'destructive';
-      case 'PENDENTE_DOCUMENTACAO':
+      case 'pendente_documentacao':
         return 'destructive';
       default:
         return 'outline';
@@ -98,11 +98,11 @@ export function AnaliseReformas() {
     );
 
     const mensagem =
-      novoStatus === 'APROVADO'
+      novoStatus === 'aprovado'
         ? 'Reforma aprovada com sucesso!'
-        : novoStatus === 'REPROVADO'
-        ? 'Reforma reprovada'
-        : 'Status da reforma atualizado';
+        : novoStatus === 'reprovado'
+          ? 'Reforma reprovada'
+          : 'Status da reforma atualizado';
 
     toast.success(mensagem, {
       description: `${reformaSelecionada.condominio} - ${reformaSelecionada.unidade}`,
@@ -115,7 +115,7 @@ export function AnaliseReformas() {
   };
 
   const reformasFiltradas = reformas.filter(r =>
-    filtroStatus === 'TODOS' ? true : r.statusAprovacao === filtroStatus
+    filtroStatus === 'todos' ? true : r.statusAprovacao.toLowerCase() === filtroStatus
   );
 
   return (
@@ -136,28 +136,28 @@ export function AnaliseReformas() {
         <CardContent>
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={filtroStatus === 'TODOS' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('TODOS')}
+              variant={filtroStatus === 'todos' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('todos')}
             >
               Todos ({reformas.length})
             </Button>
             <Button
-              variant={filtroStatus === 'AGUARDANDO_ANALISE' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('AGUARDANDO_ANALISE')}
+              variant={filtroStatus === 'aguardando_analise' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('aguardando_analise')}
             >
-              Aguardando Análise ({reformas.filter(r => r.statusAprovacao === 'AGUARDANDO_ANALISE').length})
+              Aguardando Análise ({reformas.filter(r => r.statusAprovacao.toLowerCase() === 'aguardando_analise').length})
             </Button>
             <Button
-              variant={filtroStatus === 'EM_ANALISE' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('EM_ANALISE')}
+              variant={filtroStatus === 'em_analise' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('em_analise')}
             >
-              Em Análise ({reformas.filter(r => r.statusAprovacao === 'EM_ANALISE').length})
+              Em Análise ({reformas.filter(r => r.statusAprovacao.toLowerCase() === 'em_analise').length})
             </Button>
             <Button
-              variant={filtroStatus === 'APROVADO' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('APROVADO')}
+              variant={filtroStatus === 'aprovado' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('aprovado')}
             >
-              Aprovados ({reformas.filter(r => r.statusAprovacao === 'APROVADO').length})
+              Aprovados ({reformas.filter(r => r.statusAprovacao.toLowerCase() === 'aprovado').length})
             </Button>
           </div>
         </CardContent>
@@ -203,13 +203,13 @@ export function AnaliseReformas() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusDocBadgeVariant(reforma.statusDocumentacao)}>
-                        {statusDocLabel[reforma.statusDocumentacao]}
+                      <Badge variant={statusDocBadgeVariant(reforma.statusDocumentacao.toLowerCase())}>
+                        {statusDocLabel[reforma.statusDocumentacao.toLowerCase()] || reforma.statusDocumentacao}
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusAprovacaoBadgeVariant(reforma.statusAprovacao)}>
-                        {statusAprovacaoLabel[reforma.statusAprovacao]}
+                      <Badge variant={statusAprovacaoBadgeVariant(reforma.statusAprovacao.toLowerCase())}>
+                        {statusAprovacaoLabel[reforma.statusAprovacao.toLowerCase()] || reforma.statusAprovacao}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
@@ -358,10 +358,10 @@ export function AnaliseReformas() {
                     <SelectValue placeholder="Selecione o status da análise" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EM_ANALISE">Em Análise</SelectItem>
-                    <SelectItem value="APROVADO">Aprovar Reforma</SelectItem>
-                    <SelectItem value="REPROVADO">Reprovar Reforma</SelectItem>
-                    <SelectItem value="PENDENTE_DOCUMENTACAO">Pendente Documentação</SelectItem>
+                    <SelectItem value="em_analise">Em Análise</SelectItem>
+                    <SelectItem value="aprovado">Aprovar Reforma</SelectItem>
+                    <SelectItem value="reprovado">Reprovar Reforma</SelectItem>
+                    <SelectItem value="pendente_documentacao">Pendente Documentação</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

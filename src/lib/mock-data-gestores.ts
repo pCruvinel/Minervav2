@@ -17,7 +17,7 @@ export interface LaudoPendente {
   tipoOS: 'OS_06' | 'OS_08';
   autor: string;
   dataSubmissao: string;
-  status: 'PENDENTE_REVISAO' | 'EM_REVISAO' | 'APROVADO' | 'REJEITADO';
+  status: 'pendente_revisao' | 'em_revisao' | 'aprovado' | 'rejeitado';
   arquivoRascunho?: string;
   observacoes?: string;
 }
@@ -28,11 +28,12 @@ export interface ReformaPendente {
   condominio: string;
   unidade: string;
   tipoReforma: 'ESTRUTURAL' | 'NAO_ESTRUTURAL' | 'INSTALACOES' | 'ACABAMENTO';
-  statusDocumentacao: 'PENDENTE_ART' | 'ART_ENVIADA' | 'RRT_ENVIADA' | 'COMPLETO';
-  statusAprovacao: 'AGUARDANDO_ANALISE' | 'EM_ANALISE' | 'APROVADO' | 'REPROVADO' | 'PENDENTE_DOCUMENTACAO';
+  statusDocumentacao: 'pendente_art' | 'art_enviada' | 'rrt_enviada' | 'completo';
+  statusAprovacao: 'aguardando_analise' | 'em_analise' | 'aprovado' | 'reprovado' | 'pendente_documentacao';
   dataSolicitacao: string;
   responsavel: string;
   valorEstimado?: number;
+  observacoes?: string;
   documentos?: {
     art?: string;
     rrt?: string;
@@ -51,7 +52,7 @@ export const mockLaudosPendentes: LaudoPendente[] = [
     tipoOS: 'OS_06',
     autor: 'Carlos Silva',
     dataSubmissao: '2025-11-15',
-    status: 'PENDENTE_REVISAO',
+    status: 'pendente_revisao',
     arquivoRascunho: 'vistoria_tecnica_abc_rascunho.pdf',
     observacoes: 'Vistoria completa realizada em 14/11. Aguardando aprovação para emissão do laudo final.'
   },
@@ -63,7 +64,7 @@ export const mockLaudosPendentes: LaudoPendente[] = [
     tipoOS: 'OS_08',
     autor: 'Ana Oliveira',
     dataSubmissao: '2025-11-14',
-    status: 'EM_REVISAO',
+    status: 'em_revisao',
     arquivoRascunho: 'laudo_estrutural_park_rascunho.pdf',
   },
   {
@@ -74,7 +75,7 @@ export const mockLaudosPendentes: LaudoPendente[] = [
     tipoOS: 'OS_06',
     autor: 'Roberto Santos',
     dataSubmissao: '2025-11-13',
-    status: 'PENDENTE_REVISAO',
+    status: 'pendente_revisao',
     arquivoRascunho: 'pericia_solar_rascunho.pdf',
     observacoes: 'Perícia solicitada pelo síndico. Identificados problemas estruturais.'
   },
@@ -86,7 +87,7 @@ export const mockLaudosPendentes: LaudoPendente[] = [
     tipoOS: 'OS_08',
     autor: 'Mariana Costa',
     dataSubmissao: '2025-11-12',
-    status: 'PENDENTE_REVISAO',
+    status: 'pendente_revisao',
     arquivoRascunho: 'avaliacao_belavista_rascunho.pdf',
   },
   {
@@ -97,7 +98,7 @@ export const mockLaudosPendentes: LaudoPendente[] = [
     tipoOS: 'OS_06',
     autor: 'Pedro Almeida',
     dataSubmissao: '2025-11-11',
-    status: 'APROVADO',
+    status: 'aprovado',
     arquivoRascunho: 'vistoria_shopping_final.pdf',
     observacoes: 'Aprovado e PDF final gerado em 16/11/2025'
   },
@@ -111,8 +112,8 @@ export const mockReformasPendentes: ReformaPendente[] = [
     condominio: 'Edifício Residencial Aurora',
     unidade: 'Apto 1504',
     tipoReforma: 'ESTRUTURAL',
-    statusDocumentacao: 'PENDENTE_ART',
-    statusAprovacao: 'AGUARDANDO_ANALISE',
+    statusDocumentacao: 'pendente_art',
+    statusAprovacao: 'aguardando_analise',
     dataSolicitacao: '2025-11-16',
     responsavel: 'Carlos Silva',
     valorEstimado: 85000,
@@ -127,8 +128,8 @@ export const mockReformasPendentes: ReformaPendente[] = [
     condominio: 'Condomínio Jardim das Flores',
     unidade: 'Casa 23',
     tipoReforma: 'NAO_ESTRUTURAL',
-    statusDocumentacao: 'ART_ENVIADA',
-    statusAprovacao: 'EM_ANALISE',
+    statusDocumentacao: 'art_enviada',
+    statusAprovacao: 'em_analise',
     dataSolicitacao: '2025-11-14',
     responsavel: 'Ana Oliveira',
     valorEstimado: 45000,
@@ -143,8 +144,8 @@ export const mockReformasPendentes: ReformaPendente[] = [
     condominio: 'Edifício Comercial Central',
     unidade: 'Sala 801',
     tipoReforma: 'INSTALACOES',
-    statusDocumentacao: 'COMPLETO',
-    statusAprovacao: 'APROVADO',
+    statusDocumentacao: 'completo',
+    statusAprovacao: 'aprovado',
     dataSolicitacao: '2025-11-10',
     responsavel: 'Roberto Santos',
     valorEstimado: 32000,
@@ -161,8 +162,8 @@ export const mockReformasPendentes: ReformaPendente[] = [
     condominio: 'Residencial Parque Verde',
     unidade: 'Bloco B - Apto 302',
     tipoReforma: 'ACABAMENTO',
-    statusDocumentacao: 'RRT_ENVIADA',
-    statusAprovacao: 'PENDENTE_DOCUMENTACAO',
+    statusDocumentacao: 'rrt_enviada',
+    statusAprovacao: 'pendente_documentacao',
     dataSolicitacao: '2025-11-09',
     responsavel: 'Mariana Costa',
     valorEstimado: 28000,
@@ -176,8 +177,8 @@ export const mockReformasPendentes: ReformaPendente[] = [
     condominio: 'Edifício Empresarial Tower',
     unidade: 'Conjunto 1205',
     tipoReforma: 'ESTRUTURAL',
-    statusDocumentacao: 'PENDENTE_ART',
-    statusAprovacao: 'REPROVADO',
+    statusDocumentacao: 'pendente_art',
+    statusAprovacao: 'reprovado',
     dataSolicitacao: '2025-11-05',
     responsavel: 'Pedro Almeida',
     valorEstimado: 120000,
@@ -226,7 +227,7 @@ export interface MedicaoPendente {
   valorMedicao: number;
   dataEnvio: string;
   responsavel: string;
-  statusAprovacao: 'AGUARDANDO_VALIDACAO' | 'EM_ANALISE' | 'APROVADO' | 'REJEITADO';
+  statusAprovacao: 'aguardando_validacao' | 'em_analise' | 'aprovado' | 'rejeitado';
   documentos?: {
     relatorioFotografico?: string;
     planilhaMedicao?: string;
@@ -342,7 +343,7 @@ export const mockMedicoesPendentes: MedicaoPendente[] = [
     valorMedicao: 425000,
     dataEnvio: '2025-11-16',
     responsavel: 'Carlos Silva',
-    statusAprovacao: 'AGUARDANDO_VALIDACAO',
+    statusAprovacao: 'aguardando_validacao',
     documentos: {
       relatorioFotografico: 'relatorio_foto_med4.pdf',
       planilhaMedicao: 'planilha_med4.xlsx',
@@ -361,7 +362,7 @@ export const mockMedicoesPendentes: MedicaoPendente[] = [
     valorMedicao: 680000,
     dataEnvio: '2025-11-15',
     responsavel: 'Ana Oliveira',
-    statusAprovacao: 'EM_ANALISE',
+    statusAprovacao: 'em_analise',
     documentos: {
       relatorioFotografico: 'relatorio_foto_med3.pdf',
       planilhaMedicao: 'planilha_med3.xlsx',
@@ -378,7 +379,7 @@ export const mockMedicoesPendentes: MedicaoPendente[] = [
     valorMedicao: 120000,
     dataEnvio: '2025-11-14',
     responsavel: 'Roberto Santos',
-    statusAprovacao: 'AGUARDANDO_VALIDACAO',
+    statusAprovacao: 'aguardando_validacao',
     documentos: {
       relatorioFotografico: 'relatorio_foto_med8.pdf',
       planilhaMedicao: 'planilha_med8.xlsx',
@@ -397,7 +398,7 @@ export const mockMedicoesPendentes: MedicaoPendente[] = [
     valorMedicao: 520000,
     dataEnvio: '2025-11-13',
     responsavel: 'Mariana Costa',
-    statusAprovacao: 'REJEITADO',
+    statusAprovacao: 'rejeitado',
     observacoes: 'Rejeitado: divergência entre medição física e financeira. Solicitar correção.'
   },
   {
@@ -411,7 +412,7 @@ export const mockMedicoesPendentes: MedicaoPendente[] = [
     valorMedicao: 315000,
     dataEnvio: '2025-11-12',
     responsavel: 'Carlos Silva',
-    statusAprovacao: 'APROVADO',
+    statusAprovacao: 'aprovado',
     documentos: {
       relatorioFotografico: 'relatorio_foto_med3_hsc.pdf',
       planilhaMedicao: 'planilha_med3_hsc.xlsx',

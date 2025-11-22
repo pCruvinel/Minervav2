@@ -51,9 +51,9 @@ export function DashboardColaborador({
     // OS
     const totalOS = minhasOS.length;
     const osEmAndamento = minhasOS.filter(os =>
-      (os as any).status === 'em_andamento' || (os as any).status === 'em_execucao'
+      os.status_geral === 'em_andamento'
     ).length;
-    const osConcluidas = minhasOS.filter(os => (os as any).status === 'concluido').length;
+    const osConcluidas = minhasOS.filter(os => os.status_geral === 'concluido').length;
 
     // Delegações
     const totalDelegacoes = minhasDelegacoes.length;

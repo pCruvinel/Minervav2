@@ -36,12 +36,12 @@ O ERP Minerva utiliza um **sistema hierárquico de permissões** baseado em role
 | Perfil | Nível | Código | Descrição |
 |--------|-------|--------|-----------|
 | **Admin** | 10 | `admin` | Acesso total ao sistema (super usuário) |
-| **Diretoria** | 9 | `DIRETORIA` | Direção da empresa - Acesso completo |
-| **Gestor Administrativo** | 6 | `GESTOR_ADMINISTRATIVO` | Gerente comercial/administrativo |
-| **Gestor de Obras** | 5 | `GESTOR_OBRAS` | Gerencia execução de obras |
-| **Gestor de Assessoria** | 5 | `GESTOR_ASSESSORIA` | Gerencia laudos e assessoria |
-| **Colaborador** | 1 | `COLABORADOR_*` | Colaboradores operacionais |
-| **Mão de Obra (MOBRA)** | 0 | `MOBRA` | Sem acesso ao sistema |
+| **Diretoria** | 9 | `diretoria` | Direção da empresa - Acesso completo |
+| **Gestor Administrativo** | 6 | `gestor_administrativo` | Gerente comercial/administrativo |
+| **Gestor de Obras** | 5 | `gestor_obras` | Gerencia execução de obras |
+| **Gestor de Assessoria** | 5 | `gestor_assesoria` | Gerencia laudos e assessoria |
+| **Colaborador** | 1 | `colaborador_*` | Colaboradores operacionais |
+| **Mão de Obra** | 0 | `mao-de-obra` | Sem acesso ao sistema |
 
 ---
 
@@ -89,7 +89,7 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 
 ## 🔑 Permissões por Perfil
 
-### 1️⃣ ADMIN (Nível 10)
+### 1️⃣ admin (Nível 10)
 
 ```typescript
 ✅ Ver todas as OS (Ordens de Serviço)
@@ -107,7 +107,7 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 
 ---
 
-### 2️⃣ DIRETORIA (Nível 9)
+### 2️⃣ diretoria (Nível 9)
 
 ```typescript
 ✅ Ver todas as OS de todos os setores
@@ -127,7 +127,7 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 
 ---
 
-### 3️⃣ GESTOR_ADMINISTRATIVO (Nível 6)
+### 3️⃣ gestor_administrativo (Nível 6)
 
 ```typescript
 ✅ Ver todas as OS de todos os setores
@@ -147,47 +147,47 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 
 ---
 
-### 4️⃣ GESTOR_OBRAS (Nível 5)
+### 4️⃣ gestor_obras (Nível 5)
 
 ```typescript
-✅ Ver todas as OS (filtradas por setor OBR via RLS)
+✅ Ver todas as OS (filtradas por setor Obras via RLS)
 ❌ Acessar módulo financeiro
-✅ Delegar apenas para setor OBR (Obras)
-✅ Aprovar etapas do setor OBR
+✅ Delegar apenas para setor Obras
+✅ Aprovar etapas do setor obras
 ❌ Gerenciar usuários
-✅ Criar OS do setor OBR
-✅ Cancelar OS do setor OBR
-✅ Editar OS do setor OBR
+✅ Criar OS do setor Obras
+✅ Cancelar OS do setor Obras
+✅ Editar OS do setor Obras
 ❌ Reabrir OS
 ```
 
 **Descrição**: Gerencia execução de obras - **SEM acesso financeiro**.
 
-**Setores de Acesso**: `OBR` (Obras)
+**Setores de Acesso**: `obras` (Obras)
 
 ---
 
-### 5️⃣ GESTOR_ASSESSORIA (Nível 5)
+### 5️⃣ gestor_assessoria (Nível 5)
 
 ```typescript
 ✅ Ver todas as OS (filtradas por setor ASS via RLS)
 ❌ Acessar módulo financeiro
-✅ Delegar apenas para setor ASS (Assessoria)
-✅ Aprovar etapas do setor ASS
+✅ Delegar apenas para setor assessoria
+✅ Aprovar etapas do setor assessoria
 ❌ Gerenciar usuários
-✅ Criar OS do setor ASS
-✅ Cancelar OS do setor ASS
-✅ Editar OS do setor ASS
+✅ Criar OS do setor assessoria
+✅ Cancelar OS do setor assessoria
+✅ Editar OS do setor assessoria
 ❌ Reabrir OS
 ```
 
 **Descrição**: Gerencia laudos e assessoria - **SEM acesso financeiro**.
 
-**Setores de Acesso**: `ASS` (Assessoria)
+**Setores de Acesso**: `assessoria` (Assessoria)
 
 ---
 
-### 6️⃣ COLABORADOR_* (Nível 1)
+### 6️⃣ colaborador_* (Nível 1)
 
 ```typescript
 ❌ Ver todas as OS (apenas delegadas para ele)
@@ -204,14 +204,13 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 **Descrição**: Colaboradores operacionais com acesso limitado às suas tarefas.
 
 **Tipos de Colaborador**:
-- `COLABORADOR_COMERCIAL` - Setor COM
-- `COLABORADOR_ASSESSORIA` - Setor ASS
-- `COLABORADOR_OBRAS` - Setor OBR
-- `COLABORADOR_ADMINISTRATIVO` - Administrativo
+- `colaborador_assessoria` - Setor assessoria
+- `colaborador_obras` - Setor Obras
+- `colaborador_administrativo` - Setor administrativo
 
 ---
 
-### 7️⃣ MOBRA (Nível 0)
+### 7️⃣ mao-de-obra (Nível 0)
 
 ```typescript
 ❌ Sem acesso ao sistema web
@@ -231,10 +230,10 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Admin** | Todas as OS |
 | **Diretoria** | Todas as OS |
 | **Gestor Administrativo** | Todas as OS |
-| **Gestor de Obras** | Apenas OS do setor OBR |
-| **Gestor de Assessoria** | Apenas OS do setor ASS |
+| **Gestor de Obras** | Apenas OS do setor Obras |
+| **Gestor de Assessoria** | Apenas OS do setor Assessoria |
 | **Colaborador** | Apenas OS delegadas para ele |
-| **MOBRA** | Nenhuma |
+| **Mão de Obra** | Nenhuma |
 
 ### Criação de OS
 
@@ -243,10 +242,10 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Admin** | ✅ Sim |
 | **Diretoria** | ✅ Sim |
 | **Gestor Administrativo** | ✅ Sim |
-| **Gestor de Obras** | ✅ Sim (setor OBR) |
-| **Gestor de Assessoria** | ✅ Sim (setor ASS) |
+| **Gestor de Obras** | ✅ Sim (setor Obras) |
+| **Gestor de Assessoria** | ✅ Sim (setor Assessoria) |
 | **Colaborador** | ⚠️ Depende do tipo |
-| **MOBRA** | ❌ Não |
+| **Mão de Obra** | ❌ Não |
 
 ### Edição de OS
 
@@ -255,10 +254,10 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Admin** | Todas as OS |
 | **Diretoria** | Todas as OS |
 | **Gestor Administrativo** | Todas as OS |
-| **Gestor de Obras** | Apenas OS do setor OBR |
-| **Gestor de Assessoria** | Apenas OS do setor ASS |
+| **Gestor de Obras** | Apenas OS do setor Obras |
+| **Gestor de Assessoria** | Apenas OS do setor Assessoria |
 | **Colaborador** | ❌ Não pode editar |
-| **MOBRA** | ❌ Não |
+| **Mão de Obra** | ❌ Não |
 
 ### Cancelamento de OS
 
@@ -267,10 +266,10 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Admin** | ✅ Sim |
 | **Diretoria** | ✅ Sim |
 | **Gestor Administrativo** | ✅ Sim |
-| **Gestor de Obras** | ✅ Sim (setor OBR) |
-| **Gestor de Assessoria** | ✅ Sim (setor ASS) |
+| **Gestor de Obras** | ✅ Sim (setor Obras) |
+| **Gestor de Assessoria** | ✅ Sim (setor Assessoria) |
 | **Colaborador** | ❌ Não |
-| **MOBRA** | ❌ Não |
+| **Mão de Obra** | ❌ Não |
 
 ### Reabertura de OS Concluídas
 
@@ -290,14 +289,14 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Admin** | Qualquer usuário | `*` (todos) |
 | **Diretoria** | Qualquer usuário | `*` (todos) |
 | **Gestor Administrativo** | Qualquer colaborador | `*` (todos) |
-| **Gestor de Obras** | Colaboradores OBR | `OBR` |
-| **Gestor de Assessoria** | Colaboradores ASS | `ASS` |
+| **Gestor de Obras** | Colaboradores Obras | `obras` |
+| **Gestor de Assessoria** | Colaboradores Assessoria | `assessoria` |
 | **Colaborador** | ❌ Não pode delegar | - |
-| **MOBRA** | ❌ Não pode delegar | - |
+| **Mão de Obra** | ❌ Não pode delegar | - |
 
 ### Regras de Delegação
 
-1. **MOBRA não pode receber delegações** - Sempre bloqueado
+1. **Mão de Obra não pode receber delegações** - Sempre bloqueado
 2. **Colaboradores inativos não podem receber delegações**
 3. **Gestor de setor só pode delegar para seu setor**
 4. **Diretoria e Gestor Administrativo podem delegar para qualquer setor**
@@ -308,7 +307,7 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 
 ### Itens do Menu Lateral por Perfil
 
-| Menu Item | Diretoria | Gestores | Colaboradores | MOBRA |
+| Menu Item | Diretoria | Gestores | Colaboradores | mao-de-obra |
 |-----------|-----------|----------|---------------|-------|
 | **Dashboard** | ✅ | ✅ | ✅ | ✅ |
 | **Ordens de Serviço** | ✅ | ✅ | ✅ | ❌ |
@@ -319,9 +318,9 @@ Por isso, apenas perfis de **alta hierarquia administrativa** têm acesso.
 | **Configurações** | ✅ | ✅ | ❌ | ❌ |
 
 **Nota**: O item "Financeiro" no menu só aparece para:
-- ADMIN
-- DIRETORIA
-- GESTOR_ADMINISTRATIVO
+- admin
+- diretoria
+- gestor_administrativo
 
 ---
 
@@ -444,13 +443,13 @@ CREATE POLICY "gestor_ve_seu_setor" ON ordens_servico
   USING (
     auth.uid() IN (
       SELECT id FROM usuarios
-      WHERE role_nivel LIKE 'GESTOR_%'
+      WHERE role_nivel LIKE 'gestor_%'
       AND setor = ordens_servico.setor
     )
     OR
     auth.uid() IN (
       SELECT id FROM usuarios
-      WHERE role_nivel IN ('DIRETORIA', 'GESTOR_ADMINISTRATIVO')
+      WHERE role_nivel IN ('diretoria', 'gestor_administrativo')
     )
   );
 ```
@@ -466,14 +465,14 @@ CREATE POLICY "gestor_ve_seu_setor" ON ordens_servico
 │                  MÓDULO FINANCEIRO - ACESSO                     │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ✅ ADMIN                     (Nível 10)                        │
-│  ✅ DIRETORIA                 (Nível 9)                         │
-│  ✅ GESTOR_ADMINISTRATIVO     (Nível 6)                         │
+│  ✅ admin                     (Nível 10)                        │
+│  ✅ diretoria                 (Nível 9)                         │
+│  ✅ gestor_administrativo     (Nível 6)                         │
 │                                                                 │
-│  ❌ GESTOR_OBRAS              (Nível 5) - SEM ACESSO           │
-│  ❌ GESTOR_ASSESSORIA         (Nível 5) - SEM ACESSO           │
-│  ❌ COLABORADOR_*             (Nível 1) - SEM ACESSO           │
-│  ❌ MOBRA                     (Nível 0) - SEM ACESSO           │
+│  ❌ gestor_obras              (Nível 5) - SEM ACESSO           │
+│  ❌ gestor_assessoria         (Nível 5) - SEM ACESSO           │
+│  ❌ colaborador_*             (Nível 1) - SEM ACESSO           │
+│  ❌ mao-de-obra                     (Nível 0) - SEM ACESSO           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -20,7 +20,7 @@ export function FilaAprovacaoLaudos() {
   const [laudoSelecionado, setLaudoSelecionado] = useState<LaudoPendente | null>(null);
   const [modalRevisar, setModalRevisar] = useState(false);
   const [observacoes, setObservacoes] = useState('');
-  const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
+  const [filtroStatus, setFiltroStatus] = useState<string>('todos');
 
   const tiposLaudoLabel: Record<string, string> = {
     VISTORIA_TECNICA: 'Vistoria Técnica',
@@ -31,13 +31,13 @@ export function FilaAprovacaoLaudos() {
 
   const statusBadgeVariant = (status: string) => {
     switch (status) {
-      case 'PENDENTE_REVISAO':
+      case 'pendente_revisao':
         return 'default';
-      case 'EM_REVISAO':
+      case 'em_revisao':
         return 'secondary';
-      case 'APROVADO':
+      case 'aprovado':
         return 'outline';
-      case 'REJEITADO':
+      case 'rejeitado':
         return 'destructive';
       default:
         return 'outline';
@@ -45,10 +45,10 @@ export function FilaAprovacaoLaudos() {
   };
 
   const statusLabel: Record<string, string> = {
-    PENDENTE_REVISAO: 'Pendente Revisão',
-    EM_REVISAO: 'Em Revisão',
-    APROVADO: 'Aprovado',
-    REJEITADO: 'Rejeitado',
+    pendente_revisao: 'Pendente Revisão',
+    em_revisao: 'Em Revisão',
+    aprovado: 'Aprovado',
+    rejeitado: 'Rejeitado',
   };
 
   const handleAbrirRevisar = (laudo: LaudoPendente) => {
@@ -63,7 +63,7 @@ export function FilaAprovacaoLaudos() {
     setLaudos(prev =>
       prev.map(l =>
         l.id === laudoSelecionado.id
-          ? { ...l, status: 'APROVADO', observacoes }
+          ? { ...l, status: 'aprovado', observacoes }
           : l
       )
     );
@@ -83,7 +83,7 @@ export function FilaAprovacaoLaudos() {
     setLaudos(prev =>
       prev.map(l =>
         l.id === laudoSelecionado.id
-          ? { ...l, status: 'REJEITADO', observacoes }
+          ? { ...l, status: 'rejeitado', observacoes }
           : l
       )
     );
@@ -98,7 +98,7 @@ export function FilaAprovacaoLaudos() {
   };
 
   const laudosFiltrados = laudos.filter(l =>
-    filtroStatus === 'TODOS' ? true : l.status === filtroStatus
+    filtroStatus === 'todos' ? true : l.status.toLowerCase() === filtroStatus
   );
 
   return (
@@ -119,28 +119,28 @@ export function FilaAprovacaoLaudos() {
         <CardContent>
           <div className="flex gap-2 flex-wrap">
             <Button
-              variant={filtroStatus === 'TODOS' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('TODOS')}
+              variant={filtroStatus === 'todos' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('todos')}
             >
               Todos ({laudos.length})
             </Button>
             <Button
-              variant={filtroStatus === 'PENDENTE_REVISAO' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('PENDENTE_REVISAO')}
+              variant={filtroStatus === 'pendente_revisao' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('pendente_revisao')}
             >
-              Pendente Revisão ({laudos.filter(l => l.status === 'PENDENTE_REVISAO').length})
+              Pendente Revisão ({laudos.filter(l => l.status.toLowerCase() === 'pendente_revisao').length})
             </Button>
             <Button
-              variant={filtroStatus === 'EM_REVISAO' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('EM_REVISAO')}
+              variant={filtroStatus === 'em_revisao' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('em_revisao')}
             >
-              Em Revisão ({laudos.filter(l => l.status === 'EM_REVISAO').length})
+              Em Revisão ({laudos.filter(l => l.status.toLowerCase() === 'em_revisao').length})
             </Button>
             <Button
-              variant={filtroStatus === 'APROVADO' ? 'default' : 'outline'}
-              onClick={() => setFiltroStatus('APROVADO')}
+              variant={filtroStatus === 'aprovado' ? 'default' : 'outline'}
+              onClick={() => setFiltroStatus('aprovado')}
             >
-              Aprovados ({laudos.filter(l => l.status === 'APROVADO').length})
+              Aprovados ({laudos.filter(l => l.status.toLowerCase() === 'aprovado').length})
             </Button>
           </div>
         </CardContent>
@@ -190,13 +190,13 @@ export function FilaAprovacaoLaudos() {
                       {new Date(laudo.dataSubmissao).toLocaleDateString('pt-BR')}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={statusBadgeVariant(laudo.status)}>
-                        {statusLabel[laudo.status]}
+                      <Badge variant={statusBadgeVariant(laudo.status.toLowerCase())}>
+                        {statusLabel[laudo.status.toLowerCase()] || laudo.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {laudo.status === 'PENDENTE_REVISAO' || laudo.status === 'EM_REVISAO' ? (
+                        {laudo.status.toLowerCase() === 'pendente_revisao' || laudo.status.toLowerCase() === 'em_revisao' ? (
                           <Button
                             size="sm"
                             onClick={() => handleAbrirRevisar(laudo)}

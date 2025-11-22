@@ -17,8 +17,8 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
           *,
           clientes (*),
           colaboradores:responsavel_id (*),
-          tipos_ordem_servico (*),
-          etapa_atual:etapas_os!etapa_atual_id (*)
+          tipos_os (*),
+          os_etapas!os_id (*)
         `)
         .order('data_entrada', { ascending: false });
 
@@ -50,16 +50,16 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
     return data.map((os: any) => ({
       id: os.id,
       codigo: os.codigo_os,
-      titulo: os.descricao || `${os.tipos_ordem_servico?.nome || 'Ordem de Serviço'}`,
+      titulo: os.descricao || `${os.tipos_os?.nome || 'Ordem de Serviço'}`,
       status: normalizeStatusOS(os.status_geral),
       cliente: {
         id: os.clientes?.id || '',
         nome: os.clientes?.nome_razao_social || 'Cliente não informado'
       },
       tipoOS: {
-        id: os.tipos_ordem_servico?.codigo?.replace('OS-', '') || '',
-        nome: os.tipos_ordem_servico?.nome || 'Tipo não informado',
-        setor: normalizeSetorOS(os.tipos_ordem_servico?.setor_padrao)
+        id: os.tipos_os?.codigo?.replace('OS-', '') || '',
+        nome: os.tipos_os?.nome || 'Tipo não informado',
+        setor: normalizeSetorOS(os.tipos_os?.setor_padrao)
       },
       responsavel: os.colaboradores ? {
         id: os.colaboradores.id,
@@ -70,11 +70,7 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
         nome: 'Não atribuído',
         avatar: 'NA'
       },
-      etapaAtual: os.etapa_atual ? {
-        numero: os.etapa_atual.numero_etapa,
-        titulo: os.etapa_atual.titulo,
-        status: os.etapa_atual.status
-      } : null,
+      etapaAtual: getEtapaAtual(os.os_etapas || []),
       dataInicio: os.data_entrada ? new Date(os.data_entrada).toISOString().split('T')[0] : '',
       dataPrazo: os.data_prazo ? new Date(os.data_prazo).toISOString().split('T')[0] : '',
       criadoEm: new Date(os.data_entrada).toISOString().split('T')[0],
@@ -179,6 +175,52 @@ export function useUpdateEtapa(etapaId: string) {
 }
 
 // Funções auxiliares
+function getEtapaAtual(etapas: any[]): { numero: number; titulo: string; status: string } | null {
+  if (!etapas || etapas.length === 0) return null;
+
+  // Ordenar por ordem crescente
+  const etapasOrdenadas = [...etapas].sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+
+  // Prioridade 1: Etapa em andamento
+  const emAndamento = etapasOrdenadas.find(e => e.status === 'em_andamento');
+  if (emAndamento) {
+    return {
+      numero: emAndamento.ordem || 0,
+      titulo: emAndamento.nome_etapa || 'Etapa sem nome',
+      status: emAndamento.status
+    };
+  }
+
+  // Prioridade 2: Primeira etapa pendente
+  const pendente = etapasOrdenadas.find(e => e.status === 'pendente');
+  if (pendente) {
+    return {
+      numero: pendente.ordem || 0,
+      titulo: pendente.nome_etapa || 'Etapa sem nome',
+      status: pendente.status
+    };
+  }
+
+  // Prioridade 3: Última etapa concluída
+  const concluidas = etapasOrdenadas.filter(e => e.status === 'concluida');
+  if (concluidas.length > 0) {
+    const ultima = concluidas[concluidas.length - 1];
+    return {
+      numero: ultima.ordem || 0,
+      titulo: ultima.nome_etapa || 'Etapa sem nome',
+      status: ultima.status
+    };
+  }
+
+  // Fallback: Primeira etapa
+  const primeira = etapasOrdenadas[0];
+  return {
+    numero: primeira.ordem || 0,
+    titulo: primeira.nome_etapa || 'Etapa sem nome',
+    status: primeira.status
+  };
+}
+
 function getInitials(nome: string): string {
   if (!nome) return 'NN';
   const parts = nome.trim().split(' ');

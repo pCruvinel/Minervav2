@@ -1,17 +1,17 @@
 // Página de Demonstração: Visualização de Menu por Perfil
 // Permite visualizar como o menu lateral é exibido para cada tipo de usuário
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Separator } from '../ui/separator';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Users, 
-  DollarSign, 
-  Calendar, 
+import {
+  LayoutDashboard,
+  FileText,
+  Users,
+  DollarSign,
+  Calendar,
   Settings,
   Building2,
   Eye,
@@ -52,20 +52,21 @@ const allMenuItems: MenuItem[] = [
 
 const visibilityByRole: Record<RoleLevel, string[]> = {
   // DIRETORIA: Acesso completo
-  'DIRETORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  
+  'diretoria': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
   // GESTORES: Acesso completo
-  'GESTOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'GESTOR_ASSESSORIA': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'GESTOR_OBRAS': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  
+  'gestor_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'gestor_assessoria': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'gestor_obras': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
   // COLABORADORES: Acesso limitado
-  'COLABORADOR_ADMINISTRATIVO': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'COLABORADOR_ASSESSORIA': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'COLABORADOR_OBRAS': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  
+  'colaborador': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // ADMIN
+  'admin': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
   // MOBRA: Acesso mínimo
-  'MOBRA': ['dashboard'],
+  'mao_de_obra': ['dashboard'],
 };
 
 // ============================================================
@@ -73,17 +74,16 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 // ============================================================
 
 export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
-  const [selectedRole, setSelectedRole] = useState<RoleLevel>('COLABORADOR_ADMINISTRATIVO');
+  const [selectedRole, setSelectedRole] = useState<RoleLevel>('colaborador');
 
   const availableRoles: RoleLevel[] = [
-    'DIRETORIA',
-    'GESTOR_ADMINISTRATIVO',
-    'GESTOR_ASSESSORIA',
-    'GESTOR_OBRAS',
-    'COLABORADOR_ADMINISTRATIVO',
-    'COLABORADOR_ASSESSORIA',
-    'COLABORADOR_OBRAS',
-    'MOBRA',
+    'diretoria',
+    'gestor_administrativo',
+    'gestor_assessoria',
+    'gestor_obras',
+    'colaborador',
+    'mao_de_obra',
+    'admin'
   ];
 
   const visibleItems = visibilityByRole[selectedRole];
@@ -118,10 +118,10 @@ export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
                 <div className="text-left w-full">
                   <div className="text-sm">{ROLE_NAMES[role]}</div>
                   <div className="text-xs opacity-70 mt-1">
-                    {role.includes('DIRETORIA') ? 'Acesso Total' : 
-                     role.includes('GESTOR') ? 'Acesso Completo' :
-                     role.includes('COLABORADOR') ? 'Acesso Limitado' :
-                     'Acesso Mínimo'}
+                    {role === 'diretoria' || role === 'admin' ? 'Acesso Total' :
+                      role.includes('gestor') ? 'Acesso Completo' :
+                        role === 'colaborador' ? 'Acesso Limitado' :
+                          'Acesso Mínimo'}
                   </div>
                 </div>
               </Button>
@@ -153,10 +153,10 @@ export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
                 visibleItems.map((itemId) => {
                   const item = allMenuItems.find(m => m.id === itemId);
                   if (!item) return null;
-                  
+
                   const Icon = item.icon;
                   return (
-                    <div 
+                    <div
                       key={itemId}
                       className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50"
                     >
@@ -197,7 +197,7 @@ export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
                   .map((item) => {
                     const Icon = item.icon;
                     return (
-                      <div 
+                      <div
                         key={item.id}
                         className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 opacity-60"
                       >

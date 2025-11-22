@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -28,49 +28,106 @@ import { toast } from 'sonner';
 
 interface ClienteDetalhe {
   id: string;
-  codigoCC: string;
-  nomeRazaoSocial: string;
-  tipoContrato: 'OBRAS' | 'ASSESSORIA';
-  status: 'ATIVO' | 'INATIVO';
-  dataInicio: string;
-  dataTermino?: string;
-  valorMensal: number;
-  valorTotal: number;
-  prazoMeses: number;
-  responsavel: string;
-  cpfResponsavel: string;
+  nome: string;
+  razaoSocial?: string;
+  documento: string;
+  tipo: 'PF' | 'PJ';
+  status: 'ativo' | 'inativo' | 'lead' | 'blacklist';
   email: string;
   telefone: string;
-  cnpj?: string;
   endereco: string;
-  contratoAssinado: string;
-  loginPortal: string;
-  senhaPortal: string;
-  proximaFatura: string;
-  parcelasRestantes: number;
+  dataCadastro: string;
+  origem: string;
+  observacoes?: string;
+  // Campos adicionais para UI
+  loginPortal?: string;
+  senhaPortal?: string;
+  contratoAssinado?: string;
+  responsavel?: string;
+  cpfResponsavel?: string;
+  cnpj?: string; // Alias para documento se necessário
+
+  financeiro: {
+    limiteCredito: number;
+    faturasEmAberto: number;
+    valorEmAberto: number;
+    statusFinanceiro: 'em_dia' | 'inadimplente' | 'alerta';
+    proximaFatura?: string; // Adicionado
+  };
+  contrato: {
+    tipo: 'avulso' | 'recorrente' | 'parceiro';
+    inicio?: string;
+    fim?: string;
+    valorMensal?: number;
+    servicosInclusos?: string[];
+    valorTotal?: number; // Adicionado
+    prazoMeses?: number; // Adicionado
+    parcelasRestantes?: number; // Adicionado
+  };
 }
+
+const renderStatusBadge = (status: ClienteDetalhe['status']) => {
+  switch (status) {
+    case 'ativo':
+      return (
+        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-0">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Ativo
+        </Badge>
+      );
+    case 'inativo':
+      return <Badge variant="secondary">Inativo</Badge>;
+    case 'lead':
+      return <Badge variant="default">Lead</Badge>;
+    case 'blacklist':
+      return (
+        <Badge variant="destructive">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Blacklist
+        </Badge>
+      );
+    default:
+      return <Badge variant="outline">{status}</Badge>;
+  }
+};
 
 const mockClienteDetalhe: ClienteDetalhe = {
   id: 'cli-1',
-  codigoCC: 'CC-001',
-  nomeRazaoSocial: 'Empreendimentos ABC S.A.',
-  tipoContrato: 'ASSESSORIA',
-  status: 'ATIVO',
-  dataInicio: '2024-01-01',
-  valorMensal: 4200.00,
-  valorTotal: 50400.00,
-  prazoMeses: 12,
+
   responsavel: 'Carlos Eduardo Silva',
   cpfResponsavel: '123.456.789-00',
   email: 'carlos.silva@abc.com.br',
   telefone: '(11) 98765-4321',
   cnpj: '12.345.678/0001-90',
   endereco: 'Av. Paulista, 1000 - São Paulo/SP',
-  contratoAssinado: 'contrato-abc-2024-001.pdf',
+  contratoAssinado: 'Contrato_Prestacao_Servicos_2023.pdf',
   loginPortal: '12345678900',
-  senhaPortal: 'ABC@2024#Minerva',
-  proximaFatura: '2024-12-05',
-  parcelasRestantes: 1,
+  senhaPortal: '8x2k9Lp1',
+
+  financeiro: {
+    limiteCredito: 10000,
+    faturasEmAberto: 1,
+    valorEmAberto: 4200,
+    statusFinanceiro: 'em_dia',
+    proximaFatura: '2024-12-05',
+  },
+  contrato: {
+    tipo: 'recorrente',
+    inicio: '2023-12-05',
+    fim: '2024-12-05',
+    valorMensal: 4200,
+    servicosInclusos: ['Manutenção de Software', 'Suporte Técnico'],
+    valorTotal: 50400,
+    prazoMeses: 12,
+    parcelasRestantes: 1,
+  },
+  nome: 'ABC Soluções Ltda.',
+  documento: '12.345.678/0001-90',
+  tipo: 'PJ',
+  status: 'ativo',
+  dataCadastro: '2023-12-01',
+  origem: 'Indicação',
+  observacoes: 'Cliente com contrato de 12 meses, renovação automática.',
 };
 
 interface ClienteDetalhesPageProps {
@@ -98,12 +155,12 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
   };
 
   const handleCopyLogin = () => {
-    navigator.clipboard.writeText(cliente.loginPortal);
+    navigator.clipboard.writeText(cliente.loginPortal || '');
     toast.success('Login copiado!');
   };
 
   const handleCopySenha = () => {
-    navigator.clipboard.writeText(cliente.senhaPortal);
+    navigator.clipboard.writeText(cliente.senhaPortal || '');
     toast.success('Senha copiada!');
   };
 
@@ -121,19 +178,19 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
 
   const handleInativar = () => {
     // Validações
-    if (cliente.tipoContrato === 'OBRAS' && !termoEntrega) {
+    if (cliente.contrato.tipo === 'parceiro' && !termoEntrega) {
       toast.error('Anexe o Termo de Entrega de Obra');
       return;
     }
 
-    if (cliente.tipoContrato === 'ASSESSORIA' && !justificativa.trim()) {
+    if (cliente.contrato.tipo === 'recorrente' && !justificativa.trim()) {
       toast.error('Preencha a justificativa de inativação');
       return;
     }
 
     console.log('Inativar cliente:', {
       clienteId: cliente.id,
-      tipo: cliente.tipoContrato,
+      tipo: cliente.contrato.tipo,
       justificativa,
       termoEntrega: termoEntrega?.name,
     });
@@ -152,18 +209,11 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
           </Button>
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl">{cliente.nomeRazaoSocial}</h1>
+              <h1 className="text-3xl">{cliente.nome}</h1>
               <Badge variant="outline" className="font-mono">
-                {cliente.codigoCC}
+                {cliente.id}
               </Badge>
-              {cliente.status === 'ATIVO' ? (
-                <Badge className="bg-green-100 text-green-800">
-                  <CheckCircle className="h-3 w-3 mr-1" />
-                  Ativo
-                </Badge>
-              ) : (
-                <Badge variant="secondary">Inativo</Badge>
-              )}
+              {renderStatusBadge(cliente.status)}
             </div>
             <p className="text-muted-foreground">
               Dossiê interno do cliente - Visão administrativa
@@ -176,7 +226,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
             <Eye className="mr-2 h-4 w-4" />
             Visualizar como Cliente
           </Button>
-          {cliente.status === 'ATIVO' && (
+          {cliente.status === 'ativo' && (
             <Button variant="destructive" onClick={() => setModalInativarOpen(true)}>
               <AlertTriangle className="mr-2 h-4 w-4" />
               Inativar Contrato
@@ -194,10 +244,10 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <FileText className="h-4 w-4 text-primary" />
             </div>
             <h3 className="text-xl">
-              {cliente.tipoContrato === 'OBRAS' ? 'Obras' : 'Assessoria'}
+              {cliente.contrato.tipo === 'parceiro' ? 'Parceiro' : cliente.contrato.tipo === 'recorrente' ? 'Recorrente' : 'Avulso'}
             </h3>
             <p className="text-xs text-muted-foreground mt-1">
-              Início: {formatDate(cliente.dataInicio)}
+              Início: {cliente.contrato.inicio ? formatDate(cliente.contrato.inicio) : '-'}
             </p>
           </CardContent>
         </Card>
@@ -208,9 +258,9 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <p className="text-sm text-muted-foreground">Valor Mensal</p>
               <DollarSign className="h-4 w-4 text-green-600" />
             </div>
-            <h3 className="text-xl text-green-600">{formatCurrency(cliente.valorMensal)}</h3>
+            <h3 className="text-xl text-green-600">{formatCurrency(cliente.contrato.valorMensal || 0)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {cliente.parcelasRestantes} parcela(s) restante(s)
+              {cliente.contrato.parcelasRestantes || 0} parcela(s) restante(s)
             </p>
           </CardContent>
         </Card>
@@ -221,9 +271,9 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <p className="text-sm text-muted-foreground">Valor Total</p>
               <DollarSign className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-xl">{formatCurrency(cliente.valorTotal)}</h3>
+            <h3 className="text-xl">{formatCurrency(cliente.contrato.valorTotal || 0)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {cliente.prazoMeses} meses de contrato
+              {cliente.contrato.prazoMeses || 0} meses de contrato
             </p>
           </CardContent>
         </Card>
@@ -234,7 +284,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <p className="text-sm text-muted-foreground">Próxima Fatura</p>
               <Calendar className="h-4 w-4 text-amber-600" />
             </div>
-            <h3 className="text-xl">{formatDate(cliente.proximaFatura)}</h3>
+            <h3 className="text-xl">{cliente.financeiro.proximaFatura ? formatDate(cliente.financeiro.proximaFatura) : '-'}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               Vencimento programado
             </p>
@@ -263,11 +313,11 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <CardContent className="space-y-4">
                 <div>
                   <Label className="text-xs text-muted-foreground">Razão Social</Label>
-                  <p className="font-medium mt-1">{cliente.nomeRazaoSocial}</p>
+                  <p className="font-medium mt-1">{cliente.razaoSocial || cliente.nome}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">CNPJ</Label>
-                  <p className="font-medium mt-1">{cliente.cnpj}</p>
+                  <p className="font-medium mt-1">{cliente.documento}</p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Endereço</Label>
@@ -319,7 +369,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
                   <div>
                     <p className="font-medium">{cliente.contratoAssinado}</p>
                     <p className="text-xs text-muted-foreground">
-                      Assinado em {formatDate(cliente.dataInicio)}
+                      Assinado em {cliente.contrato.inicio ? formatDate(cliente.contrato.inicio) : '-'}
                     </p>
                   </div>
                 </div>
@@ -345,19 +395,19 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Valor Total do Contrato</span>
-                  <span className="font-medium text-lg">{formatCurrency(cliente.valorTotal)}</span>
+                  <span className="font-medium text-lg">{formatCurrency(cliente.contrato.valorTotal || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Valor Mensal</span>
-                  <span className="font-medium text-lg text-green-600">{formatCurrency(cliente.valorMensal)}</span>
+                  <span className="font-medium text-lg text-green-600">{formatCurrency(cliente.contrato.valorMensal || 0)}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Prazo (meses)</span>
-                  <span className="font-medium text-lg">{cliente.prazoMeses}</span>
+                  <span className="font-medium text-lg">{cliente.contrato.prazoMeses || 0}</span>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
                   <span className="text-sm text-muted-foreground">Parcelas Restantes</span>
-                  <span className="font-medium text-lg text-amber-600">{cliente.parcelasRestantes}</span>
+                  <span className="font-medium text-lg text-amber-600">{cliente.contrato.parcelasRestantes || 0}</span>
                 </div>
               </CardContent>
             </Card>
@@ -372,9 +422,9 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <CardContent>
                 <Alert>
                   <AlertDescription>
-                    <p className="font-medium mb-2">Próxima Fatura: {formatDate(cliente.proximaFatura)}</p>
+                    <p className="font-medium mb-2">Próxima Fatura: {cliente.financeiro.proximaFatura ? formatDate(cliente.financeiro.proximaFatura) : '-'}</p>
                     <p className="text-sm">
-                      Valor: {formatCurrency(cliente.valorMensal)}
+                      Valor: {formatCurrency(cliente.contrato.valorMensal || 0)}
                     </p>
                   </AlertDescription>
                 </Alert>
@@ -410,7 +460,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
                   <Label>Login (CPF do Responsável)</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={cliente.loginPortal}
+                      value={cliente.loginPortal || ''}
                       readOnly
                       className="font-mono"
                     />
@@ -424,7 +474,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
                   <Label>Senha (Gerada Automaticamente)</Label>
                   <div className="flex gap-2">
                     <Input
-                      value={cliente.senhaPortal}
+                      value={cliente.senhaPortal || ''}
                       readOnly
                       className="font-mono"
                       type="password"
@@ -462,13 +512,13 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               Inativar Contrato
             </DialogTitle>
             <DialogDescription>
-              Você está prestes a inativar o contrato de <strong>{cliente.nomeRazaoSocial}</strong>.
+              Você está prestes a inativar o contrato de <strong>{cliente.nome}</strong>.
               Esta ação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
-            {cliente.tipoContrato === 'OBRAS' ? (
+            {cliente.contrato.tipo === 'parceiro' ? (
               <div className="space-y-2">
                 <Label>Termo de Entrega de Obra *</Label>
                 <div className="border-2 border-dashed rounded-lg p-6 text-center">

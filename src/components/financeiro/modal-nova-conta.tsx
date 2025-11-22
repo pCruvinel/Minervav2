@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,19 @@ import { Checkbox } from '../ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { toast } from 'sonner';
 
+interface NovaContaDados {
+  favorecido: string;
+  descricao: string;
+  valor: string;
+  vencimento: string;
+  recorrente: boolean;
+  categoria: string;
+}
+
 interface ModalNovaContaProps {
   open: boolean;
   onClose: () => void;
-  onSalvar: (dados: any) => void;
+  onSalvar: (dados: NovaContaDados) => void;
 }
 
 export function ModalNovaConta({ open, onClose, onSalvar }: ModalNovaContaProps) {

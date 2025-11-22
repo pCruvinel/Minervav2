@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -49,11 +49,11 @@ interface RegistroPresenca {
 
 // Mock de colaboradores
 const mockColaboradores: Colaborador[] = [
-  { id: 'col-1', nome: 'João Silva', funcao: 'Pedreiro', setor: 'OBRAS', custoDia: 180.00 },
-  { id: 'col-2', nome: 'Maria Santos', funcao: 'Engenheira', setor: 'ASSESSORIA', custoDia: 450.00 },
-  { id: 'col-3', nome: 'Pedro Oliveira', funcao: 'Auxiliar', setor: 'OBRAS', custoDia: 120.00 },
-  { id: 'col-4', nome: 'Ana Costa', funcao: 'Administrativa', setor: 'ADM', custoDia: 280.00 },
-  { id: 'col-5', nome: 'Carlos Mendes', funcao: 'Servente', setor: 'OBRAS', custoDia: 110.00 },
+  { id: 'col-1', nome: 'João Silva', funcao: 'Pedreiro', setor: 'obras', custoDia: 180.00 },
+  { id: 'col-2', nome: 'Maria Santos', funcao: 'Engenheira', setor: 'assessoria', custoDia: 450.00 },
+  { id: 'col-3', nome: 'Pedro Oliveira', funcao: 'Auxiliar', setor: 'obras', custoDia: 120.00 },
+  { id: 'col-4', nome: 'Ana Costa', funcao: 'Administrativa', setor: 'administrativo', custoDia: 280.00 },
+  { id: 'col-5', nome: 'Carlos Mendes', funcao: 'Servente', setor: 'obras', custoDia: 110.00 },
 ];
 
 // Mock de centros de custo (obras)
@@ -107,8 +107,8 @@ export function ControlePresencaPage() {
         ...prev[colaboradorId],
         performance,
         // Reset justificativa se não for necessária
-        performanceJustificativa: ['REGULAR', 'RUIM', 'PESSIMA'].includes(performance) 
-          ? prev[colaboradorId].performanceJustificativa 
+        performanceJustificativa: ['REGULAR', 'RUIM', 'PESSIMA'].includes(performance)
+          ? prev[colaboradorId].performanceJustificativa
           : undefined,
       }
     }));
@@ -140,7 +140,7 @@ export function ControlePresencaPage() {
     // Validações
     const registrosValidos = mockColaboradores.every(col => {
       const reg = registros[col.id];
-      
+
       if (!reg.status) {
         toast.error(`Defina o status de presença para ${col.nome}`);
         return false;
@@ -178,7 +178,7 @@ export function ControlePresencaPage() {
 
     // Salvar registros
     console.log('Registros de presença:', registros);
-    
+
     toast.success(`Presença registrada com sucesso para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
   };
 
@@ -279,7 +279,7 @@ export function ControlePresencaPage() {
             {mockColaboradores.map((colaborador) => {
               const registro = registros[colaborador.id];
               const custoDiaRateado = calcularRateioCustoDia(colaborador, registro);
-              const requireCC = colaborador.setor !== 'ADM';
+              const requireCC = colaborador.setor !== 'administrativo';
               const isExpandido = colaboradorExpandido === colaborador.id;
               const isCompleto = registro.status && registro.performance;
 
@@ -297,11 +297,11 @@ export function ControlePresencaPage() {
                         ) : (
                           <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                         )}
-                        
+
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                           <User className="h-5 w-5 text-primary" />
                         </div>
-                        
+
                         <div className="flex-1">
                           <h4 className="font-medium">{colaborador.nome}</h4>
                           <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -321,7 +321,7 @@ export function ControlePresencaPage() {
                                 </span>
                               </div>
                             )}
-                            
+
                             {registro.performance && (
                               <Badge className={getPerformanceColor(registro.performance)}>
                                 {registro.performance}
@@ -355,195 +355,194 @@ export function ControlePresencaPage() {
                   {/* Formulário (exibido apenas quando expandido) */}
                   {isExpandido && (
                     <CardContent className="pt-0 pb-4 border-t">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Status */}
-                      <div className="space-y-2">
-                        <Label>Status de Presença *</Label>
-                        <Select 
-                          value={registro.status} 
-                          onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o status..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OK">✅ OK</SelectItem>
-                            <SelectItem value="ATRASADO">⏰ Atrasado</SelectItem>
-                            <SelectItem value="FALTA">❌ Falta</SelectItem>
-                            <SelectItem value="FALTA_JUSTIFICADA">📄 Falta Justificada</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Performance */}
-                      <div className="space-y-2">
-                        <Label>Performance *</Label>
-                        <Select 
-                          value={registro.performance} 
-                          onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Avalie a performance..." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OTIMA">🌟 Ótima</SelectItem>
-                            <SelectItem value="BOA">👍 Boa</SelectItem>
-                            <SelectItem value="REGULAR">⚠️ Regular</SelectItem>
-                            <SelectItem value="RUIM">👎 Ruim</SelectItem>
-                            <SelectItem value="PESSIMA">❌ Péssima</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      {/* Minutos de Atraso (condicional) */}
-                      {registro.status === 'ATRASADO' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Status */}
                         <div className="space-y-2">
-                          <Label>Minutos de Atraso *</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            placeholder="Ex: 30"
-                            value={registro.minutosAtraso || ''}
-                            onChange={(e) => setRegistros(prev => ({
-                              ...prev,
-                              [colaborador.id]: {
-                                ...prev[colaborador.id],
-                                minutosAtraso: parseInt(e.target.value) || undefined
-                              }
-                            }))}
-                          />
+                          <Label>Status de Presença *</Label>
+                          <Select
+                            value={registro.status}
+                            onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o status..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OK">✅ OK</SelectItem>
+                              <SelectItem value="ATRASADO">⏰ Atrasado</SelectItem>
+                              <SelectItem value="FALTA">❌ Falta</SelectItem>
+                              <SelectItem value="FALTA_JUSTIFICADA">📄 Falta Justificada</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
-                      )}
 
-                      {/* Justificativa (condicional) */}
-                      {(['FALTA', 'ATRASADO'].includes(registro.status) || 
-                        ['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance)) && (
-                        <div className={`space-y-2 ${
-                          ['FALTA', 'ATRASADO'].includes(registro.status) && 
-                          ['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance) 
-                            ? 'col-span-2' 
-                            : ''
-                        }`}>
-                          <Label>
-                            Justificativa *
-                            {['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance) && 
-                              ' (Performance)'}
-                          </Label>
-                          <Textarea
-                            placeholder="Descreva a justificativa..."
-                            rows={2}
-                            value={
-                              ['FALTA', 'ATRASADO'].includes(registro.status) 
-                                ? registro.justificativa || ''
-                                : registro.performanceJustificativa || ''
-                            }
-                            onChange={(e) => {
-                              const field = ['FALTA', 'ATRASADO'].includes(registro.status)
-                                ? 'justificativa'
-                                : 'performanceJustificativa';
-                              
-                              setRegistros(prev => ({
+                        {/* Performance */}
+                        <div className="space-y-2">
+                          <Label>Performance *</Label>
+                          <Select
+                            value={registro.performance}
+                            onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Avalie a performance..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OTIMA">🌟 Ótima</SelectItem>
+                              <SelectItem value="BOA">👍 Boa</SelectItem>
+                              <SelectItem value="REGULAR">⚠️ Regular</SelectItem>
+                              <SelectItem value="RUIM">👎 Ruim</SelectItem>
+                              <SelectItem value="PESSIMA">❌ Péssima</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Minutos de Atraso (condicional) */}
+                        {registro.status === 'ATRASADO' && (
+                          <div className="space-y-2">
+                            <Label>Minutos de Atraso *</Label>
+                            <Input
+                              type="number"
+                              min="1"
+                              placeholder="Ex: 30"
+                              value={registro.minutosAtraso || ''}
+                              onChange={(e) => setRegistros(prev => ({
                                 ...prev,
                                 [colaborador.id]: {
                                   ...prev[colaborador.id],
-                                  [field]: e.target.value
+                                  minutosAtraso: parseInt(e.target.value) || undefined
                                 }
-                              }));
-                            }}
-                          />
-                        </div>
-                      )}
-
-                      {/* Anexo Atestado (condicional) */}
-                      {registro.status === 'FALTA_JUSTIFICADA' && (
-                        <div className="space-y-2 col-span-2">
-                          <Label>Anexo de Atestado *</Label>
-                          <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
-                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                            <p className="text-sm text-muted-foreground">
-                              {registro.anexoAtestado ? 
-                                `✅ ${registro.anexoAtestado.name}` : 
-                                'Clique para fazer upload do atestado médico'}
-                            </p>
-                            <input
-                              type="file"
-                              className="hidden"
-                              accept=".pdf,.jpg,.jpeg,.png"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0] || null;
-                                setRegistros(prev => ({
-                                  ...prev,
-                                  [colaborador.id]: {
-                                    ...prev[colaborador.id],
-                                    anexoAtestado: file
-                                  }
-                                }));
-                              }}
+                              }))}
                             />
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Rateio por Centro de Custo */}
-                      <div className="space-y-2 col-span-2">
-                        <div className="flex items-center justify-between">
-                          <Label>
-                            Centro de Custo (Multiselect) {requireCC && '*'}
-                          </Label>
-                          {!requireCC && (
-                            <span className="text-xs text-muted-foreground">Opcional para ADM</span>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                          {mockCentrosCusto.map(cc => (
-                            <label
-                              key={cc.id}
-                              className={cn(
-                                "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all",
-                                registro.centrosCusto.includes(cc.id)
-                                  ? "border-primary bg-primary/5"
-                                  : "border-neutral-200 hover:border-primary/50"
-                              )}
-                            >
-                              <input
-                                type="checkbox"
-                                className="w-4 h-4 text-primary"
-                                checked={registro.centrosCusto.includes(cc.id)}
-                                onChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
+                        {/* Justificativa (condicional) */}
+                        {(['FALTA', 'ATRASADO'].includes(registro.status) ||
+                          ['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance)) && (
+                            <div className={`space-y-2 ${['FALTA', 'ATRASADO'].includes(registro.status) &&
+                              ['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance)
+                              ? 'col-span-2'
+                              : ''
+                              }`}>
+                              <Label>
+                                Justificativa *
+                                {['REGULAR', 'RUIM', 'PESSIMA'].includes(registro.performance) &&
+                                  ' (Performance)'}
+                              </Label>
+                              <Textarea
+                                placeholder="Descreva a justificativa..."
+                                rows={2}
+                                value={
+                                  ['FALTA', 'ATRASADO'].includes(registro.status)
+                                    ? registro.justificativa || ''
+                                    : registro.performanceJustificativa || ''
+                                }
+                                onChange={(e) => {
+                                  const field = ['FALTA', 'ATRASADO'].includes(registro.status)
+                                    ? 'justificativa'
+                                    : 'performanceJustificativa';
+
+                                  setRegistros(prev => ({
+                                    ...prev,
+                                    [colaborador.id]: {
+                                      ...prev[colaborador.id],
+                                      [field]: e.target.value
+                                    }
+                                  }));
+                                }}
                               />
-                              <span className="text-sm">{cc.nome}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
+                            </div>
+                          )}
 
-                      {/* Display de Rateio */}
-                      {registro.centrosCusto.length > 0 && (
-                        <div className="col-span-2 bg-primary/5 border border-primary/20 p-4 rounded-lg">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Calculator className="h-5 w-5 text-primary" />
-                            <h5 className="font-medium">Cálculo de Rateio</h5>
-                          </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">Custo-Dia Total</p>
-                              <p className="text-lg font-medium">{formatCurrency(colaborador.custoDia)}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-muted-foreground mb-1">
-                                Custo por CC ({registro.centrosCusto.length} CC{registro.centrosCusto.length > 1 ? 's' : ''})
+                        {/* Anexo Atestado (condicional) */}
+                        {registro.status === 'FALTA_JUSTIFICADA' && (
+                          <div className="space-y-2 col-span-2">
+                            <Label>Anexo de Atestado *</Label>
+                            <div className="border-2 border-dashed rounded-lg p-4 text-center hover:border-primary transition-colors cursor-pointer">
+                              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                              <p className="text-sm text-muted-foreground">
+                                {registro.anexoAtestado ?
+                                  `✅ ${registro.anexoAtestado.name}` :
+                                  'Clique para fazer upload do atestado médico'}
                               </p>
-                              <p className="text-lg font-medium text-primary">
-                                {formatCurrency(custoDiaRateado)}
-                              </p>
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0] || null;
+                                  setRegistros(prev => ({
+                                    ...prev,
+                                    [colaborador.id]: {
+                                      ...prev[colaborador.id],
+                                      anexoAtestado: file
+                                    }
+                                  }));
+                                }}
+                              />
                             </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            📌 Fórmula: Custo por CC = {formatCurrency(colaborador.custoDia)} ÷ {registro.centrosCusto.length}
-                          </p>
+                        )}
+
+                        {/* Rateio por Centro de Custo */}
+                        <div className="space-y-2 col-span-2">
+                          <div className="flex items-center justify-between">
+                            <Label>
+                              Centro de Custo (Multiselect) {requireCC && '*'}
+                            </Label>
+                            {!requireCC && (
+                              <span className="text-xs text-muted-foreground">Opcional para ADM</span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                            {mockCentrosCusto.map(cc => (
+                              <label
+                                key={cc.id}
+                                className={cn(
+                                  "flex items-center gap-2 p-3 border rounded-lg cursor-pointer transition-all",
+                                  registro.centrosCusto.includes(cc.id)
+                                    ? "border-primary bg-primary/5"
+                                    : "border-neutral-200 hover:border-primary/50"
+                                )}
+                              >
+                                <input
+                                  type="checkbox"
+                                  className="w-4 h-4 text-primary"
+                                  checked={registro.centrosCusto.includes(cc.id)}
+                                  onChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
+                                />
+                                <span className="text-sm">{cc.nome}</span>
+                              </label>
+                            ))}
+                          </div>
                         </div>
-                      )}
-                    </div>
+
+                        {/* Display de Rateio */}
+                        {registro.centrosCusto.length > 0 && (
+                          <div className="col-span-2 bg-primary/5 border border-primary/20 p-4 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Calculator className="h-5 w-5 text-primary" />
+                              <h5 className="font-medium">Cálculo de Rateio</h5>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Custo-Dia Total</p>
+                                <p className="text-lg font-medium">{formatCurrency(colaborador.custoDia)}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">
+                                  Custo por CC ({registro.centrosCusto.length} CC{registro.centrosCusto.length > 1 ? 's' : ''})
+                                </p>
+                                <p className="text-lg font-medium text-primary">
+                                  {formatCurrency(custoDiaRateado)}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              📌 Fórmula: Custo por CC = {formatCurrency(colaborador.custoDia)} ÷ {registro.centrosCusto.length}
+                            </p>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   )}
                 </Card>

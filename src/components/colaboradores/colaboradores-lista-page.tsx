@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -25,7 +25,7 @@ interface Colaborador {
   email: string;
   telefone: string;
   funcao: string;
-  setor: string;
+  setor: 'obras' | 'administrativo' | 'assessoria' | 'diretoria';
   tipoContratacao: 'CLT' | 'CONTRATO' | 'PROLABORE';
   custoDia: number;
   status: 'ATIVO' | 'INATIVO';
@@ -41,7 +41,7 @@ const mockColaboradores: Colaborador[] = [
     email: 'joao.silva@minerva.com',
     telefone: '(11) 98765-4321',
     funcao: 'COORDENADOR DE OBRAS',
-    setor: 'OBRAS',
+    setor: 'obras',
     tipoContratacao: 'CLT',
     custoDia: 280.50,
     status: 'ATIVO',
@@ -52,26 +52,26 @@ const mockColaboradores: Colaborador[] = [
     nome: 'Maria Santos',
     cpf: '987.654.321-00',
     email: 'maria.santos@minerva.com',
-    telefone: '(11) 98765-1234',
-    funcao: 'OPERACIONAL ADMINISTRATIVO',
-    setor: 'ADM',
+    telefone: '(11) 91234-5678',
+    funcao: 'ANALISTA ADMINISTRATIVO',
+    setor: 'administrativo',
     tipoContratacao: 'CLT',
-    custoDia: 180.00,
+    custoDia: 150.00,
     status: 'ATIVO',
-    dataAdmissao: '2023-03-01',
+    dataAdmissao: '2023-03-10',
   },
   {
     id: 'col-3',
     nome: 'Pedro Oliveira',
     cpf: '456.789.123-00',
-    email: 'pedro.oliveira@example.com',
-    telefone: '(11) 98765-5678',
-    funcao: 'COLABORADOR OBRA',
-    setor: 'OBRAS',
+    email: 'pedro.oliveira@minerva.com',
+    telefone: '(11) 97777-8888',
+    funcao: 'ENGENHEIRO CIVIL',
+    setor: 'assessoria',
     tipoContratacao: 'CONTRATO',
-    custoDia: 120.00,
+    custoDia: 450.00,
     status: 'ATIVO',
-    dataAdmissao: '2023-06-10',
+    dataAdmissao: '2023-06-01',
   },
   {
     id: 'col-4',
@@ -102,10 +102,12 @@ const mockColaboradores: Colaborador[] = [
 ];
 
 export function ColaboradoresListaPage() {
-  const [colaboradores] = useState(mockColaboradores);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>(mockColaboradores);
   const [filtro, setFiltro] = useState('');
-  const [modalCadastroOpen, setModalCadastroOpen] = useState(false);
+  const [setorFilter, setSetorFilter] = useState('todos');
+  const [statusFilter, setStatusFilter] = useState('todos');
   const [colaboradorEdicao, setColaboradorEdicao] = useState<Colaborador | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -121,12 +123,16 @@ export function ColaboradoresListaPage() {
       .join(' ');
   };
 
-  const colaboradoresFiltrados = colaboradores.filter(
-    (c) =>
-      c.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-      c.cpf.includes(filtro) ||
-      c.email.toLowerCase().includes(filtro.toLowerCase())
-  );
+  const colaboradoresFiltrados = colaboradores.filter((colaborador) => {
+    const matchesSearch = colaborador.nome.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.email.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.cpf.includes(filtro);
+
+    const matchesSetor = setorFilter === 'todos' || colaborador.setor.toLowerCase() === setorFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'todos' || colaborador.status.toLowerCase() === statusFilter.toLowerCase();
+
+    return matchesSearch && matchesSetor && matchesStatus;
+  });
 
   const handleNovoCadastro = () => {
     setColaboradorEdicao(null);
@@ -186,7 +192,7 @@ export function ColaboradoresListaPage() {
                 colaboradores
                   .filter((c) => c.status === 'ATIVO')
                   .reduce((sum, c) => sum + c.custoDia, 0) /
-                  colaboradores.filter((c) => c.status === 'ATIVO').length
+                colaboradores.filter((c) => c.status === 'ATIVO').length
               )}
             </h3>
           </CardContent>
@@ -210,14 +216,28 @@ export function ColaboradoresListaPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Colaboradores ({colaboradoresFiltrados.length})</CardTitle>
-            <div className="relative w-96">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nome, CPF ou e-mail..."
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex items-center gap-4"> {/* Added a flex container for filters */}
+              <div className="relative w-96">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar por nome, CPF ou e-mail..."
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={setorFilter} onValueChange={setSetorFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os Setores</SelectItem>
+                  <SelectItem value="obras">Obras</SelectItem>
+                  <SelectItem value="administrativo">Administrativo</SelectItem>
+                  <SelectItem value="assessoria">Assessoria</SelectItem>
+                  <SelectItem value="diretoria">Diretoria</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -264,8 +284,8 @@ export function ColaboradoresListaPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={colaborador.tipoContratacao === 'CLT' ? 'default' : 'secondary'}>
-                      {colaborador.tipoContratacao}
+                    <Badge variant={colaborador.status === 'ATIVO' ? 'success' : 'secondary'}>
+                      {colaborador.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-medium">

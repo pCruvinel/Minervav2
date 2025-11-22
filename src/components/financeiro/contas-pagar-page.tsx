@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -21,20 +21,7 @@ import {
 } from 'lucide-react';
 import { ModalNovaConta } from './modal-nova-conta';
 
-interface ContaPagar {
-  id: string;
-  favorecido: string;
-  tipoFavorecido: 'COLABORADOR' | 'FORNECEDOR';
-  descricao: string;
-  tipo: 'SALARIO' | 'CONTA_FIXA' | 'DESPESA_VARIAVEL';
-  vencimento: string;
-  valor: number;
-  valorPago?: number;
-  status: 'EM_ABERTO' | 'PAGO' | 'ATRASADO';
-  dataPagamento?: string;
-  comprovanteId?: string;
-  recorrente: boolean;
-}
+import { ContaPagar, ContaPagarTipo } from '../../lib/types';
 
 // Mock data - Contas a pagar
 const mockContas: ContaPagar[] = [
@@ -217,7 +204,7 @@ export function ContasPagarPage() {
     }
   };
 
-  const getTipoBadge = (tipo: ContaPagar['tipo']) => {
+  const getTipoBadge = (tipo: ContaPagarTipo) => {
     const config = {
       SALARIO: { label: 'Salário', className: 'bg-blue-100 text-blue-800' },
       CONTA_FIXA: { label: 'Conta Fixa', className: 'bg-purple-100 text-purple-800' },
@@ -245,7 +232,7 @@ export function ContasPagarPage() {
   // Aplicar filtros
   const contasFiltradas = contas.filter((c) => {
     if (filtro && !c.favorecido.toLowerCase().includes(filtro.toLowerCase()) &&
-        !c.descricao.toLowerCase().includes(filtro.toLowerCase())) {
+      !c.descricao.toLowerCase().includes(filtro.toLowerCase())) {
       return false;
     }
 
@@ -315,8 +302,8 @@ export function ContasPagarPage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Atenção:</strong> Existem {contasFiltradas.filter(c => isAtrasado(c)).length} conta(s) atrasada(s) 
-            totalizando {formatCurrency(totais.atrasado)}. 
+            <strong>Atenção:</strong> Existem {contasFiltradas.filter(c => isAtrasado(c)).length} conta(s) atrasada(s)
+            totalizando {formatCurrency(totais.atrasado)}.
             As linhas atrasadas estão destacadas em <strong className="text-red-600">VERMELHO</strong>.
           </AlertDescription>
         </Alert>

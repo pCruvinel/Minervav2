@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,12 +8,10 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Info, Calculator } from 'lucide-react';
-import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 
 interface ModalCustoFlutuanteProps {
@@ -59,7 +57,7 @@ export function ModalCustoFlutuante({
 }: ModalCustoFlutuanteProps) {
   const [colaboradorId, setColaboradorId] = useState('');
   const [tipoCusto, setTipoCusto] = useState<'CUSTO_FLUTUANTE' | 'CUSTO_GERAL' | ''>('');
-  const [categoriaCusto, setCategoriaCusto] = useState('');
+  const [categoriaCusto, setCategoriaCusto] = useState<'EPI' | 'BONUS' | 'SALARIO' | 'OUTROS' | ''>('');
 
   const colaboradorSelecionado = mockColaboradores.find(c => c.id === colaboradorId);
   const isCustoFlutuante = tipoCusto === 'CUSTO_FLUTUANTE';
@@ -74,15 +72,15 @@ export function ModalCustoFlutuante({
   // Simulação de recálculo do Custo-Dia
   const calcularNovoCustoDia = () => {
     if (!colaboradorSelecionado || !lancamento) return 0;
-    
+
     // Fórmula simplificada: Custo Atual + (Valor Lançamento / 22 dias úteis)
     const incrementoPorDia = lancamento.valor / 22;
     return colaboradorSelecionado.custoDiaAtual + incrementoPorDia;
   };
 
   const novoCustoDia = isCustoFlutuante ? calcularNovoCustoDia() : colaboradorSelecionado?.custoDiaAtual || 0;
-  const diferencaCustoDia = isCustoFlutuante && colaboradorSelecionado 
-    ? novoCustoDia - colaboradorSelecionado.custoDiaAtual 
+  const diferencaCustoDia = isCustoFlutuante && colaboradorSelecionado
+    ? novoCustoDia - colaboradorSelecionado.custoDiaAtual
     : 0;
 
   const handleSalvar = () => {
@@ -99,7 +97,7 @@ export function ModalCustoFlutuante({
     onSalvar({
       colaboradorId,
       tipoCusto: tipoCusto as 'CUSTO_FLUTUANTE' | 'CUSTO_GERAL',
-      categoriaCusto: categoriaCusto as any,
+      categoriaCusto: categoriaCusto as 'EPI' | 'BONUS' | 'SALARIO' | 'OUTROS',
       recalcularCustoDia: isCustoFlutuante,
     });
 
@@ -158,7 +156,7 @@ export function ModalCustoFlutuante({
           {/* Tipo de Custo */}
           <div className="space-y-2">
             <Label>Tipo de Custo *</Label>
-            <Select value={tipoCusto} onValueChange={(value) => setTipoCusto(value as any)}>
+            <Select value={tipoCusto} onValueChange={(value) => setTipoCusto(value as 'CUSTO_FLUTUANTE' | 'CUSTO_GERAL')}>
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o tipo..." />
               </SelectTrigger>
@@ -176,7 +174,7 @@ export function ModalCustoFlutuante({
           {isCustoFlutuante && (
             <div className="space-y-2">
               <Label>Categoria do Custo Flutuante *</Label>
-              <Select value={categoriaCusto} onValueChange={setCategoriaCusto}>
+              <Select value={categoriaCusto} onValueChange={(value) => setCategoriaCusto(value as 'EPI' | 'BONUS' | 'SALARIO' | 'OUTROS')}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a categoria..." />
                 </SelectTrigger>
@@ -196,7 +194,7 @@ export function ModalCustoFlutuante({
             <Alert>
               <Info className="h-4 w-4" />
               <AlertDescription>
-                <strong>Custo Geral (Salário):</strong> Este custo será contabilizado como despesa geral de folha de pagamento 
+                <strong>Custo Geral (Salário):</strong> Este custo será contabilizado como despesa geral de folha de pagamento
                 e não afetará o cálculo do Custo-Dia do colaborador.
               </AlertDescription>
             </Alert>
@@ -209,11 +207,11 @@ export function ModalCustoFlutuante({
                 <Calculator className="h-5 w-5 text-primary" />
                 <h4 className="font-medium">Recálculo de Custo-Dia</h4>
               </div>
-              
+
               <Alert>
                 <Info className="h-4 w-4" />
                 <AlertDescription>
-                  <strong>Atenção:</strong> Custos flutuantes (EPI, Bônus) são incorporados ao Custo-Dia do colaborador, 
+                  <strong>Atenção:</strong> Custos flutuantes (EPI, Bônus) são incorporados ao Custo-Dia do colaborador,
                   impactando o custo de alocação em obras futuras.
                 </AlertDescription>
               </Alert>
@@ -245,7 +243,7 @@ export function ModalCustoFlutuante({
           <Button variant="outline" onClick={onClose}>
             Cancelar
           </Button>
-          <Button 
+          <Button
             onClick={handleSalvar}
             disabled={!colaboradorId || !tipoCusto || (isCustoFlutuante && !categoriaCusto)}
           >

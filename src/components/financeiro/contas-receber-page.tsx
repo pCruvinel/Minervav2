@@ -21,22 +21,10 @@ import {
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 
-interface ParcelaReceber {
-  id: string;
-  cliente: string;
-  centroCusto: string;
-  contrato: string;
-  parcela: string; // Ex: "1/12"
-  vencimento: string;
-  valorPrevisto: number;
-  valorRecebido?: number;
-  status: 'EM_ABERTO' | 'CONCILIADO' | 'INADIMPLENTE';
-  dataConciliacao?: string;
-  comprovanteId?: string;
-}
+import { ContaReceber } from '../../lib/types';
 
 // Mock data - Parcelas a receber
-const mockParcelas: ParcelaReceber[] = [
+const mockParcelas: ContaReceber[] = [
   {
     id: 'rec-1',
     cliente: 'Empreendimentos ABC S.A.',
@@ -145,14 +133,14 @@ export function ContasReceberPage() {
     return date.toLocaleDateString('pt-BR');
   };
 
-  const isInadimplente = (parcela: ParcelaReceber) => {
+  const isInadimplente = (parcela: ContaReceber) => {
     if (parcela.status === 'CONCILIADO') return false;
     const hoje = new Date();
     const vencimento = new Date(parcela.vencimento);
     return hoje > vencimento;
   };
 
-  const getStatusBadge = (parcela: ParcelaReceber) => {
+  const getStatusBadge = (parcela: ContaReceber) => {
     // Atualizar status se inadimplente
     const status = isInadimplente(parcela) ? 'INADIMPLENTE' : parcela.status;
 
@@ -181,7 +169,7 @@ export function ContasReceberPage() {
     }
   };
 
-  const getRowClassName = (parcela: ParcelaReceber) => {
+  const getRowClassName = (parcela: ContaReceber) => {
     if (isInadimplente(parcela)) {
       return 'bg-red-50 border-l-4 border-l-red-500';
     }
@@ -194,7 +182,7 @@ export function ContasReceberPage() {
   // Aplicar filtros
   const parcelasFiltradas = parcelas.filter((p) => {
     if (filtro && !p.cliente.toLowerCase().includes(filtro.toLowerCase()) &&
-        !p.centroCusto.toLowerCase().includes(filtro.toLowerCase())) {
+      !p.centroCusto.toLowerCase().includes(filtro.toLowerCase())) {
       return false;
     }
 
@@ -241,8 +229,8 @@ export function ContasReceberPage() {
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            <strong>Atenção:</strong> Existem {parcelasFiltradas.filter(p => isInadimplente(p)).length} parcela(s) inadimplente(s) 
-            totalizando {formatCurrency(totais.inadimplente)}. 
+            <strong>Atenção:</strong> Existem {parcelasFiltradas.filter(p => isInadimplente(p)).length} parcela(s) inadimplente(s)
+            totalizando {formatCurrency(totais.inadimplente)}.
             As linhas inadimplentes estão destacadas em <strong className="text-red-600">VERMELHO</strong>.
           </AlertDescription>
         </Alert>

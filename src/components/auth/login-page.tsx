@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -39,7 +39,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
       if (success) {
         toast.success("Login realizado com sucesso!");
-        
+
         // Chamar callback de sucesso se fornecido
         if (onLoginSuccess) {
           onLoginSuccess();
@@ -218,7 +218,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 <p className="text-xs text-neutral-600 mb-3">
                   <strong>Ambiente de desenvolvimento:</strong> Clique em qualquer email abaixo para preencher automaticamente. Senha: qualquer texto com 6+ caracteres.
                 </p>
-                
+
                 {demoCredentials.map((cred) => (
                   <button
                     key={cred.email}

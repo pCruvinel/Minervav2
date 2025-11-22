@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -15,7 +15,6 @@ import {
   CheckCircle,
   XCircle,
   TrendingUp,
-  Loader2,
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { useClientes } from '../../lib/hooks/use-clientes';
@@ -25,7 +24,7 @@ interface Cliente {
   codigoCC: string;
   nomeRazaoSocial: string;
   tipoContrato: 'OBRAS' | 'ASSESSORIA';
-  status: 'ATIVO' | 'INATIVO';
+  status: 'ATIVO' | 'INATIVO' | 'LEAD' | 'BLACKLIST';
   dataInicio: string;
   valorMensal: number;
   proximaFatura: string;
@@ -41,7 +40,7 @@ interface ClientesListaPageProps {
 
 export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesListaPageProps) {
   // Carregar clientes do backend - filtrando apenas clientes ativos (não leads)
-  const { clientes: clientesBackend, loading: loadingClientes, error: errorClientes } = useClientes('CLIENTE_ATIVO');
+  const { clientes: clientesBackend } = useClientes('CLIENTE_ATIVO');
 
   // Mapear dados do backend para o formato esperado pelo componente
   const clientes: Cliente[] = clientesBackend.map((cliente: any) => ({
@@ -107,16 +106,18 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
   };
 
   // Aplicar filtros
-  const clientesFiltrados = clientes.filter((c) => {
-    if (filtro && !c.nomeRazaoSocial.toLowerCase().includes(filtro.toLowerCase()) &&
-        !c.codigoCC.toLowerCase().includes(filtro.toLowerCase())) {
-      return false;
-    }
+  const clientesFiltrados = clientes.filter(cliente => {
+    const searchTermLower = filtro.toLowerCase();
+    const matchesSearch =
+      cliente.nomeRazaoSocial.toLowerCase().includes(searchTermLower) ||
+      cliente.codigoCC.toLowerCase().includes(searchTermLower) ||
+      (cliente.cnpj && cliente.cnpj.includes(filtro)) ||
+      (cliente.cpf && cliente.cpf.includes(filtro));
 
-    if (filtroTipo && c.tipoContrato !== filtroTipo) return false;
-    if (filtroStatus && c.status !== filtroStatus) return false;
+    const matchesStatus = !filtroStatus || cliente.status.toLowerCase() === filtroStatus.toLowerCase();
+    const matchesTipo = !filtroTipo || cliente.tipoContrato.toLowerCase() === filtroTipo.toLowerCase();
 
-    return true;
+    return matchesSearch && matchesStatus && matchesTipo;
   });
 
   // Calcular estatísticas
@@ -248,12 +249,15 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
               {/* Filtro de Status */}
               <div className="w-48">
                 <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Status..." />
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ATIVO">Ativo</SelectItem>
-                    <SelectItem value="INATIVO">Inativo</SelectItem>
+                    <SelectItem value="todos">Todos os Status</SelectItem>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
+                    <SelectItem value="lead">Lead</SelectItem>
+                    <SelectItem value="blacklist">Blacklist</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -286,7 +290,7 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
             </TableHeader>
             <TableBody>
               {clientesFiltrados.map((cliente) => (
-                <TableRow 
+                <TableRow
                   key={cliente.id}
                   className={cn(
                     "hover:bg-neutral-50 cursor-pointer",

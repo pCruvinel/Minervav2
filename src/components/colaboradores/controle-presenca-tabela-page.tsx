@@ -50,14 +50,14 @@ interface RegistroPresenca {
 
 // Mock de colaboradores
 const mockColaboradores: Colaborador[] = [
-  { id: 'col-1', nome: 'João Silva', funcao: 'Pedreiro', setor: 'OBRAS', custoDia: 180.00 },
-  { id: 'col-2', nome: 'Maria Santos', funcao: 'Engenheira Civil', setor: 'ASSESSORIA', custoDia: 450.00 },
-  { id: 'col-3', nome: 'Pedro Oliveira', funcao: 'Auxiliar de Obras', setor: 'OBRAS', custoDia: 120.00 },
-  { id: 'col-4', nome: 'Ana Costa', funcao: 'Administrativa', setor: 'ADM', custoDia: 280.00 },
-  { id: 'col-5', nome: 'Carlos Mendes', funcao: 'Servente', setor: 'OBRAS', custoDia: 110.00 },
-  { id: 'col-6', nome: 'Beatriz Lima', funcao: 'Arquiteta', setor: 'ASSESSORIA', custoDia: 420.00 },
-  { id: 'col-7', nome: 'Ricardo Souza', funcao: 'Eletricista', setor: 'OBRAS', custoDia: 160.00 },
-  { id: 'col-8', nome: 'Juliana Alves', funcao: 'Pintora', setor: 'OBRAS', custoDia: 140.00 },
+  { id: 'col-1', nome: 'João Silva', funcao: 'Pedreiro', setor: 'obras', custoDia: 180.00 },
+  { id: 'col-2', nome: 'Maria Santos', funcao: 'Engenheira Civil', setor: 'assessoria', custoDia: 450.00 },
+  { id: 'col-3', nome: 'Pedro Oliveira', funcao: 'Auxiliar de Obras', setor: 'obras', custoDia: 120.00 },
+  { id: 'col-4', nome: 'Ana Costa', funcao: 'Administrativa', setor: 'administrativo', custoDia: 280.00 },
+  { id: 'col-5', nome: 'Carlos Mendes', funcao: 'Servente', setor: 'obras', custoDia: 110.00 },
+  { id: 'col-6', nome: 'Beatriz Lima', funcao: 'Arquiteta', setor: 'assessoria', custoDia: 420.00 },
+  { id: 'col-7', nome: 'Ricardo Souza', funcao: 'Eletricista', setor: 'obras', custoDia: 160.00 },
+  { id: 'col-8', nome: 'Juliana Alves', funcao: 'Pintora', setor: 'obras', custoDia: 140.00 },
 ];
 
 // Mock de centros de custo
@@ -199,7 +199,7 @@ export function ControlePresencaTabelaPage() {
       ...prev,
       [colaboradorAtual]: {
         ...prev[colaboradorAtual],
-        ...(tipoJustificativa === 'STATUS' 
+        ...(tipoJustificativa === 'STATUS'
           ? { justificativaStatus: justificativa, minutosAtraso }
           : { justificativaPerformance: justificativa }
         ),
@@ -231,11 +231,11 @@ export function ControlePresencaTabelaPage() {
   const handleConfirmarRegistros = () => {
     // Validar se todos têm pelo menos 1 centro de custo (exceto ADM)
     const erros: string[] = [];
-    
+
     mockColaboradores.forEach(col => {
       const registro = registros[col.id];
-      
-      if (col.setor !== 'ADM' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0) {
+
+      if (col.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0) {
         erros.push(`${col.nome} precisa ter pelo menos 1 Centro de Custo`);
       }
 
@@ -405,7 +405,7 @@ export function ControlePresencaTabelaPage() {
                   const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
 
                   return (
-                    <TableRow 
+                    <TableRow
                       key={colaborador.id}
                       className={cn(
                         "hover:bg-neutral-50",
@@ -476,16 +476,16 @@ export function ControlePresencaTabelaPage() {
                       <TableCell>
                         <Popover>
                           <PopoverTrigger asChild>
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               className="w-full justify-between h-auto min-h-10 py-2"
                             >
                               <div className="flex flex-wrap gap-1">
                                 {registro.centrosCusto.length > 0 ? (
                                   registro.centrosCusto.map(ccId => (
-                                    <Badge 
-                                      key={ccId} 
-                                      variant="secondary" 
+                                    <Badge
+                                      key={ccId}
+                                      variant="secondary"
                                       className={cn('text-xs', getCentroCustoCor(ccId))}
                                     >
                                       {getCentroCustoNome(ccId)}
@@ -587,7 +587,7 @@ export function ControlePresencaTabelaPage() {
 
             <div className="text-sm space-y-1">
               <p className="text-muted-foreground">
-                📊 <strong>{stats.presentes}</strong> presentes • 
+                📊 <strong>{stats.presentes}</strong> presentes •
                 <strong className="ml-2">{stats.ausentes}</strong> ausentes
                 {stats.atrasados > 0 && (
                   <> • <strong className="text-amber-600">{stats.atrasados}</strong> atrasados</>
@@ -666,7 +666,7 @@ function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, st
             {tipo === 'STATUS' ? 'Justificativa Obrigatória' : 'Justifique a Performance'}
           </DialogTitle>
           <DialogDescription>
-            {tipo === 'STATUS' 
+            {tipo === 'STATUS'
               ? `Informe o motivo da ${status === 'FALTA' ? 'falta' : 'chegada atrasada'} de ${colaboradorNome}`
               : `Explique por que a performance de ${colaboradorNome} foi avaliada como RUIM`
             }

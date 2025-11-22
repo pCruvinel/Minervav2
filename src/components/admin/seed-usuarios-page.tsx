@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -34,24 +34,27 @@ interface SeedResponse {
 }
 
 const roleIcons: Record<string, any> = {
-  DIRETORIA: Shield,
-  GESTOR_ADM: UserCog,
-  GESTOR_SETOR: UserCog,
-  COLABORADOR: User,
+  diretoria: Shield,
+  gestor_administrativo: UserCog,
+  gestor_obras: UserCog,
+  gestor_assessoria: UserCog,
+  colaborador: User,
 };
 
 const roleLabels: Record<string, string> = {
-  DIRETORIA: 'Diretoria',
-  GESTOR_ADM: 'Gestor Administrativo',
-  GESTOR_SETOR: 'Gestor de Setor',
-  COLABORADOR: 'Colaborador',
+  diretoria: 'Diretoria',
+  gestor_administrativo: 'Gestor Administrativo',
+  gestor_obras: 'Gestor de Obras',
+  gestor_assessoria: 'Gestor de Assessoria',
+  colaborador: 'Colaborador',
 };
 
 const roleColors: Record<string, string> = {
-  DIRETORIA: 'bg-purple-100 text-purple-800 border-purple-200',
-  GESTOR_ADM: 'bg-blue-100 text-blue-800 border-blue-200',
-  GESTOR_SETOR: 'bg-green-100 text-green-800 border-green-200',
-  COLABORADOR: 'bg-gray-100 text-gray-800 border-gray-200',
+  diretoria: 'bg-purple-100 text-purple-800 border-purple-200',
+  gestor_administrativo: 'bg-blue-100 text-blue-800 border-blue-200',
+  gestor_obras: 'bg-green-100 text-green-800 border-green-200',
+  gestor_assessoria: 'bg-green-100 text-green-800 border-green-200',
+  colaborador: 'bg-gray-100 text-gray-800 border-gray-200',
 };
 
 export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
@@ -67,21 +70,21 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
 
       // MODO FRONTEND ONLY - Simular sucesso sem chamar Supabase
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       const mockResultado: SeedResponse = {
         success: true,
         message: 'Seed simulado com sucesso (modo frontend)',
         resultados: [
-          { email: 'diretoria@minerva.com', nome: 'Diretor Geral', role: 'DIRETORIA' },
-          { email: 'gestor.comercial@minerva.com', nome: 'Gestor Administrativo', role: 'GESTOR_ADMINISTRATIVO' },
-          { email: 'gestor.obras@minerva.com', nome: 'Gestor de Obras', role: 'GESTOR_OBRAS' },
+          { email: 'diretoria@minerva.com', nome: 'Diretor Geral', role: 'diretoria' },
+          { email: 'gestor.comercial@minerva.com', nome: 'Gestor Administrativo', role: 'gestor_administrativo' },
+          { email: 'gestor.obras@minerva.com', nome: 'Gestor de Obras', role: 'gestor_obras' },
         ],
         summary: { criados: 3, existentes: 0, erros: 0 },
       };
-      
+
       setResultado(mockResultado);
       toast.success('Seed simulado: 3 usuários criados!');
-      
+
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
@@ -239,14 +242,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
             <Alert className="mt-6">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                <strong>Atenção:</strong> Se algum usuário já existir no banco, ele será pulado automaticamente. 
+                <strong>Atenção:</strong> Se algum usuário já existir no banco, ele será pulado automaticamente.
                 Não há risco de duplicação.
               </AlertDescription>
             </Alert>
 
             <div className="flex justify-end mt-6">
-              <Button 
-                onClick={handleExecutarSeed} 
+              <Button
+                onClick={handleExecutarSeed}
                 disabled={loading}
                 className="min-w-[200px]"
               >
@@ -313,7 +316,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                 {resultado.resultados.map((res, index) => {
                   const Icon = res.role ? roleIcons[res.role] : User;
                   return (
-                    <div 
+                    <div
                       key={index}
                       className="flex items-center justify-between p-3 bg-white rounded-lg border"
                     >

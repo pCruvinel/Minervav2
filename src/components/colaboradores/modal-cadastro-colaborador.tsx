@@ -26,16 +26,16 @@ interface ModalCadastroColaboradorProps {
 }
 
 const FUNCOES = [
-  { value: 'DIRETOR_ADMINISTRATIVO', label: '1 - Diretor(a) Administrativo(a)', setor: 'ADMINISTRATIVO', gestor: null },
-  { value: 'DIRETOR_TECNICO', label: '2 - Diretor(a) Técnico(a)', setor: 'ASSESSORIA', gestor: null },
-  { value: 'COORDENADOR_ADMINISTRATIVO', label: '3 - Coordenador(a) Administrativo(a)', setor: 'ADMINISTRATIVO', gestor: 'DIRETOR_ADMINISTRATIVO' },
-  { value: 'COORDENADOR_ASSESSORIA', label: '4 - Coordenador de Assessoria Técnica', setor: 'ASSESSORIA', gestor: 'DIRETOR_TECNICO' },
-  { value: 'COORDENADOR_OBRAS', label: '5 - Coordenador de Obras', setor: 'OBRAS', gestor: 'DIRETOR_TECNICO' },
-  { value: 'OPERACIONAL_ADMINISTRATIVO', label: '6 - Operacional Administrativo', setor: 'ADMINISTRATIVO', gestor: 'COORDENADOR_ADMINISTRATIVO' },
-  { value: 'OPERACIONAL_COMERCIAL', label: '7 - Operacional Administrativo II', setor: 'ADMINISTRATIVO', gestor: 'DIRETOR_ADMINISTRATIVO' },
-  { value: 'OPERACIONAL_ASSESSORIA', label: '8 - Operacional Assessoria', setor: 'ASSESSORIA', gestor: 'COORDENADOR_ASSESSORIA' },
-  { value: 'OPERACIONAL_OBRAS', label: '9 - Operacional Obras', setor: 'OBRAS', gestor: 'COORDENADOR_OBRAS' },
-  { value: 'COLABORADOR_OBRA', label: '10 - Colaborador Obra', setor: 'OBRAS', gestor: 'COORDENADOR_OBRAS' },
+  { value: 'DIRETOR_ADMINISTRATIVO', label: '1 - Diretor(a) Administrativo(a)', setor: 'administrativo', gestor: null },
+  { value: 'DIRETOR_TECNICO', label: '2 - Diretor(a) Técnico(a)', setor: 'assessoria', gestor: null },
+  { value: 'COORDENADOR_ADMINISTRATIVO', label: '3 - Coordenador(a) Administrativo(a)', setor: 'administrativo', gestor: 'DIRETOR_ADMINISTRATIVO' },
+  { value: 'COORDENADOR_ASSESSORIA', label: '4 - Coordenador de Assessoria Técnica', setor: 'assessoria', gestor: 'DIRETOR_TECNICO' },
+  { value: 'COORDENADOR_OBRAS', label: '5 - Coordenador de Obras', setor: 'obras', gestor: 'DIRETOR_TECNICO' },
+  { value: 'OPERACIONAL_ADMINISTRATIVO', label: '6 - Operacional Administrativo', setor: 'administrativo', gestor: 'COORDENADOR_ADMINISTRATIVO' },
+  { value: 'OPERACIONAL_COMERCIAL', label: '7 - Operacional Administrativo II', setor: 'administrativo', gestor: 'DIRETOR_ADMINISTRATIVO' },
+  { value: 'OPERACIONAL_ASSESSORIA', label: '8 - Operacional Assessoria', setor: 'assessoria', gestor: 'COORDENADOR_ASSESSORIA' },
+  { value: 'OPERACIONAL_OBRAS', label: '9 - Operacional Obras', setor: 'obras', gestor: 'COORDENADOR_OBRAS' },
+  { value: 'COLABORADOR_OBRA', label: '10 - Colaborador Obra', setor: 'obras', gestor: 'COORDENADOR_OBRAS' },
 ];
 
 const QUALIFICACOES_OBRA = [
@@ -61,7 +61,7 @@ export function ModalCadastroColaborador({
   onSalvar,
 }: ModalCadastroColaboradorProps) {
   const [tabAtual, setTabAtual] = useState('pessoais');
-  
+
   // Dados Pessoais
   const [nomeCompleto, setNomeCompleto] = useState('');
   const [cpf, setCpf] = useState('');
@@ -112,12 +112,12 @@ export function ModalCadastroColaborador({
 
   const getRateioFixo = () => {
     if (!funcaoData) return '';
-    
-    if (funcaoData.setor === 'ADMINISTRATIVO' || funcao.includes('DIRETOR')) {
+
+    if (funcaoData.setor === 'administrativo' || funcao.includes('DIRETOR')) {
       return 'Escritório';
-    } else if (funcaoData.setor === 'OBRAS') {
+    } else if (funcaoData.setor === 'obras') {
       return 'Setor Obras';
-    } else if (funcaoData.setor === 'ASSESSORIA') {
+    } else if (funcaoData.setor === 'assessoria') {
       return 'Setor Assessoria Técnica';
     }
     return funcaoData.setor;
@@ -406,7 +406,7 @@ export function ModalCadastroColaborador({
             {funcaoData && (
               <div className="bg-neutral-50 p-4 rounded-lg space-y-3">
                 <h4 className="font-medium">Preenchimento Automático</h4>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-muted-foreground mb-1">Setor</p>
