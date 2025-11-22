@@ -34,7 +34,7 @@ const mockParcelas: ContaReceber[] = [
     vencimento: '2024-11-05',
     valorPrevisto: 4200.00,
     valorRecebido: 4200.00,
-    status: 'CONCILIADO',
+    status: 'conciliado',
     dataConciliacao: '2024-11-05',
     comprovanteId: 'comp-001',
   },
@@ -46,7 +46,7 @@ const mockParcelas: ContaReceber[] = [
     parcela: '12/12',
     vencimento: '2024-12-05',
     valorPrevisto: 4200.00,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
   },
   {
     id: 'rec-3',
@@ -56,7 +56,7 @@ const mockParcelas: ContaReceber[] = [
     parcela: '2/3',
     vencimento: '2024-11-10',
     valorPrevisto: 31666.67,
-    status: 'INADIMPLENTE',
+    status: 'inadimplente',
   },
   {
     id: 'rec-4',
@@ -66,7 +66,7 @@ const mockParcelas: ContaReceber[] = [
     parcela: '3/3',
     vencimento: '2024-12-10',
     valorPrevisto: 31666.66,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
   },
   {
     id: 'rec-5',
@@ -76,7 +76,7 @@ const mockParcelas: ContaReceber[] = [
     parcela: '5/6',
     vencimento: '2024-11-01',
     valorPrevisto: 21333.33,
-    status: 'INADIMPLENTE',
+    status: 'inadimplente',
   },
   {
     id: 'rec-6',
@@ -87,7 +87,7 @@ const mockParcelas: ContaReceber[] = [
     vencimento: '2024-11-30',
     valorPrevisto: 21333.34,
     valorRecebido: 21333.34,
-    status: 'CONCILIADO',
+    status: 'conciliado',
     dataConciliacao: '2024-11-30',
     comprovanteId: 'comp-002',
   },
@@ -100,7 +100,7 @@ const mockParcelas: ContaReceber[] = [
     vencimento: '2024-11-15',
     valorPrevisto: 7500.00,
     valorRecebido: 7500.00,
-    status: 'CONCILIADO',
+    status: 'conciliado',
     dataConciliacao: '2024-11-16',
     comprovanteId: 'comp-003',
   },
@@ -112,7 +112,7 @@ const mockParcelas: ContaReceber[] = [
     parcela: '2/2',
     vencimento: '2024-12-15',
     valorPrevisto: 7500.00,
-    status: 'EM_ABERTO',
+    status: 'em_aberto',
   },
 ];
 
@@ -134,7 +134,7 @@ export function ContasReceberPage() {
   };
 
   const isInadimplente = (parcela: ContaReceber) => {
-    if (parcela.status === 'CONCILIADO') return false;
+    if (parcela.status === 'conciliado') return false;
     const hoje = new Date();
     const vencimento = new Date(parcela.vencimento);
     return hoje > vencimento;
@@ -145,21 +145,21 @@ export function ContasReceberPage() {
     const status = isInadimplente(parcela) ? 'INADIMPLENTE' : parcela.status;
 
     switch (status) {
-      case 'CONCILIADO':
+      case 'conciliado':
         return (
           <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
             <CheckCircle className="h-3 w-3 mr-1" />
             Conciliado
           </Badge>
         );
-      case 'INADIMPLENTE':
+      case 'inadimplente':
         return (
           <Badge variant="destructive">
             <XCircle className="h-3 w-3 mr-1" />
             Inadimplente
           </Badge>
         );
-      case 'EM_ABERTO':
+      case 'em_aberto':
         return (
           <Badge variant="outline">
             <Clock className="h-3 w-3 mr-1" />
@@ -173,7 +173,7 @@ export function ContasReceberPage() {
     if (isInadimplente(parcela)) {
       return 'bg-red-50 border-l-4 border-l-red-500';
     }
-    if (parcela.status === 'CONCILIADO') {
+    if (parcela.status === 'conciliado') {
       return 'bg-green-50/50';
     }
     return '';
@@ -187,7 +187,7 @@ export function ContasReceberPage() {
     }
 
     if (filtroStatus) {
-      const statusAtual = isInadimplente(p) ? 'INADIMPLENTE' : p.status;
+      const statusAtual = isInadimplente(p) ? 'inadimplente' : p.status;
       if (statusAtual !== filtroStatus) return false;
     }
 
@@ -197,12 +197,12 @@ export function ContasReceberPage() {
   // Calcular totais
   const totais = parcelasFiltradas.reduce(
     (acc, p) => {
-      const status = isInadimplente(p) ? 'INADIMPLENTE' : p.status;
+      const status = isInadimplente(p) ? 'inadimplente' : p.status;
       return {
         total: acc.total + p.valorPrevisto,
         recebido: acc.recebido + (p.valorRecebido || 0),
-        emAberto: acc.emAberto + (status === 'EM_ABERTO' ? p.valorPrevisto : 0),
-        inadimplente: acc.inadimplente + (status === 'INADIMPLENTE' ? p.valorPrevisto : 0),
+        emAberto: acc.emAberto + (status === 'em_aberto' ? p.valorPrevisto : 0),
+        inadimplente: acc.inadimplente + (status === 'inadimplente' ? p.valorPrevisto : 0),
       };
     },
     { total: 0, recebido: 0, emAberto: 0, inadimplente: 0 }
@@ -259,7 +259,7 @@ export function ContasReceberPage() {
             </div>
             <h3 className="text-2xl text-green-600">{formatCurrency(totais.recebido)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {parcelasFiltradas.filter(p => p.status === 'CONCILIADO').length} conciliada(s)
+              {parcelasFiltradas.filter(p => p.status === 'conciliado').length} conciliada(s)
             </p>
           </CardContent>
         </Card>
@@ -272,7 +272,7 @@ export function ContasReceberPage() {
             </div>
             <h3 className="text-2xl text-blue-600">{formatCurrency(totais.emAberto)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
-              {parcelasFiltradas.filter(p => p.status === 'EM_ABERTO' && !isInadimplente(p)).length} parcela(s)
+              {parcelasFiltradas.filter(p => p.status === 'em_aberto' && !isInadimplente(p)).length} parcela(s)
             </p>
           </CardContent>
         </Card>
@@ -304,9 +304,9 @@ export function ContasReceberPage() {
                     <SelectValue placeholder="Filtrar por status..." />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="EM_ABERTO">Em Aberto</SelectItem>
-                    <SelectItem value="CONCILIADO">Conciliado</SelectItem>
-                    <SelectItem value="INADIMPLENTE">Inadimplente</SelectItem>
+                    <SelectItem value="em_aberto">Em Aberto</SelectItem>
+                    <SelectItem value="conciliado">Conciliado</SelectItem>
+                    <SelectItem value="inadimplente">Inadimplente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -379,7 +379,7 @@ export function ContasReceberPage() {
                   </TableCell>
                   <TableCell>{getStatusBadge(parcela)}</TableCell>
                   <TableCell className="text-center">
-                    {parcela.status === 'CONCILIADO' && parcela.comprovanteId && (
+                    {parcela.status === 'conciliado' && parcela.comprovanteId && (
                       <Button
                         variant="ghost"
                         size="sm"

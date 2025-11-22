@@ -26,35 +26,35 @@ export class PermissaoUtil {
     setorDelegado: Setor,
     colaboradorDelegado: User
   ): boolean {
-    const permissoes = PERMISSOES_POR_ROLE[delegante.role_nivel];
+    const permissoes = PERMISSOES_POR_ROLE_LEGADO[delegante.role_nivel];
 
-    // MOBRA não pode delegar
-    if (delegante.role_nivel === 'MOBRA') {
+    // Mão de obra não pode delegar
+    if (delegante.role_nivel === 'mao_de_obra') {
       return false;
     }
 
     // Colaboradores não podem delegar
-    if (delegante.role_nivel.startsWith('COLABORADOR_')) {
+    if (delegante.role_nivel === 'colaborador') {
       return false;
     }
 
     // Diretoria pode delegar para qualquer um
-    if (delegante.role_nivel === 'DIRETORIA') {
+    if (delegante.role_nivel === 'diretoria') {
       return true;
     }
 
     // Gestor Comercial pode delegar para qualquer setor
-    if (delegante.role_nivel === 'GESTOR_ADMINISTRATIVO') {
+    if (delegante.role_nivel === 'gestor_administrativo') {
       return true;
     }
 
     // Gestor Assessoria pode delegar apenas para ASS
-    if (delegante.role_nivel === 'GESTOR_ASSESSORIA') {
+    if (delegante.role_nivel === 'gestor_assessoria') {
       return setorDelegado === 'ASS' && colaboradorDelegado.setor === 'ASS';
     }
 
     // Gestor Obras pode delegar apenas para OBR
-    if (delegante.role_nivel === 'GESTOR_OBRAS') {
+    if (delegante.role_nivel === 'gestor_obras') {
       return setorDelegado === 'OBR' && colaboradorDelegado.setor === 'OBR';
     }
 
@@ -139,28 +139,29 @@ export class PermissaoUtil {
    * Verifica se é Diretoria
    */
   static ehDiretoria(usuario: User): boolean {
-    return usuario.role_nivel === 'DIRETORIA';
+    return usuario.role_nivel === 'diretoria';
   }
 
   /**
    * Verifica se é Gestor (qualquer tipo)
    */
   static ehGestor(usuario: User): boolean {
-    return usuario.role_nivel.startsWith('GESTOR_');
+    const role = usuario.role_nivel;
+    return role === 'gestor_obras' || role === 'gestor_assessoria' || role === 'gestor_administrativo';
   }
 
   /**
-   * Verifica se é Colaborador (qualquer tipo)
+   * Verifica se é Colaborador
    */
   static ehColaborador(usuario: User): boolean {
-    return usuario.role_nivel.startsWith('COLABORADOR_');
+    return usuario.role_nivel === 'colaborador';
   }
 
   /**
-   * Verifica se é MOBRA (mão de obra sem acesso)
+   * Verifica se é mão de obra (sem acesso ao sistema)
    */
   static ehMobra(usuario: User): boolean {
-    return usuario.role_nivel === 'MOBRA';
+    return usuario.role_nivel === 'mao_de_obra';
   }
 
   /**
@@ -177,8 +178,8 @@ export class PermissaoUtil {
       return true;
     }
 
-    // Gestor Comercial tem acesso a todas as OS
-    if (usuario.role_nivel === 'GESTOR_ADMINISTRATIVO') {
+    // Gestor Administrativo tem acesso a todas as OS
+    if (usuario.role_nivel === 'gestor_administrativo') {
       return true;
     }
 
@@ -210,8 +211,8 @@ export class PermissaoUtil {
       return true;
     }
 
-    // Gestor Comercial pode editar qualquer OS
-    if (usuario.role_nivel === 'GESTOR_ADMINISTRATIVO') {
+    // Gestor Administrativo pode editar qualquer OS
+    if (usuario.role_nivel === 'gestor_administrativo') {
       return true;
     }
 
