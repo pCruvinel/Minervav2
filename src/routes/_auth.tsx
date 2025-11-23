@@ -79,9 +79,9 @@ function AuthLayout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto p-4 bg-neutral-100">
+        <div className="flex-1 overflow-auto p-4 bg-neutral-100">
           <Outlet />
-        </main>
+        </div>
       </SidebarInset>
     </SidebarProvider>
   )
