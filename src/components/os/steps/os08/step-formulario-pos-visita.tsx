@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { Label } from '../../../ui/label';
 import { Input } from '../../../ui/input';
 import { Textarea } from '../../../ui/textarea';
@@ -7,6 +7,9 @@ import { RadioGroup, RadioGroupItem } from '../../../ui/radio-group';
 import { Alert, AlertDescription } from '../../../ui/alert';
 import { Upload, X, AlertCircle } from 'lucide-react';
 import { toast } from '../../../../lib/utils/safe-toast';
+import { ordensServicoAPI } from '../../../../lib/api-client';
+import { uploadFile } from '../../../../lib/utils/supabase-storage';
+import { useAuth } from '../../../../lib/contexts/auth-context';
 
 const AREAS_VISTORIA = [
   'ABASTECIMENTO DE ÁGUA (tubulações, conexões, hidrômetro, reservatórios, bombas, registros e afins) – exceto SPCI',
@@ -21,6 +24,8 @@ const AREAS_VISTORIA = [
 ];
 
 interface StepFormularioPosVisitaProps {
+  osId?: string; // ID da OS
+  etapaId?: string; // ID da etapa (se já existe)
   data: {
     pontuacaoEngenheiro: string;
     pontuacaoMorador: string;
@@ -31,7 +36,7 @@ interface StepFormularioPosVisitaProps {
     gravidade: string;
     origemNBR: string;
     observacoesGerais: string;
-    fotosLocal: string[];
+    fotosLocal: string[] | File[]; // Pode ser URLs ou Files
     resultadoVisita: string;
     justificativa: string;
   };
@@ -39,37 +44,141 @@ interface StepFormularioPosVisitaProps {
   readOnly?: boolean;
 }
 
-export function StepFormularioPosVisita({ data, onDataChange, readOnly }: StepFormularioPosVisitaProps) {
-  const [uploadingFiles, setUploadingFiles] = useState(false);
+// Interface para expor métodos via ref
+export interface StepFormularioPosVisitaHandle {
+  salvar: () => Promise<boolean>;
+}
 
-  const handleInputChange = (field: string, value: any) => {
-    if (readOnly) return;
-    onDataChange({ ...data, [field]: value });
-  };
+export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle, StepFormularioPosVisitaProps>(
+  function StepFormularioPosVisita({ osId, etapaId, data, onDataChange, readOnly }, ref) {
+    const { currentUser } = useAuth();
+    const [uploadingFiles, setUploadingFiles] = useState(false);
+    const [fotosFiles, setFotosFiles] = useState<File[]>([]); // Armazenar Files para upload
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (readOnly) return;
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const handleInputChange = (field: string, value: any) => {
+      if (readOnly) return;
+      onDataChange({ ...data, [field]: value });
+    };
 
-    setUploadingFiles(true);
-    try {
-      const newFiles = Array.from(files).map((file) => URL.createObjectURL(file));
-      handleInputChange('fotosLocal', [...data.fotosLocal, ...newFiles]);
-      toast.success(`${files.length} arquivo(s) anexado(s) com sucesso!`);
-    } catch (error) {
-      toast.error('Erro ao fazer upload dos arquivos');
-    } finally {
-      setUploadingFiles(false);
-    }
-  };
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (readOnly) return;
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
 
-  const handleRemoveFile = (index: number) => {
-    if (readOnly) return;
-    const newFiles = data.fotosLocal.filter((_, i) => i !== index);
-    handleInputChange('fotosLocal', newFiles);
-    toast.info('Arquivo removido');
-  };
+      setUploadingFiles(true);
+      try {
+        const filesArray = Array.from(files);
+        const newFotosFiles = [...fotosFiles, ...filesArray];
+        setFotosFiles(newFotosFiles);
+
+        // Criar URLs temporárias para preview
+        const newFiles = filesArray.map((file) => URL.createObjectURL(file));
+        handleInputChange('fotosLocal', [...(data.fotosLocal || []), ...newFiles]);
+        toast.success(`${files.length} arquivo(s) anexado(s) com sucesso!`);
+      } catch (error) {
+        toast.error('Erro ao selecionar arquivos');
+      } finally {
+        setUploadingFiles(false);
+      }
+    };
+
+    const handleRemoveFile = (index: number) => {
+      if (readOnly) return;
+      const newFiles = (data.fotosLocal || []).filter((_: any, i: number) => i !== index);
+      const newFotosFiles = fotosFiles.filter((_, i) => i !== index);
+      setFotosFiles(newFotosFiles);
+      handleInputChange('fotosLocal', newFiles);
+      toast.info('Arquivo removido');
+    };
+
+    // Função para salvar dados no Supabase
+    const salvar = async (): Promise<boolean> => {
+      if (!osId) {
+        console.warn('⚠️ osId não fornecido, salvamento ignorado');
+        return false;
+      }
+
+      try {
+        console.log('💾 Salvando formulário pós-visita...');
+
+        // 1. Upload de fotos (se houver)
+        const fotosUrls: string[] = [];
+        const colaboradorId = currentUser?.id || 'sistema';
+        const osNumero = `os-${osId.substring(0, 8)}`;
+
+        if (fotosFiles.length > 0) {
+          toast.info(`Fazendo upload de ${fotosFiles.length} foto(s)...`);
+
+          for (const foto of fotosFiles) {
+            try {
+              const uploaded = await uploadFile({
+                file: foto,
+                osNumero,
+                etapa: 'os08-pos-visita',
+                osId,
+                colaboradorId,
+              });
+              fotosUrls.push(uploaded.url);
+            } catch (uploadError) {
+              console.error('❌ Erro ao fazer upload de foto:', uploadError);
+            }
+          }
+
+          console.log(`✅ ${fotosUrls.length} foto(s) enviada(s)`);
+        }
+
+        // 2. Preparar dados para salvar
+        const dadosEtapa = {
+          pontuacaoEngenheiro: data.pontuacaoEngenheiro,
+          pontuacaoMorador: data.pontuacaoMorador,
+          tipoDocumento: data.tipoDocumento,
+          areaVistoriada: data.areaVistoriada,
+          manifestacaoPatologica: data.manifestacaoPatologica,
+          recomendacoesPrevias: data.recomendacoesPrevias,
+          gravidade: data.gravidade,
+          origemNBR: data.origemNBR,
+          observacoesGerais: data.observacoesGerais,
+          resultadoVisita: data.resultadoVisita,
+          justificativa: data.justificativa,
+          fotosLocal: fotosUrls, // URLs das fotos no Storage
+          dataPreenchimento: new Date().toISOString(),
+        };
+
+        // 3. Criar ou atualizar etapa
+        if (etapaId) {
+          // Atualizar etapa existente
+          await ordensServicoAPI.updateEtapa(etapaId, {
+            dados_etapa: dadosEtapa,
+            status: 'aprovada', // Marca como aprovada após preenchimento
+            data_conclusao: new Date().toISOString(),
+          });
+          console.log('✅ Etapa atualizada com sucesso');
+        } else {
+          // Criar nova etapa
+          await ordensServicoAPI.createEtapa(osId, {
+            nome_etapa: 'OS08 - Formulário Pós-Visita',
+            status: 'aprovada',
+            ordem: 8,
+            dados_etapa: dadosEtapa,
+            data_conclusao: new Date().toISOString(),
+          });
+          console.log('✅ Etapa criada com sucesso');
+        }
+
+        toast.success('Formulário pós-visita salvo com sucesso!');
+        return true;
+      } catch (error) {
+        console.error('❌ Erro ao salvar formulário:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+        toast.error(`Erro ao salvar: ${errorMsg}`);
+        return false;
+      }
+    };
+
+    // Expor função salvar via ref
+    useImperativeHandle(ref, () => ({
+      salvar,
+    }), [osId, etapaId, data, fotosFiles, currentUser]);
 
   return (
     <div className="space-y-6">
@@ -371,4 +480,4 @@ export function StepFormularioPosVisita({ data, onDataChange, readOnly }: StepFo
       </Alert>
     </div>
   );
-}
+});
