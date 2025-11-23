@@ -1,12 +1,5 @@
-/**
- * Minerva Design System v3.0 - Global Styles
- * CSS Puro sem dependências de frameworks
- */
-
 /* ==========================================
- * FONTES
- * Google Fonts carregadas via componente FontLoader
- * Fallback para fontes de sistema garantido
+ * IMPORTS
  * ========================================== */
 
 @import './variables.css';
@@ -1004,7 +997,7 @@ a:hover {
   .md\:block {
     display: none;
   }
-  
+
   .md\:hidden {
     display: block;
   }
@@ -1014,11 +1007,11 @@ a:hover {
   .md\:block {
     display: block;
   }
-  
+
   .md\:hidden {
     display: none;
   }
-  
+
   .md\:flex {
     display: flex;
   }
@@ -1071,11 +1064,11 @@ a:hover {
   body {
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif !important;
   }
-  
+
   .font-serif {
     font-family: Georgia, 'Times New Roman', Times, serif !important;
   }
-  
+
   .font-mono {
     font-family: ui-monospace, 'SF Mono', Monaco, 'Consolas', monospace !important;
   }
@@ -1123,5 +1116,143 @@ a:hover {
   * {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+  }
+}
+
+/* ==========================================
+ * TAILWIND & SIDEBAR VARIABLES
+ * ========================================== */
+
+:root {
+  /* Tailwind Base Variables */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 10% 3.9%;
+  --radius: 0.5rem;
+
+  /* Muted */
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+
+  /* Accent */
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+
+  /* Card */
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+
+  /* Popover */
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+
+  /* Primary (from variables.css - Dourado Minerva) */
+  --primary: 45 78% 58%;
+  --primary-foreground: 0 0% 0%;
+
+  /* Secondary */
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+
+  /* Destructive */
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+
+  /* Sidebar colors */
+  --sidebar: 0 0% 98%;
+  --sidebar-foreground: 240 5.3% 26.1%;
+  --sidebar-primary: 240 5.9% 10%;
+  --sidebar-primary-foreground: 0 0% 98%;
+  --sidebar-accent: 240 4.8% 95.9%;
+  --sidebar-accent-foreground: 240 5.9% 10%;
+  --sidebar-border: 220 13% 91%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+.dark {
+  --sidebar: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+  }
+}
+
+/* ==========================================
+ * SIDEBAR UTILITY CLASSES
+ * Classes geradas manualmente para Shadcn Sidebar
+ * ========================================== */
+
+.bg-sidebar {
+  background-color: hsl(var(--sidebar));
+}
+
+.bg-sidebar-accent {
+  background-color: hsl(var(--sidebar-accent));
+}
+
+.bg-sidebar-primary {
+  background-color: hsl(var(--sidebar-primary));
+}
+
+.text-sidebar-foreground {
+  color: hsl(var(--sidebar-foreground));
+}
+
+.text-sidebar-accent-foreground {
+  color: hsl(var(--sidebar-accent-foreground));
+}
+
+.text-sidebar-primary-foreground {
+  color: hsl(var(--sidebar-primary-foreground));
+}
+
+.border-sidebar-border {
+  border-color: hsl(var(--sidebar-border));
+}
+
+.ring-sidebar-ring {
+  --tw-ring-color: hsl(var(--sidebar-ring));
+}
+
+/* Hover states */
+.hover\:bg-sidebar-accent:hover {
+  background-color: hsl(var(--sidebar-accent));
+}
+
+.hover\:text-sidebar-accent-foreground:hover {
+  color: hsl(var(--sidebar-accent-foreground));
+}
+
+.hover\:after\:bg-sidebar-border:hover::after {
+  background-color: hsl(var(--sidebar-border));
+}
+
+/* ==========================================
+ * SIDEBAR LAYOUT FIX - SIMPLIFICADO
+ * Usa variáveis CSS nativas do Shadcn Sidebar
+ * ========================================== */
+
+@media (min-width: 768px) {
+  /* O componente SidebarProvider define automaticamente --sidebar-width */
+  /* Apenas precisamos aplicar ao main/SidebarInset */
+  .peer ~ main,
+  .peer ~ [data-slot="inset"] {
+    margin-left: var(--sidebar-width);
+    transition: margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
   }
 }

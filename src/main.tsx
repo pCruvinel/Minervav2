@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { AuthProvider, useAuth } from './lib/contexts/auth-context'
+import './styles/globals.css'
 import './index.css'
 
 // Create a new router instance

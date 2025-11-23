@@ -1,8 +1,8 @@
 import { createFileRoute, redirect, Outlet, useRouter } from '@tanstack/react-router'
-import { Sidebar } from '../components/layout/sidebar'
+import { AppSidebar } from '../components/layout/sidebar'
 import { Header } from '../components/layout/header'
 import { useAuth } from '../lib/contexts/auth-context'
-import { useState } from 'react'
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: ({ context, location }) => {
@@ -22,7 +22,6 @@ function AuthLayout() {
   const { currentUser, logout } = useAuth()
   const router = useRouter()
   const navigate = useRouter().navigate
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Get current path to determine active page in sidebar
   const currentPath = router.state.location.pathname
@@ -66,23 +65,24 @@ function AuthLayout() {
   if (!currentUser) return null
 
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-100">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-      />
+    <SidebarProvider>
+      <AppSidebar />
+      <SidebarInset>
+        <header className="flex items-center gap-2 px-4 py-2 border-b bg-white shrink-0">
+          <SidebarTrigger />
+          <div className="flex-1">
+            <Header
+              user={currentUser}
+              breadcrumbs={getBreadcrumbs()}
+              onLogout={handleLogout}
+            />
+          </div>
+        </header>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header
-          user={currentUser}
-          breadcrumbs={getBreadcrumbs()}
-          onLogout={handleLogout}
-        />
-
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto p-4 bg-neutral-100">
           <Outlet />
         </main>
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   )
 }
