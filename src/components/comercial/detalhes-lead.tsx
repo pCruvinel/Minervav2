@@ -53,7 +53,7 @@ interface DetalhesLeadProps {
   onBack: () => void;
 }
 
-export default function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
+export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
   const [dialogInteracao, setDialogInteracao] = useState(false);
   const [dialogConversao, setDialogConversao] = useState(false);
 

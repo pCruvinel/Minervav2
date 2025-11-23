@@ -42,7 +42,7 @@ import {
   calcularValorTotalPorStatus
 } from '../../lib/mock-data-comercial';
 
-export default function PropostasComerciais() {
+export function PropostasComerciais() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
   const [filtroTipo, setFiltroTipo] = useState<string>('TODOS');

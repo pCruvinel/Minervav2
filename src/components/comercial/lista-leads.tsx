@@ -39,7 +39,7 @@ interface ListaLeadsProps {
   onLeadClick: (leadId: string) => void;
 }
 
-export default function ListaLeads({ onLeadClick }: ListaLeadsProps) {
+export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('TODOS');
   const [filtroOrigem, setFiltroOrigem] = useState<string>('TODOS');
