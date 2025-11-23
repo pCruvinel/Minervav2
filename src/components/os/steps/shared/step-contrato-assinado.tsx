@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Input } from '../../../ui/input';
-import { Label } from '../../../ui/label';
-import { Checkbox } from '../../../ui/checkbox';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, CheckCircle } from 'lucide-react';
 
 interface StepContratoAssinadoProps {

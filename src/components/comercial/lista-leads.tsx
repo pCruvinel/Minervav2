@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -98,7 +99,7 @@ export default function ListaLeads({ onLeadClick }: ListaLeadsProps) {
   };
 
   const handleNovoLead = () => {
-    console.log('Novo Lead criado:', novoLeadForm);
+    logger.log('Novo Lead criado:', novoLeadForm);
     setDialogNovoLead(false);
     // Reset form
     setNovoLeadForm({

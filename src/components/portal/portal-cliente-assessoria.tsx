@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -114,23 +115,23 @@ export function PortalClienteAssessoria() {
   };
 
   const handleDownloadDocumento = (docId: string) => {
-    console.log('Download documento:', docId);
+    logger.log('Download documento:', docId);
     toast.success('Download iniciado!');
   };
 
   const handleDownloadRelatorio = (relId: string) => {
-    console.log('Download relatório:', relId);
+    logger.log('Download relatório:', relId);
     toast.success('Download iniciado!');
   };
 
   const handleNovaVistoria = (dados: any) => {
-    console.log('Nova vistoria:', dados);
+    logger.log('Nova vistoria:', dados);
     toast.success('Solicitação de vistoria enviada com sucesso!');
     setModalVistoriaOpen(false);
   };
 
   const handleNovaReforma = (dados: any) => {
-    console.log('Nova reforma:', dados);
+    logger.log('Nova reforma:', dados);
     toast.success('Solicitação de análise de reforma enviada com sucesso!');
     setModalReformaOpen(false);
   };

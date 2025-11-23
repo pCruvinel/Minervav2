@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -55,7 +56,7 @@ export function ColaboradoresListaPage() {
         const data = await colaboradoresAPI.list();
         setColaboradores(data);
       } catch (error) {
-        console.error('Erro ao buscar colaboradores:', error);
+        logger.error('Erro ao buscar colaboradores:', error);
         toast.error('Erro ao carregar colaboradores', {
           description: 'Não foi possível carregar a lista de colaboradores.',
         });
@@ -108,7 +109,7 @@ export function ColaboradoresListaPage() {
   };
 
   const handleSalvarColaborador = (dados: any) => {
-    console.log('Colaborador salvo:', dados);
+    logger.log('Colaborador salvo:', dados);
     setModalCadastroOpen(false);
     setColaboradorEdicao(null);
   };

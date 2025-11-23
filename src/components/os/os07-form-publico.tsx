@@ -1,6 +1,7 @@
 // Formulário Público - OS 07: Termo de Comunicação de Reforma
 'use client';
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { 
   FileText, 
@@ -287,12 +288,12 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
         dataEnvio: new Date().toISOString(),
       };
 
-      console.log('📋 Formulário enviado:', dados);
+      logger.log('📋 Formulário enviado:', dados);
 
       setSubmitSuccess(true);
       toast.success('Termo enviado com sucesso! Aguarde a análise da engenharia.');
     } catch (error) {
-      console.error('Erro ao enviar:', error);
+      logger.error('Erro ao enviar:', error);
       toast.error('Erro ao enviar o termo. Tente novamente.');
     } finally {
       setIsSubmitting(false);

@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
@@ -66,7 +67,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       setLoading(true);
       setResultado(null);
 
-      console.log('🌱 Executando seed de usuários...');
+      logger.log('🌱 Executando seed de usuários...');
 
       // MODO FRONTEND ONLY - Simular sucesso sem chamar Supabase
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -120,7 +121,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       */
 
     } catch (error) {
-      console.error('❌ Erro ao executar seed:', error);
+      logger.error('❌ Erro ao executar seed:', error);
       toast.error('Erro ao criar usuários: ' + String(error));
     } finally {
       setLoading(false);

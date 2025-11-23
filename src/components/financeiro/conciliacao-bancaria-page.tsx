@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -223,7 +224,7 @@ export function ConciliacaoBancariaPage() {
   const handleSalvarCustoFlutuante = (dados: any) => {
     if (!lancamentoSelecionado) return;
 
-    console.log('Custo Flutuante salvo:', dados);
+    logger.log('Custo Flutuante salvo:', dados);
 
     setModalCustoFlutuanteOpen(false);
     setLancamentoSelecionado(null);

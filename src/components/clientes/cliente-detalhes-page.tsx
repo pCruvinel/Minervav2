@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -190,7 +191,7 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
       return;
     }
 
-    console.log('Inativar cliente:', {
+    logger.log('Inativar cliente:', {
       clienteId: cliente.id,
       tipo: cliente.contrato.tipo,
       justificativa,

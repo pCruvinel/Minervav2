@@ -1,6 +1,7 @@
 // Modal de Delegação de OS - Sistema Hierárquico Minerva ERP
 'use client';
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState, useMemo } from 'react';
 import { X, UserPlus, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
@@ -111,7 +112,7 @@ export function ModalDelegarOS({
 
     try {
       // Chamar API para criar delegação no Supabase
-      console.log('📋 Criando delegação via API...');
+      logger.log('📋 Criando delegação via API...');
 
       const resultado = await ordensServicoAPI.createDelegacao({
         os_id: os.id,
@@ -123,7 +124,7 @@ export function ModalDelegarOS({
         status_delegacao: 'pendente',
       });
 
-      console.log('✅ Delegação criada com sucesso:', resultado);
+      logger.log('✅ Delegação criada com sucesso:', resultado);
 
       // Converter resultado da API para o tipo local Delegacao
       const novaDelegacao: Delegacao = {
@@ -155,7 +156,7 @@ export function ModalDelegarOS({
 
       onClose();
     } catch (error: any) {
-      console.error('Erro ao delegar tarefa:', error);
+      logger.error('Erro ao delegar tarefa:', error);
 
       // Mensagem de erro específica baseada no erro retornado
       const errorMessage = error?.message || 'Erro ao delegar tarefa. Tente novamente.';

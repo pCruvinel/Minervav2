@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Label } from '../../../ui/label';
-import { Checkbox } from '../../../ui/checkbox';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar, CheckCircle } from 'lucide-react';
 
 interface StepRealizarApresentacaoProps {

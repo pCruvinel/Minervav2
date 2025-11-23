@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Label } from '../../../ui/label';
-import { RadioGroup, RadioGroupItem } from '../../../ui/radio-group';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Check } from 'lucide-react';
 
 interface StepSelecaoTipoAssessoriaProps {

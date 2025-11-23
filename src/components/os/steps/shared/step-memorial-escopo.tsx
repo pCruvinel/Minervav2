@@ -1,16 +1,16 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card';
-import { Button } from '../../../ui/button';
-import { PrimaryButton } from '../../../ui/primary-button';
-import { Input } from '../../../ui/input';
-import { Label } from '../../../ui/label';
-import { Textarea } from '../../../ui/textarea';
-import { Alert, AlertDescription } from '../../../ui/alert';
-import { Separator } from '../../../ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { PrimaryButton } from '@/components/ui/primary-button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, X, AlertCircle } from 'lucide-react';
-import { FormTextarea } from '../../../ui/form-textarea';
-import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
-import { etapa7Schema } from '../../../../lib/validations/os-etapas-schema';
+import { FormTextarea } from '@/components/ui/form-textarea';
+import { useFieldValidation } from '@/lib/hooks/use-field-validation';
+import { etapa7Schema } from '@/lib/validations/os-etapas-schema';
 
 interface SubEtapa {
   nome: string;

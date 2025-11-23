@@ -1,9 +1,9 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Button } from '../../../ui/button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShoppingCart, Plus, CheckCircle2, AlertCircle, ExternalLink } from 'lucide-react';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { toast } from '@/lib/utils/safe-toast';
 
 export interface StepRequisicaoComprasProps {
   data: { os09Criada: boolean; os09Id: string };

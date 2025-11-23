@@ -1,11 +1,11 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Button } from '../../../ui/button';
-import { Label } from '../../../ui/label';
-import { Textarea } from '../../../ui/textarea';
-import { Alert, AlertDescription } from '../../../ui/alert';
-import { RadioGroup, RadioGroupItem } from '../../../ui/radio-group';
-import { Separator } from '../../../ui/separator';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { Upload, X, AlertCircle } from 'lucide-react';
 
 interface FotoComComentario {

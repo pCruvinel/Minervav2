@@ -1,17 +1,17 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Input } from '../../../ui/input';
-import { Label } from '../../../ui/label';
-import { Textarea } from '../../../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
-import { Alert, AlertDescription } from '../../../ui/alert';
-import { Separator } from '../../../ui/separator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Upload } from 'lucide-react';
-import { FormInput } from '../../../ui/form-input';
-import { FormTextarea } from '../../../ui/form-textarea';
-import { FormSelect } from '../../../ui/form-select';
-import { FormMaskedInput, validarTelefone } from '../../../ui/form-masked-input';
-import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
-import { etapa3Schema } from '../../../../lib/validations/os-etapas-schema';
+import { FormInput } from '@/components/ui/form-input';
+import { FormTextarea } from '@/components/ui/form-textarea';
+import { FormSelect } from '@/components/ui/form-select';
+import { FormMaskedInput, validarTelefone } from '@/components/ui/form-masked-input';
+import { useFieldValidation } from '@/lib/hooks/use-field-validation';
+import { etapa3Schema } from '@/lib/validations/os-etapas-schema';
 
 interface StepFollowup1Props {
   data: {

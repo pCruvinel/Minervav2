@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -79,7 +80,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   } = useOrdensServico();
 
   // 🔍 DEBUG: Verificar dados recebidos da API
-  console.log('🔍 [OS-LIST-DEBUG] Dados da API:', {
+  logger.log('🔍 [OS-LIST-DEBUG] Dados da API:', {
     total_api: ordensServicoFromAPI?.length || 0,
     loading,
     error: error?.message,
@@ -92,7 +93,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   const ordensServico = useMemo(() => {
     let filtered = error ? [...mockOrdensServico] : [...(ordensServicoFromAPI || [])];
 
-    console.log('🔍 [FILTROS-DEBUG] Total de OS recebidas:', filtered.length);
+    logger.log('🔍 [FILTROS-DEBUG] Total de OS recebidas:', filtered.length);
 
     // IMPORTANTE: O RLS do banco já filtra os dados na origem
     // A lógica abaixo é apenas fallback/filtro adicional de UI
@@ -101,17 +102,17 @@ export function OSListPage({ currentUser }: OSListPageProps) {
       // Colaborador: RLS do banco já filtra (os_read_own_assigned)
       // Fallback: garantir que só vê suas próprias OS
       filtered = filtered.filter(os => os.responsavel?.id === currentUser.id);
-      console.log(`🔍 [FILTRO-UI-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [FILTRO-UI-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
     } else if (currentUser.role_nivel?.startsWith('gestor') && currentUser.role_nivel !== 'gestor_administrativo') {
       // Gestores Setoriais: RLS do banco filtra por setor (agendamentos_gestor_setor)
       // Fallback: filtrar por setor no frontend
       if (currentUser.setor) {
         filtered = filtered.filter(os => os.setor_nome?.toLowerCase().includes(currentUser.setor?.toLowerCase() || ''));
       }
-      console.log(`🔍 [FILTRO-UI-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [FILTRO-UI-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
     }
     // Gestor Administrativo, Diretoria e Admin: RLS permite ver tudo
-    console.log(`🔍 [FILTRO-UI] Role: ${currentUser.role_nivel}, OS após filtros: ${filtered.length}`);
+    logger.log(`🔍 [FILTRO-UI] Role: ${currentUser.role_nivel}, OS após filtros: ${filtered.length}`);
 
     // Aplicar filtros de busca
     if (searchTerm) {
@@ -121,27 +122,27 @@ export function OSListPage({ currentUser }: OSListPageProps) {
         os.cliente.nome.toLowerCase().includes(search) ||
         os.titulo.toLowerCase().includes(search)
       );
-      console.log(`🔍 [BUSCA] Termo: "${searchTerm}", OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [BUSCA] Termo: "${searchTerm}", OS filtradas: ${filtered.length}`);
     }
 
     if (statusFilter !== 'todos') {
       filtered = filtered.filter(os => os.status === statusFilter);
-      console.log(`🔍 [STATUS] Filtro: ${statusFilter}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [STATUS] Filtro: ${statusFilter}, OS filtradas: ${filtered.length}`);
     }
 
     if (tipoOSFilter !== 'todos') {
       filtered = filtered.filter(os => os.tipoOS.id === tipoOSFilter);
-      console.log(`🔍 [TIPO] Filtro: ${tipoOSFilter}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [TIPO] Filtro: ${tipoOSFilter}, OS filtradas: ${filtered.length}`);
     }
 
     if (setorFilter !== 'todos') {
       filtered = filtered.filter(os => os.tipoOS.setor === setorFilter);
-      console.log(`🔍 [SETOR] Filtro: ${setorFilter}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [SETOR] Filtro: ${setorFilter}, OS filtradas: ${filtered.length}`);
     }
 
     if (responsavelFilter !== 'todos') {
       filtered = filtered.filter(os => os.responsavel.id === responsavelFilter);
-      console.log(`🔍 [RESPONSAVEL] Filtro: ${responsavelFilter}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [RESPONSAVEL] Filtro: ${responsavelFilter}, OS filtradas: ${filtered.length}`);
     }
 
     // Novo: Filtro por etapa atual
@@ -150,10 +151,10 @@ export function OSListPage({ currentUser }: OSListPageProps) {
         // Se a OS tem etapaAtual e está em uma das etapas selecionadas
         return os.etapaAtual && etapaFilter.includes(os.etapaAtual.numero);
       });
-      console.log(`🔍 [ETAPA] Filtro: ${etapaFilter.join(', ')}, OS filtradas: ${filtered.length}`);
+      logger.log(`🔍 [ETAPA] Filtro: ${etapaFilter.join(', ')}, OS filtradas: ${filtered.length}`);
     }
 
-    console.log(`✅ [FINAL] Total de OS exibidas: ${filtered.length}`);
+    logger.log(`✅ [FINAL] Total de OS exibidas: ${filtered.length}`);
     return filtered;
   }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, etapaFilter, currentUser, ordensServicoFromAPI, error]);
 
@@ -171,7 +172,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
       toast.success('OS cancelada com sucesso!');
       refetch(); // Recarregar a lista
     } catch (error) {
-      console.error('Erro ao cancelar OS:', error);
+      logger.error('Erro ao cancelar OS:', error);
       toast.error('Erro ao cancelar OS. Tente novamente.');
     } finally {
       setIsCancelling(false);

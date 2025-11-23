@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Label } from '../../../ui/label';
-import { Button } from '../../../ui/button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, X, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { toast } from '@/lib/utils/safe-toast';
 
 interface StepUploadOrcamentosProps {
   data: {

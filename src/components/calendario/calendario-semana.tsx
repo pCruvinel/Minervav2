@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState, useMemo, lazy, Suspense, memo } from 'react';
 import { BlocoTurno } from './bloco-turno';
 import { Button } from '../ui/button';
@@ -78,7 +79,7 @@ function CalendarioSemanaComponent({
 
     // Se o turno começa antes das 8h ou depois das 18h, ajustar
     if (offsetInicio < 0 || horaInicio > 18) {
-      console.warn(`Turno fora do horário do calendário: ${turno.horaInicio} - ${turno.horaFim}`);
+      logger.warn(`Turno fora do horário do calendário: ${turno.horaInicio} - ${turno.horaFim}`);
       return { top: '0px', height: '0px', display: 'none' };
     }
 

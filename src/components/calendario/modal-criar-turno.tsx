@@ -241,7 +241,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
       onClose();
     } catch (error) {
       toast.error('Erro ao criar turno. Tente novamente.');
-      console.error('Erro ao criar turno:', error);
+      logger.error('Erro ao criar turno:', error);
     }
   };
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -339,7 +340,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     if (savedData && Object.keys(savedData).length > 0) {
       // Se houver dados salvos localmente, mesclar com o estado do hook
       // Isso pode ser complexo, por enquanto apenas logamos
-      console.log('📁 Dados recuperados do localStorage:', savedData);
+      logger.log('📁 Dados recuperados do localStorage:', savedData);
       
       // Opcional: Atualizar o hook com dados locais se estiverem vazios
       // Mas o hook carrega do banco, então cuidado para não sobrescrever
@@ -373,7 +374,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
             }
           }
         } catch (error) {
-          console.error('❌ Erro ao auto-salvar:', error);
+          logger.error('❌ Erro ao auto-salvar:', error);
           throw error;
         }
       }
@@ -382,8 +383,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       debounceMs: 1000,
       useLocalStorage: true,
       storageKey: `os_workflow_${osId || 'new'}`,
-      onSaveSuccess: () => console.log('✅ Auto-save bem-sucedido'),
-      onSaveError: (error) => console.error('❌ Auto-save falhou:', error),
+      onSaveSuccess: () => logger.log('✅ Auto-save bem-sucedido'),
+      onSaveError: (error) => logger.error('❌ Auto-save falhou:', error),
     }
   );
 
@@ -537,31 +538,31 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     };
   }) => {
     try {
-      console.log('🎯 handleSelectLead chamado com ID:', leadId);
-      console.log('📊 leadData recebido:', leadData);
+      logger.log('🎯 handleSelectLead chamado com ID:', leadId);
+      logger.log('📊 leadData recebido:', leadData);
 
       // Validar leadId
       if (!leadId || typeof leadId !== 'string') {
-        console.error('❌ leadId inválido:', leadId);
-        console.error('❌ leadId deve ser uma string');
+        logger.error('❌ leadId inválido:', leadId);
+        logger.error('❌ leadId deve ser uma string');
         return;
       }
 
       // Validar se é um UUID válido
       if (!isValidUUID(leadId)) {
-        console.error('❌ leadId não é um UUID válido:', leadId);
-        console.error('❌ O lead selecionado não foi criado corretamente no banco de dados');
-        console.error('❌ UUID esperado: 8-4-4-4-12 hexadecimais (ex: 3acbed3a-7254-42b6-8a1b-9ad8a7d3da5d)');
+        logger.error('❌ leadId não é um UUID válido:', leadId);
+        logger.error('❌ O lead selecionado não foi criado corretamente no banco de dados');
+        logger.error('❌ UUID esperado: 8-4-4-4-12 hexadecimais (ex: 3acbed3a-7254-42b6-8a1b-9ad8a7d3da5d)');
         try {
           toast.error(`Lead inválido. UUID recebido: "${leadId}". Certifique-se de que foi criado corretamente no banco de dados.`);
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast:', toastError);
+          logger.error('❌ Erro ao exibir toast:', toastError);
         }
         return;
       }
 
       setSelectedLeadId(leadId);
-      console.log('✅ selectedLeadId validado e atualizado:', leadId);
+      logger.log('✅ selectedLeadId validado e atualizado:', leadId);
 
       // Se recebemos dados completos do lead, salvar tudo
       if (leadData) {
@@ -591,24 +592,24 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           estado: leadData.endereco?.estado || '',
         };
 
-        console.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
+        logger.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
         setEtapa1Data(etapa1DataCompleta);
-        console.log('✅ setEtapa1Data chamado com dados completos');
+        logger.log('✅ setEtapa1Data chamado com dados completos');
       } else {
-        console.warn('⚠️ leadData não recebido, salvando apenas leadId');
+        logger.warn('⚠️ leadData não recebido, salvando apenas leadId');
         // Fallback: salvar apenas leadId (será preenchido depois se necessário)
         setEtapa1Data({ leadId });
-        console.log('✅ setEtapa1Data chamado com apenas leadId');
+        logger.log('✅ setEtapa1Data chamado com apenas leadId');
       }
     } catch (error) {
-      console.error('❌ Erro ao selecionar lead:', error);
+      logger.error('❌ Erro ao selecionar lead:', error);
       // NÃO usar toast aqui para evitar erro do Sonner
     }
   };
 
   const handleSaveNewLead = () => {
     // Aqui salvaria no backend
-    console.log('Salvando novo lead:', formData);
+    logger.log('Salvando novo lead:', formData);
     setShowNewLeadDialog(false);
     // Simular seleção do novo lead
     setSelectedLeadId('NEW');
@@ -620,7 +621,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
    */
   const criarOSComEtapas = async (): Promise<string> => {
     try {
-      console.log('🚀 Iniciando criação da OS...');
+      logger.log('🚀 Iniciando criação da OS...');
       
       // 1. Validar dados obrigatórios
       if (!etapa1Data.leadId) {
@@ -637,11 +638,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         const cliente = await clientesAPI.getById(etapa1Data.leadId);
         nomeCliente = cliente.nome_razao_social || cliente.nome || 'Cliente';
       } catch (error) {
-        console.warn('⚠️ Não foi possível buscar nome do cliente, usando nome genérico');
+        logger.warn('⚠️ Não foi possível buscar nome do cliente, usando nome genérico');
       }
 
       // 3. Buscar UUID do tipo de OS pelo código
-      console.log('🔍 Buscando tipo de OS...');
+      logger.log('🔍 Buscando tipo de OS...');
       const codigoTipoOS = mapearTipoOSParaCodigo(etapa2Data.tipoOS);
       const tiposOS = await ordensServicoAPI.getTiposOS();
       const tipoOSEncontrado = tiposOS.find((t: { codigo: string; id: string }) => t.codigo === codigoTipoOS);
@@ -650,10 +651,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         throw new Error(`Tipo de OS não encontrado: ${codigoTipoOS}`);
       }
 
-      console.log('✅ Tipo de OS encontrado:', tipoOSEncontrado);
+      logger.log('✅ Tipo de OS encontrado:', tipoOSEncontrado);
 
       // 4. Criar OS no banco
-      console.log('📝 Criando OS no banco...');
+      logger.log('📝 Criando OS no banco...');
       const novaOS = await ordensServicoAPI.create({
         cliente_id: etapa1Data.leadId,
         tipo_os_id: tipoOSEncontrado.id,
@@ -662,15 +663,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         status_geral: 'em_andamento',
       });
 
-      console.log('✅ OS criada:', novaOS);
+      logger.log('✅ OS criada:', novaOS);
       try {
         toast.success(`OS ${novaOS.codigo_os} criada com sucesso!`);
       } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de sucesso (OS criada):', toastError);
+        logger.error('❌ Erro ao exibir toast de sucesso (OS criada):', toastError);
       }
 
       // 5. Criar as 15 etapas
-      console.log('📋 Criando 15 etapas...');
+      logger.log('📋 Criando 15 etapas...');
       const etapasCriadas = [];
       
       for (let i = 1; i <= 15; i++) {
@@ -691,14 +692,14 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         });
         
         etapasCriadas.push(etapa);
-        console.log(`✅ Etapa ${i}/15 criada: ${etapa.nome_etapa}`);
+        logger.log(`✅ Etapa ${i}/15 criada: ${etapa.nome_etapa}`);
       }
 
-      console.log(`✅ Todas as 15 etapas criadas com sucesso!`);
+      logger.log(`✅ Todas as 15 etapas criadas com sucesso!`);
       
       return novaOS.id;
     } catch (error) {
-      console.error('❌ Erro ao criar OS:', error);
+      logger.error('❌ Erro ao criar OS:', error);
       throw error;
     }
   };
@@ -732,7 +733,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         try {
           toast.error(`Preencha os campos obrigatórios da etapa ${currentStep}`);
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast:', toastError);
+          logger.error('❌ Erro ao exibir toast:', toastError);
         }
         return false;
       }
@@ -751,19 +752,19 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           try {
             toast.error(`Preencha os campos obrigatórios:\n\n${errorMessage}${moreErrors}`);
           } catch (toastError) {
-            console.error('❌ Erro ao exibir toast de validação:', toastError);
+            logger.error('❌ Erro ao exibir toast de validação:', toastError);
           }
         }
 
-        console.warn(`⚠️ Etapa ${currentStep} inválida:`, errors);
+        logger.warn(`⚠️ Etapa ${currentStep} inválida:`, errors);
         return false;
       }
     } catch (error) {
-      console.error('❌ Erro ao validar etapa:', error);
+      logger.error('❌ Erro ao validar etapa:', error);
       try {
         toast.error('Erro ao validar a etapa. Tente novamente.');
       } catch (toastError) {
-        console.error('❌ Erro ao exibir toast:', toastError);
+        logger.error('❌ Erro ao exibir toast:', toastError);
       }
       return false;
     }
@@ -779,12 +780,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
    */
   const saveCurrentStepData = async (markAsComplete: boolean = true) => {
     if (!osId) {
-      console.warn('⚠️ Não é possível salvar: osId não disponível');
+      logger.warn('⚠️ Não é possível salvar: osId não disponível');
       return;
     }
 
     try {
-      console.log(`💾 Salvando etapa ${currentStep}...`);
+      logger.log(`💾 Salvando etapa ${currentStep}...`);
       
       await saveStep(currentStep, !markAsComplete); // saveStep recebe isDraft como segundo argumento
 
@@ -795,15 +796,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       try {
         toast.success(successMessage);
       } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de sucesso (saveStep):', toastError);
+        logger.error('❌ Erro ao exibir toast de sucesso (saveStep):', toastError);
       }
-      console.log(`✅ ${successMessage}`);
+      logger.log(`✅ ${successMessage}`);
     } catch (error) {
-      console.error('❌ Erro ao salvar etapa:', error);
+      logger.error('❌ Erro ao salvar etapa:', error);
       try {
         toast.error('Erro ao salvar dados. Tente novamente.');
       } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de erro (saveStep):', toastError);
+        logger.error('❌ Erro ao exibir toast de erro (saveStep):', toastError);
       }
       throw error;
     }
@@ -833,7 +834,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         try {
           toast.error('Selecione um lead antes de continuar');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de validação (lead):', toastError);
+          logger.error('❌ Erro ao exibir toast de validação (lead):', toastError);
         }
         return;
       }
@@ -842,7 +843,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         try {
           toast.error('Selecione o tipo de OS antes de continuar');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de validação (tipoOS):', toastError);
+          logger.error('❌ Erro ao exibir toast de validação (tipoOS):', toastError);
         }
         return;
       }
@@ -851,18 +852,18 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         // Ativar loading state
         setIsCreatingOS(true);
 
-        console.log('🚀 Iniciando criação de OS no Supabase...');
+        logger.log('🚀 Iniciando criação de OS no Supabase...');
 
         // Criar OS e 15 etapas no banco
         const novaOsId = await criarOSComEtapas();
 
-        console.log('✅ OS criada com sucesso! ID:', novaOsId);
+        logger.log('✅ OS criada com sucesso! ID:', novaOsId);
 
         // Salvar osId no estado interno
         setInternalOsId(novaOsId);
 
         // Recarregar etapas do banco
-        console.log('📋 Carregando etapas...');
+        logger.log('📋 Carregando etapas...');
         await refreshEtapas();
 
         // Avançar para etapa 3
@@ -871,15 +872,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         try {
           toast.success('Agora você pode preencher o Follow-up 1!');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de sucesso:', toastError);
+          logger.error('❌ Erro ao exibir toast de sucesso:', toastError);
         }
 
       } catch (error) {
-        console.error('❌ Erro ao criar OS:', error);
+        logger.error('❌ Erro ao criar OS:', error);
         try {
           toast.error('Erro ao criar Ordem de Serviço. Tente novamente.');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de erro:', toastError);
+          logger.error('❌ Erro ao exibir toast de erro:', toastError);
         }
       } finally {
         // Desativar loading state
@@ -901,7 +902,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           try {
             toast.error('Preencha todos os campos obrigatórios antes de avançar');
           } catch (toastError) {
-            console.error('❌ Erro ao exibir toast de validação (Etapa 3):', toastError);
+            logger.error('❌ Erro ao exibir toast de validação (Etapa 3):', toastError);
           }
           return;
         }
@@ -917,7 +918,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           setCurrentStep(currentStep + 1);
         }
       } catch (error) {
-        console.error('❌ Não foi possível avançar devido a erro ao salvar');
+        logger.error('❌ Não foi possível avançar devido a erro ao salvar');
       }
 
       return;
@@ -932,7 +933,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       try {
         toast.error('Preencha todos os campos obrigatórios antes de avançar');
       } catch (toastError) {
-        console.error('❌ Erro ao exibir toast de validação (campos):', toastError);
+        logger.error('❌ Erro ao exibir toast de validação (campos):', toastError);
       }
       return;
     }
@@ -949,7 +950,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       }
     } catch (error) {
       // Não avança se houver erro ao salvar
-      console.error('❌ Não foi possível avançar devido a erro ao salvar');
+      logger.error('❌ Não foi possível avançar devido a erro ao salvar');
     }
   };
 

@@ -1,11 +1,11 @@
 import React from 'react';
-import { Button } from '../../../ui/button';
-import { PrimaryButton } from '../../../ui/primary-button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Button } from '@/components/ui/button';
+import { PrimaryButton } from '@/components/ui/primary-button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, Calendar, MapPin, Clock, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { toast } from '@/lib/utils/safe-toast';
 
 interface StepRealizarVisitaProps {
   data: {

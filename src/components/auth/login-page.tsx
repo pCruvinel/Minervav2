@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState, useEffect, useRef } from "react";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { Input } from "../ui/input";
@@ -23,7 +24,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   useEffect(() => {
     // Se estamos logando E o auth terminou de carregar E temos um usuário
     if (isLoggingInRef.current && !authLoading && currentUser) {
-      console.log('[LoginPage] Usuário pronto, redirecionando...');
+      logger.log('[LoginPage] Usuário pronto, redirecionando...');
       toast.success("Login realizado com sucesso!");
       isLoggingInRef.current = false;
       setIsLoading(false);
@@ -63,7 +64,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       }
       // ✅ Se sucesso, o useEffect acima vai lidar com o redirecionamento quando currentUser estiver pronto
     } catch (error) {
-      console.error("Erro ao fazer login:", error);
+      logger.error("Erro ao fazer login:", error);
       toast.error("Erro ao fazer login. Tente novamente.");
       setIsLoading(false);
       isLoggingInRef.current = false;

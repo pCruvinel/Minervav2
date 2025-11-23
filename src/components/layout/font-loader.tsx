@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useEffect } from 'react';
 
 /**
@@ -36,7 +37,7 @@ export function FontLoader() {
         if (fontLink.parentNode) document.head.removeChild(fontLink);
       } catch (error) {
         // Silenciar erros de cleanup
-        console.debug('FontLoader cleanup:', error);
+        logger.debug('FontLoader cleanup:', error);
       }
     };
   }, []);

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -177,7 +178,7 @@ export function ControlePresencaPage() {
     if (!registrosValidos) return;
 
     // Salvar registros
-    console.log('Registros de presença:', registros);
+    logger.log('Registros de presença:', registros);
 
     toast.success(`Presença registrada com sucesso para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
   };

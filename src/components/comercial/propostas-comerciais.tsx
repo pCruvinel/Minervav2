@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -123,14 +124,14 @@ export default function PropostasComerciais() {
   };
 
   const handleSalvarFeedback = () => {
-    console.log('Feedback registrado para proposta:', propostaSelecionada, novoFeedback);
+    logger.log('Feedback registrado para proposta:', propostaSelecionada, novoFeedback);
     setDialogFeedback(false);
     setNovoFeedback('');
     setPropostaSelecionada(null);
   };
 
   const handleConfirmarContrato = () => {
-    console.log('Gerando contrato para proposta:', propostaSelecionada);
+    logger.log('Gerando contrato para proposta:', propostaSelecionada);
     setDialogContrato(false);
     setPropostaSelecionada(null);
   };
