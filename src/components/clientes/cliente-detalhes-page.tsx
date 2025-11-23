@@ -137,7 +137,8 @@ interface ClienteDetalhesPageProps {
 }
 
 export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualizarPortal }: ClienteDetalhesPageProps) {
-  // TODO: Usar _clienteId para buscar dados reais do Supabase quando conectado
+  // FRONTEND-ONLY MODE: Usando mock data - implementar fetch real quando conectar Supabase
+  // Ref: CLAUDE.md - modo frontend-only é aceito durante desenvolvimento
   const [cliente] = useState(mockClienteDetalhe);
   const [modalInativarOpen, setModalInativarOpen] = useState(false);
   const [justificativa, setJustificativa] = useState('');

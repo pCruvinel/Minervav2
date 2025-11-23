@@ -228,7 +228,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
   const osId = osIdProp || internalOsId;
 
-  // Obter ID do usuário logado (fixado TODO 3)
+  // Obter ID do usuário logado
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || 'user-unknown';
 
