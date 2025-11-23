@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -7,22 +7,49 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from '../ui/textarea';
 import { Label } from '../ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { FileText, CheckCircle, XCircle, Eye, AlertCircle, Download } from 'lucide-react';
-import { mockReformasPendentes, ReformaPendente } from '../../lib/mock-data-gestores';
+import { FileText, CheckCircle, XCircle, Eye, AlertCircle, Download, Loader2 } from 'lucide-react';
 import { toast } from 'sonner@2.0.3';
+import { ordensServicoAPI } from '../../lib/api-client';
+import { useAuth } from '../../lib/contexts/auth-context';
 
 /**
  * GESTOR DE ASSESSORIA - ANÁLISE DE REFORMAS (OS 07)
  * Lista de solicitações de reforma com validação de documentação (ART/RRT)
  */
 
+// Interface para Reforma baseada em os_etapas
+interface Reforma {
+  id: string;
+  os_id: string;
+  codigo: string;
+  condominio: string;
+  unidade: string;
+  responsavel: string;
+  tipoReforma: string;
+  statusDocumentacao: string;
+  statusAprovacao: string;
+  dataSolicitacao: string;
+  valorEstimado?: number;
+  observacoes?: string;
+  dados_etapa: any;
+  documentos?: {
+    art?: string;
+    rrt?: string;
+    projeto?: string;
+    memorial?: string;
+  };
+}
+
 export function AnaliseReformas() {
-  const [reformas, setReformas] = useState<ReformaPendente[]>(mockReformasPendentes);
-  const [reformaSelecionada, setReformaSelecionada] = useState<ReformaPendente | null>(null);
+  const { currentUser } = useAuth();
+  const [reformas, setReformas] = useState<Reforma[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [reformaSelecionada, setReformaSelecionada] = useState<Reforma | null>(null);
   const [modalAnalisar, setModalAnalisar] = useState(false);
   const [novoStatus, setNovoStatus] = useState<string>('');
   const [observacoes, setObservacoes] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('todos');
+  const [salvando, setSalvando] = useState(false);
 
   const tipoReformaLabel: Record<string, string> = {
     ESTRUTURAL: 'Estrutural',
@@ -62,12 +89,16 @@ export function AnaliseReformas() {
   const statusAprovacaoBadgeVariant = (status: string) => {
     switch (status) {
       case 'aguardando_analise':
+      case 'pendente':
         return 'default';
       case 'em_analise':
+      case 'em_andamento':
         return 'secondary';
       case 'aprovado':
+      case 'aprovada':
         return 'outline';
       case 'reprovado':
+      case 'rejeitada':
         return 'destructive';
       case 'pendente_documentacao':
         return 'destructive';
@@ -76,47 +107,166 @@ export function AnaliseReformas() {
     }
   };
 
-  const handleAbrirAnalisar = (reforma: ReformaPendente) => {
+  // Carregar reformas do banco (etapas OS07)
+  useEffect(() => {
+    const carregarReformas = async () => {
+      try {
+        setLoading(true);
+        console.log('📋 Carregando reformas do banco...');
+
+        // Buscar todas as OS
+        const todasOS = await ordensServicoAPI.list();
+
+        // Para cada OS, buscar etapas e filtrar OS07
+        const reformasTemp: Reforma[] = [];
+
+        for (const os of todasOS) {
+          try {
+            const etapas = await ordensServicoAPI.getEtapas(os.id);
+            const etapaOS07 = etapas.find((e: any) =>
+              e.nome_etapa?.includes('OS07') ||
+              e.nome_etapa?.includes('Termo de Comunicação de Reforma')
+            );
+
+            if (etapaOS07) {
+              const dados = etapaOS07.dados_etapa || {};
+
+              reformasTemp.push({
+                id: etapaOS07.id,
+                os_id: os.id,
+                codigo: os.codigo_os || `OS-${os.id.substring(0, 8)}`,
+                condominio: dados.condominio || 'N/A',
+                unidade: dados.unidade || 'N/A',
+                responsavel: dados.nomeSolicitante || 'N/A',
+                tipoReforma: dados.tiposObra?.[0] || 'NAO_ESTRUTURAL',
+                statusDocumentacao: dados.arquivos?.art ? 'completo' : 'pendente_art',
+                statusAprovacao: etapaOS07.status || 'aguardando_analise',
+                dataSolicitacao: etapaOS07.data_inicio || dados.dataEnvio || new Date().toISOString(),
+                valorEstimado: undefined,
+                observacoes: etapaOS07.comentarios_aprovacao || '',
+                dados_etapa: dados,
+                documentos: {
+                  art: dados.arquivos?.art,
+                  rrt: dados.arquivos?.rrt,
+                  projeto: dados.arquivos?.projeto,
+                },
+              });
+            }
+          } catch (err) {
+            console.error(`Erro ao carregar etapas da OS ${os.id}:`, err);
+          }
+        }
+
+        console.log('✅ Reformas carregadas:', reformasTemp.length);
+        setReformas(reformasTemp);
+      } catch (error) {
+        console.error('❌ Erro ao carregar reformas:', error);
+        toast.error('Erro ao carregar reformas do banco');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarReformas();
+  }, []);
+
+  const handleAbrirAnalisar = (reforma: Reforma) => {
     setReformaSelecionada(reforma);
     setNovoStatus(reforma.statusAprovacao);
-    setObservacoes('');
+    setObservacoes(reforma.observacoes || '');
     setModalAnalisar(true);
   };
 
-  const handleSalvarAnalise = () => {
-    if (!reformaSelecionada || !novoStatus) {
+  const handleSalvarAnalise = async () => {
+    if (!reformaSelecionada || !novoStatus || !currentUser) {
       toast.error('Selecione um status para continuar');
       return;
     }
 
-    setReformas(prev =>
-      prev.map(r =>
-        r.id === reformaSelecionada.id
-          ? { ...r, statusAprovacao: novoStatus as any, observacoes }
-          : r
-      )
-    );
+    setSalvando(true);
 
-    const mensagem =
-      novoStatus === 'aprovado'
-        ? 'Reforma aprovada com sucesso!'
-        : novoStatus === 'reprovado'
-          ? 'Reforma reprovada'
-          : 'Status da reforma atualizado';
+    try {
+      console.log('💾 Salvando análise da reforma...', {
+        etapaId: reformaSelecionada.id,
+        novoStatus,
+        aprovadorId: currentUser.id,
+      });
 
-    toast.success(mensagem, {
-      description: `${reformaSelecionada.condominio} - ${reformaSelecionada.unidade}`,
-    });
+      // Mapear status para enum correto
+      const statusMap: Record<string, string> = {
+        'em_analise': 'em_andamento',
+        'aprovado': 'aprovada',
+        'reprovado': 'rejeitada',
+        'pendente_documentacao': 'aguardando_aprovacao',
+      };
 
-    setModalAnalisar(false);
-    setReformaSelecionada(null);
-    setNovoStatus('');
-    setObservacoes('');
+      const statusFinal = statusMap[novoStatus] || novoStatus;
+
+      // Atualizar etapa no banco
+      await ordensServicoAPI.updateEtapa(reformaSelecionada.id, {
+        status: statusFinal,
+        comentarios_aprovacao: observacoes,
+        aprovador_id: currentUser.id,
+        data_conclusao: statusFinal === 'aprovada' ? new Date().toISOString() : null,
+      });
+
+      // Atualizar status da OS se aprovada/reprovada
+      if (statusFinal === 'aprovada' || statusFinal === 'rejeitada') {
+        await ordensServicoAPI.update(reformaSelecionada.os_id, {
+          status_geral: statusFinal === 'aprovada' ? 'em_andamento' : 'em_validacao',
+        });
+      }
+
+      console.log('✅ Análise salva com sucesso');
+
+      // Atualizar lista local
+      setReformas(prev =>
+        prev.map(r =>
+          r.id === reformaSelecionada.id
+            ? { ...r, statusAprovacao: statusFinal, observacoes }
+            : r
+        )
+      );
+
+      const mensagem =
+        statusFinal === 'aprovada'
+          ? 'Reforma aprovada com sucesso!'
+          : statusFinal === 'rejeitada'
+            ? 'Reforma reprovada'
+            : 'Status da reforma atualizado';
+
+      toast.success(mensagem, {
+        description: `${reformaSelecionada.condominio} - ${reformaSelecionada.unidade}`,
+      });
+
+      setModalAnalisar(false);
+      setReformaSelecionada(null);
+      setNovoStatus('');
+      setObservacoes('');
+    } catch (error) {
+      console.error('❌ Erro ao salvar análise:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao salvar análise: ${errorMsg}`);
+    } finally {
+      setSalvando(false);
+    }
   };
 
   const reformasFiltradas = reformas.filter(r =>
     filtroStatus === 'todos' ? true : r.statusAprovacao.toLowerCase() === filtroStatus
   );
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Carregando reformas do banco...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -381,15 +531,25 @@ export function AnaliseReformas() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setModalAnalisar(false)}>
+            <Button variant="outline" onClick={() => setModalAnalisar(false)} disabled={salvando}>
               Cancelar
             </Button>
             <Button
               onClick={handleSalvarAnalise}
               className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+              disabled={salvando}
             >
-              <CheckCircle className="h-4 w-4 mr-1" />
-              Salvar Análise
+              {salvando ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                  Salvar Análise
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

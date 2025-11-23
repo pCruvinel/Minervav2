@@ -1241,18 +1241,3 @@ a:hover {
 .hover\:after\:bg-sidebar-border:hover::after {
   background-color: hsl(var(--sidebar-border));
 }
-
-/* ==========================================
- * SIDEBAR LAYOUT FIX - SIMPLIFICADO
- * Usa variáveis CSS nativas do Shadcn Sidebar
- * ========================================== */
-
-@media (min-width: 768px) {
-  /* O componente SidebarProvider define automaticamente --sidebar-width */
-  /* Apenas precisamos aplicar ao main/SidebarInset */
-  .peer ~ main,
-  .peer ~ [data-slot="inset"] {
-    margin-left: var(--sidebar-width);
-    transition: margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-}

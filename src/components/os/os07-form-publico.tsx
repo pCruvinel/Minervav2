@@ -3,11 +3,11 @@
 
 import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
-import { 
-  FileText, 
-  Plus, 
-  Trash2, 
-  Upload, 
+import {
+  FileText,
+  Plus,
+  Trash2,
+  Upload,
   AlertCircle,
   CheckCircle2,
   Building2
@@ -20,6 +20,9 @@ import { Button } from '../ui/button';
 import { PrimaryButton } from '../ui/primary-button';
 import { Checkbox } from '../ui/checkbox';
 import { toast } from '../../lib/utils/safe-toast';
+import { ordensServicoAPI } from '../../lib/api-client';
+import { uploadFile } from '../../lib/utils/supabase-storage';
+import { useAuth } from '../../lib/contexts/auth-context';
 
 interface OS07FormPublicoProps {
   osId: string;
@@ -42,6 +45,9 @@ interface Executor {
 }
 
 export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPublicoProps) {
+  // Auth context (para obter colaboradorId caso logado, senão usa ID genérico para formulário público)
+  const { currentUser } = useAuth();
+
   // Dados Cadastrais
   const [nomeSolicitante, setNomeSolicitante] = useState('');
   const [contato, setContato] = useState('');
@@ -268,24 +274,95 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
     setIsSubmitting(true);
 
     try {
-      // Simular envio
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log('📋 Iniciando envio do termo de reforma...');
 
-      const dados = {
-        osId,
-        nomeSolicitante,
-        contato,
-        email,
-        condominio,
-        bloco,
-        unidade,
-        alteracoes,
-        executores,
-        planoDescarte,
-        tiposObra,
-        arquivoART: arquivoART?.name,
-        arquivoProjeto: arquivoProjeto?.name,
-        dataEnvio: new Date().toISOString(),
+      // 1. Upload de arquivos para Supabase Storage
+      let artUrl = '';
+      let projetoUrl = '';
+
+      const colaboradorId = currentUser?.id || 'publico'; // ID genérico para formulários públicos
+      const osNumero = `os-${osId.substring(0, 8)}`; // Usar primeiros 8 chars do osId
+
+      toast.info('Fazendo upload dos arquivos...');
+
+      // Upload ART (se houver)
+      if (arquivoART) {
+        try {
+          const artUploaded = await uploadFile({
+            file: arquivoART,
+            osNumero,
+            etapa: 'os07-termo-reforma',
+            osId,
+            colaboradorId,
+          });
+          artUrl = artUploaded.url;
+          console.log('✅ ART enviada:', artUrl);
+        } catch (uploadError) {
+          console.error('❌ Erro ao fazer upload da ART:', uploadError);
+          toast.error('Erro ao fazer upload da ART. Tente novamente.');
+          throw uploadError;
+        }
+      }
+
+      // Upload Projeto (obrigatório)
+      if (arquivoProjeto) {
+        try {
+          const projetoUploaded = await uploadFile({
+            file: arquivoProjeto,
+            osNumero,
+            etapa: 'os07-termo-reforma',
+            osId,
+            colaboradorId,
+          });
+          projetoUrl = projetoUploaded.url;
+          console.log('✅ Projeto enviado:', projetoUrl);
+        } catch (uploadError) {
+          console.error('❌ Erro ao fazer upload do projeto:', uploadError);
+          toast.error('Erro ao fazer upload do projeto. Tente novamente.');
+          throw uploadError;
+        }
+      }
+
+      toast.info('Salvando dados no banco...');
+
+      // 2. Criar etapa no Supabase com os dados do formulário
+      const etapaData = {
+        os_id: osId,
+        nome_etapa: 'OS07 - Termo de Comunicação de Reforma',
+        status: 'pendente', // Status inicial
+        ordem: 7,
+        dados_etapa: {
+          // Dados do Solicitante
+          nomeSolicitante,
+          contato,
+          email,
+          condominio,
+          bloco,
+          unidade,
+
+          // Alterações propostas
+          alteracoes,
+
+          // Executores da obra
+          executores,
+
+          // Plano de descarte
+          planoDescarte,
+
+          // Tipos de obra selecionados
+          tiposObra,
+          precisaART,
+
+          // URLs dos arquivos no Storage
+          arquivos: {
+            art: artUrl || null,
+            projeto: projetoUrl,
+          },
+
+          // Metadados
+          dataEnvio: new Date().toISOString(),
+          formularioPublico: true,
+        },
       };
 
       logger.log('📋 Formulário enviado:', dados);
@@ -293,8 +370,9 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
       setSubmitSuccess(true);
       toast.success('Termo enviado com sucesso! Aguarde a análise da engenharia.');
     } catch (error) {
-      logger.error('Erro ao enviar:', error);
-      toast.error('Erro ao enviar o termo. Tente novamente.');
+      console.error('❌ Erro ao enviar:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      toast.error(`Erro ao enviar o termo: ${errorMessage}`);
     } finally {
       setIsSubmitting(false);
     }
