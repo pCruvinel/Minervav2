@@ -3,6 +3,7 @@ import { AppSidebar } from '../components/layout/sidebar'
 import { Header } from '../components/layout/header'
 import { useAuth } from '../lib/contexts/auth-context'
 import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar"
+import { Separator } from "@/components/ui/separator"
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: ({ context, location }) => {
@@ -68,8 +69,9 @@ function AuthLayout() {
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex items-center gap-2 px-4 py-2 border-b bg-white shrink-0">
-          <SidebarTrigger />
+        <header className="flex h-16 items-center gap-2 px-4 border-b bg-white shrink-0">
+          <SidebarTrigger className="-ml-1" />
+          <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex-1">
             <Header
               user={currentUser}
@@ -79,7 +81,7 @@ function AuthLayout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto p-4 bg-neutral-100">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
           <Outlet />
         </div>
       </SidebarInset>

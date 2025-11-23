@@ -141,7 +141,7 @@ export function AppSidebar() {
   const visibleMenuItems = getVisibleMenuItems();
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="h-16 border-b border-sidebar-border flex items-center justify-center">
         {state === 'expanded' ? (
           <MinervaLogo variant="full" className="h-10" />
