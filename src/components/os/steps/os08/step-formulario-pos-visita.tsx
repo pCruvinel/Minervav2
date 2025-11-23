@@ -1,15 +1,12 @@
-import React, { useState, useImperativeHandle, forwardRef } from 'react';
-import { Label } from '../../../ui/label';
-import { Input } from '../../../ui/input';
-import { Textarea } from '../../../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
-import { RadioGroup, RadioGroupItem } from '../../../ui/radio-group';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import React, { useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Upload, X, AlertCircle } from 'lucide-react';
-import { toast } from '../../../../lib/utils/safe-toast';
-import { ordensServicoAPI } from '../../../../lib/api-client';
-import { uploadFile } from '../../../../lib/utils/supabase-storage';
-import { useAuth } from '../../../../lib/contexts/auth-context';
+import { toast } from '@/lib/utils/safe-toast';
 
 const AREAS_VISTORIA = [
   'ABASTECIMENTO DE ÁGUA (tubulações, conexões, hidrômetro, reservatórios, bombas, registros e afins) – exceto SPCI',

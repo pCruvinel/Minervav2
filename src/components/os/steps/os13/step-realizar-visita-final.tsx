@@ -1,8 +1,8 @@
 import React from 'react';
-import { Card, CardContent } from '../../../ui/card';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle2, MapPin, AlertCircle, Flag } from 'lucide-react';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { toast } from '@/lib/utils/safe-toast';
 
 export interface StepRealizarVisitaFinalProps {
   data: { visitaFinalRealizada: boolean };

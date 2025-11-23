@@ -1,7 +1,7 @@
 import React from 'react';
-import { Label } from '../../../ui/label';
-import { Calendar } from '../../../ui/calendar';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Label } from '@/components/ui/label';
+import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';

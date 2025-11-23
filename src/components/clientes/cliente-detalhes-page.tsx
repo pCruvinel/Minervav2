@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -137,7 +138,8 @@ interface ClienteDetalhesPageProps {
 }
 
 export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualizarPortal }: ClienteDetalhesPageProps) {
-  // TODO: Usar _clienteId para buscar dados reais do Supabase quando conectado
+  // FRONTEND-ONLY MODE: Usando mock data - implementar fetch real quando conectar Supabase
+  // Ref: CLAUDE.md - modo frontend-only é aceito durante desenvolvimento
   const [cliente] = useState(mockClienteDetalhe);
   const [modalInativarOpen, setModalInativarOpen] = useState(false);
   const [justificativa, setJustificativa] = useState('');
@@ -189,7 +191,7 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
       return;
     }
 
-    console.log('Inativar cliente:', {
+    logger.log('Inativar cliente:', {
       clienteId: cliente.id,
       tipo: cliente.contrato.tipo,
       justificativa,

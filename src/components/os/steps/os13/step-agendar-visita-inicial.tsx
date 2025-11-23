@@ -1,12 +1,12 @@
 import React from 'react';
-import { Calendar } from '../../../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../ui/popover';
-import { Button } from '../../../ui/button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Calendar as CalendarIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '../../../ui/utils';
+import { cn } from '@/components/ui/utils';
 
 export interface StepAgendarVisitaInicialProps {
   data: { dataVisita: string };

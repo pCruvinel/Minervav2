@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -236,7 +237,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
   };
 
   const handleSaveNewLead = () => {
-    console.log('Salvando novo lead:', formData);
+    logger.log('Salvando novo lead:', formData);
     setShowNewLeadDialog(false);
     setSelectedLeadId('NEW');
     setEtapa1Data({ ...etapa1Data, leadId: 'NEW' });

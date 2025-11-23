@@ -73,7 +73,7 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 // COMPONENTE PRINCIPAL
 // ============================================================
 
-export default function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
+export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
   const [selectedRole, setSelectedRole] = useState<RoleLevel>('colaborador');
 
   const availableRoles: RoleLevel[] = [

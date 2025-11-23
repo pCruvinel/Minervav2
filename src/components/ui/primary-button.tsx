@@ -6,15 +6,27 @@ import { cn } from './utils';
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'default' | 'lg';
 
+/**
+ * Props para o componente PrimaryButton
+ */
 interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Variante visual do botão */
   variant?: ButtonVariant;
+  /** Tamanho do botão */
   size?: ButtonSize;
+  /** Se o botão está em estado de carregamento */
   isLoading?: boolean;
+  /** Texto exibido durante carregamento */
   loadingText?: string;
+  /** Conteúdo do botão */
   children: React.ReactNode;
+  /** Ícone opcional */
   icon?: React.ReactNode;
+  /** Posição do ícone */
   iconPosition?: 'left' | 'right';
+  /** Se o botão deve ocupar largura total */
   fullWidth?: boolean;
+  /** Renderizar como child (para uso com Link) */
   asChild?: boolean;
 }
 
@@ -43,6 +55,35 @@ const sizeStyles = {
   lg: 'px-6 py-3 text-lg',
 };
 
+/**
+ * PrimaryButton - Botão customizado com cores da marca Minerva
+ *
+ * Estende o Button do Shadcn/UI com estilos específicos do Minerva.
+ * Suporta estado de loading, ícones, e múltiplas variantes.
+ *
+ * @example
+ * ```tsx
+ * // Botão primário simples
+ * <PrimaryButton onClick={handleClick}>
+ *   Salvar
+ * </PrimaryButton>
+ *
+ * // Botão com loading
+ * <PrimaryButton isLoading={isSaving} loadingText="Salvando...">
+ *   Salvar Dados
+ * </PrimaryButton>
+ *
+ * // Botão com ícone
+ * <PrimaryButton variant="secondary" icon={<Plus />} iconPosition="left">
+ *   Novo Item
+ * </PrimaryButton>
+ *
+ * // Botão de perigo (deleção)
+ * <PrimaryButton variant="danger" size="sm">
+ *   Deletar
+ * </PrimaryButton>
+ * ```
+ */
 export function PrimaryButton({
   variant = 'primary',
   size = 'default',

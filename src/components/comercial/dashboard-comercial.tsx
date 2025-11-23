@@ -27,7 +27,7 @@ import {
   Legend
 } from 'recharts';
 
-export default function DashboardComercial() {
+export function DashboardComercial() {
   const metricas = mockMetricasComerciais;
 
   // Estatísticas de Leads por Status

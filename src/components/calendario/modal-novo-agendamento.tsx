@@ -253,7 +253,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
       onClose();
     } catch (error) {
       toast.error('Erro ao criar agendamento. Tente novamente.');
-      console.error('Erro ao criar agendamento:', error);
+      logger.error('Erro ao criar agendamento:', error);
     }
   };
 

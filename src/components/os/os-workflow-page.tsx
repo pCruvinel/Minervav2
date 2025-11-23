@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -98,7 +99,7 @@ export function OSWorkflowPage({ onBack }: OSWorkflowPageProps) {
 
   const handleAddComentario = () => {
     if (novoComentario.trim()) {
-      console.log('Novo comentário:', novoComentario);
+      logger.log('Novo comentário:', novoComentario);
       setNovoComentario('');
     }
   };

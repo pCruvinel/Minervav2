@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -105,7 +106,7 @@ export function PortalClienteObras() {
   };
 
   const handleDownloadDocumento = (docId: string) => {
-    console.log('Download documento:', docId);
+    logger.log('Download documento:', docId);
   };
 
   const handleContatoWhatsApp = () => {

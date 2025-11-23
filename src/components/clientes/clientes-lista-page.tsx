@@ -47,11 +47,11 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
     id: cliente.id,
     codigoCC: cliente.codigo_cc || '-',
     nomeRazaoSocial: cliente.nome_razao_social || cliente.nome || 'Cliente sem nome',
-    tipoContrato: 'ASSESSORIA', // TODO: adicionar campo no banco
+    tipoContrato: 'ASSESSORIA', // SCHEMA: Adicionar campo tipo_contrato na tabela clientes
     status: cliente.status === 'CLIENTE_ATIVO' ? 'ATIVO' : 'INATIVO',
     dataInicio: cliente.created_at ? new Date(cliente.created_at).toLocaleDateString('pt-BR') : '-',
-    valorMensal: 0, // TODO: adicionar campo no banco
-    proximaFatura: '-', // TODO: calcular do banco
+    valorMensal: 0, // SCHEMA: Adicionar campo valor_mensal na tabela clientes
+    proximaFatura: '-', // SCHEMA: Calcular próxima fatura baseado em data_inicio + periodicidade
     responsavel: cliente.responsavel?.nome_completo || '-',
     cnpj: cliente.tipo_cliente !== 'PESSOA_FISICA' ? cliente.cpf_cnpj : undefined,
     cpf: cliente.tipo_cliente === 'PESSOA_FISICA' ? cliente.cpf_cnpj : undefined,

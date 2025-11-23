@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import React from 'react';
 import { Check, Lock, ArrowLeft } from 'lucide-react';
 import { cn } from '../ui/utils';
@@ -51,7 +52,7 @@ export interface WorkflowStepperProps {
  *   steps={steps} 
  *   currentStep={2}
  *   completedSteps={[1]}
- *   onStepClick={(stepId) => console.log(`Navegando para etapa ${stepId}`)}
+ *   onStepClick={(stepId) => logger.log(`Navegando para etapa ${stepId}`)}
  * />
  * ```
  */

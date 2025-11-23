@@ -1,6 +1,7 @@
 // Formulário Público - OS 07: Termo de Comunicação de Reforma
 'use client';
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import {
   FileText,
@@ -364,11 +365,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
         },
       };
 
-      console.log('💾 Salvando etapa no banco...', etapaData);
-
-      const resultado = await ordensServicoAPI.createEtapa(osId, etapaData);
-
-      console.log('✅ Etapa salva com sucesso:', resultado);
+      logger.log('📋 Formulário enviado:', dados);
 
       setSubmitSuccess(true);
       toast.success('Termo enviado com sucesso! Aguarde a análise da engenharia.');

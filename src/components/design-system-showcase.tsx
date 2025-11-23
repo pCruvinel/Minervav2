@@ -21,6 +21,20 @@ import { Label } from './ui/label';
 import { Separator } from './ui/separator';
 
 export function DesignSystemShowcase() {
+  // Dev-only: Only render in development mode
+  if (import.meta.env.PROD) {
+    return (
+      <div className="min-h-screen bg-background p-8 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <h2>Design System Showcase</h2>
+          <p className="text-muted-foreground">
+            Este componente está disponível apenas em modo de desenvolvimento.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background p-8">
       <div className="max-w-7xl mx-auto space-y-12">

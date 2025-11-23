@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -466,7 +467,7 @@ function ModalEditarAcesso({ open, onClose, usuario }: ModalEditarAcessoProps) {
   }, [usuario]);
 
   const handleSalvar = () => {
-    console.log('Salvar alterações:', { usuarioId: usuario?.id, perfil, bloqueado });
+    logger.log('Salvar alterações:', { usuarioId: usuario?.id, perfil, bloqueado });
     toast.success('Permissões atualizadas com sucesso!');
     onClose();
   };

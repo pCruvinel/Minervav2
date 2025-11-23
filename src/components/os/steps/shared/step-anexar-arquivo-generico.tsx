@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription } from '../../../ui/alert';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { toast } from '@/lib/utils/safe-toast';
 
 interface StepAnexarArquivoGenericoProps {
   titulo: string;

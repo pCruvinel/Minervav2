@@ -1,5 +1,6 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -71,10 +72,10 @@ export function EtapaFilter({
           const parsed = JSON.parse(stored) as number[];
           setInternalSelected(parsed);
           onFilterChange?.(parsed);
-          console.log('📁 Filtro de etapas recuperado:', parsed);
+          logger.log('📁 Filtro de etapas recuperado:', parsed);
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao recuperar filtro do localStorage:', error);
+        logger.warn('⚠️ Erro ao recuperar filtro do localStorage:', error);
       }
     }
   }, [useLocalStorage, storageKey, onFilterChange]);
@@ -101,9 +102,9 @@ export function EtapaFilter({
         if (useLocalStorage) {
           try {
             localStorage.setItem(storageKey, JSON.stringify(updated));
-            console.log('💾 Filtro de etapas salvo:', updated);
+            logger.log('💾 Filtro de etapas salvo:', updated);
           } catch (error) {
-            console.warn('⚠️ Erro ao salvar filtro no localStorage:', error);
+            logger.warn('⚠️ Erro ao salvar filtro no localStorage:', error);
           }
         }
 
@@ -127,7 +128,7 @@ export function EtapaFilter({
       try {
         localStorage.setItem(storageKey, JSON.stringify(allEtapas));
       } catch (error) {
-        console.warn('⚠️ Erro ao salvar filtro no localStorage:', error);
+        logger.warn('⚠️ Erro ao salvar filtro no localStorage:', error);
       }
     }
 
@@ -144,7 +145,7 @@ export function EtapaFilter({
       try {
         localStorage.removeItem(storageKey);
       } catch (error) {
-        console.warn('⚠️ Erro ao limpar filtro do localStorage:', error);
+        logger.warn('⚠️ Erro ao limpar filtro do localStorage:', error);
       }
     }
 
@@ -288,7 +289,7 @@ export function useEtapaFilter(storageKey = 'os_etapa_filter') {
         setSelectedEtapas(JSON.parse(stored) as number[]);
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao carregar filtro:', error);
+      logger.warn('⚠️ Erro ao carregar filtro:', error);
     } finally {
       setIsLoaded(true);
     }

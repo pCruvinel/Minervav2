@@ -1,16 +1,16 @@
 import React from 'react';
-import { Label } from '../../../ui/label';
-import { Input } from '../../../ui/input';
-import { Textarea } from '../../../ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
-import { Calendar } from '../../../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../ui/popover';
-import { Button } from '../../../ui/button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { cn } from '../../../ui/utils';
+import { cn } from '@/components/ui/utils';
 
 const CENTROS_CUSTO = [
   'Option 01',

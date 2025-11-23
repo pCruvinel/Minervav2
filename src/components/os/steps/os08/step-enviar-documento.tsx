@@ -1,9 +1,9 @@
 import React from 'react';
-import { Button } from '../../../ui/button';
-import { PrimaryButton } from '../../../ui/primary-button';
-import { Alert, AlertDescription } from '../../../ui/alert';
+import { Button } from '@/components/ui/button';
+import { PrimaryButton } from '@/components/ui/primary-button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Send, CheckCircle2, Download, Eye, AlertCircle, Loader2, Mail } from 'lucide-react';
-import { toast } from '../../../../lib/utils/safe-toast';
+import { toast } from '@/lib/utils/safe-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 

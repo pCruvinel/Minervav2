@@ -1,6 +1,7 @@
 // OS 07: Página de Análise e Parecer - Sistema Minerva ERP
 'use client';
 
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { 
   ArrowLeft, 
@@ -96,7 +97,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
         analista: 'Gestor de Assessoria',
       };
 
-      console.log('📄 Parecer gerado:', parecer);
+      logger.log('📄 Parecer gerado:', parecer);
 
       toast.success(
         aprovarReforma
@@ -111,7 +112,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
         }
       }, 1500);
     } catch (error) {
-      console.error('Erro ao gerar parecer:', error);
+      logger.error('Erro ao gerar parecer:', error);
       toast.error('Erro ao gerar parecer. Tente novamente.');
     } finally {
       setIsSubmitting(false);

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -52,7 +53,7 @@ interface DetalhesLeadProps {
   onBack: () => void;
 }
 
-export default function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
+export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
   const [dialogInteracao, setDialogInteracao] = useState(false);
   const [dialogConversao, setDialogConversao] = useState(false);
 
@@ -142,7 +143,7 @@ export default function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
   };
 
   const handleRegistrarInteracao = () => {
-    console.log('Nova interação registrada:', novaInteracao);
+    logger.log('Nova interação registrada:', novaInteracao);
     setDialogInteracao(false);
     setNovaInteracao({
       tipo: 'LIGACAO',
@@ -152,7 +153,7 @@ export default function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
   };
 
   const handleConverterCliente = () => {
-    console.log('Lead convertido em cliente:', lead.id);
+    logger.log('Lead convertido em cliente:', lead.id);
     setDialogConversao(false);
     onBack();
   };

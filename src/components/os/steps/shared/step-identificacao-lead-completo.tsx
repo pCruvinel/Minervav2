@@ -1,27 +1,28 @@
 "use client";
 
+import { logger } from '@/lib/utils/logger';
 import { useState, forwardRef, useImperativeHandle } from 'react';
-import { Button } from '../../../ui/button';
-import { PrimaryButton } from '../../../ui/primary-button';
-import { Input } from '../../../ui/input';
-import { Label } from '../../../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select';
-import { Alert, AlertDescription } from '../../../ui/alert';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../../ui/dialog';
+import { Button } from '@/components/ui/button';
+import { PrimaryButton } from '@/components/ui/primary-button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Search, UserPlus, Check, AlertCircle, Loader2 } from 'lucide-react';
-import { Avatar, AvatarFallback } from '../../../ui/avatar';
-import { Switch } from '../../../ui/switch';
-import { Separator } from '../../../ui/separator';
-import { cn } from '../../../ui/utils';
-import { Popover, PopoverContent, PopoverTrigger } from '../../../ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../../../ui/command';
-import { useClientes, useCreateCliente, transformFormToCliente } from '../../../../lib/hooks/use-clientes';
-import { toast } from '../../../../lib/utils/safe-toast';
-import { FormInput } from '../../../ui/form-input';
-import { FormMaskedInput, validarCPF, validarCNPJ, validarTelefone, validarCEP, removeMask } from '../../../ui/form-masked-input';
-import { FormSelect } from '../../../ui/form-select';
-import { useFieldValidation } from '../../../../lib/hooks/use-field-validation';
-import { etapa1Schema } from '../../../../lib/validations/os-etapas-schema';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Switch } from '@/components/ui/switch';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/components/ui/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { useClientes, useCreateCliente, transformFormToCliente } from '@/lib/hooks/use-clientes';
+import { toast } from '@/lib/utils/safe-toast';
+import { FormInput } from '@/components/ui/form-input';
+import { FormMaskedInput, validarCPF, validarCNPJ, validarTelefone, validarCEP, removeMask } from '@/components/ui/form-masked-input';
+import { FormSelect } from '@/components/ui/form-select';
+import { useFieldValidation } from '@/lib/hooks/use-field-validation';
+import { etapa1Schema } from '@/lib/validations/os-etapas-schema';
 
 interface FormDataCompleto {
   nome: string;
@@ -126,7 +127,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
     // Função para preencher formData com dados do lead selecionado
     const preencherFormDataComLead = (lead: any) => {
       try {
-        console.log('📋 Preenchendo dados do lead:', lead);
+        logger.log('📋 Preenchendo dados do lead:', lead);
 
         onFormDataChange({
           nome: lead.nome_razao_social || '',
@@ -152,13 +153,13 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
           estado: lead.endereco?.estado || '',
         });
 
-        console.log('✅ Dados do lead preenchidos com sucesso');
+        logger.log('✅ Dados do lead preenchidos com sucesso');
       } catch (error) {
-        console.error('❌ Erro ao preencher dados do lead:', error);
+        logger.error('❌ Erro ao preencher dados do lead:', error);
         try {
           toast.error('Erro ao carregar dados do lead');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast (preencherFormData):', toastError);
+          logger.error('❌ Erro ao exibir toast (preencherFormData):', toastError);
         }
       }
     };
@@ -166,15 +167,15 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
     // Handler para selecionar lead (com tratamento de erro)
     const handleSelectLead = (lead: any) => {
       try {
-        console.log('🎯 Selecionando lead:', lead.id);
+        logger.log('🎯 Selecionando lead:', lead.id);
 
         // Validar lead
         if (!lead || !lead.id) {
-          console.error('❌ Lead inválido:', lead);
+          logger.error('❌ Lead inválido:', lead);
           try {
             toast.error('Lead inválido');
           } catch (toastError) {
-            console.error('❌ Erro ao exibir toast de validação:', toastError);
+            logger.error('❌ Erro ao exibir toast de validação:', toastError);
           }
           return;
         }
@@ -190,13 +191,13 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
           onShowComboboxChange(false);
         }, 50);
 
-        console.log('✅ Lead selecionado com sucesso:', lead.nome_razao_social);
+        logger.log('✅ Lead selecionado com sucesso:', lead.nome_razao_social);
       } catch (error) {
-        console.error('❌ Erro ao selecionar lead:', error);
+        logger.error('❌ Erro ao selecionar lead:', error);
         try {
           toast.error('Erro ao selecionar lead. Tente novamente.');
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast:', toastError);
+          logger.error('❌ Erro ao exibir toast:', toastError);
         }
       }
     };
@@ -219,7 +220,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
           try {
             toast.error('Corrija os erros de validação antes de continuar');
           } catch (toastError) {
-            console.error('❌ Erro ao exibir toast (validação novo lead):', toastError);
+            logger.error('❌ Erro ao exibir toast (validação novo lead):', toastError);
           }
           return;
         }
@@ -243,7 +244,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
         onSaveNewLead();
 
       } catch (error) {
-        console.error('Erro ao salvar lead:', error);
+        logger.error('Erro ao salvar lead:', error);
         toast.error(`Erro ao salvar lead: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       } finally {
         setIsSaving(false);
@@ -326,7 +327,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
                       {leads && leads.length > 0 && leads.map((lead) => {
                         // Validar lead antes de renderizar
                         if (!lead || !lead.id || !lead.nome_razao_social) {
-                          console.warn('⚠️ Lead inválido detectado:', lead);
+                          logger.warn('⚠️ Lead inválido detectado:', lead);
                           return null;
                         }
 
@@ -814,7 +815,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
 
                                 toast.success('Endereço encontrado!');
                               } catch (error) {
-                                console.error('Erro ao buscar CEP:', error);
+                                logger.error('Erro ao buscar CEP:', error);
                                 toast.error('Erro ao buscar CEP');
                               }
                             }
