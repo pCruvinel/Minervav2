@@ -136,7 +136,8 @@ interface ClienteDetalhesPageProps {
   onVisualizarPortal?: () => void;
 }
 
-export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: ClienteDetalhesPageProps) {
+export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualizarPortal }: ClienteDetalhesPageProps) {
+  // TODO: Usar _clienteId para buscar dados reais do Supabase quando conectado
   const [cliente] = useState(mockClienteDetalhe);
   const [modalInativarOpen, setModalInativarOpen] = useState(false);
   const [justificativa, setJustificativa] = useState('');

@@ -59,6 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // NÃO recarregar se já temos o mesmo usuário logado
         if (currentUserRef.current && currentUserRef.current.id === session.user.id) {
           console.log('[Auth] Usuário já carregado - ignorando SIGNED_IN duplicado');
+          setIsLoading(false); // ✅ FIX: Garantir que loading seja resetado
           return;
         }
         // Só carrega se for usuário diferente ou primeiro login
@@ -75,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await safeFetchUser(session.user.id, 'INITIAL_SESSION');
         } else {
           console.log('[Auth] Sessão já carregada - ignorando INITIAL_SESSION');
+          setIsLoading(false); // ✅ FIX: Garantir que loading seja resetado
         }
       } else if (evt === 'TOKEN_REFRESHED' && session?.user) {
         // Token refresh não precisa recarregar perfil (dados não mudam)
@@ -108,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // ETAPA 1: Query rápida sem joins (sempre funciona, mesmo com RLS complexa)
       const simpleTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("DB_TIMEOUT_SIMPLE")), 5000)
+        setTimeout(() => reject(new Error("DB_TIMEOUT_SIMPLE")), 15000)
       );
 
       const simpleQuery = supabase
@@ -220,7 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
-        await safeFetchUser(data.user.id, 'LOGIN');
+        // ✅ FIX: NÃO chamar safeFetchUser aqui - o evento SIGNED_IN já faz isso
+        // Apenas retornamos true para indicar sucesso da autenticação
+        // O AuthProvider vai carregar o perfil via onAuthStateChange
+        console.log('[Auth] Login bem-sucedido - aguardando evento SIGNED_IN carregar perfil...');
         return true;
       }
       return false;

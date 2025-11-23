@@ -71,6 +71,18 @@ export function useCreateCliente() {
 
 export function transformFormToCliente(formData: any) {
   const nomeRazao = formData.nomeCompleto || formData.razaoSocial || formData.nome || '';
+
+  // Estrutura JSONB para o campo endereco
+  const enderecoJson = {
+    cep: formData.cep || '',
+    logradouro: formData.endereco || '',
+    numero: formData.numero || '',
+    complemento: formData.complemento || '',
+    bairro: formData.bairro || '',
+    cidade: formData.cidade || '',
+    estado: formData.estado || ''
+  };
+
   return {
     nome_razao_social: nomeRazao,
     nome: nomeRazao,
@@ -79,9 +91,7 @@ export function transformFormToCliente(formData: any) {
     cpf_cnpj: formData.cpf || formData.cnpj || formData.cpfCnpj || '',
     tipo: 'LEAD',
     tipo_cliente: formData.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA',
-    endereco: formData.endereco || '',
-    cidade: formData.cidade || '',
-    estado: formData.estado || '',
-    cep: formData.cep || '',
+    endereco: enderecoJson,
+    observacoes: formData.observacoes || ''
   };
 }

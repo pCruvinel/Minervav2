@@ -12,15 +12,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../ui/alert';
 import { Switch } from '../ui/switch';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
-import { 
-  Upload, 
-  FileText, 
-  File, 
-  Check, 
+import {
+  Upload,
+  FileText,
+  File,
+  Check,
   Calendar,
   Send,
   ChevronLeft,
-  Download,
   AlertCircle,
   Trash2,
   Loader2,
@@ -42,33 +41,177 @@ import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
 import { ErrorBoundary } from '../error-boundary';
-import { uploadFile, deleteFile, formatFileSize, getFileUrl } from '../../lib/utils/supabase-storage';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
 import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
-import { AutoSaveStatus } from '../ui/auto-save-status';
 import { useAuth } from '../../lib/contexts/auth-context';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
+import { FileUploadSection } from './file-upload-section';
+import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '../../constants/os-workflow';
+import { isValidUUID, mapearTipoOSParaCodigo, calcularValoresPrecificacao } from '../../lib/utils/os-workflow-helpers';
 
-// Definição das 15 etapas do fluxo OS 01-04
-const steps: WorkflowStep[] = [
-  { id: 1, title: 'Identificação do Cliente/Lead', short: 'Lead', responsible: 'ADM', status: 'active' },
-  { id: 2, title: 'Seleção do Tipo de OS', short: 'Tipo OS', responsible: 'ADM', status: 'pending' },
-  { id: 3, title: 'Follow-up 1 (Entrevista Inicial)', short: 'Follow-up 1', responsible: 'ADM', status: 'pending' },
-  { id: 4, title: 'Agendar Visita Técnica', short: 'Agendar', responsible: 'ADM', status: 'pending' },
-  { id: 5, title: 'Realizar Visita', short: 'Visita', responsible: 'Obras', status: 'pending' },
-  { id: 6, title: 'Follow-up 2 (Pós-Visita)', short: 'Follow-up 2', responsible: 'Obras', status: 'pending' },
-  { id: 7, title: 'Formulário Memorial (Escopo)', short: 'Escopo', responsible: 'Obras', status: 'pending' },
-  { id: 8, title: 'Precificação', short: 'Precificação', responsible: 'Obras', status: 'pending' },
-  { id: 9, title: 'Gerar Proposta Comercial', short: 'Proposta', responsible: 'ADM', status: 'pending' },
-  { id: 10, title: 'Agendar Visita (Apresentação)', short: 'Agendar', responsible: 'ADM', status: 'pending' },
-  { id: 11, title: 'Realizar Visita (Apresentação)', short: 'Apresentação', responsible: 'ADM', status: 'pending' },
-  { id: 12, title: 'Follow-up 3 (Pós-Apresentação)', short: 'Follow-up 3', responsible: 'ADM', status: 'pending' },
-  { id: 13, title: 'Gerar Contrato (Upload)', short: 'Contrato', responsible: 'ADM', status: 'pending' },
-  { id: 14, title: 'Contrato Assinado', short: 'Assinatura', responsible: 'ADM', status: 'pending' },
-  { id: 15, title: 'Iniciar Contrato de Obra', short: 'Início Obra', responsible: 'Sistema', status: 'pending' },
-];
+// ============================================================
+// INTERFACES DE DADOS DAS ETAPAS
+// ============================================================
+
+interface Etapa1Data {
+  leadId?: string;
+  nome?: string;
+  cpfCnpj?: string;
+  email?: string;
+  telefone?: string;
+  tipo?: 'fisica' | 'juridica';
+  nomeResponsavel?: string;
+  cargoResponsavel?: string;
+  tipoEdificacao?: string;
+  qtdUnidades?: string;
+  qtdBlocos?: string;
+  qtdPavimentos?: string;
+  tipoTelhado?: string;
+  possuiElevador?: boolean;
+  possuiPiscina?: boolean;
+  cep?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+}
+
+interface Etapa2Data {
+  tipoOS?: string;
+}
+
+interface Etapa3Data {
+  anexos?: Array<{
+    id: string;
+    nome: string;
+    url: string;
+    uploadedAt: string;
+  }>;
+  idadeEdificacao?: string;
+  motivoProcura?: string;
+  quandoAconteceu?: string;
+  oqueFeitoARespeito?: string;
+  existeEscopo?: string;
+  previsaoOrcamentaria?: string;
+  grauUrgencia?: string;
+  apresentacaoProposta?: string;
+  nomeContatoLocal?: string;
+  telefoneContatoLocal?: string;
+  cargoContatoLocal?: string;
+}
+
+interface Etapa4Data {
+  dataAgendamento?: string;
+}
+
+interface Etapa5Data {
+  visitaRealizada?: boolean;
+}
+
+interface ArquivoComComentario {
+  file: { name: string };
+  comment: string;
+}
+
+interface Etapa6Data {
+  outrasEmpresas?: string;
+  comoEsperaResolver?: string;
+  expectativaCliente?: string;
+  estadoAncoragem?: string;
+  fotosAncoragem?: ArquivoComComentario[];
+  quemAcompanhou?: string;
+  avaliacaoVisita?: string;
+  estadoGeralEdificacao?: string;
+  servicoResolver?: string;
+  arquivosGerais?: ArquivoComComentario[];
+}
+
+interface Subetapa {
+  nome: string;
+  descricao: string;
+  total: string;
+}
+
+interface EtapaPrincipal {
+  nome: string;
+  subetapas: Subetapa[];
+}
+
+interface Etapa7Data {
+  etapasPrincipais?: EtapaPrincipal[];
+}
+
+interface Etapa8Data {
+  percentualImprevisto?: string;
+  percentualLucro?: string;
+  percentualImposto?: string;
+  percentualEntrada?: string;
+  numeroParcelas?: string;
+  etapasPrincipais?: EtapaPrincipal[];
+}
+
+interface Etapa9Data {
+  [key: string]: unknown;
+}
+
+interface Etapa10Data {
+  [key: string]: unknown;
+}
+
+interface Etapa11Data {
+  [key: string]: unknown;
+}
+
+interface Etapa12Data {
+  propostaApresentada?: string;
+  metodoApresentacao?: string;
+  clienteAchouProposta?: string;
+  clienteAchouContrato?: string;
+  doresNaoAtendidas?: string;
+  indicadorFechamento?: string;
+  quemEstavaNaApresentacao?: string;
+  nivelSatisfacao?: string;
+}
+
+interface Etapa13Data {
+  [key: string]: unknown;
+}
+
+interface Etapa14Data {
+  [key: string]: unknown;
+}
+
+interface Etapa15Data {
+  [key: string]: unknown;
+}
+
+type EtapaData =
+  | Etapa1Data
+  | Etapa2Data
+  | Etapa3Data
+  | Etapa4Data
+  | Etapa5Data
+  | Etapa6Data
+  | Etapa7Data
+  | Etapa8Data
+  | Etapa9Data
+  | Etapa10Data
+  | Etapa11Data
+  | Etapa12Data
+  | Etapa13Data
+  | Etapa14Data
+  | Etapa15Data;
+
+// ============================================================
+// DEFINIÇÃO DAS ETAPAS DO WORKFLOW
+// ============================================================
+
+// Usar constante importada de os-workflow.ts
+const steps = OS_WORKFLOW_STEPS;
 
 interface OSDetailsWorkflowPageProps {
   onBack?: () => void;
@@ -108,7 +251,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     refreshEtapas
   } = useWorkflowState({
     osId: osId || undefined,
-    totalSteps: steps.length
+    totalSteps: TOTAL_WORKFLOW_STEPS
   });
 
   // Hook de Navegação
@@ -118,7 +261,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     handleNextStep: hookHandleNextStep,
     handlePrevStep
   } = useWorkflowNavigation({
-    totalSteps: steps.length,
+    totalSteps: TOTAL_WORKFLOW_STEPS,
     currentStep,
     setCurrentStep,
     lastActiveStep,
@@ -150,8 +293,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // Calcular quais etapas estão concluídas (status = APROVADA)
   // Regras de completude (Fallback para modo criação)
   const completionRules = useMemo(() => ({
-    1: (data: any) => !!data.leadId,
-    2: (data: any) => !!data.tipoOS,
+    1: (data: Etapa1Data) => !!data.leadId,
+    2: (data: Etapa2Data) => !!data.tipoOS,
   }), []);
 
   const { completedSteps } = useWorkflowCompletion({
@@ -184,9 +327,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   // ESTADO CONSOLIDADO DO FORMULÁRIO
   // ========================================
   // Armazena dados de todas as etapas em um único objeto
-  // Estado para controlar upload
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
 
   // ========================================
   // AUTO-SAVE CONFIG
@@ -207,8 +347,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   }, [osId]); 
 
   // Auto-save quando dados mudam (com debounce de 1s)
-  const { isSaving, isSaved, markDirty, saveiNow } = useAutoSave(
-    async (data: any) => {
+  const { isSaving, isSaved, markDirty } = useAutoSave(
+    async (data: Record<number, EtapaData>) => {
       // Se temos osId, salvar no banco de dados
       if (osId && etapas && etapas.length > 0) {
         try {
@@ -283,16 +423,16 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   };
 
   // Atualizar dados de uma etapa (com auto-save)
-  const setStepData = (stepNum: number, data: any) => {
+  const setStepData = (stepNum: number, data: EtapaData) => {
     hookSetStepData(stepNum, data);
     markDirty({ [stepNum]: data });
   };
 
   // Atualizar campo individual de uma etapa (com auto-save)
-  const updateStepField = (stepNum: number, field: string, value: any) => {
+  const updateStepField = (stepNum: number, field: string, value: unknown) => {
     const currentData = formDataByStep[stepNum] || {};
     const newData = { ...currentData, [field]: value };
-    
+
     hookSetStepData(stepNum, newData);
     markDirty({ [stepNum]: newData });
   };
@@ -315,50 +455,33 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const etapa15Data = useMemo(() => getStepData(15), [formDataByStep]);
 
   // Calcular valores financeiros para a proposta (Etapa 9)
-  const { valorTotal, valorEntrada, valorParcela } = useMemo(() => {
-    // Replicar lógica de cálculo da StepPrecificacao
-    const custoBase = etapa7Data?.etapasPrincipais?.reduce((total: number, etapa: any) => {
-      return total + (etapa.subetapas?.reduce((subTotal: number, sub: any) => {
-        const valor = parseFloat(sub.total?.replace('R$ ', '').replace('.', '').replace(',', '.') || '0') || 0;
-        return subTotal + valor;
-      }, 0) || 0);
-    }, 0) || 0;
+  const { valorTotal, valorEntrada, valorParcela } = useMemo(() =>
+    calcularValoresPrecificacao(etapa7Data, etapa8Data),
+    [etapa7Data, etapa8Data]
+  );
 
-    const pImprevisto = parseFloat(etapa8Data?.percentualImprevisto?.replace(',', '.') || '0') / 100;
-    const pLucro = parseFloat(etapa8Data?.percentualLucro?.replace(',', '.') || '0') / 100;
-    const pImposto = parseFloat(etapa8Data?.percentualImposto?.replace(',', '.') || '0') / 100;
-
-    const custoComImprevisto = custoBase * (1 + pImprevisto);
-    const divisor = (1 - (pLucro + pImposto));
-    const precoVenda = divisor > 0 ? custoComImprevisto / divisor : 0;
-    
-    const pEntrada = parseFloat(etapa8Data?.percentualEntrada?.replace(',', '.') || '0') / 100;
-    const vEntrada = precoVenda * pEntrada;
-    const numParcelas = parseInt(etapa8Data?.numeroParcelas || '0');
-    const vParcela = numParcelas > 0 ? (precoVenda - vEntrada) / numParcelas : 0;
-
-    return {
-      valorTotal: precoVenda,
-      valorEntrada: vEntrada,
-      valorParcela: vParcela
-    };
-  }, [etapa7Data, etapa8Data]);
-
-  const setEtapa1Data = (data: any) => setStepData(1, data);
-  const setEtapa2Data = (data: any) => setStepData(2, data);
-  const setEtapa3Data = (data: any) => setStepData(3, data);
-  const setEtapa4Data = (data: any) => setStepData(4, data);
-  const setEtapa5Data = (data: any) => setStepData(5, data);
-  const setEtapa6Data = (data: any) => setStepData(6, data);
-  const setEtapa7Data = (data: any) => setStepData(7, data);
-  const setEtapa8Data = (data: any) => setStepData(8, data);
-  const setEtapa9Data = (data: any) => setStepData(9, data);
-  const setEtapa10Data = (data: any) => setStepData(10, data);
-  const setEtapa11Data = (data: any) => setStepData(11, data);
-  const setEtapa12Data = (data: any) => setStepData(12, data);
-  const setEtapa13Data = (data: any) => setStepData(13, data);
-  const setEtapa14Data = (data: any) => setStepData(14, data);
-  const setEtapa15Data = (data: any) => setStepData(15, data);
+  const setEtapa1Data = (data: Etapa1Data) => setStepData(1, data);
+  const setEtapa2Data = (data: Etapa2Data) => setStepData(2, data);
+  const setEtapa3Data = (data: Etapa3Data) => setStepData(3, data);
+  const setEtapa4Data = (data: Etapa4Data) => setStepData(4, data);
+  const setEtapa5Data = (data: Etapa5Data | ((prev: Etapa5Data) => Etapa5Data)) => {
+    if (typeof data === 'function') {
+      const currentData = getStepData(5) as Etapa5Data;
+      setStepData(5, data(currentData));
+    } else {
+      setStepData(5, data);
+    }
+  };
+  const setEtapa6Data = (data: Etapa6Data) => setStepData(6, data);
+  const setEtapa7Data = (data: Etapa7Data) => setStepData(7, data);
+  const setEtapa8Data = (data: Etapa8Data) => setStepData(8, data);
+  const setEtapa9Data = (data: Etapa9Data) => setStepData(9, data);
+  const setEtapa10Data = (data: Etapa10Data) => setStepData(10, data);
+  const setEtapa11Data = (data: Etapa11Data) => setStepData(11, data);
+  const setEtapa12Data = (data: Etapa12Data) => setStepData(12, data);
+  const setEtapa13Data = (data: Etapa13Data) => setStepData(13, data);
+  const setEtapa14Data = (data: Etapa14Data) => setStepData(14, data);
+  const setEtapa15Data = (data: Etapa15Data) => setStepData(15, data);
 
   // Estado do formulário de novo lead (Dialog)
   const [formData, setFormData] = useState({
@@ -385,158 +508,34 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     estado: '',
   });
 
-  // Cálculos de precificação (memoizados)
-  const valoresPrecificacao = useMemo(() => {
-    // Proteção contra undefined: usar array vazio como fallback
-    const etapasPrincipais = etapa8Data?.etapasPrincipais || [];
 
-    // Custo Base (soma dos totais das sub-etapas)
-    const custoBase = etapasPrincipais.reduce((total: number, etapa: any) => {
-      const subetapas = etapa?.subetapas || [];
-      return total + subetapas.reduce((subtotal: number, sub: any) => {
-        return subtotal + (parseFloat(sub?.total) || 0);
-      }, 0);
-    }, 0);
 
-    // Percentuais (com valores padrão)
-    const percImprevisto = parseFloat(etapa8Data?.percentualImprevisto) || 0;
-    const percLucro = parseFloat(etapa8Data?.percentualLucro) || 0;
-    const percImposto = parseFloat(etapa8Data?.percentualImposto) || 0;
-    const percEntrada = parseFloat(etapa8Data?.percentualEntrada) || 0;
-    const numParcelas = parseFloat(etapa8Data?.numeroParcelas) || 1;
 
-    // Valor Total
-    const valorTotal = custoBase * (1 + (percImprevisto + percLucro + percImposto) / 100);
-
-    // Entrada e Parcelas
-    const valorEntrada = valorTotal * (percEntrada / 100);
-    const valorParcela = (valorTotal - valorEntrada) / numParcelas;
-
-    return {
-      custoBase,
-      valorTotal,
-      valorEntrada,
-      valorParcela,
+  const handleSelectLead = (leadId: string, leadData?: {
+    nome_razao_social?: string;
+    cpf_cnpj?: string;
+    email?: string;
+    telefone?: string;
+    tipo_cliente?: 'PESSOA_FISICA' | 'PESSOA_JURIDICA';
+    nome_responsavel?: string;
+    endereco?: {
+      cargo_responsavel?: string;
+      tipo_edificacao?: string;
+      qtd_unidades?: string;
+      qtd_blocos?: string;
+      qtd_pavimentos?: string;
+      tipo_telhado?: string;
+      possui_elevador?: boolean;
+      possui_piscina?: boolean;
+      cep?: string;
+      rua?: string;
+      numero?: string;
+      complemento?: string;
+      bairro?: string;
+      cidade?: string;
+      estado?: string;
     };
-  }, [etapa8Data]);
-
-  // Funções de upload de arquivos
-  const handleFileUpload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    if (!osId) {
-      toast.error('É necessário criar a OS antes de anexar arquivos');
-      return;
-    }
-
-    // Usar ID do usuário logado (FIXADO: TODO 3)
-    const colaboradorId = currentUserId;
-    if (colaboradorId === 'user-unknown') {
-      toast.error('Usuário não identificado. Faça login novamente.');
-      return;
-    }
-    
-    // Determinar osNumero e etapa baseado na etapa atual
-    const osNumero = 'os1'; // Sempre OS 1-4 neste componente
-    
-    // Mapear etapa atual para nome da pasta
-    const etapaMap: Record<number, string> = {
-      3: 'follow-up1',
-      5: 'visita-tecnica',
-      6: 'follow-up2',
-      7: 'memorial-escopo',
-      9: 'proposta-comercial',
-      11: 'apresentacao-proposta',
-      12: 'follow-up3',
-    };
-    
-    const etapaNome = etapaMap[currentStep];
-    if (!etapaNome) {
-      toast.error('Esta etapa não permite upload de arquivos');
-      return;
-    }
-    
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      const uploadedFiles: any[] = [];
-
-      for (let i: number = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        console.log(`📤 Uploading file ${i + 1}/${files.length}: ${file.name} para ${osNumero}/${etapaNome}`);
-        
-        const uploadedFile = await uploadFile({
-          file,
-          osNumero: osNumero,
-          etapa: etapaNome,
-          osId: osId,
-          colaboradorId: colaboradorId,
-        });
-        
-        uploadedFiles.push(uploadedFile);
-        setUploadProgress(((i + 1) / files.length) * 100);
-      }
-      
-      // Adicionar arquivos ao estado
-      setEtapa3Data((prev: any) => ({
-        ...prev,
-        anexos: [...(prev.anexos || []), ...uploadedFiles],
-      }));
-      
-      toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso!`);
-      
-    } catch (error) {
-      console.error('❌ Error uploading files:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao fazer upload dos arquivos');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
-  
-  const handleFileDelete = async (fileId: string, filePath: string) => {
-    try {
-      console.log(`🗑️ Deleting file: ${filePath}`);
-      
-      await deleteFile(filePath);
-      
-      // Remover do estado
-      setEtapa3Data((prev: any) => ({
-        ...prev,
-        anexos: (prev.anexos || []).filter((f: any) => f.id !== fileId),
-      }));
-      
-      toast.success('Arquivo removido com sucesso!');
-      
-    } catch (error) {
-      console.error('❌ Error deleting file:', error);
-      toast.error('Erro ao remover arquivo');
-    }
-  };
-  
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-  
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const files = e.dataTransfer.files;
-    handleFileUpload(files);
-  };
-
-
-
-  // Função para validar UUID
-  const isValidUUID = (uuid: string): boolean => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(uuid);
-  };
-
-  const handleSelectLead = (leadId: string, leadData?: any) => {
+  }) => {
     try {
       console.log('🎯 handleSelectLead chamado com ID:', leadId);
       console.log('📊 leadData recebido:', leadData);
@@ -617,19 +616,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   };
 
   /**
-   * Mapear nome do tipo de OS para código do banco
-   */
-  const mapearTipoOSParaCodigo = (nomeOS: string): string => {
-    const mapeamento: Record<string, string> = {
-      'OS 01: Perícia de Fachada': 'OS-01',
-      'OS 02: Revitalização de Fachada': 'OS-02',
-      'OS 03: Reforço Estrutural': 'OS-03',
-      'OS 04: Outros': 'OS-04',
-    };
-    return mapeamento[nomeOS] || 'OS-01';
-  };
-
-  /**
    * Criar OS e todas as 15 etapas no banco
    */
   const criarOSComEtapas = async (): Promise<string> => {
@@ -658,7 +644,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       console.log('🔍 Buscando tipo de OS...');
       const codigoTipoOS = mapearTipoOSParaCodigo(etapa2Data.tipoOS);
       const tiposOS = await ordensServicoAPI.getTiposOS();
-      const tipoOSEncontrado = tiposOS.find((t: any) => t.codigo === codigoTipoOS);
+      const tipoOSEncontrado = tiposOS.find((t: { codigo: string; id: string }) => t.codigo === codigoTipoOS);
       
       if (!tipoOSEncontrado) {
         throw new Error(`Tipo de OS não encontrado: ${codigoTipoOS}`);
@@ -1120,10 +1106,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                         <SelectValue placeholder="Escolha o tipo de OS" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="OS 01: Perícia de Fachada">OS 01: Perícia de Fachada</SelectItem>
-                        <SelectItem value="OS 02: Revitalização de Fachada">OS 02: Revitalização de Fachada</SelectItem>
-                        <SelectItem value="OS 03: Reforço Estrutural">OS 03: Reforço Estrutural</SelectItem>
-                        <SelectItem value="OS 04: Outros">OS 04: Outros</SelectItem>
+                        {OS_TYPES.map((tipo) => (
+                          <SelectItem key={tipo.value} value={tipo.value}>
+                            {tipo.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1220,7 +1207,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                           id="visitaRealizada"
                           checked={etapa5Data.visitaRealizada}
                           onCheckedChange={(checked: boolean) => {
-                            setEtapa5Data((prev: any) => ({ ...prev, visitaRealizada: checked }));
+                            setEtapa5Data((prev: Etapa5Data) => ({ ...prev, visitaRealizada: checked }));
                           }}
                         />
                         <Label htmlFor="visitaRealizada" className="cursor-pointer">
@@ -1314,53 +1301,13 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>5. Anexar fotos do sistema de ancoragem</Label>
-                      <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Clique para selecionar ou arraste fotos aqui
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Múltiplos arquivos permitidos • Você poderá adicionar comentários após o upload
-                        </p>
-                      </div>
-
-                      {/* Lista de arquivos anexados com comentários */}
-                      {(etapa6Data.fotosAncoragem?.length ?? 0) > 0 && (
-                        <div className="mt-4 space-y-2">
-                          {etapa6Data.fotosAncoragem.map((item: any, index: number) => (
-                            <div key={index} className="border border-neutral-200 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <File className="h-4 w-4 text-primary" />
-                                  <span className="text-sm">{item.file.name}</span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newFiles = etapa6Data.fotosAncoragem.filter((_: any, i: number) => i !== index);
-                                    setEtapa6Data({ ...etapa6Data, fotosAncoragem: newFiles });
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <Input
-                                placeholder="Adicionar comentário..."
-                                value={item.comment}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                  const newFiles = [...etapa6Data.fotosAncoragem];
-                                  newFiles[index].comment = e.target.value;
-                                  setEtapa6Data({ ...etapa6Data, fotosAncoragem: newFiles });
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <FileUploadSection
+                      label="5. Anexar fotos do sistema de ancoragem"
+                      files={etapa6Data.fotosAncoragem || []}
+                      onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, fotosAncoragem: files })}
+                      accept="image/*"
+                      disabled={isHistoricalNavigation}
+                    />
                   </div>
 
                   <Separator />
@@ -1442,53 +1389,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label>10. Anexar Arquivos (Fotos gerais, croquis, etc)</Label>
-                      <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-                        <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          Clique para selecionar ou arraste arquivos aqui
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Múltiplos arquivos permitidos • Você poderá adicionar comentários após o upload
-                        </p>
-                      </div>
-
-                      {/* Lista de arquivos anexados com comentários */}
-                      {(etapa6Data.arquivosGerais?.length ?? 0) > 0 && (
-                        <div className="mt-4 space-y-2">
-                          {etapa6Data.arquivosGerais.map((item: any, index: number) => (
-                            <div key={index} className="border border-neutral-200 rounded-lg p-3">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <File className="h-4 w-4 text-primary" />
-                                  <span className="text-sm">{item.file.name}</span>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => {
-                                    const newFiles = etapa6Data.arquivosGerais.filter((_: any, i: number) => i !== index);
-                                    setEtapa6Data({ ...etapa6Data, arquivosGerais: newFiles });
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              <Input
-                                placeholder="Adicionar comentário..."
-                                value={item.comment}
-                                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                                  const newFiles = [...etapa6Data.arquivosGerais];
-                                  newFiles[index].comment = e.target.value;
-                                  setEtapa6Data({ ...etapa6Data, arquivosGerais: newFiles });
-                                }}
-                              />
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <FileUploadSection
+                      label="10. Anexar Arquivos (Fotos gerais, croquis, etc)"
+                      files={etapa6Data.arquivosGerais || []}
+                      onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, arquivosGerais: files })}
+                      disabled={isHistoricalNavigation}
+                    />
                   </div>
                 </div>
               )}
@@ -1795,12 +1701,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
             {/* Footer com botões de navegação */}
             <WorkflowFooter
               currentStep={currentStep}
-              totalSteps={steps.length}
+              totalSteps={TOTAL_WORKFLOW_STEPS}
               onPrevStep={handlePrevStep}
               onNextStep={handleNextStep}
               nextButtonText="Avançar"
               onSaveDraft={handleSaveRascunho}
-              showDraftButton={[3, 6, 7, 8].includes(currentStep)} // Mostrar apenas em etapas com formulários extensos
+              showDraftButton={DRAFT_ENABLED_STEPS.includes(currentStep)}
               disableNext={isLoading}
               isLoading={isCreatingOS}
               loadingText={currentStep === 2 ? 'Criando OS no Supabase...' : 'Processando...'}

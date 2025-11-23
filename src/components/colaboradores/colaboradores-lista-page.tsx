@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Loader2 } from 'lucide-react';
 import {
   Plus,
   Search,
@@ -17,97 +19,53 @@ import {
   UserX,
 } from 'lucide-react';
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
+import { colaboradoresAPI } from '../../lib/api-client';
+import { toast } from 'sonner';
 
 interface Colaborador {
   id: string;
-  nome: string;
-  cpf: string;
-  email: string;
-  telefone: string;
-  funcao: string;
-  setor: 'obras' | 'administrativo' | 'assessoria' | 'diretoria';
-  tipoContratacao: 'CLT' | 'CONTRATO' | 'PROLABORE';
-  custoDia: number;
-  status: 'ATIVO' | 'INATIVO';
-  dataAdmissao: string;
+  nome_completo: string;
+  cpf: string | null;
+  email: string | null;
+  telefone: string | null;
+  cargo_id: string | null;
+  setor: string | null;
+  tipo_contratacao: string | null;
+  custo_dia: number | null;
+  ativo: boolean;
+  data_admissao: string | null;
+  cargos?: { nome: string } | null;
+  setores?: { nome: string } | null;
 }
 
-// Mock data
-const mockColaboradores: Colaborador[] = [
-  {
-    id: 'col-1',
-    nome: 'João Silva',
-    cpf: '123.456.789-00',
-    email: 'joao.silva@minerva.com',
-    telefone: '(11) 98765-4321',
-    funcao: 'COORDENADOR DE OBRAS',
-    setor: 'obras',
-    tipoContratacao: 'CLT',
-    custoDia: 280.50,
-    status: 'ATIVO',
-    dataAdmissao: '2023-01-15',
-  },
-  {
-    id: 'col-2',
-    nome: 'Maria Santos',
-    cpf: '987.654.321-00',
-    email: 'maria.santos@minerva.com',
-    telefone: '(11) 91234-5678',
-    funcao: 'ANALISTA ADMINISTRATIVO',
-    setor: 'administrativo',
-    tipoContratacao: 'CLT',
-    custoDia: 150.00,
-    status: 'ATIVO',
-    dataAdmissao: '2023-03-10',
-  },
-  {
-    id: 'col-3',
-    nome: 'Pedro Oliveira',
-    cpf: '456.789.123-00',
-    email: 'pedro.oliveira@minerva.com',
-    telefone: '(11) 97777-8888',
-    funcao: 'ENGENHEIRO CIVIL',
-    setor: 'assessoria',
-    tipoContratacao: 'CONTRATO',
-    custoDia: 450.00,
-    status: 'ATIVO',
-    dataAdmissao: '2023-06-01',
-  },
-  {
-    id: 'col-4',
-    nome: 'Ana Costa',
-    cpf: '321.654.987-00',
-    email: 'ana.costa@minerva.com',
-    telefone: '(11) 98765-9876',
-    funcao: 'COORDENADOR ADMINISTRATIVO',
-    setor: 'ADM',
-    tipoContratacao: 'CLT',
-    custoDia: 320.00,
-    status: 'ATIVO',
-    dataAdmissao: '2022-11-20',
-  },
-  {
-    id: 'col-5',
-    nome: 'Carlos Mendes',
-    cpf: '654.321.789-00',
-    email: 'carlos.mendes@example.com',
-    telefone: '(11) 98765-4567',
-    funcao: 'COLABORADOR OBRA',
-    setor: 'OBRAS',
-    tipoContratacao: 'CONTRATO',
-    custoDia: 110.00,
-    status: 'INATIVO',
-    dataAdmissao: '2023-02-05',
-  },
-];
-
 export function ColaboradoresListaPage() {
-  const [colaboradores, setColaboradores] = useState<Colaborador[]>(mockColaboradores);
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
   const [setorFilter, setSetorFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [colaboradorEdicao, setColaboradorEdicao] = useState<Colaborador | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const [modalCadastroOpen, setModalCadastroOpen] = useState(false);
+
+  // Buscar colaboradores da API
+  useEffect(() => {
+    async function fetchColaboradores() {
+      try {
+        setLoading(true);
+        const data = await colaboradoresAPI.list();
+        setColaboradores(data);
+      } catch (error) {
+        console.error('Erro ao buscar colaboradores:', error);
+        toast.error('Erro ao carregar colaboradores', {
+          description: 'Não foi possível carregar a lista de colaboradores.',
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchColaboradores();
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -124,12 +82,17 @@ export function ColaboradoresListaPage() {
   };
 
   const colaboradoresFiltrados = colaboradores.filter((colaborador) => {
-    const matchesSearch = colaborador.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-      colaborador.email.toLowerCase().includes(filtro.toLowerCase()) ||
-      colaborador.cpf.includes(filtro);
+    const matchesSearch =
+      colaborador.nome_completo?.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.email?.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.cpf?.includes(filtro);
 
-    const matchesSetor = setorFilter === 'todos' || colaborador.setor.toLowerCase() === setorFilter.toLowerCase();
-    const matchesStatus = statusFilter === 'todos' || colaborador.status.toLowerCase() === statusFilter.toLowerCase();
+    const matchesSetor = setorFilter === 'todos' ||
+      colaborador.setor?.toLowerCase() === setorFilter.toLowerCase();
+
+    const matchesStatus = statusFilter === 'todos' ||
+      (statusFilter === 'ativo' && colaborador.ativo) ||
+      (statusFilter === 'inativo' && !colaborador.ativo);
 
     return matchesSearch && matchesSetor && matchesStatus;
   });
@@ -172,7 +135,7 @@ export function ColaboradoresListaPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total Ativos</p>
             <h3 className="text-2xl text-green-600">
-              {colaboradores.filter((c) => c.status === 'ATIVO').length}
+              {colaboradores.filter((c) => c.ativo).length}
             </h3>
           </CardContent>
         </Card>
@@ -180,7 +143,7 @@ export function ColaboradoresListaPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total Inativos</p>
             <h3 className="text-2xl text-red-600">
-              {colaboradores.filter((c) => c.status === 'INATIVO').length}
+              {colaboradores.filter((c) => !c.ativo).length}
             </h3>
           </CardContent>
         </Card>
@@ -188,11 +151,15 @@ export function ColaboradoresListaPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Custo-Dia Médio</p>
             <h3 className="text-2xl">
-              {formatCurrency(
-                colaboradores
-                  .filter((c) => c.status === 'ATIVO')
-                  .reduce((sum, c) => sum + c.custoDia, 0) /
-                colaboradores.filter((c) => c.status === 'ATIVO').length
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                formatCurrency(
+                  colaboradores
+                    .filter((c) => c.ativo && c.custo_dia)
+                    .reduce((sum, c) => sum + (c.custo_dia || 0), 0) /
+                  (colaboradores.filter((c) => c.ativo && c.custo_dia).length || 1)
+                )
               )}
             </h3>
           </CardContent>
@@ -201,10 +168,14 @@ export function ColaboradoresListaPage() {
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Custo-Dia Total</p>
             <h3 className="text-2xl">
-              {formatCurrency(
-                colaboradores
-                  .filter((c) => c.status === 'ATIVO')
-                  .reduce((sum, c) => sum + c.custoDia, 0)
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                formatCurrency(
+                  colaboradores
+                    .filter((c) => c.ativo)
+                    .reduce((sum, c) => sum + (c.custo_dia || 0), 0)
+                )
               )}
             </h3>
           </CardContent>
@@ -255,80 +226,87 @@ export function ColaboradoresListaPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {colaboradoresFiltrados.map((colaborador) => (
-                <TableRow key={colaborador.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{colaborador.nome}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <Mail className="h-3 w-3" />
-                          {colaborador.email}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Briefcase className="h-4 w-4 text-muted-foreground" />
-                      {formatFuncao(colaborador.funcao)}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Building2 className="h-4 w-4 text-muted-foreground" />
-                      {colaborador.setor}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={colaborador.status === 'ATIVO' ? 'success' : 'secondary'}>
-                      {colaborador.status === 'ATIVO' ? 'Ativo' : 'Inativo'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(colaborador.custoDia)}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={colaborador.status === 'ATIVO' ? 'default' : 'destructive'}
-                    >
-                      {colaborador.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditar(colaborador)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      {colaborador.status === 'ATIVO' && (
-                        <Button variant="ghost" size="sm">
-                          <UserX className="h-4 w-4 text-red-600" />
-                        </Button>
-                      )}
-                    </div>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-muted-foreground mt-2">Carregando colaboradores...</p>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : colaboradoresFiltrados.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <p className="text-muted-foreground">
+                      Nenhum colaborador encontrado com os filtros aplicados.
+                    </p>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                colaboradoresFiltrados.map((colaborador) => (
+                  <TableRow key={colaborador.id}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{colaborador.nome_completo}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            {colaborador.email || 'N/A'}
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Briefcase className="h-4 w-4 text-muted-foreground" />
+                        {colaborador.cargos?.nome || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        {colaborador.setores?.nome || colaborador.setor || 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline">
+                        {colaborador.tipo_contratacao || 'N/A'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {colaborador.custo_dia ? formatCurrency(colaborador.custo_dia) : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={colaborador.ativo ? 'default' : 'destructive'}>
+                        {colaborador.ativo ? 'ATIVO' : 'INATIVO'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEditar(colaborador)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        {colaborador.ativo && (
+                          <Button variant="ghost" size="sm">
+                            <UserX className="h-4 w-4 text-red-600" />
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
-
-          {colaboradoresFiltrados.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Nenhum colaborador encontrado com os filtros aplicados.
-              </p>
-            </div>
-          )}
         </CardContent>
       </Card>
 

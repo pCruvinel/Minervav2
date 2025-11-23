@@ -86,24 +86,32 @@ export function OSListPage({ currentUser }: OSListPageProps) {
     primeiras_3_OS: ordensServicoFromAPI?.slice(0, 3)
   });
 
-  // Filtrar OS baseado em RLS (Role-Level Security)
+  // Filtrar OS baseado em filtros de UI
+  // NOTA: A segurança real (RLS) é aplicada no banco de dados via Supabase Row Level Security
+  // Este código é apenas para filtros de UI e fallback de exibição
   const ordensServico = useMemo(() => {
     let filtered = error ? [...mockOrdensServico] : [...(ordensServicoFromAPI || [])];
 
-    console.log('🔍 [FILTROS-DEBUG] Antes dos filtros RLS:', filtered.length);
+    console.log('🔍 [FILTROS-DEBUG] Total de OS recebidas:', filtered.length);
 
-    // Aplicar RLS baseado no papel do usuário
+    // IMPORTANTE: O RLS do banco já filtra os dados na origem
+    // A lógica abaixo é apenas fallback/filtro adicional de UI
+    // Regras RLS reais estão em: docs/technical/Manual de Permissões e Controle de Acesso.md
     if (currentUser.role_nivel === 'colaborador') {
-      // Colaborador vê apenas suas próprias OS
-      filtered = filtered.filter(os => os.responsavel.id === currentUser.id);
-      console.log(`🔍 [RLS-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
-    } else if (currentUser.role_nivel?.startsWith('gestor')) {
-      // Gestor vê apenas OS do seu setor
-      filtered = filtered.filter(os => os.tipo_os_nome.toLowerCase().includes(currentUser.setor || ''));
-      console.log(`🔍 [RLS-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
+      // Colaborador: RLS do banco já filtra (os_read_own_assigned)
+      // Fallback: garantir que só vê suas próprias OS
+      filtered = filtered.filter(os => os.responsavel?.id === currentUser.id);
+      console.log(`🔍 [FILTRO-UI-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
+    } else if (currentUser.role_nivel?.startsWith('gestor') && currentUser.role_nivel !== 'gestor_administrativo') {
+      // Gestores Setoriais: RLS do banco filtra por setor (agendamentos_gestor_setor)
+      // Fallback: filtrar por setor no frontend
+      if (currentUser.setor) {
+        filtered = filtered.filter(os => os.setor_nome?.toLowerCase().includes(currentUser.setor?.toLowerCase() || ''));
+      }
+      console.log(`🔍 [FILTRO-UI-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
     }
-    // Diretoria e Gestor ADM veem todas
-    console.log(`🔍 [RLS] Role: ${currentUser.role_nivel}, OS após RLS: ${filtered.length}`);
+    // Gestor Administrativo, Diretoria e Admin: RLS permite ver tudo
+    console.log(`🔍 [FILTRO-UI] Role: ${currentUser.role_nivel}, OS após filtros: ${filtered.length}`);
 
     // Aplicar filtros de busca
     if (searchTerm) {
@@ -159,7 +167,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   const handleCancelOS = async (osId: string) => {
     setIsCancelling(true);
     try {
-      await ordensServicoAPI.update(osId, { status_geral: 'CANCELADA' });
+      await ordensServicoAPI.update(osId, { status_geral: 'cancelado' });
       toast.success('OS cancelada com sucesso!');
       refetch(); // Recarregar a lista
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -12,11 +12,28 @@ interface LoginPageProps {
 }
 
 export function LoginPage({ onLoginSuccess }: LoginPageProps) {
-  const { login } = useAuth();
+  const { login, currentUser, isLoading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
+  const isLoggingInRef = useRef(false); // Flag para saber se estamos fazendo login
+
+  // ✅ FIX: Monitorar quando o usuário está pronto após login e navegar
+  useEffect(() => {
+    // Se estamos logando E o auth terminou de carregar E temos um usuário
+    if (isLoggingInRef.current && !authLoading && currentUser) {
+      console.log('[LoginPage] Usuário pronto, redirecionando...');
+      toast.success("Login realizado com sucesso!");
+      isLoggingInRef.current = false;
+      setIsLoading(false);
+
+      // Navegar após o usuário estar pronto
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      }
+    }
+  }, [authLoading, currentUser, onLoginSuccess]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,25 +50,23 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
     }
 
     setIsLoading(true);
+    isLoggingInRef.current = true; // Marca que estamos fazendo login
 
     try {
       const success = await login(email, password);
 
-      if (success) {
-        toast.success("Login realizado com sucesso!");
-
-        // Chamar callback de sucesso se fornecido
-        if (onLoginSuccess) {
-          onLoginSuccess();
-        }
-      } else {
+      if (!success) {
+        // Login falhou (credenciais inválidas)
         toast.error("Email ou senha inválidos");
         setIsLoading(false);
+        isLoggingInRef.current = false;
       }
+      // ✅ Se sucesso, o useEffect acima vai lidar com o redirecionamento quando currentUser estiver pronto
     } catch (error) {
       console.error("Erro ao fazer login:", error);
       toast.error("Erro ao fazer login. Tente novamente.");
       setIsLoading(false);
+      isLoggingInRef.current = false;
     }
   };
 

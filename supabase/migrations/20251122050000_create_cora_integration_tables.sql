@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS cora_boletos (
   -- Valores e datas
   valor INTEGER NOT NULL CHECK (valor > 0), -- Valor em centavos
   vencimento DATE NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('PENDENTE', 'PAGO', 'CANCELADO', 'EXPIRADO')),
+  status TEXT NOT NULL CHECK (status IN ('pendente', 'pago', 'cancelado', 'expirado')),
 
   -- Informações do documento
   numero_documento TEXT NOT NULL, -- Ex: OS-2024-001
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS cora_webhook_events (
 
   -- Processamento
   processed_at TIMESTAMPTZ NOT NULL,
-  processing_status TEXT DEFAULT 'SUCCESS' CHECK (processing_status IN ('SUCCESS', 'FAILED', 'PENDING')),
+  processing_status TEXT DEFAULT 'success' CHECK (processing_status IN ('success', 'failed', 'pending')),
   processing_error TEXT, -- Mensagem de erro se falhou
 
   -- Relacionamento (se aplicável)
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS cora_extrato_cache (
 
   -- Dados da transação
   data TIMESTAMPTZ NOT NULL,
-  tipo TEXT NOT NULL CHECK (tipo IN ('ENTRADA', 'SAIDA')),
+  tipo TEXT NOT NULL CHECK (tipo IN ('entrada', 'saida')),
   descricao TEXT NOT NULL,
   valor INTEGER NOT NULL, -- Valor em centavos
   saldo INTEGER NOT NULL, -- Saldo após a transação

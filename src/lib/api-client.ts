@@ -181,11 +181,67 @@ export const ordensServicoAPI = {
 
 export const tiposOSAPI = {
   // Listar todos os tipos de OS
-  list: () => 
+  list: () =>
     apiRequest<any[]>('/tipos-os'),
+};
+
+// ==================== COLABORADORES API ====================
+
+export const colaboradoresAPI = {
+  // Listar todos os colaboradores
+  list: (filters?: { setor?: string; ativo?: boolean }) =>
+    apiRequest<any[]>('/colaboradores', { params: filters as any }),
+
+  // Buscar colaborador por ID
+  getById: (id: string) =>
+    apiRequest<any>(`/colaboradores/${id}`),
+
+  // Listar colaboradores por setor
+  getBySetor: (setor: string) =>
+    apiRequest<any[]>('/colaboradores', { params: { setor } }),
+
+  // Listar colaboradores ativos
+  getAtivos: () =>
+    apiRequest<any[]>('/colaboradores', { params: { ativo: 'true' } }),
+
+  // Criar colaborador
+  create: (data: any) =>
+    apiRequest<any>('/colaboradores', { method: 'POST', body: data }),
+
+  // Atualizar colaborador
+  update: (id: string, data: any) =>
+    apiRequest<any>(`/colaboradores/${id}`, { method: 'PUT', body: data }),
+};
+
+// ==================== SETORES API ====================
+
+export const setoresAPI = {
+  // Listar todos os setores
+  list: () =>
+    apiRequest<any[]>('/setores'),
+
+  // Buscar setor por ID
+  getById: (id: string) =>
+    apiRequest<any>(`/setores/${id}`),
+};
+
+// ==================== CARGOS API ====================
+
+export const cargosAPI = {
+  // Listar todos os cargos
+  list: () =>
+    apiRequest<any[]>('/cargos'),
+
+  // Buscar cargo por ID
+  getById: (id: string) =>
+    apiRequest<any>(`/cargos/${id}`),
+
+  // Buscar cargo por slug
+  getBySlug: (slug: string) =>
+    apiRequest<any>(`/cargos/slug/${slug}`),
 };
 
 // ==================== HEALTH CHECK ====================
 
-export const healthCheck = () => 
+export const healthCheck = () =>
   apiRequest<{ status: string }>('/health');

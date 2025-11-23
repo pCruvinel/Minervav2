@@ -17,8 +17,8 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
           *,
           clientes (*),
           colaboradores:responsavel_id (*),
-          tipos_os (*),
-          os_etapas!os_id (*)
+          tipos_os (*, setores:setor_padrao_id(*)),
+          os_etapas (*)
         `)
         .order('data_entrada', { ascending: false });
 
@@ -28,7 +28,7 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
 
       // Filtro por tipo (precisaria filtrar na relação, mas por enquanto vamos filtrar no client se necessário ou ajustar query)
       // Supabase suporta filtro em relação: !inner join
-      
+
       const { data, error } = await query;
       if (error) throw error;
       return data;
@@ -43,25 +43,32 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
     }
   );
 
-  // Transformar dados da API para formato local
+  // Transformar dados da API adicionando campos de joins para OrdemServico
   const ordensServico = useMemo(() => {
     if (!data) return [];
 
     return data.map((os: any) => ({
-      id: os.id,
-      codigo: os.codigo_os,
-      titulo: os.descricao || `${os.tipos_os?.nome || 'Ordem de Serviço'}`,
-      status: normalizeStatusOS(os.status_geral),
-      cliente: {
+      // Campos diretos do banco
+      ...os,
+      // Campos adicionais de joins (para interface OrdemServico)
+      cliente_nome: os.clientes?.nome_razao_social || 'Cliente não informado',
+      tipo_os_nome: os.tipos_os?.nome || 'Tipo não informado',
+      responsavel_nome: os.colaboradores?.nome_completo || 'Não atribuído',
+      setor_nome: os.tipos_os?.setores?.nome || os.tipos_os?.setores?.slug || '-',
+      // Campos legados para compatibilidade
+      codigo: os.codigo_os, // Legado
+      titulo: os.descricao || `${os.tipos_os?.nome || 'Ordem de Serviço'}`, // Legado
+      status: normalizeStatusOS(os.status_geral), // Legado
+      cliente: { // Legado
         id: os.clientes?.id || '',
         nome: os.clientes?.nome_razao_social || 'Cliente não informado'
       },
-      tipoOS: {
+      tipoOS: { // Legado
         id: os.tipos_os?.codigo?.replace('OS-', '') || '',
         nome: os.tipos_os?.nome || 'Tipo não informado',
-        setor: normalizeSetorOS(os.tipos_os?.setor_padrao)
+        setor: normalizeSetorOS(os.tipos_os?.setores?.slug)
       },
-      responsavel: os.colaboradores ? {
+      responsavel: os.colaboradores ? { // Legado
         id: os.colaboradores.id,
         nome: os.colaboradores.nome_completo,
         avatar: getInitials(os.colaboradores.nome_completo)
@@ -71,11 +78,9 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
         avatar: 'NA'
       },
       etapaAtual: getEtapaAtual(os.os_etapas || []),
-      dataInicio: os.data_entrada ? new Date(os.data_entrada).toISOString().split('T')[0] : '',
-      dataPrazo: os.data_prazo ? new Date(os.data_prazo).toISOString().split('T')[0] : '',
-      criadoEm: new Date(os.data_entrada).toISOString().split('T')[0],
-      // Dados originais da API
-      _original: os
+      dataInicio: os.data_entrada ? new Date(os.data_entrada).toISOString().split('T')[0] : '', // Legado
+      dataPrazo: os.data_prazo ? new Date(os.data_prazo).toISOString().split('T')[0] : '', // Legado
+      criadoEm: new Date(os.data_entrada).toISOString().split('T')[0], // Legado
     }));
   }, [data]);
 

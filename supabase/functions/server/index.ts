@@ -1,8 +1,3 @@
-import { Hono } from "npm:hono";
-import { cors } from "npm:hono/cors";
-import { logger } from "npm:hono/logger";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-
 const app = new Hono();
 
 // Enable logger
@@ -31,103 +26,113 @@ const getSupabaseClient = () => {
 // Helper: Normalizar status de etapa para corresponder ao enum do Postgres
 const normalizeEtapaStatus = (status: string | undefined): string | undefined => {
   if (!status) return status;
-  
+
   // Remover acentos
-  const removeAccents = (str: string) => 
+  const removeAccents = (str: string) =>
     str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // Converter para o padrão: MAIÚSCULAS + SNAKE_CASE
+
+  // Converter para o padrão: lowercase + snake_case
   const normalized = removeAccents(status)
-    .toUpperCase()
+    .toLowerCase()
     .trim()
     .replace(/\s+/g, '_');
-  
+
   // Valores válidos do enum os_etapa_status
   const validValues = [
-    'PENDENTE',
-    'EM_ANDAMENTO',
-    'AGUARDANDO_APROVACAO',
-    'APROVADA',
-    'REJEITADA'
+    'pendente',
+    'em_andamento',
+    'aguardando_aprovacao',
+    'aprovada',
+    'rejeitada'
   ];
-  
+
   // Se já está no formato correto, retornar
   if (validValues.includes(normalized)) {
     return normalized;
   }
-  
+
   // Mapeamento de valores antigos para novos
   const legacyMap: Record<string, string> = {
-    'CONCLUIDA': 'APROVADA', // Etapa concluída = aprovada
-    'REPROVADA': 'REJEITADA',
+    'concluida': 'aprovada', // Etapa concluída = aprovada
+    'reprovada': 'rejeitada',
   };
-  
+
   return legacyMap[normalized] || normalized;
 };
 
 // Helper: Normalizar status geral de OS para corresponder ao enum do Postgres
 const normalizeOsStatusGeral = (status: string | undefined): string | undefined => {
   if (!status) return status;
-  
+
   // Remover acentos
-  const removeAccents = (str: string) => 
+  const removeAccents = (str: string) =>
     str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // Converter para o padrão: MAIÚSCULAS + SNAKE_CASE
+
+  // Converter para o padrão: lowercase + snake_case
   const normalized = removeAccents(status)
-    .toUpperCase()
+    .toLowerCase()
     .trim()
     .replace(/\s+/g, '_');
-  
+
   // Valores válidos do enum os_status_geral
   const validValues = [
-    'EM_TRIAGEM',
-    'AGUARDANDO_INFORMACOES',
-    'EM_ANDAMENTO',
-    'EM_VALIDACAO',
-    'ATRASADA',
-    'CONCLUIDA',
-    'CANCELADA'
+    'em_triagem',
+    'aguardando_informacoes',
+    'em_andamento',
+    'em_validacao',
+    'atrasada',
+    'concluida',
+    'cancelada'
   ];
-  
+
   // Se já está no formato correto, retornar
   if (validValues.includes(normalized)) {
     return normalized;
   }
-  
+
   // Mapeamento de valores antigos para novos
   const legacyMap: Record<string, string> = {
-    'AGUARDANDO_APROVACAO': 'EM_VALIDACAO',
-    'PAUSADA': 'EM_ANDAMENTO', // Status "Pausada" não existe mais
+    'aguardando_aprovacao': 'em_validacao',
+    'pausada': 'em_andamento', // Status "Pausada" não existe mais
   };
-  
+
   return legacyMap[normalized] || normalized;
 };
 
 // Helper: Normalizar status de cliente para corresponder ao enum do Postgres
 const normalizeClienteStatus = (status: string | undefined): string | undefined => {
   if (!status) return status;
-  
+
   // Remover acentos
-  const removeAccents = (str: string) => 
+  const removeAccents = (str: string) =>
     str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // Converter para o padrão: MAIÚSCULAS + SNAKE_CASE
+
+  // Converter para o padrão: lowercase + snake_case
   const normalized = removeAccents(status)
-    .toUpperCase()
+    .toLowerCase()
     .trim()
     .replace(/\s+/g, '_');
-  
+
   // Valores válidos do enum cliente_status
   const validValues = [
-    'LEAD',
-    'CLIENTE_ATIVO',
-    'CLIENTE_INATIVO'
+    'lead',
+    'ativo',
+    'inativo'
   ];
-  
+
   // Se já está no formato correto, retornar
   if (validValues.includes(normalized)) {
-});
+    return normalized;
+  }
+
+  // Mapeamento de valores antigos para novos (se necessário)
+  const legacyMap: Record<string, string> = {
+    'cliente_ativo': 'ativo',
+    'cliente_inativo': 'inativo',
+  };
+
+  return legacyMap[normalized] || normalized;
+};
 
 // Debug: Schema reload endpoint
 app.post("/make-server-5ad7fd2c/reload-schema", async (c) => {
@@ -238,10 +243,10 @@ app.get("/make-server-5ad7fd2c/clientes", async (c) => {
       filteredData = data.filter(cliente => {
         // Comparar de forma case-insensitive e ignorando espaços
         const clienteStatus = String(cliente.status || '')
-          .toUpperCase()
+          .toLowerCase()
           .trim()
           .replace(/\s+/g, '_');
-        
+
         return clienteStatus === normalizedStatus;
       });
       
@@ -371,9 +376,9 @@ app.get("/make-server-5ad7fd2c/ordens-servico", async (c) => {
           .eq('os_id', os.id)
           .order('numero_etapa', { ascending: true });
         
-        // Buscar primeira etapa EM_ANDAMENTO ou PENDENTE
-        const etapaAtual = etapas?.find(e => 
-          e.status === 'EM_ANDAMENTO' || e.status === 'PENDENTE'
+        // Buscar primeira etapa em_andamento ou pendente
+        const etapaAtual = etapas?.find(e =>
+          e.status === 'em_andamento' || e.status === 'pendente'
         ) || etapas?.[0];
         
         return {
@@ -671,20 +676,276 @@ app.put("/make-server-5ad7fd2c/etapas/:id", async (c) => {
 app.get("/make-server-5ad7fd2c/tipos-os", async (c) => {
   try {
     const supabase = getSupabaseClient();
-    
+
     const { data, error } = await supabase
       .from('tipos_os')
       .select('*')
       .order('codigo', { ascending: true });
-    
+
     if (error) {
       console.error('Erro ao buscar tipos de OS:', error);
       return c.json({ error: error.message }, 500);
     }
-    
+
     return c.json(data);
   } catch (error) {
     console.error('Erro no endpoint /tipos-os:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// ==================== COLABORADORES ROUTES ====================
+
+// Listar colaboradores com filtros
+app.get("/make-server-5ad7fd2c/colaboradores", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { setor, ativo } = c.req.query();
+
+    console.log('📥 GET /colaboradores - Filtros:', { setor, ativo });
+
+    let query = supabase
+      .from('colaboradores')
+      .select(`
+        *,
+        cargos (*),
+        setores (*)
+      `)
+      .order('nome_completo', { ascending: true });
+
+    // Aplicar filtros
+    if (setor) {
+      query = query.eq('setor', setor);
+    }
+
+    if (ativo !== undefined) {
+      const ativoBoolean = ativo === 'true' || ativo === '1';
+      query = query.eq('ativo', ativoBoolean);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('❌ Erro ao buscar colaboradores:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log(`✅ ${data?.length || 0} colaboradores retornados`);
+    return c.json(data);
+  } catch (error) {
+    console.error('❌ Erro no endpoint /colaboradores:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Buscar colaborador por ID
+app.get("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+
+    const { data, error } = await supabase
+      .from('colaboradores')
+      .select(`
+        *,
+        cargos (*),
+        setores (*)
+      `)
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar colaborador:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /colaboradores/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Criar colaborador
+app.post("/make-server-5ad7fd2c/colaboradores", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const body = await c.req.json();
+
+    console.log('📝 POST /colaboradores - Criando colaborador:', body.nome_completo);
+
+    const { data, error } = await supabase
+      .from('colaboradores')
+      .insert([body])
+      .select(`
+        *,
+        cargos (*),
+        setores (*)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Erro ao criar colaborador:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log('✅ Colaborador criado com sucesso');
+    return c.json(data, 201);
+  } catch (error) {
+    console.error('Erro no endpoint POST /colaboradores:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Atualizar colaborador
+app.put("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+    const body = await c.req.json();
+
+    console.log(`📝 PUT /colaboradores/${id} - Atualizando colaborador`);
+
+    const { data, error } = await supabase
+      .from('colaboradores')
+      .update(body)
+      .eq('id', id)
+      .select(`
+        *,
+        cargos (*),
+        setores (*)
+      `)
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar colaborador:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    console.log('✅ Colaborador atualizado com sucesso');
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint PUT /colaboradores/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// ==================== SETORES ROUTES ====================
+
+// Listar setores
+app.get("/make-server-5ad7fd2c/setores", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('setores')
+      .select('*')
+      .order('nome', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar setores:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /setores:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Buscar setor por ID
+app.get("/make-server-5ad7fd2c/setores/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+
+    const { data, error } = await supabase
+      .from('setores')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar setor:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /setores/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// ==================== CARGOS ROUTES ====================
+
+// Listar cargos
+app.get("/make-server-5ad7fd2c/cargos", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+
+    const { data, error } = await supabase
+      .from('cargos')
+      .select('*')
+      .order('nome', { ascending: true });
+
+    if (error) {
+      console.error('Erro ao buscar cargos:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /cargos:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Buscar cargo por ID
+app.get("/make-server-5ad7fd2c/cargos/:id", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { id } = c.req.param();
+
+    const { data, error } = await supabase
+      .from('cargos')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar cargo:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /cargos/:id:', error);
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
+// Buscar cargo por slug
+app.get("/make-server-5ad7fd2c/cargos/slug/:slug", async (c) => {
+  try {
+    const supabase = getSupabaseClient();
+    const { slug } = c.req.param();
+
+    const { data, error } = await supabase
+      .from('cargos')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (error) {
+      console.error('Erro ao buscar cargo por slug:', error);
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json(data);
+  } catch (error) {
+    console.error('Erro no endpoint /cargos/slug/:slug:', error);
     return c.json({ error: String(error) }, 500);
   }
 });
@@ -776,8 +1037,8 @@ app.post("/make-server-5ad7fd2c/delegacoes", async (c) => {
 
     // Normalizar status da delegação
     const statusNormalizado = body.status_delegacao
-      ? body.status_delegacao.toUpperCase().replace(/\s+/g, '_')
-      : 'PENDENTE';
+      ? body.status_delegacao.toLowerCase().replace(/\s+/g, '_')
+      : 'pendente';
 
     // Preparar dados para inserção
     const delegacaoData = {
@@ -882,7 +1143,7 @@ app.put("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
 
     // Normalizar status se fornecido
     const statusNormalizado = body.status_delegacao
-      ? body.status_delegacao.toUpperCase().replace(/\s+/g, '_')
+      ? body.status_delegacao.toLowerCase().replace(/\s+/g, '_')
       : undefined;
 
     // Preparar dados de atualização
@@ -939,10 +1200,10 @@ app.delete("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
       return c.json({ error: 'Delegação não encontrada' }, 404);
     }
 
-    // Validar se está PENDENTE
-    if (delegacao.status_delegacao !== 'PENDENTE') {
+    // Validar se está pendente
+    if (delegacao.status_delegacao !== 'pendente') {
       return c.json({
-        error: 'Apenas delegações com status PENDENTE podem ser removidas'
+        error: 'Apenas delegações com status pendente podem ser removidas'
       }, 400);
     }
 

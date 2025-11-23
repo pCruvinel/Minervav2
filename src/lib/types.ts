@@ -91,37 +91,54 @@ export interface User {
   pode_aprovar?: boolean;
 }
 
+/**
+ * Interface para Ordem de Serviço
+ *
+ * Campos diretos do banco (tabela ordens_servico):
+ * - id, codigo_os, status_geral, descricao
+ * - cliente_id, tipo_os_id, responsavel_id, criado_por_id, cc_id
+ * - valor_proposta, valor_contrato
+ * - data_entrada, data_prazo, data_conclusao, created_at, updated_at
+ *
+ * Campos vindos de Joins (quando select incluir relacionamentos):
+ * - cliente_nome (via join com clientes.nome_razao_social)
+ * - tipo_os_nome (via join com tipos_os.nome)
+ * - responsavel_nome (via join com colaboradores.nome_completo)
+ * - setor_nome (via join com setores.nome através de tipos_os.setor_padrao_id)
+ */
 export interface OrdemServico {
+  // ========== CAMPOS DIRETOS DO BANCO ==========
   id: string;
   codigo_os: string;
   status_geral: OSStatus;
   descricao: string;
-  
+
   cliente_id: string;
   tipo_os_id: string;
   responsavel_id?: string;
   criado_por_id?: string;
   cc_id?: string;
-  
+
   valor_proposta?: number;
   valor_contrato?: number;
-  
+
   data_entrada?: string;
   data_prazo?: string;
   data_conclusao?: string;
   created_at?: string;
   updated_at?: string;
 
-  // Campos opcionais vindos de Joins (Views)
-  cliente_nome?: string;
-  tipo_os_nome?: string;
-  responsavel_nome?: string;
-  setor_nome?: string;
+  // ========== CAMPOS VINDOS DE JOINS ==========
+  // Estes campos só existem quando a query SELECT inclui os relacionamentos
+  cliente_nome?: string;        // join: clientes.nome_razao_social
+  tipo_os_nome?: string;         // join: tipos_os.nome
+  responsavel_nome?: string;     // join: colaboradores.nome_completo
+  setor_nome?: string;           // join: setores.nome (via tipos_os.setor_padrao_id)
 
-  // Campos para compatibilidade com código legado
-  setor?: string;
-  delegada_para_id?: string;
-  responsavel?: User;
+  // ========== CAMPOS LEGADOS (COMPATIBILIDADE) ==========
+  setor?: string;                // Legado: substituído por setor_nome
+  delegada_para_id?: string;     // Legado: usar tabela delegacoes
+  responsavel?: User;            // Legado: usar responsavel_id + join
 }
 
 export interface Delegacao {

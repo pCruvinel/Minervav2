@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
@@ -149,7 +149,10 @@ export function ModalAtualizarCronograma({
             {/* Novo Status do Cronograma */}
             <div className="space-y-2">
               <Label htmlFor="status">Status do Cronograma *</Label>
-              <Select value={novoStatus} onValueChange={setNovoStatus}>
+              <Select
+                value={novoStatus}
+                onValueChange={(value) => setNovoStatus(value as "NO_PRAZO" | "ATENCAO" | "ATRASADO")}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>

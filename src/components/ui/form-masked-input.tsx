@@ -5,7 +5,7 @@ import { Label } from './label';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from './utils';
 
-export type MaskType = 'telefone' | 'cpf' | 'cnpj' | 'cpf-cnpj' | 'cep';
+export type MaskType = 'telefone' | 'celular' | 'cpf' | 'cnpj' | 'cpf-cnpj' | 'cep';
 
 export interface FormMaskedInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   label?: string;
@@ -27,6 +27,7 @@ const MASKS: Record<MaskType, string | ((value: string) => string)> = {
     // (99) 9999-9999 ou (99) 99999-9999
     return cleaned.length <= 10 ? '(99) 9999-99999' : '(99) 99999-9999';
   },
+  celular: '(99) 9 9999-9999',
   cpf: '999.999.999-99',
   cnpj: '99.999.999/9999-99',
   'cpf-cnpj': (value: string) => {
@@ -43,6 +44,7 @@ const MASKS: Record<MaskType, string | ((value: string) => string)> = {
  */
 const PLACEHOLDERS: Record<MaskType, string> = {
   telefone: '(00) 00000-0000',
+  celular: '(00) 0 0000-0000',
   cpf: '000.000.000-00',
   cnpj: '00.000.000/0000-00',
   'cpf-cnpj': 'CPF ou CNPJ',
@@ -95,8 +97,12 @@ export function FormMaskedInput({
   const hasError = !!error;
   const hasSuccess = success && !hasError;
 
-  const mask = MASKS[maskType];
+  const maskDefinition = MASKS[maskType];
   const defaultPlaceholder = PLACEHOLDERS[maskType];
+
+  const mask = typeof maskDefinition === 'function'
+    ? maskDefinition(value)
+    : maskDefinition;
 
   return (
     <div className="space-y-2">

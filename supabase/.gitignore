@@ -1,0 +1,10 @@
+# Supabase CLI temporary files
+.temp/
+.branches/
+
+# Local environment variables
+.env.local
+
+# Generated types (should be regenerated via npm run update-types)
+# Uncomment if you prefer to regenerate types locally instead of committing them
+# functions/**/types.gen.ts

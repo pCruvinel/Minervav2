@@ -141,7 +141,7 @@ Content-Type: application/json
     "urlBoleto": "https://cora.com.br/boletos/bol_abc123.pdf",
     "valor": 15000,
     "vencimento": "2024-02-20",
-    "status": "PENDENTE"
+    "status": "pendente"
   }
 }
 ```
@@ -159,7 +159,7 @@ GET /boleto/{id}
   "data": {
     "id": "bol_abc123",
     "nossoNumero": "00012345678",
-    "status": "PAGO",
+    "status": "pago",
     "valor": 15000,
     "valorPago": 15000,
     "dataPagamento": "2024-02-15T14:30:00Z"
@@ -281,7 +281,7 @@ CREATE TABLE cora_boletos (
   url_boleto TEXT,
   valor INTEGER NOT NULL,
   vencimento DATE NOT NULL,
-  status TEXT NOT NULL CHECK (status IN ('PENDENTE', 'PAGO', 'CANCELADO', 'EXPIRADO')),
+  status TEXT NOT NULL CHECK (status IN ('pendente', 'pago', 'cancelado', 'expirado')),
   numero_documento TEXT NOT NULL,
   pagador_nome TEXT NOT NULL,
   pagador_cpf_cnpj TEXT NOT NULL,
