@@ -10,25 +10,40 @@ import { FormInput } from '@/components/ui/form-input';
 import { FormTextarea } from '@/components/ui/form-textarea';
 import { FormSelect } from '@/components/ui/form-select';
 import { FormMaskedInput, validarTelefone } from '@/components/ui/form-masked-input';
+import { FileUploadSection } from '../../file-upload-section';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { etapa3Schema } from '@/lib/validations/os-etapas-schema';
 
+interface ArquivoComComentario {
+  id: string;
+  name: string;
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
+  comment: string;
+}
+
 interface StepFollowup1Props {
   data: {
-    idadeEdificacao: string;
-    motivoProcura: string;
-    quandoAconteceu: string;
-    oqueFeitoARespeito: string;
-    existeEscopo: string;
-    previsaoOrcamentaria: string;
-    grauUrgencia: string;
-    apresentacaoProposta: string;
-    nomeContatoLocal: string;
-    telefoneContatoLocal: string;
-    cargoContatoLocal: string;
+    anexos?: ArquivoComComentario[];
+    idadeEdificacao?: string;
+    motivoProcura?: string;
+    quandoAconteceu?: string;
+    oqueFeitoARespeito?: string;
+    existeEscopo?: string;
+    previsaoOrcamentaria?: string;
+    grauUrgencia?: string;
+    apresentacaoProposta?: string;
+    nomeContatoLocal?: string;
+    telefoneContatoLocal?: string;
+    cargoContatoLocal?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
+  osId?: string;
+  colaboradorId?: string;
 }
 
 export interface StepFollowup1Handle {
@@ -37,7 +52,22 @@ export interface StepFollowup1Handle {
 }
 
 export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>(
-  function StepFollowup1({ data, onDataChange, readOnly = false }, ref) {
+  function StepFollowup1({ data, onDataChange, readOnly = false, osId, colaboradorId }, ref) {
+    // Ensure data has default values to prevent undefined issues
+    const safeData = {
+      anexos: data.anexos || [],
+      idadeEdificacao: data.idadeEdificacao || '',
+      motivoProcura: data.motivoProcura || '',
+      quandoAconteceu: data.quandoAconteceu || '',
+      oqueFeitoARespeito: data.oqueFeitoARespeito || '',
+      existeEscopo: data.existeEscopo || '',
+      previsaoOrcamentaria: data.previsaoOrcamentaria || '',
+      grauUrgencia: data.grauUrgencia || '',
+      apresentacaoProposta: data.apresentacaoProposta || '',
+      nomeContatoLocal: data.nomeContatoLocal || '',
+      telefoneContatoLocal: data.telefoneContatoLocal || '',
+      cargoContatoLocal: data.cargoContatoLocal || '',
+    };
     // Hook de validação
     const {
       errors,
@@ -47,6 +77,57 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
       markAllTouched,
       validateAll,
     } = useFieldValidation(etapa3Schema);
+
+    // Estado para arquivos pendentes de upload
+    const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
+
+    // Função para realizar upload dos arquivos pendentes
+    const uploadPendingFiles = async (): Promise<ArquivoComComentario[]> => {
+      if (pendingFiles.length === 0) return [];
+
+      if (!osId || !colaboradorId) {
+        console.error('❌ Missing IDs for upload:', { osId, colaboradorId });
+        throw new Error('OS ID e Colaborador ID são necessários para upload');
+      }
+
+      console.log(`🚀 Uploading ${pendingFiles.length} pending files...`);
+
+      // Importar dinamicamente para evitar dependência circular se houver
+      const { uploadFile } = await import('@/lib/utils/supabase-storage');
+
+      const uploadPromises = pendingFiles.map(async (file) => {
+        try {
+          const uploadedFile = await uploadFile({
+            file,
+            osNumero: `os${osId}`,
+            etapa: 'follow-up1',
+            osId,
+            colaboradorId,
+          });
+
+          return {
+            id: uploadedFile.id,
+            name: uploadedFile.name,
+            url: uploadedFile.url,
+            path: uploadedFile.path,
+            size: uploadedFile.size,
+            type: uploadedFile.type,
+            uploadedAt: uploadedFile.uploadedAt,
+            comment: '', // Comentário inicial vazio
+          } as ArquivoComComentario;
+        } catch (error) {
+          console.error(`❌ Error uploading file ${file.name}:`, error);
+          return null;
+        }
+      });
+
+      const newUploadedFiles = (await Promise.all(uploadPromises)).filter(Boolean) as ArquivoComComentario[];
+
+      // Limpar arquivos pendentes após upload
+      setPendingFiles([]);
+
+      return newUploadedFiles;
+    };
 
     /**
      * Função de validação exposta via imperativeHandle
@@ -78,8 +159,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
       isFormValid: () => {
         // Valida silenciosamente sem marcar campos como tocados
         return validateAll(data);
+      },
+      uploadPendingFiles: async () => {
+        return await uploadPendingFiles();
       }
-    }), [markAllTouched, validateAll, data, errors]);
+    }), [markAllTouched, validateAll, data, errors, pendingFiles, osId, colaboradorId]);
 
     return (
       <div className="space-y-6">
@@ -95,16 +179,19 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             id="idadeEdificacao"
             label="1. Qual a idade da edificação?"
             required
-            value={data.idadeEdificacao}
+            value={safeData.idadeEdificacao}
             onValueChange={(value) => {
               if (!readOnly) {
-                onDataChange({ ...data, idadeEdificacao: value });
+                // Merge with safeData to ensure we don't lose other fields
+                const newData = { ...safeData, idadeEdificacao: value };
+                console.log('📝 Updating idadeEdificacao:', value, newData);
+                onDataChange(newData);
                 if (touched.idadeEdificacao) validateField('idadeEdificacao', value);
                 markFieldTouched('idadeEdificacao');
               }
             }}
             error={touched.idadeEdificacao ? errors.idadeEdificacao : undefined}
-            success={touched.idadeEdificacao && !errors.idadeEdificacao && data.idadeEdificacao.length > 0}
+            success={touched.idadeEdificacao && !errors.idadeEdificacao && safeData.idadeEdificacao.length > 0}
             helperText="Selecione a idade aproximada da edificação"
             placeholder="Selecione"
             disabled={readOnly}
@@ -125,10 +212,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={4}
             maxLength={500}
             showCharCount
-            value={data.motivoProcura}
+            value={safeData.motivoProcura}
             onChange={(e) => {
               if (!readOnly) {
-                onDataChange({ ...data, motivoProcura: e.target.value });
+                const newData = { ...safeData, motivoProcura: e.target.value };
+                onDataChange(newData);
                 if (touched.motivoProcura) validateField('motivoProcura', e.target.value);
               }
             }}
@@ -139,7 +227,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.motivoProcura ? errors.motivoProcura : undefined}
-            success={touched.motivoProcura && !errors.motivoProcura && data.motivoProcura.length >= 10}
+            success={touched.motivoProcura && !errors.motivoProcura && safeData.motivoProcura.length >= 10}
             helperText="Mínimo 10 caracteres - Descreva os problemas e motivações"
             placeholder="Descreva os problemas e motivações..."
             disabled={readOnly}
@@ -152,10 +240,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={3}
             maxLength={300}
             showCharCount
-            value={data.quandoAconteceu}
+            value={safeData.quandoAconteceu}
             onChange={(e) => {
               if (!readOnly) {
-                onDataChange({ ...data, quandoAconteceu: e.target.value });
+                const newData = { ...safeData, quandoAconteceu: e.target.value };
+                onDataChange(newData);
                 if (touched.quandoAconteceu) validateField('quandoAconteceu', e.target.value);
               }
             }}
@@ -166,7 +255,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.quandoAconteceu ? errors.quandoAconteceu : undefined}
-            success={touched.quandoAconteceu && !errors.quandoAconteceu && data.quandoAconteceu.length >= 10}
+            success={touched.quandoAconteceu && !errors.quandoAconteceu && safeData.quandoAconteceu.length >= 10}
             helperText="Mínimo 10 caracteres - Descreva o histórico do problema"
             placeholder="Descreva o histórico do problema..."
             disabled={readOnly}
@@ -178,8 +267,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={3}
             maxLength={300}
             showCharCount
-            value={data.oqueFeitoARespeito}
-            onChange={(e) => !readOnly && onDataChange({ ...data, oqueFeitoARespeito: e.target.value })}
+            value={safeData.oqueFeitoARespeito}
+            onChange={(e) => !readOnly && onDataChange({ ...safeData, oqueFeitoARespeito: e.target.value })}
             helperText="Descreva as ações já realizadas (opcional)"
             placeholder="Descreva as ações já realizadas..."
             disabled={readOnly}
@@ -191,8 +280,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={2}
             maxLength={200}
             showCharCount
-            value={data.existeEscopo}
-            onChange={(e) => !readOnly && onDataChange({ ...data, existeEscopo: e.target.value })}
+            value={safeData.existeEscopo}
+            onChange={(e) => !readOnly && onDataChange({ ...safeData, existeEscopo: e.target.value })}
             helperText="Informe se existe documentação prévia (opcional)"
             placeholder="Sim/Não e detalhes..."
             disabled={readOnly}
@@ -204,8 +293,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={2}
             maxLength={200}
             showCharCount
-            value={data.previsaoOrcamentaria}
-            onChange={(e) => !readOnly && onDataChange({ ...data, previsaoOrcamentaria: e.target.value })}
+            value={safeData.previsaoOrcamentaria}
+            onChange={(e) => !readOnly && onDataChange({ ...safeData, previsaoOrcamentaria: e.target.value })}
             helperText="Informe o orçamento disponível (opcional)"
             placeholder="Informe o orçamento disponível..."
             disabled={readOnly}
@@ -215,16 +304,17 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             id="grauUrgencia"
             label="7. Qual o grau de urgência para executar esse serviço?"
             required
-            value={data.grauUrgencia}
+            value={safeData.grauUrgencia}
             onValueChange={(value) => {
               if (!readOnly) {
-                onDataChange({ ...data, grauUrgencia: value });
+                const newData = { ...safeData, grauUrgencia: value };
+                onDataChange(newData);
                 if (touched.grauUrgencia) validateField('grauUrgencia', value);
                 markFieldTouched('grauUrgencia');
               }
             }}
             error={touched.grauUrgencia ? errors.grauUrgencia : undefined}
-            success={touched.grauUrgencia && !errors.grauUrgencia && data.grauUrgencia.length > 0}
+            success={touched.grauUrgencia && !errors.grauUrgencia && safeData.grauUrgencia.length > 0}
             helperText="Selecione o prazo de execução desejado"
             placeholder="Selecione"
             disabled={readOnly}
@@ -242,10 +332,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             rows={3}
             maxLength={300}
             showCharCount
-            value={data.apresentacaoProposta}
+            value={safeData.apresentacaoProposta}
             onChange={(e) => {
               if (!readOnly) {
-                onDataChange({ ...data, apresentacaoProposta: e.target.value });
+                const newData = { ...safeData, apresentacaoProposta: e.target.value };
+                onDataChange(newData);
                 if (touched.apresentacaoProposta) validateField('apresentacaoProposta', e.target.value);
               }
             }}
@@ -256,7 +347,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.apresentacaoProposta ? errors.apresentacaoProposta : undefined}
-            success={touched.apresentacaoProposta && !errors.apresentacaoProposta && data.apresentacaoProposta.length >= 10}
+            success={touched.apresentacaoProposta && !errors.apresentacaoProposta && safeData.apresentacaoProposta.length >= 10}
             helperText="Mínimo 10 caracteres - Resposta do cliente sobre apresentação"
             placeholder="Resposta do cliente..."
             disabled={readOnly}
@@ -271,10 +362,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               id="nomeContatoLocal"
               label="9. Nome (Contato no Local)"
               required
-              value={data.nomeContatoLocal}
+              value={safeData.nomeContatoLocal}
               onChange={(e) => {
                 if (!readOnly) {
-                  onDataChange({ ...data, nomeContatoLocal: e.target.value });
+                  const newData = { ...safeData, nomeContatoLocal: e.target.value };
+                  onDataChange(newData);
                   if (touched.nomeContatoLocal) validateField('nomeContatoLocal', e.target.value);
                 }
               }}
@@ -285,7 +377,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 }
               }}
               error={touched.nomeContatoLocal ? errors.nomeContatoLocal : undefined}
-              success={touched.nomeContatoLocal && !errors.nomeContatoLocal && data.nomeContatoLocal.length >= 3}
+              success={touched.nomeContatoLocal && !errors.nomeContatoLocal && safeData.nomeContatoLocal.length >= 3}
               helperText="Mínimo 3 caracteres"
               placeholder="Nome completo"
               disabled={readOnly}
@@ -296,10 +388,11 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               label="10. Contato (Celular)"
               required
               maskType="celular"
-              value={data.telefoneContatoLocal}
+              value={safeData.telefoneContatoLocal}
               onChange={(e) => {
                 if (!readOnly) {
-                  onDataChange({ ...data, telefoneContatoLocal: e.target.value });
+                  const newData = { ...safeData, telefoneContatoLocal: e.target.value };
+                  onDataChange(newData);
                   if (touched.telefoneContatoLocal) validateField('telefoneContatoLocal', e.target.value);
                 }
               }}
@@ -310,7 +403,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 }
               }}
               error={touched.telefoneContatoLocal ? errors.telefoneContatoLocal : undefined}
-              success={touched.telefoneContatoLocal && !errors.telefoneContatoLocal && validarTelefone(data.telefoneContatoLocal)}
+              success={touched.telefoneContatoLocal && !errors.telefoneContatoLocal && validarTelefone(safeData.telefoneContatoLocal)}
               helperText="Digite com DDD"
               placeholder="(00) 0 0000-0000"
               disabled={readOnly}
@@ -321,7 +414,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 id="cargoContatoLocal"
                 label="11. Cargo (Contato no Local)"
                 value={data.cargoContatoLocal}
-                onChange={(e) => !readOnly && onDataChange({ ...data, cargoContatoLocal: e.target.value })}
+                onChange={(e) => !readOnly && onDataChange({ ...safeData, cargoContatoLocal: e.target.value })}
                 helperText="Cargo ou função da pessoa no local (opcional)"
                 placeholder="Ex: Síndico, Zelador, Gerente..."
                 disabled={readOnly}
@@ -331,18 +424,20 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
 
           <Separator />
 
-          <div className="space-y-2">
-            <Label>Anexar Arquivos (escopo, laudo, fotos)</Label>
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">
-                Clique para selecionar ou arraste arquivos aqui
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                PDF, DOC, JPG, PNG - Máx. 10MB por arquivo
-              </p>
-            </div>
-          </div>
+          <FileUploadSection
+            label="Anexar Arquivos (escopo, laudo, fotos)"
+            files={data.anexos || []}
+            onFilesChange={(files) => {
+              console.log('📁 Updating files:', files);
+              onDataChange({ ...safeData, anexos: files });
+            }}
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            disabled={readOnly}
+            osId={osId}
+            colaboradorId={colaboradorId}
+            pendingFiles={pendingFiles}
+            onPendingFilesChange={setPendingFiles}
+          />
         </div>
       </div>
     );

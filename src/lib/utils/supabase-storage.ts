@@ -103,8 +103,8 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
   // Gerar nome do arquivo
   const fileName = generateFileName(osId, colaboradorId, fileId, extension);
   
-  // Caminho completo no bucket: uploads/os1/follow-up1/dd-mm-yy-osId-colaboradorId-fileId.ext
-  const filePath = `${osNumero}/${etapa}/${fileName}`;
+  // Caminho completo no bucket: uploads/os{numero}/follow-up1/dd-mm-yy-osId-colaboradorId-fileId.ext
+  const filePath = `${osNumero}/follow-up1/${fileName}`;
   
   try {
     console.log(`📤 Uploading file to: ${filePath}`);

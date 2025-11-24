@@ -13,12 +13,13 @@
   - Pull Schema: `npx supabase db pull`
   - Status: `npx supabase status`
   - **Update Types**: `npm run update-types` (Sempre rode após alterar o banco)
+    - Requer: Docker Desktop rodando OU login no Supabase CLI (`npx supabase login`)
+    - Alternativa local: `npm run update-types:local` (requer Docker Desktop)
 
 ## 🏗 Stack Tecnológica (Produção)
 - **Frontend**: React 18.3+, TypeScript, Vite.
 - **Estilização**: Tailwind CSS, Shadcn/UI (em `src/components/ui`).
 - **Roteamento**: **TanStack Router** (File-based em `src/routes`).
-  - ⛔ **Legado**: `react-router-dom` e `src/App.tsx` estão sendo descontinuados.
   - ✅ **Padrão**: Use `src/routes` para todas as novas telas.
 - **Backend**: Supabase (PostgreSQL, Auth, Edge Functions).
 - **State Management**: React Context + Hooks de Data Fetching (`src/lib/hooks`).

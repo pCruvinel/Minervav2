@@ -1,4 +1,4 @@
-import { z } from 'zod';
+simport { z } from 'zod';
 
 /**
  * Schemas de Validação para as 15 Etapas do Workflow OS 01-04
@@ -129,6 +129,7 @@ export const etapa3Schema = z.object({
     tamanho: z.number().optional(),
   }))
     .optional()
+    .nullable()
     .default([])
     .describe('Arquivos anexados (escopo, laudo, fotos)'),
 });
@@ -139,22 +140,33 @@ export type Etapa3Data = z.infer<typeof etapa3Schema>;
 // ETAPA 4: Agendar Visita Técnica
 // ============================================================
 export const etapa4Schema = z.object({
+  dataAgendamento: z.string()
+    .min(1, { message: 'Agendamento é obrigatório' })
+    .describe('Data e horário agendados para a visita técnica'),
+
+  // Campos legados mantidos para compatibilidade
   dataVisita: z.string()
-    .min(1, { message: 'Data da visita é obrigatória' })
-    .describe('Data agendada para a visita técnica'),
+    .optional()
+    .describe('Data agendada para a visita técnica (legado)'),
 
   horaVisita: z.string()
-    .min(1, { message: 'Hora da visita é obrigatória' })
-    .describe('Hora agendada para a visita'),
+    .optional()
+    .describe('Hora agendada para a visita (legado)'),
 
   responsavelVisita: z.string()
-    .min(1, { message: 'Responsável pela visita é obrigatório' })
-    .describe('Nome do profissional que fará a visita'),
+    .optional()
+    .describe('Nome do profissional que fará a visita (legado)'),
 
   observacoes: z.string()
     .optional()
     .describe('Observações adicionais'),
-}).strict();
+}).refine(
+  (data) => data.dataAgendamento || (data.dataVisita && data.horaVisita && data.responsavelVisita),
+  {
+    message: 'Agendamento é obrigatório',
+    path: ['dataAgendamento'],
+  }
+);
 
 export type Etapa4Data = z.infer<typeof etapa4Schema>;
 
@@ -162,25 +174,30 @@ export type Etapa4Data = z.infer<typeof etapa4Schema>;
 // ETAPA 5: Realizar Visita
 // ============================================================
 export const etapa5Schema = z.object({
+  visitaRealizada: z.boolean()
+    .refine((val) => val === true, { message: 'A visita deve ser confirmada como realizada' })
+    .describe('Confirmação de que a visita técnica foi realizada'),
+
+  // Campos legados mantidos para compatibilidade futura
   dataVisitaRealizada: z.string()
-    .min(1, { message: 'Data da visita é obrigatória' })
-    .describe('Data em que a visita foi realizada'),
+    .optional()
+    .describe('Data em que a visita foi realizada (legado)'),
 
   observacoesVisita: z.string()
-    .min(10, { message: 'Observações devem ter pelo menos 10 caracteres' })
-    .describe('Detalhes e observações da visita realizada'),
+    .optional()
+    .describe('Detalhes e observações da visita realizada (legado)'),
 
   fotosVisita: z.array(z.object({
     url: z.string(),
     nome: z.string(),
   }))
-    .min(1, { message: 'Pelo menos uma foto é obrigatória' })
-    .describe('Fotos tiradas durante a visita'),
-}).partial().refine(
-  (data) => data.dataVisitaRealizada && data.observacoesVisita,
+    .optional()
+    .describe('Fotos tiradas durante a visita (legado)'),
+}).refine(
+  (data) => data.visitaRealizada === true,
   {
-    message: 'Data da visita e observações são obrigatórias',
-    path: ['dataVisitaRealizada'],
+    message: 'A visita deve ser confirmada como realizada',
+    path: ['visitaRealizada'],
   }
 );
 
@@ -190,22 +207,87 @@ export type Etapa5Data = z.infer<typeof etapa5Schema>;
 // ETAPA 6: Follow-up 2 (Pós-Visita)
 // ============================================================
 export const etapa6Schema = z.object({
-  dataFollowup: z.string()
-    .min(1, { message: 'Data do follow-up é obrigatória' })
-    .describe('Data do follow-up pós-visita'),
+  // Momento 1: Perguntas Durante a Visita
+  outrasEmpresas: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Há outras empresas realizando visita técnica?'),
 
-  feedback: z.string()
-    .min(10, { message: 'Feedback deve ter pelo menos 10 caracteres' })
-    .describe('Feedback do cliente sobre a visita'),
+  comoEsperaResolver: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Como você espera resolver esse problema?'),
 
-  proximosPassos: z.string()
-    .min(1, { message: 'Próximos passos são obrigatórios' })
-    .describe('Quais são os próximos passos agora'),
-}).partial().refine(
-  (data) => data.dataFollowup && data.feedback,
+  expectativaCliente: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Qual a principal expectativa do cliente?'),
+
+  estadoAncoragem: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Qual o estado do sistema de ancoragem?'),
+
+  fotosAncoragem: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string(),
+    url: z.string(),
+    path: z.string(),
+    size: z.number(),
+    type: z.string(),
+    uploadedAt: z.string(),
+    comment: z.string(),
+  }))
+    .optional()
+    .default([])
+    .describe('Fotos do sistema de ancoragem'),
+
+  // Momento 2: Avaliação Geral da Visita
+  quemAcompanhou: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Quem acompanhou a visita?'),
+
+  avaliacaoVisita: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Avaliação da visita'),
+
+  // Momento 3: Respostas do Engenheiro
+  estadoGeralEdificacao: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Qual o estado geral da edificação?'),
+
+  servicoResolver: z.string()
+    .min(1, { message: 'Campo obrigatório' })
+    .describe('Qual o serviço deve ser feito para resolver o problema?'),
+
+  arquivosGerais: z.array(z.object({
+    id: z.string().optional(),
+    name: z.string(),
+    url: z.string(),
+    path: z.string(),
+    size: z.number(),
+    type: z.string(),
+    uploadedAt: z.string(),
+    comment: z.string(),
+  }))
+    .optional()
+    .default([])
+    .describe('Arquivos gerais (fotos, croquis, etc)'),
+}).refine(
+  (data) => {
+    // Verificar se todos os campos obrigatórios estão preenchidos
+    const camposObrigatorios = [
+      data.outrasEmpresas,
+      data.comoEsperaResolver,
+      data.expectativaCliente,
+      data.estadoAncoragem,
+      data.quemAcompanhou,
+      data.avaliacaoVisita,
+      data.estadoGeralEdificacao,
+      data.servicoResolver,
+    ];
+
+    return camposObrigatorios.every(campo => campo && campo.trim().length > 0);
+  },
   {
-    message: 'Data e feedback são obrigatórios',
-    path: ['dataFollowup'],
+    message: 'Todos os campos obrigatórios devem ser preenchidos',
+    path: ['outrasEmpresas'],
   }
 );
 

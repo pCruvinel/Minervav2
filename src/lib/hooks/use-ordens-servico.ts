@@ -30,6 +30,13 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
       // Supabase suporta filtro em relação: !inner join
 
       const { data, error } = await query;
+      
+      console.log('🔍 [useOrdensServico] Query result:', { 
+        count: data?.length, 
+        error, 
+        filters 
+      });
+
       if (error) throw error;
       return data;
     },
@@ -91,9 +98,57 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
  * Hook para buscar uma OS específica
  */
 export function useOrdemServico(osId: string) {
-  return useApi(() => ordensServicoAPI.getById(osId), {
-    deps: [osId], // Só re-executar quando osId mudar
+  const { data, loading, error, refetch } = useApi(() => ordensServicoAPI.getById(osId), {
+    deps: [osId],
   });
+
+  const os = useMemo(() => {
+    if (!data) return null;
+    
+    const rawOS = data as any;
+    
+    return {
+      ...rawOS,
+      cliente_nome: rawOS.cliente?.nome_razao_social || 'Cliente não informado',
+      tipo_os_nome: rawOS.tipo_os?.nome || 'Tipo não informado',
+      responsavel_nome: rawOS.responsavel?.nome_completo || 'Não atribuído',
+      setor_nome: rawOS.tipo_os?.setores?.nome || rawOS.tipo_os?.setores?.slug || '-',
+      
+      // Campos legados
+      codigo: rawOS.codigo_os,
+      titulo: rawOS.descricao || `${rawOS.tipo_os?.nome || 'Ordem de Serviço'}`,
+      status: normalizeStatusOS(rawOS.status_geral),
+      
+      cliente: rawOS.cliente ? {
+        ...rawOS.cliente,
+        endereco: rawOS.cliente.endereco || {} // Garantir que endereco existe
+      } : undefined,
+      
+      tipoOS: {
+        id: rawOS.tipo_os?.codigo?.replace('OS-', '') || '',
+        nome: rawOS.tipo_os?.nome || 'Tipo não informado',
+        setor: normalizeSetorOS(rawOS.tipo_os?.setores?.slug)
+      },
+      
+      responsavel: rawOS.responsavel ? {
+        id: rawOS.responsavel.id,
+        nome: rawOS.responsavel.nome_completo,
+        avatar: getInitials(rawOS.responsavel.nome_completo)
+      } : undefined,
+      
+      etapaAtual: rawOS.etapa_atual ? {
+        numero: rawOS.etapa_atual.numero_etapa || 0,
+        titulo: rawOS.etapa_atual.titulo || 'Etapa sem nome',
+        status: rawOS.etapa_atual.status
+      } : undefined,
+      
+      dataInicio: rawOS.data_entrada ? new Date(rawOS.data_entrada).toISOString().split('T')[0] : '',
+      dataPrazo: rawOS.data_prazo ? new Date(rawOS.data_prazo).toISOString().split('T')[0] : '',
+      criadoEm: rawOS.data_entrada ? new Date(rawOS.data_entrada).toISOString().split('T')[0] : '',
+    };
+  }, [data]);
+
+  return { data: os, isLoading: loading, error, refetch };
 }
 
 /**

@@ -89,7 +89,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/seed-usuarios`,
+        `${SUPABASE_URL}/functions/v1/server/seed-usuarios`,
         {
           method: 'POST',
           headers: {

@@ -1,11 +1,19 @@
-import React from 'react';
-import { Upload, File, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Upload, File, Trash2, Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { uploadFile } from '../../lib/utils/supabase-storage';
+import { toast } from '../../lib/utils/safe-toast';
 
 interface ArquivoComComentario {
-  file: { name: string };
+  id: string;
+  name: string;
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
   comment: string;
 }
 
@@ -17,6 +25,8 @@ interface FileUploadSectionProps {
   multiple?: boolean;
   required?: boolean;
   disabled?: boolean;
+  osId?: string;
+  colaboradorId?: string;
 }
 
 export function FileUploadSection({
@@ -27,29 +37,128 @@ export function FileUploadSection({
   multiple = true,
   required = false,
   disabled = false,
-}: FileUploadSectionProps) {
+  osId,
+  colaboradorId,
+  // New props for deferred upload
+  pendingFiles = [],
+  onPendingFilesChange,
+}: FileUploadSectionProps & {
+  pendingFiles?: File[];
+  onPendingFilesChange?: (files: File[]) => void;
+}) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [uploadingFiles, setUploadingFiles] = useState<Set<string>>(new Set());
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Helper to upload a single file (used for immediate upload or deferred)
+  const uploadFileToStorage = async (file: File): Promise<ArquivoComComentario> => {
+    if (!osId || !colaboradorId) {
+      throw new Error('OS ID e Colaborador ID são necessários para upload');
+    }
+
+    try {
+      const uploadedFile = await uploadFile({
+        file,
+        osNumero: `os${osId}`,
+        etapa: 'follow-up1',
+        osId,
+        colaboradorId,
+      });
+
+      return {
+        id: uploadedFile.id,
+        name: uploadedFile.name,
+        url: uploadedFile.url,
+        path: uploadedFile.path,
+        size: uploadedFile.size,
+        type: uploadedFile.type,
+        uploadedAt: uploadedFile.uploadedAt,
+        comment: '',
+      };
+    } catch (error) {
+      console.error('Erro ao fazer upload do arquivo:', error);
+      throw error;
+    }
+  };
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (!selectedFiles || selectedFiles.length === 0) return;
 
-    const newFiles: ArquivoComComentario[] = Array.from(selectedFiles).map(file => ({
-      file: { name: file.name },
-      comment: '',
-    }));
+    // If deferred mode is active (onPendingFilesChange provided)
+    if (onPendingFilesChange) {
+      const newFiles = Array.from(selectedFiles);
+      onPendingFilesChange([...pendingFiles, ...newFiles]);
 
-    onFilesChange([...files, ...newFiles]);
+      // Reset input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      return;
+    }
 
-    // Resetar input para permitir upload do mesmo arquivo novamente
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+    // Immediate upload mode (Legacy behavior)
+    if (!osId || !colaboradorId) {
+      toast.error('Não é possível anexar arquivos: OS ou Colaborador não identificados.');
+      console.error('Missing IDs for upload:', { osId, colaboradorId });
+      return;
+    }
+
+    // Marcar arquivos como uploading
+    const fileNames = Array.from(selectedFiles).map(f => f.name);
+    setUploadingFiles(prev => new Set([...prev, ...fileNames]));
+
+    try {
+      const uploadPromises = Array.from(selectedFiles).map(async (file) => {
+        try {
+          const uploadedFile = await uploadFileToStorage(file);
+          return uploadedFile;
+        } catch (error) {
+          console.error(`Erro ao fazer upload de ${file.name}:`, error);
+          try {
+            toast.error(`Erro ao fazer upload de ${file.name}`);
+          } catch (toastError) {
+            console.error('Erro ao exibir toast:', toastError);
+          }
+          return null;
+        }
+      });
+
+      const uploadedFiles = (await Promise.all(uploadPromises)).filter(Boolean) as ArquivoComComentario[];
+
+      if (uploadedFiles.length > 0) {
+        onFilesChange([...files, ...uploadedFiles]);
+        try {
+          toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso`);
+        } catch (toastError) {
+          console.error('Erro ao exibir toast de sucesso:', toastError);
+        }
+      }
+    } finally {
+      // Remover arquivos da lista de uploading
+      setUploadingFiles(prev => {
+        const newSet = new Set(prev);
+        fileNames.forEach(name => newSet.delete(name));
+        return newSet;
+      });
+
+      // Resetar input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
   const handleRemoveFile = (index: number) => {
     const newFiles = files.filter((_, i) => i !== index);
     onFilesChange(newFiles);
+    // TODO: Optionally delete file from storage when removed
+  };
+
+  const handleRemovePendingFile = (index: number) => {
+    if (onPendingFilesChange) {
+      const newPending = pendingFiles.filter((_, i) => i !== index);
+      onPendingFilesChange(newPending);
+    }
   };
 
   const handleCommentChange = (index: number, comment: string) => {
@@ -63,19 +172,15 @@ export function FileUploadSection({
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     const droppedFiles = e.dataTransfer.files;
     if (!droppedFiles || droppedFiles.length === 0) return;
 
-    const newFiles: ArquivoComComentario[] = Array.from(droppedFiles).map(file => ({
-      file: { name: file.name },
-      comment: '',
-    }));
-
-    onFilesChange([...files, ...newFiles]);
+    // Mesmo processo que handleFileSelect
+    await handleFileSelect({ target: { files: droppedFiles } } as any);
   };
 
   return (
@@ -110,21 +215,52 @@ export function FileUploadSection({
         />
       </div>
 
-      {/* Lista de Arquivos */}
+      {/* Lista de Arquivos Pendentes (Ainda não enviados) */}
+      {pendingFiles.length > 0 && (
+        <div className="mt-4 space-y-2">
+          <p className="text-xs font-medium text-amber-600 mb-2">Arquivos aguardando envio:</p>
+          {pendingFiles.map((file, index) => (
+            <div key={`pending-${index}`} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <File className="h-4 w-4 text-amber-500" />
+                  <span className="text-sm text-amber-900">{file.name}</span>
+                  <span className="text-xs text-amber-600">({(file.size / 1024).toFixed(1)} KB)</span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleRemovePendingFile(index)}
+                  disabled={disabled}
+                  className="text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Lista de Arquivos Já Enviados */}
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
+          <p className="text-xs font-medium text-neutral-500 mb-2">Arquivos anexados:</p>
           {files.map((item, index) => (
             <div key={index} className="border border-neutral-200 rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <File className="h-4 w-4 text-primary" />
-                  <span className="text-sm">{item.file.name}</span>
+                  <span className="text-sm">{item.name}</span>
+                  {uploadingFiles.has(item.name) && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  )}
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemoveFile(index)}
-                  disabled={disabled}
+                  disabled={disabled || uploadingFiles.has(item.name)}
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

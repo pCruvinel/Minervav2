@@ -39,8 +39,12 @@ import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentaca
 import { StepRealizarApresentacao } from './steps/shared/step-realizar-apresentacao';
 import { StepGerarContrato } from './steps/shared/step-gerar-contrato';
 import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
+import { CalendarioSemana } from '../calendario/calendario-semana';
+import { ModalNovoAgendamento } from '../calendario/modal-novo-agendamento';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
+import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
+import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
 import { ErrorBoundary } from '../error-boundary';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
 import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
@@ -86,12 +90,7 @@ interface Etapa2Data {
 }
 
 interface Etapa3Data {
-  anexos?: Array<{
-    id: string;
-    nome: string;
-    url: string;
-    uploadedAt: string;
-  }>;
+  anexos?: ArquivoComComentario[];
   idadeEdificacao?: string;
   motivoProcura?: string;
   quandoAconteceu?: string;
@@ -114,7 +113,13 @@ interface Etapa5Data {
 }
 
 interface ArquivoComComentario {
-  file: { name: string };
+  id: string;
+  name: string;
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
   comment: string;
 }
 
@@ -217,14 +222,51 @@ const steps = OS_WORKFLOW_STEPS;
 interface OSDetailsWorkflowPageProps {
   onBack?: () => void;
   osId?: string; // ID da OS sendo editada
+  initialStep?: number;
 }
 
-export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkflowPageProps = {}) {
+export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: OSDetailsWorkflowPageProps = {}) {
+  // DEBUG: Track component lifecycle
+  React.useEffect(() => {
+    logger.log('🎯 OSDetailsWorkflowPage mounted', {
+      osId: osIdProp,
+      initialStep,
+      timestamp: new Date().toISOString()
+    });
+
+    return () => {
+      logger.log('🗑️ OSDetailsWorkflowPage unmounted', {
+        osId: osIdProp,
+        timestamp: new Date().toISOString()
+      });
+    };
+  }, [osIdProp, initialStep]);
+
+  // DEBUG: Track component re-renders
+  React.useEffect(() => {
+    logger.log('🔄 OSDetailsWorkflowPage re-render', {
+      osId: osIdProp,
+      currentStep,
+      isLoading,
+      isCreatingOS,
+      timestamp: new Date().toISOString()
+    });
+  });
+
   // Estado interno para armazenar osId criada (diferente da prop osIdProp)
   const [internalOsId, setInternalOsId] = useState<string | null>(null);
 
   // Estado de loading para criação de OS (Etapa 2 → 3)
   const [isCreatingOS, setIsCreatingOS] = useState(false);
+
+  // Estado para modal de agendamento da Etapa 4
+  const [modalAgendamentoAberto, setModalAgendamentoAberto] = useState(false);
+  const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
+  const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
+  const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
+
+  // Estado para navegação de semanas na Etapa 4
+  const [semanaAtualCalendario, setSemanaAtualCalendario] = useState(new Date());
 
   // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
   const osId = osIdProp || internalOsId;
@@ -252,7 +294,50 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     refreshEtapas
   } = useWorkflowState({
     osId: osId || undefined,
-    totalSteps: TOTAL_WORKFLOW_STEPS
+    totalSteps: TOTAL_WORKFLOW_STEPS,
+    initialStep: initialStep || 1
+  });
+
+  // Calcular datas da semana atual do calendário
+  const datasSemanaCalendario = useMemo(() => {
+    const datas: string[] = [];
+    const data = new Date(semanaAtualCalendario);
+
+    // Ir para segunda-feira da semana
+    const dayOfWeek = data.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    data.setDate(data.getDate() + distanceToMonday);
+
+    // Gerar 7 dias (segunda a domingo)
+    for (let i = 0; i < 7; i++) {
+      datas.push(data.toISOString().split('T')[0]);
+      data.setDate(data.getDate() + 1);
+    }
+
+    return datas;
+  }, [semanaAtualCalendario]);
+
+  // Hooks para calendário na Etapa 4 - buscar um período maior para garantir que turnos recorrentes apareçam
+  const dataInicioBusca = useMemo(() => {
+    const data = new Date(semanaAtualCalendario);
+    data.setDate(data.getDate() - 30); // Buscar 30 dias antes
+    return data.toISOString().split('T')[0];
+  }, [semanaAtualCalendario]);
+
+  const dataFimBusca = useMemo(() => {
+    const data = new Date(semanaAtualCalendario);
+    data.setDate(data.getDate() + 30); // Buscar 30 dias depois
+    return data.toISOString().split('T')[0];
+  }, [semanaAtualCalendario]);
+
+  const { turnosPorDia: turnosCalendario, loading: loadingTurnos, error: errorTurnos, refetch: refetchTurnos } = useTurnosPorSemana(
+    dataInicioBusca,
+    dataFimBusca
+  );
+
+  const { agendamentos: agendamentosCalendario, refetch: refetchAgendamentos } = useAgendamentos({
+    dataInicio: datasSemanaCalendario[0],
+    dataFim: datasSemanaCalendario[6],
   });
 
   // Hook de Navegação
@@ -272,12 +357,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     onSaveStep: async (step) => {
       // Se não tem OS ID e não é etapa 1 ou 2, não salva
       if (!osId && step > 2) return true;
-      
+
       // Se tem OS ID, salva
       if (osId) {
         return await saveStep(step, false);
       }
-      
+
       return true;
     }
   });
@@ -305,23 +390,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
     completedStepsFromHook
   });
 
-  // Verificar se o formulário da etapa atual está inválido
-  const isCurrentStepInvalid = useMemo(() => {
-    // Não validar em modo de navegação histórica (read-only)
-    if (isHistoricalNavigation) return false;
-
-    // Verificar validação para cada etapa com formulário
-    switch (currentStep) {
-      case 1:
-        return stepLeadRef.current?.isFormValid() === false;
-      case 3:
-        return stepFollowup1Ref.current?.isFormValid() === false;
-      case 7:
-        return stepMemorialRef.current?.isFormValid() === false;
-      default:
-        return false; // Etapas sem validação obrigatória
-    }
-  }, [currentStep, isHistoricalNavigation]);
 
 
   // ========================================
@@ -341,50 +409,78 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Se houver dados salvos localmente, mesclar com o estado do hook
       // Isso pode ser complexo, por enquanto apenas logamos
       logger.log('📁 Dados recuperados do localStorage:', savedData);
-      
+
       // Opcional: Atualizar o hook com dados locais se estiverem vazios
       // Mas o hook carrega do banco, então cuidado para não sobrescrever
     }
-  }, [osId]); 
+  }, [osId]);
+
+  // DEBUG: Track auto-save triggers and performance
+  const autoSaveStartTime = React.useRef<number>();
 
   // Auto-save quando dados mudam (com debounce de 1s)
   const { isSaving, isSaved, markDirty } = useAutoSave(
     async (data: Record<number, EtapaData>) => {
+      autoSaveStartTime.current = performance.now();
+      logger.log('💾 Auto-save triggered', {
+        step: currentStep,
+        dataKeys: Object.keys(data),
+        hasOsId: !!osId,
+        timestamp: new Date().toISOString()
+      });
+
       // Se temos osId, salvar no banco de dados
       if (osId && etapas && etapas.length > 0) {
         try {
           // O data aqui é { [stepNum]: stepData }
           // Precisamos extrair o dado da etapa atual
           const stepData = data[currentStep];
-          
+
           if (stepData) {
             // Usar saveStep do hook (mas ele pega do state, e o state pode não estar atualizado ainda se for muito rápido?)
-            // Melhor usar saveFormData direto do useEtapas (que está dentro do useWorkflowState mas não exposto diretamente aqui, 
+            // Melhor usar saveFormData direto do useEtapas (que está dentro do useWorkflowState mas não exposto diretamente aqui,
             // exceto via saveStep que usa getStepData).
             // Mas saveStep usa getStepData que lê de formDataByStep.
             // Se hookSetStepData atualizou o state, deve estar ok.
-            
+
             // Mas para garantir, vamos usar o data passado para o callback
             const etapaAtual = etapas.find((e) => e.ordem === currentStep);
             if (etapaAtual) {
-               // Precisamos acessar saveFormData. Como não temos acesso direto (está dentro do hook),
-               // podemos usar saveStep se confiarmos no state, ou expor saveFormData do hook.
-               // Vamos confiar no saveStep por enquanto, mas passando isDraft=true
-               await saveStep(currentStep, true);
+              // Precisamos acessar saveFormData. Como não temos acesso direto (está dentro do hook),
+              // podemos usar saveStep se confiarmos no state, ou expor saveFormData do hook.
+              // Vamos confiar no saveStep por enquanto, mas passando isDraft=true
+              await saveStep(currentStep, true);
             }
           }
         } catch (error) {
           logger.error('❌ Erro ao auto-salvar:', error);
           throw error;
         }
+      } else {
+        logger.log('⚠️ Auto-save skipped: no osId or etapas not loaded');
       }
     },
     {
       debounceMs: 1000,
       useLocalStorage: true,
       storageKey: `os_workflow_${osId || 'new'}`,
-      onSaveSuccess: () => logger.log('✅ Auto-save bem-sucedido'),
-      onSaveError: (error) => logger.error('❌ Auto-save falhou:', error),
+      onSaveSuccess: () => {
+        const duration = autoSaveStartTime.current ? performance.now() - autoSaveStartTime.current : 0;
+        logger.log('✅ Auto-save successful', {
+          duration: `${duration.toFixed(2)}ms`,
+          step: currentStep,
+          timestamp: new Date().toISOString()
+        });
+      },
+      onSaveError: (error) => {
+        const duration = autoSaveStartTime.current ? performance.now() - autoSaveStartTime.current : 0;
+        logger.error('❌ Auto-save failed', {
+          error,
+          duration: `${duration.toFixed(2)}ms`,
+          step: currentStep,
+          timestamp: new Date().toISOString()
+        });
+      },
     }
   );
 
@@ -398,6 +494,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
     if (!data) {
       // Retornar estruturas padrão para etapas que precisam de arrays inicializados
+      // Garantir que todos os campos string sejam '' e não undefined para evitar warnings de uncontrolled/controlled
       const defaults: Record<number, any> = {
         3: {
           anexos: [],
@@ -413,29 +510,115 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           telefoneContatoLocal: '',
           cargoContatoLocal: '',
         },
-        6: { fotosAncoragem: [], arquivosGerais: [] },
-        8: { etapasPrincipais: [] },
+        6: {
+          fotosAncoragem: [],
+          arquivosGerais: [],
+          outrasEmpresas: '',
+          comoEsperaResolver: '',
+          expectativaCliente: '',
+          estadoAncoragem: '',
+          quemAcompanhou: '',
+          avaliacaoVisita: '',
+          estadoGeralEdificacao: '',
+          servicoResolver: '',
+        },
+        8: {
+          etapasPrincipais: [],
+          percentualImprevisto: '',
+          percentualLucro: '',
+          percentualImposto: '',
+          percentualEntrada: '',
+          numeroParcelas: '',
+        },
+        12: {
+          propostaApresentada: '',
+          metodoApresentacao: '',
+          clienteAchouProposta: '',
+          clienteAchouContrato: '',
+          doresNaoAtendidas: '',
+          indicadorFechamento: '',
+          quemEstavaNaApresentacao: '',
+          nivelSatisfacao: '',
+        },
       };
 
       return defaults[stepNum] || {};
     }
 
-    return data;
+    // Garantir que campos string nunca sejam undefined (evitar warnings uncontrolled/controlled)
+    const defaults: Record<number, any> = {
+      3: {
+        anexos: [],
+        idadeEdificacao: '',
+        motivoProcura: '',
+        quandoAconteceu: '',
+        oqueFeitoARespeito: '',
+        existeEscopo: '',
+        previsaoOrcamentaria: '',
+        grauUrgencia: '',
+        apresentacaoProposta: '',
+        nomeContatoLocal: '',
+        telefoneContatoLocal: '',
+        cargoContatoLocal: '',
+      },
+      6: {
+        fotosAncoragem: [],
+        arquivosGerais: [],
+        outrasEmpresas: '',
+        comoEsperaResolver: '',
+        expectativaCliente: '',
+        estadoAncoragem: '',
+        quemAcompanhou: '',
+        avaliacaoVisita: '',
+        estadoGeralEdificacao: '',
+        servicoResolver: '',
+      },
+      8: {
+        etapasPrincipais: [],
+        percentualImprevisto: '',
+        percentualLucro: '',
+        percentualImposto: '',
+        percentualEntrada: '',
+        numeroParcelas: '',
+      },
+      12: {
+        propostaApresentada: '',
+        metodoApresentacao: '',
+        clienteAchouProposta: '',
+        clienteAchouContrato: '',
+        doresNaoAtendidas: '',
+        indicadorFechamento: '',
+        quemEstavaNaApresentacao: '',
+        nivelSatisfacao: '',
+      },
+    };
+
+    // Merge data with defaults to ensure no undefined string fields
+    const defaultData = defaults[stepNum] || {};
+    return { ...defaultData, ...data };
   };
 
-  // Atualizar dados de uma etapa (com auto-save)
+  // Atualizar dados de uma etapa (sem auto-save imediato)
   const setStepData = (stepNum: number, data: EtapaData) => {
+    logger.log('📝 setStepData called', {
+      stepNum,
+      dataKeys: Object.keys(data),
+      hasOsId: !!osId,
+      timestamp: new Date().toISOString()
+    });
     hookSetStepData(stepNum, data);
-    markDirty({ [stepNum]: data });
+    // markDirty removed to disable auto-save on keystroke
+    // markDirty({ [stepNum]: data });
   };
 
-  // Atualizar campo individual de uma etapa (com auto-save)
+  // Atualizar campo individual de uma etapa (sem auto-save imediato)
   const updateStepField = (stepNum: number, field: string, value: unknown) => {
     const currentData = formDataByStep[stepNum] || {};
     const newData = { ...currentData, [field]: value };
 
     hookSetStepData(stepNum, newData);
-    markDirty({ [stepNum]: newData });
+    // markDirty removed to disable auto-save on keystroke
+    // markDirty({ [stepNum]: newData });
   };
 
   // Aliases para compatibilidade com código existente (memoizados para performance)
@@ -484,6 +667,70 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const setEtapa14Data = (data: Etapa14Data) => setStepData(14, data);
   const setEtapa15Data = (data: Etapa15Data) => setStepData(15, data);
 
+  // Funções para gerenciar agendamento na Etapa 4
+  const handleSelecionarTurno = (turno: any, dia: Date) => {
+    setTurnoSelecionado(turno);
+    setDiaSelecionado(dia);
+    setModalAgendamentoAberto(true);
+  };
+
+  const handleAgendamentoSucesso = () => {
+    setModalAgendamentoAberto(false);
+    setTurnoSelecionado(null);
+
+    // Salvar dados do agendamento na Etapa 4
+    if (turnoSelecionado && diaSelecionado) {
+      const dataFormatada = diaSelecionado.toLocaleDateString('pt-BR');
+      setEtapa4Data({
+        dataAgendamento: `${dataFormatada} - ${turnoSelecionado.horaInicio} às ${turnoSelecionado.horaFim}`
+      });
+    }
+
+    // Marcar agendamento como confirmado para mostrar confirmação visual
+    setAgendamentoConfirmado(true);
+
+    // Recarregar dados do calendário
+    refetchTurnos();
+    refetchAgendamentos();
+  };
+
+  const handleFecharModalAgendamento = () => {
+    setModalAgendamentoAberto(false);
+    setTurnoSelecionado(null);
+  };
+
+  // Funções para navegação entre semanas
+  const handleSemanaAnterior = () => {
+    const novaSemana = new Date(semanaAtualCalendario);
+    novaSemana.setDate(novaSemana.getDate() - 7);
+    setSemanaAtualCalendario(novaSemana);
+  };
+
+  const handleProximaSemana = () => {
+    const novaSemana = new Date(semanaAtualCalendario);
+    novaSemana.setDate(novaSemana.getDate() + 7);
+    setSemanaAtualCalendario(novaSemana);
+  };
+
+  // Formatar período da semana para exibição
+  const formatarPeriodoSemana = () => {
+    const dataInicio = new Date(semanaAtualCalendario);
+    const dayOfWeek = dataInicio.getDay();
+    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    dataInicio.setDate(dataInicio.getDate() + distanceToMonday);
+
+    const dataFim = new Date(dataInicio);
+    dataFim.setDate(dataFim.getDate() + 6);
+
+    const formatarData = (data: Date) => {
+      const dia = String(data.getDate()).padStart(2, '0');
+      const mes = String(data.getMonth() + 1).padStart(2, '0');
+      return `${dia}/${mes}`;
+    };
+
+    return `${formatarData(dataInicio)} - ${formatarData(dataFim)}`;
+  };
+
   // Estado do formulário de novo lead (Dialog)
   const [formData, setFormData] = useState({
     nome: '',
@@ -512,7 +759,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
 
 
-  const handleSelectLead = (leadId: string, leadData?: {
+  const handleSelectLead = async (leadId: string, leadData?: {
     nome_razao_social?: string;
     cpf_cnpj?: string;
     email?: string;
@@ -573,7 +820,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           email: leadData.email || '',
           telefone: leadData.telefone || '',
           // Campos adicionais do lead
-          tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
+          tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' as const : 'juridica' as const,
           nomeResponsavel: leadData.nome_responsavel || '',
           cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
           tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
@@ -595,6 +842,16 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         logger.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
         setEtapa1Data(etapa1DataCompleta);
         logger.log('✅ setEtapa1Data chamado com dados completos');
+
+        // Salvar dados imediatamente no banco para garantir persistência
+        if (osId) {
+          try {
+            await saveStep(1, true); // Salva como rascunho para não bloquear avanço
+            logger.log('✅ Dados da Etapa 1 salvos no banco');
+          } catch (saveError) {
+            logger.error('❌ Erro ao salvar dados da Etapa 1:', saveError);
+          }
+        }
       } else {
         logger.warn('⚠️ leadData não recebido, salvando apenas leadId');
         // Fallback: salvar apenas leadId (será preenchido depois se necessário)
@@ -622,12 +879,12 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
   const criarOSComEtapas = async (): Promise<string> => {
     try {
       logger.log('🚀 Iniciando criação da OS...');
-      
+
       // 1. Validar dados obrigatórios
       if (!etapa1Data.leadId) {
         throw new Error('Lead não selecionado');
       }
-      
+
       if (!etapa2Data.tipoOS) {
         throw new Error('Tipo de OS não selecionado');
       }
@@ -646,7 +903,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       const codigoTipoOS = mapearTipoOSParaCodigo(etapa2Data.tipoOS);
       const tiposOS = await ordensServicoAPI.getTiposOS();
       const tipoOSEncontrado = tiposOS.find((t: { codigo: string; id: string }) => t.codigo === codigoTipoOS);
-      
+
       if (!tipoOSEncontrado) {
         throw new Error(`Tipo de OS não encontrado: ${codigoTipoOS}`);
       }
@@ -659,7 +916,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
         cliente_id: etapa1Data.leadId,
         tipo_os_id: tipoOSEncontrado.id,
         descricao: `${etapa2Data.tipoOS} - ${nomeCliente}`,
-        // criado_por_id será preenchido automaticamente pelo servidor com colaborador "Sistema"
+        criado_por_id: currentUserId, // Enviar ID do usuário logado para evitar erro de "colaborador Sistema"
         status_geral: 'em_andamento',
       });
 
@@ -673,10 +930,10 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // 5. Criar as 15 etapas
       logger.log('📋 Criando 15 etapas...');
       const etapasCriadas = [];
-      
+
       for (let i = 1; i <= 15; i++) {
         const statusEtapa = i <= 2 ? 'concluida' : (i === 3 ? 'em_andamento' : 'pendente');
-        
+
         let dadosEtapa = {};
         if (i === 1) {
           dadosEtapa = { leadId: etapa1Data.leadId };
@@ -689,14 +946,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           nome_etapa: steps[i - 1].title,
           status: statusEtapa,
           dados_etapa: dadosEtapa,
+          responsavel_id: currentUserId, // Set current user as responsible for all steps
         });
-        
+
         etapasCriadas.push(etapa);
         logger.log(`✅ Etapa ${i}/15 criada: ${etapa.nome_etapa}`);
       }
 
       logger.log(`✅ Todas as 15 etapas criadas com sucesso!`);
-      
+
       return novaOS.id;
     } catch (error) {
       logger.error('❌ Erro ao criar OS:', error);
@@ -786,13 +1044,13 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
 
     try {
       logger.log(`💾 Salvando etapa ${currentStep}...`);
-      
+
       await saveStep(currentStep, !markAsComplete); // saveStep recebe isDraft como segundo argumento
 
-      const successMessage = markAsComplete 
-        ? 'Etapa concluída e dados salvos!' 
+      const successMessage = markAsComplete
+        ? 'Etapa concluída e dados salvos!'
         : 'Rascunho salvo com sucesso!';
-      
+
       try {
         toast.success(successMessage);
       } catch (toastError) {
@@ -825,6 +1083,14 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
    * Avançar para próxima etapa (com validação e salvamento)
    */
   const handleNextStep = async () => {
+    const startTime = performance.now();
+    logger.log('🚀 handleNextStep started', {
+      currentStep,
+      hasOsId: !!osId,
+      isCreatingOS,
+      timestamp: new Date().toISOString()
+    });
+
     // ========================================
     // CASO ESPECIAL: Etapa 2 → 3 (Criar OS)
     // ========================================
@@ -911,6 +1177,31 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Se passou na validação, continuar com salvamento e avanço
       try {
         if (osId) {
+
+          // Realizar upload dos arquivos pendentes
+          let uploadedFiles = [];
+          try {
+            if (stepFollowup1Ref.current.uploadPendingFiles) {
+              uploadedFiles = await stepFollowup1Ref.current.uploadPendingFiles();
+            }
+          } catch (uploadError) {
+            logger.error('❌ Erro ao fazer upload dos arquivos:', uploadError);
+            toast.error('Erro ao enviar arquivos anexados. Tente novamente.');
+            return; // Interrompe o avanço se falhar o upload
+          }
+
+          // Se houver novos arquivos, atualizar os dados da etapa antes de salvar
+          if (uploadedFiles.length > 0) {
+            const currentData = getStepData(3);
+            const currentAnexos = currentData.anexos || [];
+            const newAnexos = [...currentAnexos, ...uploadedFiles];
+
+            setStepData(3, { ...currentData, anexos: newAnexos });
+
+            // Pequeno delay para garantir que o estado atualizou
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+
           await saveCurrentStepData(true);
         }
 
@@ -918,7 +1209,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           setCurrentStep(currentStep + 1);
         }
       } catch (error) {
-        logger.error('❌ Não foi possível avançar devido a erro ao salvar');
+        logger.error('❌ Não foi possível avançar devido a erro ao salvar', error);
       }
 
       return;
@@ -952,14 +1243,39 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
       // Não avança se houver erro ao salvar
       logger.error('❌ Não foi possível avançar devido a erro ao salvar');
     }
+
+    const duration = performance.now() - startTime;
+    logger.log('✅ handleNextStep completed', {
+      duration: `${duration.toFixed(2)}ms`,
+      newStep: currentStep,
+      timestamp: new Date().toISOString()
+    });
   };
 
-  /**
-   * Voltar para etapa anterior (sem salvar)
-   */
 
 
   const isReadOnly = selectedLeadId !== 'NEW' && selectedLeadId !== '';
+
+  // Verificar se o formulário da etapa atual está inválido
+  const isCurrentStepInvalid = useMemo(() => {
+    // Não validar em modo de navegação histórica (read-only)
+    if (isHistoricalNavigation) return false;
+
+    // Verificar validação para cada etapa com formulário
+    switch (currentStep) {
+      case 1:
+        return stepLeadRef.current?.isFormValid() === false;
+      case 3:
+        return stepFollowup1Ref.current?.isFormValid() === false;
+      case 4:
+        // Etapa 4 requer agendamento realizado
+        return !etapa4Data.dataAgendamento;
+      case 7:
+        return stepMemorialRef.current?.isFormValid() === false;
+      default:
+        return false; // Etapas sem validação obrigatória
+    }
+  }, [currentStep, isHistoricalNavigation, etapa4Data.dataAgendamento, stepLeadRef, stepFollowup1Ref, stepMemorialRef]);
 
   return (
     <div className="h-screen flex flex-col bg-neutral-50">
@@ -972,7 +1288,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           </Button>
         </div>
       )}
-      
+
 
 
       {/* Stepper Horizontal com botão de retorno */}
@@ -984,7 +1300,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           completedSteps={completedSteps}
           lastActiveStep={lastActiveStep || undefined}
         />
-        
+
         {/* Botão de retorno rápido - posicionado absolutamente no canto direito */}
         {isHistoricalNavigation && lastActiveStep && (
           <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
@@ -1025,7 +1341,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                 </Badge>
               </div>
             </CardHeader>
-            
+
             {/* Banner de Modo de Visualização Histórica */}
             {isHistoricalNavigation && (
               <div className="mx-6 mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg flex items-start gap-3">
@@ -1049,9 +1365,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                 </button>
               </div>
             )}
-            
+
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
-              
+
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
                 <ErrorBoundary>
@@ -1086,7 +1402,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       </div>
                     </div>
                   )}
-                  
+
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
@@ -1139,6 +1455,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                   data={etapa3Data}
                   onDataChange={setEtapa3Data}
                   readOnly={isHistoricalNavigation}
+                  osId={osId || undefined}
+                  colaboradorId={currentUserId}
                 />
               )}
 
@@ -1148,31 +1466,80 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                   <Alert>
                     <Calendar className="h-4 w-4" />
                     <AlertDescription>
-                      Agende a visita técnica ao local para avaliação presencial.
+                      Agende a visita técnica ao local para avaliação presencial. Clique em um turno disponível no calendário abaixo.
                     </AlertDescription>
                   </Alert>
 
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Calendar className="h-10 w-10 text-primary" />
-                    </div>
+                  {/* Controles de Navegação da Semana */}
+                  <div className="flex items-center justify-between bg-white rounded-lg border border-neutral-200 p-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleSemanaAnterior}
+                      disabled={loadingTurnos}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Semana Anterior
+                    </Button>
+
                     <div className="text-center">
-                      <h3 className="font-medium mb-2">Agendar Visita Técnica</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Selecione a data e horário para a visita técnica ao local.
+                      <h3 className="font-medium text-lg">{formatarPeriodoSemana()}</h3>
+                      <p className="text-sm text-neutral-600">
+                        {semanaAtualCalendario.getFullYear()}
                       </p>
-                      <Button style={{ backgroundColor: '#f97316', color: 'white' }}>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Agendar no Calendário
-                      </Button>
                     </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleProximaSemana}
+                      disabled={loadingTurnos}
+                    >
+                      Próxima Semana
+                      <ChevronLeft className="h-4 w-4 ml-1 rotate-180" />
+                    </Button>
                   </div>
 
-                  {etapa4Data.dataAgendamento && (
+                  {/* Calendário Integrado */}
+                  <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
+                    <CalendarioSemana
+                      dataAtual={semanaAtualCalendario}
+                      turnosPorDia={turnosCalendario}
+                      agendamentos={agendamentosCalendario}
+                      loading={loadingTurnos}
+                      error={errorTurnos}
+                      onRefresh={() => {
+                        refetchTurnos();
+                        refetchAgendamentos();
+                      }}
+                      onTurnoClick={handleSelecionarTurno}
+                    />
+                  </div>
+
+                  {/* Confirmação de Agendamento Realizado */}
+                  {agendamentoConfirmado && etapa4Data.dataAgendamento && (
                     <Card className="bg-green-50 border-green-200">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
+                          <Check className="h-6 w-6 text-green-600" />
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-green-800">Agendamento realizado com sucesso!</p>
+                            <p className="text-sm text-green-700 mt-1">{etapa4Data.dataAgendamento}</p>
+                            <p className="text-xs text-green-600 mt-2">
+                              Agora você pode avançar para a próxima etapa para confirmar a realização da visita.
+                            </p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Agendamento já existente (sem confirmação) */}
+                  {etapa4Data.dataAgendamento && !agendamentoConfirmado && (
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="pt-6">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="h-5 w-5 text-blue-600" />
                           <div>
                             <p className="text-sm font-medium">Visita agendada para:</p>
                             <p className="text-sm text-muted-foreground">{etapa4Data.dataAgendamento}</p>
@@ -1308,6 +1675,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, fotosAncoragem: files })}
                       accept="image/*"
                       disabled={isHistoricalNavigation}
+                      osId={osId || undefined}
+                      colaboradorId={currentUserId}
                     />
                   </div>
 
@@ -1395,6 +1764,8 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
                       files={etapa6Data.arquivosGerais || []}
                       onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, arquivosGerais: files })}
                       disabled={isHistoricalNavigation}
+                      osId={osId || undefined}
+                      colaboradorId={currentUserId}
                     />
                   </div>
                 </div>
@@ -1719,6 +2090,15 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp }: OSDetailsWorkf
           </Card>
         </div>
       </div>
-    </div>
+
+      {/* Modal de Agendamento da Etapa 4 */}
+      <ModalNovoAgendamento
+        open={modalAgendamentoAberto}
+        onClose={handleFecharModalAgendamento}
+        turno={turnoSelecionado}
+        dia={diaSelecionado}
+        onSuccess={handleAgendamentoSucesso}
+      />
+    </div >
   );
 }

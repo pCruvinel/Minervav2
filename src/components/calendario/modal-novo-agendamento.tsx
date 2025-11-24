@@ -351,7 +351,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                   {setoresDisponiveis
                     .filter(s => turno.setores.includes(s.slug))
                     .map((set) => (
-                      <SelectItem key={set.id} value={set.nome}>
+                      <SelectItem key={set.id} value={set.slug}>
                         {set.nome}
                       </SelectItem>
                     ))}

@@ -80,18 +80,28 @@ export function transformFormToCliente(formData: any) {
     complemento: formData.complemento || '',
     bairro: formData.bairro || '',
     cidade: formData.cidade || '',
-    estado: formData.estado || ''
+    estado: formData.estado || '',
+    // Adicionando campos extras que podem ser úteis
+    cargo_responsavel: formData.cargoResponsavel || '',
+    tipo_edificacao: formData.tipoEdificacao || '',
+    qtd_unidades: formData.qtdUnidades || '',
+    qtd_blocos: formData.qtdBlocos || '',
+    qtd_pavimentos: formData.qtdPavimentos || '',
+    tipo_telhado: formData.tipoTelhado || '',
+    possui_elevador: formData.possuiElevador || false,
+    possui_piscina: formData.possuiPiscina || false
   };
 
   return {
     nome_razao_social: nomeRazao,
-    nome: nomeRazao,
+    // nome: nomeRazao, // REMOVIDO: Coluna não existe no banco
     email: formData.email || '',
     telefone: formData.telefone || '',
     cpf_cnpj: formData.cpf || formData.cnpj || formData.cpfCnpj || '',
-    tipo: 'LEAD',
-    tipo_cliente: formData.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA',
+    status: 'lead', // CORRIGIDO: De 'tipo': 'LEAD' para 'status': 'lead'
+    // tipo_cliente: formData.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA', // REMOVIDO: Coluna não existe no banco
     endereco: enderecoJson,
-    observacoes: formData.observacoes || ''
+    observacoes: formData.observacoes || '',
+    responsavel_id: formData.responsavel_id // Opcional, se houver
   };
 }

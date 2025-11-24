@@ -1,3 +1,11 @@
+ simport { Hono } from "npm:hono@4.6.14";
+import { cors } from "npm:hono@4.6.14/cors";
+import { logger } from "npm:hono@4.6.14/logger";
+import { createClient } from "jsr:@supabase/supabase-js@2";
+
+// LOG DE BOOT - DEVE APARECER SEMPRE NOS LOGS DO SUPABASE
+console.log("🚀🚀🚀 [BOOT] Edge Function 'server' iniciada! Timestamp:", new Date().toISOString());
+
 const app = new Hono();
 
 // Enable logger
@@ -41,9 +49,8 @@ const normalizeEtapaStatus = (status: string | undefined): string | undefined =>
   const validValues = [
     'pendente',
     'em_andamento',
-    'aguardando_aprovacao',
-    'aprovada',
-    'rejeitada'
+    'concluida',
+    'bloqueada'
   ];
 
   // Se já está no formato correto, retornar
@@ -53,8 +60,9 @@ const normalizeEtapaStatus = (status: string | undefined): string | undefined =>
 
   // Mapeamento de valores antigos para novos
   const legacyMap: Record<string, string> = {
-    'concluida': 'aprovada', // Etapa concluída = aprovada
-    'reprovada': 'rejeitada',
+    'aprovada': 'concluida',
+    'aguardando_aprovacao': 'pendente',
+    'rejeitada': 'bloqueada',
   };
 
   return legacyMap[normalized] || normalized;
@@ -77,12 +85,9 @@ const normalizeOsStatusGeral = (status: string | undefined): string | undefined 
   // Valores válidos do enum os_status_geral
   const validValues = [
     'em_triagem',
-    'aguardando_informacoes',
     'em_andamento',
-    'em_validacao',
-    'atrasada',
-    'concluida',
-    'cancelada'
+    'concluido',
+    'cancelado'
   ];
 
   // Se já está no formato correto, retornar
@@ -92,8 +97,12 @@ const normalizeOsStatusGeral = (status: string | undefined): string | undefined 
 
   // Mapeamento de valores antigos para novos
   const legacyMap: Record<string, string> = {
-    'aguardando_aprovacao': 'em_validacao',
-    'pausada': 'em_andamento', // Status "Pausada" não existe mais
+    'em_triagem': 'em_triagem',
+    'em_andamento': 'em_andamento',
+    'concluida': 'concluido',
+    'concluído': 'concluido',
+    'cancelada': 'cancelado',
+    'cancelado': 'cancelado',
   };
 
   return legacyMap[normalized] || normalized;
@@ -135,7 +144,7 @@ const normalizeClienteStatus = (status: string | undefined): string | undefined 
 };
 
 // Debug: Schema reload endpoint
-app.post("/make-server-5ad7fd2c/reload-schema", async (c) => {
+app.post("/server/reload-schema", async (c) => {
   try {
     const supabase = getSupabaseClient();
     
@@ -162,7 +171,7 @@ app.post("/make-server-5ad7fd2c/reload-schema", async (c) => {
 });
 
 // Debug: Check table structure
-app.get("/make-server-5ad7fd2c/debug/table-structure", async (c) => {
+app.get("/server/debug/table-structure", async (c) => {
   try {
     const supabase = getSupabaseClient();
     
@@ -205,7 +214,7 @@ app.get("/make-server-5ad7fd2c/debug/table-structure", async (c) => {
 // ==================== CLIENTES/LEADS ROUTES ====================
 
 // Listar todos os leads/clientes
-app.get("/make-server-5ad7fd2c/clientes", async (c) => {
+app.get("/server/clientes", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { status } = c.req.query();
@@ -261,7 +270,7 @@ app.get("/make-server-5ad7fd2c/clientes", async (c) => {
 });
 
 // Buscar cliente por ID
-app.get("/make-server-5ad7fd2c/clientes/:id", async (c) => {
+app.get("/server/clientes/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -285,7 +294,7 @@ app.get("/make-server-5ad7fd2c/clientes/:id", async (c) => {
 });
 
 // Criar novo cliente/lead
-app.post("/make-server-5ad7fd2c/clientes", async (c) => {
+app.post("/server/clientes", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const body = await c.req.json();
@@ -309,7 +318,7 @@ app.post("/make-server-5ad7fd2c/clientes", async (c) => {
 });
 
 // Atualizar cliente
-app.put("/make-server-5ad7fd2c/clientes/:id", async (c) => {
+app.put("/server/clientes/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -337,7 +346,7 @@ app.put("/make-server-5ad7fd2c/clientes/:id", async (c) => {
 // ==================== ORDENS DE SERVIÇO ROUTES ====================
 
 // Listar todas as OS
-app.get("/make-server-5ad7fd2c/ordens-servico", async (c) => {
+app.get("/server/ordens-servico", async (c) => {
   try {
     console.log('📥 GET /ordens-servico - Iniciando busca...');
     const supabase = getSupabaseClient();
@@ -397,7 +406,7 @@ app.get("/make-server-5ad7fd2c/ordens-servico", async (c) => {
 });
 
 // Buscar OS por ID
-app.get("/make-server-5ad7fd2c/ordens-servico/:id", async (c) => {
+app.get("/server/ordens-servico/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -426,7 +435,7 @@ app.get("/make-server-5ad7fd2c/ordens-servico/:id", async (c) => {
 });
 
 // Criar nova OS
-app.post("/make-server-5ad7fd2c/ordens-servico", async (c) => {
+app.post("/server/ordens-servico", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const body = await c.req.json();
@@ -535,7 +544,7 @@ app.post("/make-server-5ad7fd2c/ordens-servico", async (c) => {
 });
 
 // Atualizar OS
-app.put("/make-server-5ad7fd2c/ordens-servico/:id", async (c) => {
+app.put("/server/ordens-servico/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -568,45 +577,83 @@ app.put("/make-server-5ad7fd2c/ordens-servico/:id", async (c) => {
 // ==================== ETAPAS DE OS ROUTES ====================
 
 // Listar etapas de uma OS
-app.get("/make-server-5ad7fd2c/ordens-servico/:osId/etapas", async (c) => {
+app.get("/server/ordens-servico/:osId/etapas", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { osId } = c.req.param();
-    
-    const { data, error } = await supabase
-      .from('os_etapas')
-      .select(`
-        *,
-        responsavel:colaboradores!responsavel_id(*),
-        aprovador:colaboradores!aprovador_id(*)
-      `)
-      .eq('os_id', osId)
-      .order('ordem', { ascending: true });
-    
+
+    console.log(`📋 Buscando etapas da OS: ${osId}`);
+
+    // Use raw SQL to avoid PostgREST schema cache issues
+    const { data, error } = await supabase.rpc('exec_sql', {
+      query: `
+        SELECT
+          e.*,
+          c_responsavel.nome_completo as responsavel_nome
+        FROM os_etapas e
+        LEFT JOIN colaboradores c_responsavel ON e.responsavel_id = c_responsavel.id
+        WHERE e.os_id = $1
+        ORDER BY e.ordem ASC
+      `,
+      params: [osId]
+    });
+
     if (error) {
-      console.error('Erro ao buscar etapas:', error);
-      return c.json({ error: error.message }, 500);
+      console.error('❌ Erro ao buscar etapas (SQL):', error);
+
+      // Fallback: try basic query without joins
+      console.log('🔄 Tentando fallback sem joins...');
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('os_etapas')
+        .select('*')
+        .eq('os_id', osId)
+        .order('ordem', { ascending: true });
+
+      if (fallbackError) {
+        console.error('❌ Erro no fallback:', fallbackError);
+        return c.json({ error: fallbackError.message }, 500);
+      }
+
+      console.log(`✅ Fallback: ${fallbackData?.length || 0} etapas encontradas`);
+      return c.json(fallbackData);
     }
-    
-    return c.json(data);
+
+    console.log(`✅ ${data?.length || 0} etapas encontradas com dados enriquecidos`);
+
+    // Transform data to match expected format
+    const transformedData = data?.map(etapa => ({
+      ...etapa,
+      responsavel: etapa.responsavel_nome ? {
+        id: etapa.responsavel_id,
+        nome_completo: etapa.responsavel_nome
+      } : null
+    }));
+
+    return c.json(transformedData);
   } catch (error) {
-    console.error('Erro no endpoint /ordens-servico/:osId/etapas:', error);
+    console.error('❌ Erro no endpoint /ordens-servico/:osId/etapas:', error);
     return c.json({ error: String(error) }, 500);
   }
 });
 
 // Criar etapa
-app.post("/make-server-5ad7fd2c/ordens-servico/:osId/etapas", async (c) => {
+app.post("/server/ordens-servico/:osId/etapas", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { osId } = c.req.param();
     const body = await c.req.json();
-    
+
+    // DEBUG: Log do body completo recebido
+    console.log(`🔍 [DEBUG] Body recebido (RAW):`, JSON.stringify(body, null, 2));
+    console.log(`🔍 [DEBUG] Status recebido (original):`, body.status, `(tipo: ${typeof body.status})`);
+
     // Normalizar status para corresponder ao enum do Postgres
     if (body.status) {
+      const statusOriginal = body.status;
       body.status = normalizeEtapaStatus(body.status);
+      console.log(`🔄 [DEBUG] Normalização: "${statusOriginal}" → "${body.status}"`);
     }
-    
+
     console.log(`➕ Criando etapa na OS ${osId}:`, {
       ordem: body.ordem,
       nome_etapa: body.nome_etapa,
@@ -634,7 +681,7 @@ app.post("/make-server-5ad7fd2c/ordens-servico/:osId/etapas", async (c) => {
 });
 
 // Atualizar etapa
-app.put("/make-server-5ad7fd2c/etapas/:id", async (c) => {
+app.put("/server/etapas/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -673,7 +720,7 @@ app.put("/make-server-5ad7fd2c/etapas/:id", async (c) => {
 // ==================== TIPOS DE OS ROUTES ====================
 
 // Listar tipos de OS
-app.get("/make-server-5ad7fd2c/tipos-os", async (c) => {
+app.get("/server/tipos-os", async (c) => {
   try {
     const supabase = getSupabaseClient();
 
@@ -697,7 +744,7 @@ app.get("/make-server-5ad7fd2c/tipos-os", async (c) => {
 // ==================== COLABORADORES ROUTES ====================
 
 // Listar colaboradores com filtros
-app.get("/make-server-5ad7fd2c/colaboradores", async (c) => {
+app.get("/server/colaboradores", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { setor, ativo } = c.req.query();
@@ -739,7 +786,7 @@ app.get("/make-server-5ad7fd2c/colaboradores", async (c) => {
 });
 
 // Buscar colaborador por ID
-app.get("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
+app.get("/server/colaboradores/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -767,7 +814,7 @@ app.get("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
 });
 
 // Criar colaborador
-app.post("/make-server-5ad7fd2c/colaboradores", async (c) => {
+app.post("/server/colaboradores", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const body = await c.req.json();
@@ -798,7 +845,7 @@ app.post("/make-server-5ad7fd2c/colaboradores", async (c) => {
 });
 
 // Atualizar colaborador
-app.put("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
+app.put("/server/colaboradores/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -833,7 +880,7 @@ app.put("/make-server-5ad7fd2c/colaboradores/:id", async (c) => {
 // ==================== SETORES ROUTES ====================
 
 // Listar setores
-app.get("/make-server-5ad7fd2c/setores", async (c) => {
+app.get("/server/setores", async (c) => {
   try {
     const supabase = getSupabaseClient();
 
@@ -855,7 +902,7 @@ app.get("/make-server-5ad7fd2c/setores", async (c) => {
 });
 
 // Buscar setor por ID
-app.get("/make-server-5ad7fd2c/setores/:id", async (c) => {
+app.get("/server/setores/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -881,7 +928,7 @@ app.get("/make-server-5ad7fd2c/setores/:id", async (c) => {
 // ==================== CARGOS ROUTES ====================
 
 // Listar cargos
-app.get("/make-server-5ad7fd2c/cargos", async (c) => {
+app.get("/server/cargos", async (c) => {
   try {
     const supabase = getSupabaseClient();
 
@@ -903,7 +950,7 @@ app.get("/make-server-5ad7fd2c/cargos", async (c) => {
 });
 
 // Buscar cargo por ID
-app.get("/make-server-5ad7fd2c/cargos/:id", async (c) => {
+app.get("/server/cargos/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -927,7 +974,7 @@ app.get("/make-server-5ad7fd2c/cargos/:id", async (c) => {
 });
 
 // Buscar cargo por slug
-app.get("/make-server-5ad7fd2c/cargos/slug/:slug", async (c) => {
+app.get("/server/cargos/slug/:slug", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { slug } = c.req.param();
@@ -953,7 +1000,7 @@ app.get("/make-server-5ad7fd2c/cargos/slug/:slug", async (c) => {
 // ==================== DELEGAÇÕES ROUTES ====================
 
 // Criar nova delegação
-app.post("/make-server-5ad7fd2c/delegacoes", async (c) => {
+app.post("/server/delegacoes", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const body = await c.req.json();
@@ -1077,7 +1124,7 @@ app.post("/make-server-5ad7fd2c/delegacoes", async (c) => {
 });
 
 // Listar delegações de uma OS
-app.get("/make-server-5ad7fd2c/ordens-servico/:osId/delegacoes", async (c) => {
+app.get("/server/ordens-servico/:osId/delegacoes", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { osId } = c.req.param();
@@ -1105,7 +1152,7 @@ app.get("/make-server-5ad7fd2c/ordens-servico/:osId/delegacoes", async (c) => {
 });
 
 // Listar todas as delegações de um colaborador (como delegado)
-app.get("/make-server-5ad7fd2c/delegacoes/delegado/:colaboradorId", async (c) => {
+app.get("/server/delegacoes/delegado/:colaboradorId", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { colaboradorId } = c.req.param();
@@ -1133,7 +1180,7 @@ app.get("/make-server-5ad7fd2c/delegacoes/delegado/:colaboradorId", async (c) =>
 });
 
 // Atualizar status de delegação
-app.put("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
+app.put("/server/delegacoes/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -1182,7 +1229,7 @@ app.put("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
 });
 
 // Deletar delegação (apenas se PENDENTE)
-app.delete("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
+app.delete("/server/delegacoes/:id", async (c) => {
   try {
     const supabase = getSupabaseClient();
     const { id } = c.req.param();
@@ -1229,7 +1276,7 @@ app.delete("/make-server-5ad7fd2c/delegacoes/:id", async (c) => {
 // ==================== SEED/SETUP ROUTES ====================
 
 // Seed inicial de usuários com diferentes cargos
-app.post("/make-server-5ad7fd2c/seed-usuarios", async (c) => {
+app.post("/server/seed-usuarios", async (c) => {
   try {
     console.log('🌱 Iniciando seed de usuários...');
     const supabase = getSupabaseClient();

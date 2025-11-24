@@ -105,14 +105,14 @@ export function OSTable({ ordensServico, canViewSetorColumn, onCancelOS, isCance
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Código OS</TableHead>
+              <TableHead>ID</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Etapa Atual</TableHead>
+              <TableHead>Etapa</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Tipo de OS</TableHead>
+              <TableHead>Tipo</TableHead>
               {canViewSetorColumn && <TableHead>Setor</TableHead>}
               <TableHead>Responsável</TableHead>
-              <TableHead>Data Início</TableHead>
+              <TableHead>Início</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -140,8 +140,19 @@ export function OSTable({ ordensServico, canViewSetorColumn, onCancelOS, isCance
                   </TableCell>
                   <TableCell>{getStatusBadge(os.status_geral)}</TableCell>
                   <TableCell>
-                    {/* Etapa Atual - Mockado ou precisa vir do backend */}
-                    <span className="text-sm text-muted-foreground">-</span>
+                    {os.etapaAtual ? (
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">
+                          {os.etapaAtual.numero}. {os.etapaAtual.titulo}
+                        </span>
+                        <Badge variant="outline" className="w-fit text-[10px] h-5 px-1 mt-1">
+                          {os.etapaAtual.status === 'em_andamento' ? 'Em Andamento' :
+                            os.etapaAtual.status === 'concluida' ? 'Concluída' : 'Pendente'}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">-</span>
+                    )}
                   </TableCell>
                   <TableCell>{os.cliente_nome}</TableCell>
                   <TableCell className="max-w-[200px] truncate">

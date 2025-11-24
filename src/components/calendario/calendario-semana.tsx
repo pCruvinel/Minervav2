@@ -15,6 +15,7 @@ interface CalendarioSemanaProps {
   loading: boolean;
   error: Error | null;
   onRefresh: () => void;
+  onTurnoClick?: (turno: TurnoComVagas, dia: Date) => void;
 }
 
 function CalendarioSemanaComponent({
@@ -23,7 +24,8 @@ function CalendarioSemanaComponent({
   agendamentos,
   loading,
   error,
-  onRefresh
+  onRefresh,
+  onTurnoClick
 }: CalendarioSemanaProps) {
   const [modalAgendamento, setModalAgendamento] = useState(false);
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
@@ -124,8 +126,15 @@ function CalendarioSemanaComponent({
 
   const handleClickTurno = (turno: TurnoComVagas & { dia: number }) => {
     if (turno.vagasOcupadas < turno.vagasTotal) {
-      setTurnoSelecionado(turno);
-      setModalAgendamento(true);
+      // Se há callback externo, usar ele (para integração com OS)
+      if (onTurnoClick) {
+        const diaSelecionado = diasDaSemana[turno.dia];
+        onTurnoClick(turno, diaSelecionado);
+      } else {
+        // Comportamento padrão: abrir modal interno
+        setTurnoSelecionado(turno);
+        setModalAgendamento(true);
+      }
     }
   };
 

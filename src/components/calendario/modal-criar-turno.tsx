@@ -12,10 +12,13 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
+import { Slider } from '../ui/slider';
+import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { useCreateTurno } from '../../lib/hooks/use-turnos';
 import { Loader2, AlertCircle } from 'lucide-react';
 import { useSetores } from '../../lib/hooks/use-setores';
+import { logger } from '../../lib/utils/logger';
 
 interface ModalCriarTurnoProps {
   open: boolean;
@@ -49,7 +52,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'custom'>('uteis');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
-  const [numeroVagas, setNumeroVagas] = useState('5');
+  const [numeroVagas, setNumeroVagas] = useState([5]);
   const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
   const [todosSetores, setTodosSetores] = useState(false);
@@ -87,14 +90,14 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
         erros.horaFim = 'Deve ser até 18:00';
       }
 
-      // Validar duração (30 min a 4 horas)
+      // Validar duração (1h a 12h)
       const [inicioH, inicioM] = horaInicio.split(':').map(Number);
       const [fimH, fimM] = horaFim.split(':').map(Number);
       const duracao = (fimH + fimM / 60) - (inicioH + inicioM / 60);
-      if (duracao < 0.5) {
-        erros.horaFim = 'Duração mínima é 30 minutos';
-      } else if (duracao > 4) {
-        erros.horaFim = 'Duração máxima é 4 horas';
+      if (duracao < 1) {
+        erros.horaFim = 'Duração mínima é 1 hora';
+      } else if (duracao > 12) {
+        erros.horaFim = 'Duração máxima é 12 horas';
       }
     }
 
@@ -137,14 +140,14 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const validarVagas = (): boolean => {
     const erros: ValidationErrors = {};
 
-    if (!numeroVagas) {
+    if (!numeroVagas || numeroVagas.length === 0) {
       erros.numeroVagas = 'Número de vagas é obrigatório';
     } else {
-      const vagas = parseInt(numeroVagas);
-      if (isNaN(vagas) || vagas <= 0) {
+      const vagas = numeroVagas[0];
+      if (vagas <= 0) {
         erros.numeroVagas = 'Deve ser um número positivo';
-      } else if (vagas > 50) {
-        erros.numeroVagas = 'Máximo 50 vagas';
+      } else if (vagas > 10) {
+        erros.numeroVagas = 'Máximo 10 vagas';
       }
     }
 
@@ -178,7 +181,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const isFormValid = useMemo(() => {
     const temErros = Object.keys(errors).length > 0;
     const camposPreenchidos =
-      horaInicio && horaFim && numeroVagas && (todosSetores || setoresSelecionados.length > 0);
+      horaInicio && horaFim && numeroVagas.length > 0 && (todosSetores || setoresSelecionados.length > 0);
 
     if (recorrencia === 'custom') {
       return camposPreenchidos && dataInicio && dataFim && !temErros;
@@ -216,7 +219,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
       await criarTurno({
         horaInicio,
         horaFim,
-        vagasTotal: parseInt(numeroVagas),
+        vagasTotal: numeroVagas[0],
         setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
         cor: corSelecionada,
         tipoRecorrencia: recorrencia,
@@ -230,7 +233,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
       setRecorrencia('uteis');
       setDataInicio('');
       setDataFim('');
-      setNumeroVagas('5');
+      setNumeroVagas([5]);
       setCorSelecionada(coresTurno[0].valor);
       setSetoresSelecionados([]);
       setTodosSetores(false);
@@ -315,28 +318,40 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
 
           {/* Recorrência */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             <Label>Recorrência</Label>
-            <RadioGroup value={recorrencia} onValueChange={(v: any) => setRecorrencia(v)}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="todos" id="todos" />
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
                 <Label htmlFor="todos" className="cursor-pointer font-normal">
                   Todos os dias
                 </Label>
+                <Switch
+                  id="todos"
+                  checked={recorrencia === 'todos'}
+                  onCheckedChange={(checked) => checked && setRecorrencia('todos')}
+                />
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="uteis" id="uteis" />
+              <div className="flex items-center justify-between">
                 <Label htmlFor="uteis" className="cursor-pointer font-normal">
                   Dias úteis (Seg-Sex)
                 </Label>
+                <Switch
+                  id="uteis"
+                  checked={recorrencia === 'uteis'}
+                  onCheckedChange={(checked) => checked && setRecorrencia('uteis')}
+                />
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="custom" id="custom" />
+              <div className="flex items-center justify-between">
                 <Label htmlFor="custom" className="cursor-pointer font-normal">
                   Definir datas
                 </Label>
+                <Switch
+                  id="custom"
+                  checked={recorrencia === 'custom'}
+                  onCheckedChange={(checked) => checked && setRecorrencia('custom')}
+                />
               </div>
-            </RadioGroup>
+            </div>
 
             {/* Campos de datas (aparecem apenas se "Definir datas" for selecionado) */}
             {recorrencia === 'custom' && (
@@ -392,24 +407,30 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
 
           {/* Número de Vagas */}
-          <div className="space-y-2">
-            <Label htmlFor="numeroVagas">Número de Vagas</Label>
-            <Input
-              id="numeroVagas"
-              type="number"
-              min="1"
-              max="50"
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>Número de Vagas</Label>
+              <span className="text-sm font-medium text-primary">{numeroVagas[0]}</span>
+            </div>
+            <Slider
               value={numeroVagas}
-              onChange={(e) => {
-                setNumeroVagas(e.target.value);
+              onValueChange={(value) => {
+                setNumeroVagas(value);
                 setErrors((prev) => {
                   const novo = { ...prev };
                   delete novo.numeroVagas;
                   return novo;
                 });
               }}
-              className={`max-w-[150px] ${errors.numeroVagas ? 'border-red-500 focus:border-red-500' : ''}`}
+              min={1}
+              max={10}
+              step={1}
+              className={errors.numeroVagas ? 'border-red-500' : ''}
             />
+            <div className="flex justify-between text-xs text-neutral-500">
+              <span>1</span>
+              <span>10</span>
+            </div>
             {errors.numeroVagas && (
               <p className="text-sm text-red-500 flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
@@ -439,15 +460,18 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
 
           {/* Limitar Setores */}
-          <div className={`space-y-3 p-4 rounded-lg ${errors.setores ? 'bg-red-50 border border-red-200' : 'bg-neutral-50'}`}>
+          <div className={`space-y-4 p-4 rounded-lg ${errors.setores ? 'bg-red-50 border border-red-200' : 'bg-neutral-50'}`}>
             <Label className={errors.setores ? 'text-red-700' : ''}>Limitar Setores</Label>
-            <div className="space-y-2">
-              <div className="flex items-center space-x-2">
-                <Checkbox
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="todos-setores" className="cursor-pointer font-normal">
+                  Todos
+                </Label>
+                <Switch
                   id="todos-setores"
                   checked={todosSetores}
-                  onCheckedChange={(checked: boolean | string) => {
-                    handleTodosSetores(checked === true);
+                  onCheckedChange={(checked: boolean) => {
+                    handleTodosSetores(checked);
                     setErrors((prev) => {
                       const novo = { ...prev };
                       delete novo.setores;
@@ -455,9 +479,6 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                     });
                   }}
                 />
-                <Label htmlFor="todos-setores" className="cursor-pointer font-normal">
-                  Todos
-                </Label>
               </div>
               {loadingSetores ? (
                 <div className="flex items-center gap-2 text-sm text-neutral-500">
@@ -466,8 +487,11 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                 </div>
               ) : (
                 setoresDisponiveis.map((setor) => (
-                  <div key={setor.id} className="flex items-center space-x-2">
-                    <Checkbox
+                  <div key={setor.id} className="flex items-center justify-between">
+                    <Label htmlFor={setor.id} className="cursor-pointer font-normal">
+                      {setor.nome}
+                    </Label>
+                    <Switch
                       id={setor.id}
                       checked={setoresSelecionados.includes(setor.slug)}
                       onCheckedChange={() => {
@@ -479,9 +503,6 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                         });
                       }}
                     />
-                    <Label htmlFor={setor.id} className="cursor-pointer font-normal">
-                      {setor.nome}
-                    </Label>
                   </div>
                 ))
               )}

@@ -298,10 +298,10 @@ export function ListaDelegacoes({
             className="text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="todas">Todas</option>
-            <option value="pendentes">Pendentes</option>
-            <option value="em_progresso">Em Progresso</option>
-            <option value="concluidas">Concluídas</option>
-            <option value="reprovadas">Reprovadas</option>
+            <option value="pendente">Pendentes</option>
+            <option value="aceita">Aceitas (Em Progresso)</option>
+            <option value="concluida">Concluídas</option>
+            <option value="recusada">Recusadas</option>
           </select>
         </div>
       </div>

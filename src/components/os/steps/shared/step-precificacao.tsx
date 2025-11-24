@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle } from 'lucide-react';
@@ -27,11 +28,11 @@ interface StepPrecificacaoProps {
     preparacaoArea: string;
   };
   data: {
-    percentualImprevisto: string;
-    percentualLucro: string;
-    percentualImposto: string;
-    percentualEntrada: string;
-    numeroParcelas: string;
+    percentualImprevisto?: string;
+    percentualLucro?: string;
+    percentualImposto?: string;
+    percentualEntrada?: string;
+    numeroParcelas?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
@@ -43,10 +44,23 @@ export function StepPrecificacao({
   onDataChange,
   readOnly = false,
 }: StepPrecificacaoProps) {
+
+  // Função para atualizar dados incluindo campos obrigatórios do schema
+  const handleDataChange = (newData: any) => {
+    // Sempre incluir os campos obrigatórios do schema da Etapa 8
+    const completeData = {
+      ...newData,
+      materialCusto: calcularCustoBase().toFixed(2), // Custo base do memorial
+      maoObraCusto: '0.00', // Mão-de-obra adicional (pode ser editada depois)
+      precoFinal: calcularValorAtual().toFixed(2), // Valor calculado final
+    };
+
+    onDataChange(completeData);
+  };
   // Calcular Custo Base do Memorial
   const calcularCustoBase = (): number => {
     if (!memorialData || !memorialData.etapasPrincipais) return 0;
-    
+
     return memorialData.etapasPrincipais.reduce((total, etapa) => {
       return total + etapa.subetapas.reduce((subtotal, sub) => {
         return subtotal + (parseFloat(sub.total) || 0);
@@ -57,9 +71,9 @@ export function StepPrecificacao({
   // Calcular Valor Atual (Total) com percentuais
   const calcularValorAtual = (): number => {
     const custoBase = calcularCustoBase();
-    const imprevisto = parseFloat(data.percentualImprevisto) || 0;
-    const lucro = parseFloat(data.percentualLucro) || 0;
-    const imposto = parseFloat(data.percentualImposto) || 0;
+    const imprevisto = parseFloat(data.percentualImprevisto || '0') || 0;
+    const lucro = parseFloat(data.percentualLucro || '0') || 0;
+    const imposto = parseFloat(data.percentualImposto || '0') || 0;
 
     // Fórmula: CustoBase * (1 + %Imprevisto/100 + %Lucro/100 + %Imposto/100)
     return custoBase * (1 + imprevisto / 100 + lucro / 100 + imposto / 100);
@@ -68,7 +82,7 @@ export function StepPrecificacao({
   // Calcular Valor de Entrada
   const calcularValorEntrada = (): number => {
     const valorTotal = calcularValorAtual();
-    const percentualEntrada = parseFloat(data.percentualEntrada) || 0;
+    const percentualEntrada = parseFloat(data.percentualEntrada || '0') || 0;
     return valorTotal * (percentualEntrada / 100);
   };
 
@@ -76,8 +90,8 @@ export function StepPrecificacao({
   const calcularValorParcela = (): number => {
     const valorTotal = calcularValorAtual();
     const valorEntrada = calcularValorEntrada();
-    const numeroParcelas = parseFloat(data.numeroParcelas) || 1;
-    
+    const numeroParcelas = parseFloat(data.numeroParcelas || '1') || 1;
+
     if (numeroParcelas === 0) return 0;
     return (valorTotal - valorEntrada) / numeroParcelas;
   };
@@ -108,20 +122,21 @@ export function StepPrecificacao({
 
       <Separator />
 
+
       {/* Percentuais e Valor Total */}
       <div className="space-y-4">
         <Label className="text-base">Percentuais e Valor Total</Label>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="space-y-2">
             <Label htmlFor="percentualImprevisto">
-              % Imprevisto <span className="text-destructive">*</span>
+              % Imprevisto
             </Label>
             <Input
               id="percentualImprevisto"
               type="number"
-              value={data.percentualImprevisto}
-              onChange={(e) => !readOnly && onDataChange({ ...data, percentualImprevisto: e.target.value })}
+              value={data.percentualImprevisto || ''}
+              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualImprevisto: e.target.value })}
               placeholder="0"
               disabled={readOnly}
             />
@@ -129,13 +144,13 @@ export function StepPrecificacao({
 
           <div className="space-y-2">
             <Label htmlFor="percentualLucro">
-              % Lucro <span className="text-destructive">*</span>
+              % Lucro
             </Label>
             <Input
               id="percentualLucro"
               type="number"
-              value={data.percentualLucro}
-              onChange={(e) => !readOnly && onDataChange({ ...data, percentualLucro: e.target.value })}
+              value={data.percentualLucro || ''}
+              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualLucro: e.target.value })}
               placeholder="0"
               disabled={readOnly}
             />
@@ -143,13 +158,13 @@ export function StepPrecificacao({
 
           <div className="space-y-2">
             <Label htmlFor="percentualImposto">
-              % Imposto <span className="text-destructive">*</span>
+              % Imposto
             </Label>
             <Input
               id="percentualImposto"
               type="number"
-              value={data.percentualImposto}
-              onChange={(e) => !readOnly && onDataChange({ ...data, percentualImposto: e.target.value })}
+              value={data.percentualImposto || ''}
+              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualImposto: e.target.value })}
               placeholder="0"
               disabled={readOnly}
             />
@@ -173,7 +188,7 @@ export function StepPrecificacao({
       {/* Condições de Pagamento */}
       <div className="space-y-4">
         <Label className="text-base">Condições de Pagamento</Label>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="percentualEntrada">
@@ -183,7 +198,7 @@ export function StepPrecificacao({
               id="percentualEntrada"
               type="number"
               value={data.percentualEntrada}
-              onChange={(e) => !readOnly && onDataChange({ ...data, percentualEntrada: e.target.value })}
+              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualEntrada: e.target.value })}
               placeholder="0"
               disabled={readOnly}
             />
@@ -197,7 +212,7 @@ export function StepPrecificacao({
               id="numeroParcelas"
               type="number"
               value={data.numeroParcelas}
-              onChange={(e) => !readOnly && onDataChange({ ...data, numeroParcelas: e.target.value })}
+              onChange={(e) => !readOnly && handleDataChange({ ...data, numeroParcelas: e.target.value })}
               placeholder="0"
               disabled={readOnly}
             />
@@ -227,6 +242,7 @@ export function StepPrecificacao({
         </div>
       </div>
 
+
       {/* Resumo Financeiro */}
       <Card className="bg-primary/5 border-primary/20">
         <CardHeader>
@@ -249,7 +265,7 @@ export function StepPrecificacao({
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Parcelas:</span>
             <span className="text-sm font-medium">
-              {data.numeroParcelas}x de R$ {calcularValorParcela().toFixed(2).replace('.', ',')}
+              {data.numeroParcelas || 1}x de R$ {calcularValorParcela().toFixed(2).replace('.', ',')}
             </span>
           </div>
         </CardContent>

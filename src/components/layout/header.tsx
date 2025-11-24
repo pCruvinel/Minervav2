@@ -25,7 +25,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
   const [showDropdown, setShowDropdown] = React.useState(false);
 
   return (
-    <header className="minerva-header">
+    <header className="minerva-header w-full flex items-center justify-between">
       {/* Conteúdo específico para página de OS */}
       {osData ? (
         <>
@@ -62,7 +62,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 ml-auto">
             {/* Search */}
             <div className="minerva-header-search">
               <Search className="minerva-header-search-icon" />

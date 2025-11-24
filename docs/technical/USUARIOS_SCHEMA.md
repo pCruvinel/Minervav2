@@ -2,7 +2,6 @@
 
 Este é o documento funcional. Ele explica *quem* são os usuários e *o que* eles podem fazer.
 
-```markdown
 # 👥 Guia de Usuários e Permissões (v2.1)
 
 **Arquitetura:** Relacional (Tabela `cargos` e `setores`)
@@ -78,4 +77,3 @@ O sistema possui um "Guardião" (Trigger de Banco) que impede delegações errad
 
 **Q: Mudei o status da OS para 'CONCLUIDA' e deu erro.**
 **R:** Verifique se você usou minúsculo (`concluido`). O sistema V2.1 não aceita mais MAIÚSCULAS (`CONCLUIDA`).
-````

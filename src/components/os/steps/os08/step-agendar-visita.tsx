@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -38,7 +38,7 @@ export function StepAgendarVisita({ data, onDataChange, readOnly }: StepAgendarV
           <Label>
             Data da Visita <span className="text-red-500">*</span>
           </Label>
-          
+
           <div className="flex flex-col items-start gap-4">
             <div className="border border-neutral-200 rounded-lg p-4 bg-white">
               <Calendar

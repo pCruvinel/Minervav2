@@ -7,7 +7,7 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
 }
 
 // API HABILITADA - Conectado ao Supabase
-const API_BASE_URL = `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c`;
+const API_BASE_URL = `${SUPABASE_URL}/functions/v1/server`;
 const FRONTEND_ONLY_MODE = false; // Backend habilitado
 
 interface RequestOptions {
@@ -132,8 +132,15 @@ export const ordensServicoAPI = {
     apiRequest<any[]>(`/ordens-servico/${osId}/etapas`),
   
   // Criar etapa
-  createEtapa: (osId: string, data: any) => 
-    apiRequest<any>(`/ordens-servico/${osId}/etapas`, { method: 'POST', body: data }),
+  createEtapa: (osId: string, data: any) => {
+    console.log(`🔍 [FRONTEND DEBUG] Enviando para createEtapa:`, {
+      osId,
+      data,
+      status: data.status,
+      statusType: typeof data.status
+    });
+    return apiRequest<any>(`/ordens-servico/${osId}/etapas`, { method: 'POST', body: data });
+  },
   
   // Atualizar etapa
   updateEtapa: (etapaId: string, data: any) => 

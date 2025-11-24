@@ -36,7 +36,7 @@ export function TestSchemaReload() {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/reload-schema`,
+        `${SUPABASE_URL}/functions/v1/server/reload-schema`,
         {
           method: 'POST',
           headers: {
@@ -87,7 +87,7 @@ export function TestSchemaReload() {
       // Código original comentado para evitar erro 403
       /*
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/make-server-5ad7fd2c/debug/table-structure`,
+        `${SUPABASE_URL}/functions/v1/server/debug/table-structure`,
         {
           headers: {
             'Authorization': `Bearer ${SUPABASE_ANON_KEY}`

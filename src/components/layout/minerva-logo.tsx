@@ -1,5 +1,5 @@
 
-import logoImage from 'figma:asset/4d6725944d737f640d01fc63f170afaabecd6e0a.png';
+import logoImage from '../../img/logo.png';
 
 interface MinervaLogoProps {
   variant?: 'full' | 'icon' | 'compact';

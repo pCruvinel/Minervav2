@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { uploadFile } from '@/lib/utils/supabase-storage';
+import { ordensServicoAPI } from '@/lib/api-client';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -146,7 +149,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           // Atualizar etapa existente
           await ordensServicoAPI.updateEtapa(etapaId, {
             dados_etapa: dadosEtapa,
-            status: 'aprovada', // Marca como aprovada após preenchimento
+            status: 'concluida', // Marca como concluída após preenchimento
             data_conclusao: new Date().toISOString(),
           });
           console.log('✅ Etapa atualizada com sucesso');
@@ -154,7 +157,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           // Criar nova etapa
           await ordensServicoAPI.createEtapa(osId, {
             nome_etapa: 'OS08 - Formulário Pós-Visita',
-            status: 'aprovada',
+            status: 'concluida',
             ordem: 8,
             dados_etapa: dadosEtapa,
             data_conclusao: new Date().toISOString(),

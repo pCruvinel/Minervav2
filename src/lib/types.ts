@@ -29,28 +29,40 @@ export type NivelHierarquico = number;
 // ENUMS DO BANCO DE DADOS (MINÚSCULOS - CRUCIAL)
 // ============================================================
 
-export type OSStatus = 
-  | 'em_triagem' 
-  | 'em_andamento' 
-  | 'concluido' 
-  | 'cancelado';
+export type OSStatus =
+  | 'em_triagem'
+  | 'em_andamento'
+  | 'aguardando_aprovacao'
+  | 'concluida'
+  | 'cancelada';
 
-export type EtapaStatus = 
-  | 'pendente' 
-  | 'em_andamento' 
-  | 'concluida' 
+export type EtapaStatus =
+  | 'pendente'
+  | 'em_andamento'
+  | 'concluida'
   | 'bloqueada';
 
-export type ClienteStatus = 
-  | 'lead' 
-  | 'ativo' 
-  | 'inativo' 
+export interface Etapa {
+  id: string;
+  os_id: string;
+  nome_etapa: string;
+  status: EtapaStatus;
+  ordem: number;
+  responsavel_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type ClienteStatus =
+  | 'lead'
+  | 'ativo'
+  | 'inativo'
   | 'blacklist';
 
-export type DelegacaoStatus = 
-  | 'pendente' 
-  | 'aceita' 
-  | 'concluida' 
+export type DelegacaoStatus =
+  | 'pendente'
+  | 'aceita'
+  | 'concluida'
   | 'recusada';
 
 export type FinanceiroTipo = 
@@ -139,6 +151,16 @@ export interface OrdemServico {
   setor?: string;                // Legado: substituído por setor_nome
   delegada_para_id?: string;     // Legado: usar tabela delegacoes
   responsavel?: User;            // Legado: usar responsavel_id + join
+
+  // ========== CAMPOS COMPUTADOS (FRONTEND) ==========
+  etapaAtual?: {
+    numero: number;
+    titulo: string;
+    status: string;
+  };
+  
+  // Objeto completo do cliente (opcional, vindo de joins/API)
+  cliente?: Cliente;
 }
 
 export interface Delegacao {
@@ -251,8 +273,9 @@ export const ROLE_LABELS: Record<RoleLevel, string> = {
 export const STATUS_LABELS: Record<OSStatus, string> = {
   'em_triagem': 'Em Triagem',
   'em_andamento': 'Em Andamento',
-  'concluido': 'Concluído',
-  'cancelado': 'Cancelado',
+  'concluida': 'Concluída',
+  'cancelada': 'Cancelada',
+  'aguardando_aprovacao': 'Aguardando Aprovação',
 };
 
 export const CLIENTE_STATUS_LABELS: Record<ClienteStatus, string> = {
@@ -277,8 +300,9 @@ export const normalizeStatusOS = (status: string): OSStatus => {
   const s = status.toLowerCase();
   if (s.includes('triagem')) return 'em_triagem';
   if (s.includes('andamento')) return 'em_andamento';
-  if (s.includes('conclui') || s.includes('concluida')) return 'concluido';
-  if (s.includes('cancel')) return 'cancelado';
+  if (s.includes('conclui') || s.includes('concluida')) return 'concluida';
+  if (s.includes('cancel')) return 'cancelada';
+  if (s.includes('aguardando')) return 'aguardando_aprovacao';
   return 'em_triagem'; // Default seguro
 };
 

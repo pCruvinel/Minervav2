@@ -153,7 +153,7 @@ export function CalendarioPage() {
       <div className="max-w-[1600px] mx-auto">
         {/* Cabeçalho */}
         <div className="bg-white rounded-lg shadow-sm border border-neutral-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             {/* Navegação de Mês/Ano */}
             <div className="flex items-center gap-4">
               <Button
@@ -208,7 +208,7 @@ export function CalendarioPage() {
           </div>
 
           {/* Botão Configurar Novo Turno */}
-          <div className="ml-4 pl-4 border-l border-neutral-200">
+          <div className="flex justify-end">
             <Button
               onClick={() => setModalCriarTurno(true)}
               className="bg-primary hover:bg-primary/90"

@@ -1,0 +1,110 @@
+/* Estilos específicos para impressão da proposta comercial */
+
+@media print {
+  /* Página A4 */
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  /* Esconder elementos não necessários na impressão */
+  .print-hidden {
+    display: none !important;
+  }
+
+  /* Ajustar layout para impressão */
+  .print-max-w-none {
+    max-width: none !important;
+  }
+
+  .print-w-full {
+    width: 100% !important;
+  }
+
+  .print-min-h-a4 {
+    min-height: 29.7cm !important; /* Altura A4 */
+  }
+
+  .print-p-6 {
+    padding: 1.5rem !important;
+  }
+
+  .print-shadow-none {
+    box-shadow: none !important;
+  }
+
+  /* Garantir que o conteúdo caiba na página */
+  body {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  /* Ajustar cabeçalho */
+  .proposal-header {
+    margin-bottom: 2rem;
+  }
+
+  .proposal-header img {
+    max-width: 150px;
+    height: auto;
+  }
+
+  /* Ajustar seções */
+  .proposal-section {
+    margin-bottom: 1.5rem;
+    page-break-inside: avoid;
+  }
+
+  .proposal-section h2 {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    padding-bottom: 0.25rem;
+  }
+
+  /* Ajustar tabelas e listas */
+  .proposal-section ul {
+    margin-left: 1rem;
+  }
+
+  .proposal-section li {
+    margin-bottom: 0.25rem;
+  }
+
+  /* Ajustar valores monetários */
+  .currency-value {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  /* Ajustar assinatura */
+  .signature-section {
+    margin-top: 3rem;
+    text-align: center;
+  }
+
+  .signature-line {
+    border-top: 1px solid #000;
+    width: 200px;
+    margin: 0 auto 0.5rem auto;
+  }
+
+  /* Quebrar página se necessário */
+  .page-break {
+    page-break-before: always;
+  }
+
+  .avoid-break {
+    page-break-inside: avoid;
+  }
+}
+
+/* Estilos gerais para preview (não impressão) */
+.proposal-preview {
+  max-width: 210mm; /* Largura A4 */
+  min-height: 297mm; /* Altura A4 */
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}

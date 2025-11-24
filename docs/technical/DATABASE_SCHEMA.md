@@ -1,10 +1,4 @@
-Com base no schema SQL fornecido, atualizei a documentação para refletir com precisão a estrutura atual do banco de dados (adicionando campos como `endereco`, datas de controle, campos de auditoria e correções de tipos).
-
-Aqui está a versão **v2.2** pronta para uso.
-
------
-
-# AI Context: Minerva Database Schema (v2.2)
+# AI Context: Minerva Database Schema (v2.3)
 
 > **SYSTEM NOTE:** Este documento descreve a "Verdade" do banco de dados. Se houver conflito entre este arquivo e o código, este arquivo prevalece em lógica de negócio.
 
@@ -15,9 +9,11 @@ Aqui está a versão **v2.2** pronta para uso.
 
 -----
 
-## 1\. Lógica de Acesso & RLS (Row Level Security)
+## 1. Lógica de Acesso & RLS (Row Level Security)
 
-O sistema utiliza uma matriz de **Cargo x Setor**.
+> **⚠️ ATENÇÃO: RLS DESABILITADO**
+> Para fins de desenvolvimento ágil, **todas as políticas de RLS (Row Level Security) foram desabilitadas**.
+> O controle de acesso deve ser feito temporariamente na camada de aplicação (Frontend/Backend API) até que o RLS seja reativado em produção.
 
 ### Hierarquia de Cargos (Tabela `cargos`)
 
@@ -31,17 +27,11 @@ O sistema utiliza uma matriz de **Cargo x Setor**.
 | `colaborador` | 1 | **Operacional.** Vê apenas o próprio perfil e tarefas onde é responsável. |
 | `mao_de_obra` | 0 | **Sem Login.** Apenas para registro de custos/presença. |
 
-### Regras de Delegação
-
-  * **Gestor Obras** só delega para equipe de Obras.
-  * **Gestor Assessoria** só delega para equipe de Assessoria.
-  * **Diretoria/Admin** delegam para qualquer um.
-
 -----
 
-## 2\. Estrutura de Dados (Compact Schema)
+## 2. Estrutura de Dados (Compact Schema)
 
-Abaixo a definição relacional atualizada com base no Schema SQL.
+Abaixo a definição relacional atualizada.
 *Legenda: `PK` = Primary Key, `FK` = Foreign Key.*
 
 ### 2.1 Núcleo de Acesso (RH & Auth)
@@ -102,7 +92,7 @@ public.os_etapas (
   id uuid PK,
   os_id uuid FK(public.ordens_servico),
   nome_etapa text,
-  status text,                  -- Enum: [pendente, em_andamento, concluida]
+  status text,                  -- Enum: [pendente, em_andamento, aguardando_aprovacao, aprovada, rejeitada]
   ordem int,
   dados_etapa jsonb,            -- Payload dinâmico do formulário
   responsavel_id uuid FK(public.colaboradores),
@@ -125,8 +115,6 @@ public.delegacoes (
 ```
 
 ### 2.3 Financeiro & CRM
-
-> **Atenção:** A tabela `financeiro_lancamentos` é protegida por RLS estrito.
 
 ```sql
 public.financeiro_lancamentos (
@@ -235,21 +223,29 @@ public.audit_log (
 
 -----
 
-## 3\. Referência de Valores (Enums & Checks)
+## 3. Referência de Valores (Enums & Checks)
 
 **Status de OS (`os_status_geral`)**
 
-  * `em_triagem` (Default)
-  * `aguardando_informacoes`
-  * `em_andamento`
-  * `concluido`
-  * `cancelado`
+  * `em_triagem` (Default) - OS criada, aguardando classificação inicial
+  * `em_andamento` - OS em execução
+  * `aguardando_aprovacao` - OS completa, aguardando validação/aprovação do cliente
+  * `concluida` - OS finalizada com sucesso
+  * `cancelada` - OS cancelada
+
+**Status de Etapa (`os_etapa_status`)**
+
+  * `pendente` (Default) - Etapa não iniciada
+  * `em_andamento` - Etapa em execução
+  * `concluida` - Etapa finalizada com sucesso
+  * `bloqueada` - Etapa impedida por dependência externa (ex: aguardando cliente)
 
 **Status de Cliente (`cliente_status`)**
 
-  * `lead` (Default)
-  * `ativo`
-  * `inativo`
+  * `lead` (Default) - Prospect, ainda não é cliente
+  * `ativo` - Cliente com contrato ativo
+  * `inativo` - Cliente sem contratos ativos
+  * `blacklist` - Cliente bloqueado (inadimplente/problemas)
 
 **Tipos Financeiros (`financeiro_tipo`)**
 
@@ -265,19 +261,7 @@ public.audit_log (
 
 **Status Delegação (`delegacao_status`)**
 
-  * `pendente` (Default)
-  * `aceita`
-  * `recusada`
-  * `concluida`
-
------
-
-### Principais Alterações nesta Versão (v2.2):
-
-1.  **Clientes:** Adicionado campo `endereco` (JSONB) e `observacoes`.
-2.  **Agendamentos:** Adicionados campos de auditoria de cancelamento (`cancelado_em`, `motivo`) e `duracao_horas`.
-3.  **Turnos:** Adicionados campos de range de data (`data_inicio`, `data_fim`).
-4.  **Financeiro:** Adicionado vínculo com criador (`criado_por_id`).
-5.  **Etapas OS:** Adicionados timestamps de execução (`data_inicio`, `data_conclusao`).
-
-Quer que eu gere também os **Tipos TypeScript** (Interfaces) atualizados com base nesta nova documentação para usar no Front-end?
+  * `pendente` (Default) - Delegação criada, aguardando aceitação
+  * `aceita` - Delegado aceitou a tarefa e está executando
+  * `concluida` - Tarefa finalizada com sucesso
+  * `recusada` - Delegado recusou a tarefa

@@ -7,13 +7,12 @@ import { FileDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { User } from '../../lib/types';
 import { OSListHeader } from './os-list-header';
 import { OSFiltersCard } from './os-filters-card';
-import { EtapaFilter } from './etapa-filter';
+
 import { OSTable } from './os-table';
 import { useOrdensServico } from '../../lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '../../lib/api-client';
 import { toast } from '../../lib/utils/safe-toast';
 
-// Mock data para fallback (caso API falhe)
 // Mock data para fallback (caso API falhe)
 const mockOrdensServico: any[] = [
   {
@@ -68,7 +67,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   const [tipoOSFilter, setTipoOSFilter] = useState('todos');
   const [setorFilter, setSetorFilter] = useState('todos');
   const [responsavelFilter, setResponsavelFilter] = useState('todos');
-  const [etapaFilter, setEtapaFilter] = useState<number[]>([]); // Novo: filtro de etapas
+
   const [isCancelling, setIsCancelling] = useState(false);
 
   // Buscar OS da API usando hook customizado
@@ -98,21 +97,9 @@ export function OSListPage({ currentUser }: OSListPageProps) {
     // IMPORTANTE: O RLS do banco já filtra os dados na origem
     // A lógica abaixo é apenas fallback/filtro adicional de UI
     // Regras RLS reais estão em: docs/technical/Manual de Permissões e Controle de Acesso.md
-    if (currentUser.role_nivel === 'colaborador') {
-      // Colaborador: RLS do banco já filtra (os_read_own_assigned)
-      // Fallback: garantir que só vê suas próprias OS
-      filtered = filtered.filter(os => os.responsavel?.id === currentUser.id);
-      logger.log(`🔍 [FILTRO-UI-COLABORADOR] Usuário: ${currentUser.id}, OS filtradas: ${filtered.length}`);
-    } else if (currentUser.role_nivel?.startsWith('gestor') && currentUser.role_nivel !== 'gestor_administrativo') {
-      // Gestores Setoriais: RLS do banco filtra por setor (agendamentos_gestor_setor)
-      // Fallback: filtrar por setor no frontend
-      if (currentUser.setor) {
-        filtered = filtered.filter(os => os.setor_nome?.toLowerCase().includes(currentUser.setor?.toLowerCase() || ''));
-      }
-      logger.log(`🔍 [FILTRO-UI-GESTOR] Setor: ${currentUser.setor}, OS filtradas: ${filtered.length}`);
-    }
-    // Gestor Administrativo, Diretoria e Admin: RLS permite ver tudo
-    logger.log(`🔍 [FILTRO-UI] Role: ${currentUser.role_nivel}, OS após filtros: ${filtered.length}`);
+
+    // REMOVIDO: Filtros de role removidos conforme solicitação para exibir todas as OS
+    logger.log(`🔍 [FILTRO-UI] Role: ${currentUser.role_nivel}, Exibindo todas as OS recebidas: ${filtered.length}`);
 
     // Aplicar filtros de busca
     if (searchTerm) {
@@ -145,18 +132,9 @@ export function OSListPage({ currentUser }: OSListPageProps) {
       logger.log(`🔍 [RESPONSAVEL] Filtro: ${responsavelFilter}, OS filtradas: ${filtered.length}`);
     }
 
-    // Novo: Filtro por etapa atual
-    if (etapaFilter.length > 0) {
-      filtered = filtered.filter(os => {
-        // Se a OS tem etapaAtual e está em uma das etapas selecionadas
-        return os.etapaAtual && etapaFilter.includes(os.etapaAtual.numero);
-      });
-      logger.log(`🔍 [ETAPA] Filtro: ${etapaFilter.join(', ')}, OS filtradas: ${filtered.length}`);
-    }
-
     logger.log(`✅ [FINAL] Total de OS exibidas: ${filtered.length}`);
     return filtered;
-  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, etapaFilter, currentUser, ordensServicoFromAPI, error]);
+  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, currentUser, ordensServicoFromAPI, error]);
 
   // Função para exportar dados
   const handleExport = () => {
@@ -186,10 +164,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
     <div className="min-h-screen bg-neutral-100 p-6">
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Header da Página */}
-        {/* Header da Página */}
         <OSListHeader />
-
-
 
         {/* Loading State */}
         {loading && (
@@ -238,15 +213,6 @@ export function OSListPage({ currentUser }: OSListPageProps) {
           onTipoOSChange={setTipoOSFilter}
           onSetorChange={setSetorFilter}
           onResponsavelChange={setResponsavelFilter}
-        />
-
-        {/* Filtro de Etapas - Dinâmico por tipo de OS */}
-        <EtapaFilter
-          totalSteps={15} // OS 01-04 tem 15 etapas (futuro: detectar automaticamente por tipo)
-          selectedEtapas={etapaFilter}
-          onFilterChange={setEtapaFilter}
-          useLocalStorage={true}
-          storageKey="os_list_etapa_filter"
         />
 
         {/* Card da Tabela */}
