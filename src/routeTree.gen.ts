@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AuthIndexRouteImport } from './routes/_auth/index'
+import { Route as AuthHealthCheckRouteImport } from './routes/_auth/health-check'
 import { Route as AuthDelegacoesRouteImport } from './routes/_auth/delegacoes'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthOsIndexRouteImport } from './routes/_auth/os/index'
@@ -50,6 +51,11 @@ const AuthRoute = AuthRouteImport.update({
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthHealthCheckRoute = AuthHealthCheckRouteImport.update({
+  id: '/health-check',
+  path: '/health-check',
   getParentRoute: () => AuthRoute,
 } as any)
 const AuthDelegacoesRoute = AuthDelegacoesRouteImport.update({
@@ -192,6 +198,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthDashboardRoute
   '/delegacoes': typeof AuthDelegacoesRoute
+  '/health-check': typeof AuthHealthCheckRoute
   '/': typeof AuthIndexRoute
   '/clientes/$clienteId': typeof AuthClientesClienteIdRoute
   '/colaboradores/presenca': typeof AuthColaboradoresPresencaRoute
@@ -221,6 +228,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/dashboard': typeof AuthDashboardRoute
   '/delegacoes': typeof AuthDelegacoesRoute
+  '/health-check': typeof AuthHealthCheckRoute
   '/': typeof AuthIndexRoute
   '/clientes/$clienteId': typeof AuthClientesClienteIdRoute
   '/colaboradores/presenca': typeof AuthColaboradoresPresencaRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_auth/dashboard': typeof AuthDashboardRoute
   '/_auth/delegacoes': typeof AuthDelegacoesRoute
+  '/_auth/health-check': typeof AuthHealthCheckRoute
   '/_auth/': typeof AuthIndexRoute
   '/_auth/clientes/$clienteId': typeof AuthClientesClienteIdRoute
   '/_auth/colaboradores/presenca': typeof AuthColaboradoresPresencaRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/delegacoes'
+    | '/health-check'
     | '/'
     | '/clientes/$clienteId'
     | '/colaboradores/presenca'
@@ -312,6 +322,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard'
     | '/delegacoes'
+    | '/health-check'
     | '/'
     | '/clientes/$clienteId'
     | '/colaboradores/presenca'
@@ -342,6 +353,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_auth/dashboard'
     | '/_auth/delegacoes'
+    | '/_auth/health-check'
     | '/_auth/'
     | '/_auth/clientes/$clienteId'
     | '/_auth/colaboradores/presenca'
@@ -394,6 +406,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/health-check': {
+      id: '/_auth/health-check'
+      path: '/health-check'
+      fullPath: '/health-check'
+      preLoaderRoute: typeof AuthHealthCheckRouteImport
       parentRoute: typeof AuthRoute
     }
     '/_auth/delegacoes': {
@@ -589,6 +608,7 @@ const AuthOsOsIdRouteWithChildren = AuthOsOsIdRoute._addFileChildren(
 interface AuthRouteChildren {
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthDelegacoesRoute: typeof AuthDelegacoesRoute
+  AuthHealthCheckRoute: typeof AuthHealthCheckRoute
   AuthIndexRoute: typeof AuthIndexRoute
   AuthClientesClienteIdRoute: typeof AuthClientesClienteIdRoute
   AuthColaboradoresPresencaRoute: typeof AuthColaboradoresPresencaRoute
@@ -617,6 +637,7 @@ interface AuthRouteChildren {
 const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
   AuthDelegacoesRoute: AuthDelegacoesRoute,
+  AuthHealthCheckRoute: AuthHealthCheckRoute,
   AuthIndexRoute: AuthIndexRoute,
   AuthClientesClienteIdRoute: AuthClientesClienteIdRoute,
   AuthColaboradoresPresencaRoute: AuthColaboradoresPresencaRoute,
