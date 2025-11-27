@@ -64,6 +64,11 @@
 | `/styles/globals.css` | Estilos globais | Customização |
 | `/components/design-system-showcase.tsx` | Showcase de componentes | Exemplos |
 
+### ✅ Sistema de Validação
+| Arquivo | Descrição | Quando Usar |
+|---------|-----------|-------------|
+| `/docs/technical/VALIDATION_SYSTEM.md` | Hook useFieldValidation e sistema Zod | Desenvolvimento de formulários |
+
 ### 🔧 Troubleshooting
 | Arquivo | Descrição | Quando Usar |
 |---------|-----------|-------------|

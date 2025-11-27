@@ -97,10 +97,13 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
 /**
  * Hook para buscar uma OS específica
  */
-export function useOrdemServico(osId: string) {
-  const { data, loading, error, refetch } = useApi(() => ordensServicoAPI.getById(osId), {
-    deps: [osId],
-  });
+export function useOrdemServico(osId: string | null) {
+  const { data, loading, error, refetch } = useApi(
+    () => osId ? ordensServicoAPI.getById(osId) : Promise.resolve(null),
+    {
+      deps: [osId],
+    }
+  );
 
   const os = useMemo(() => {
     if (!data) return null;

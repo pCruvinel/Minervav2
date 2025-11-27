@@ -43,10 +43,14 @@ export interface StepMemorialEscopoHandle {
 
 export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemorialEscopoProps>(
   function StepMemorialEscopo({ data, onDataChange, readOnly = false }, ref) {
-    // Garantir que data.etapasPrincipais seja sempre um array
+    // Garantir que todos os campos tenham valores padrão (controlled components)
     const safeData = {
-      ...data,
-      etapasPrincipais: data.etapasPrincipais || [],
+      objetivo: '',
+      planejamentoInicial: '',
+      logisticaTransporte: '',
+      preparacaoArea: '',
+      etapasPrincipais: [],
+      ...data, // Override com dados reais se existirem
     };
     // Hook de validação
     const {

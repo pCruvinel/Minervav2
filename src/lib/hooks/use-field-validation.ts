@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { z } from 'zod';
+import { z, ZodEffects, ZodObject } from 'zod';
 
 /**
  * Estado de erros de validação
@@ -40,6 +40,31 @@ export interface UseFieldValidationResult {
 }
 
 /**
+ * Função helper para extrair o schema base de um ZodEffects (refine/transform)
+ * Retorna o schema original se for um ZodObject, ou extrai de ZodEffects
+ */
+function getBaseSchema(schema: z.ZodType<any>): z.ZodObject<any> {
+  // Se já é um ZodObject, retorna diretamente
+  if (schema instanceof ZodObject) {
+    return schema;
+  }
+
+  // Se é um ZodEffects (resultado de .refine()), extrai o schema interno
+  if (schema instanceof ZodEffects) {
+    // ZodEffects tem o schema original em _def.schema
+    const innerSchema = schema._def.schema;
+    if (innerSchema instanceof ZodObject) {
+      return innerSchema;
+    }
+    // Se o schema interno também for um ZodEffects, continua recursivamente
+    return getBaseSchema(innerSchema);
+  }
+
+  // Fallback: tenta converter para ZodObject (pode falhar)
+  throw new Error('Schema deve ser um ZodObject ou ZodEffects baseado em ZodObject');
+}
+
+/**
  * Hook: useFieldValidation
  *
  * Hook para integrar validação Zod com componentes de formulário
@@ -50,6 +75,7 @@ export interface UseFieldValidationResult {
  * - Tracking de campos tocados (para mostrar erros apenas após interação)
  * - Integração com schemas Zod existentes
  * - Suporte a validação parcial (shape)
+ * - Suporte a schemas refinados (ZodEffects)
  *
  * @example
  * ```tsx
@@ -90,18 +116,29 @@ export interface UseFieldValidationResult {
  * };
  * ```
  */
-export function useFieldValidation(schema: z.ZodObject<any>): UseFieldValidationResult {
+export function useFieldValidation(schema: z.ZodType<any>): UseFieldValidationResult {
   const [errors, setErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<TouchedFields>({});
 
+  // Extrai o schema base (ZodObject) do schema passado (pode ser ZodEffects)
+  const baseSchema = useMemo(() => {
+    try {
+      return getBaseSchema(schema);
+    } catch (error) {
+      console.error('❌ useFieldValidation: Erro ao extrair baseSchema:', error);
+      console.error('❌ Schema passado:', schema);
+      throw error;
+    }
+  }, [schema]);
+
   /**
-   * Valida um campo específico usando o schema Zod
-   */
+    * Valida um campo específico usando o schema Zod
+    */
   const validateField = useCallback(
     (fieldName: string, value: any): boolean => {
       try {
-        // Extrai o schema do campo específico
-        const fieldSchema = schema.shape[fieldName];
+        // Extrai o schema do campo específico usando o schema base
+        const fieldSchema = baseSchema.shape[fieldName];
 
         if (!fieldSchema) {
           console.warn(`⚠️ Campo "${fieldName}" não encontrado no schema`);
@@ -183,15 +220,22 @@ export function useFieldValidation(schema: z.ZodObject<any>): UseFieldValidation
   }, []);
 
   /**
-   * Marca todos os campos do schema como tocados
-   */
+    * Marca todos os campos do schema como tocados
+    */
   const markAllTouched = useCallback(() => {
     const allFields: TouchedFields = {};
-    Object.keys(schema.shape).forEach((fieldName) => {
+
+    // Proteção contra schema inválido
+    if (!baseSchema || !baseSchema.shape) {
+      console.warn('⚠️ useFieldValidation: baseSchema inválido ou sem shape', baseSchema);
+      return;
+    }
+
+    Object.keys(baseSchema.shape).forEach((fieldName) => {
       allFields[fieldName] = true;
     });
     setTouched(allFields);
-  }, [schema]);
+  }, [baseSchema]);
 
   /**
    * Limpa todos os erros

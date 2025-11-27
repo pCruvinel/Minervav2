@@ -1,5 +1,4 @@
 import React from 'react';
-import InputMask from 'react-input-mask';
 import { Input } from './input';
 import { Label } from './label';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -19,24 +18,27 @@ export interface FormMaskedInputProps extends Omit<React.InputHTMLAttributes<HTM
 }
 
 /**
- * Máscara de entrada para diferentes tipos de campos
+ * Padrões de validação HTML5 para diferentes tipos de campos
  */
-const MASKS: Record<MaskType, string | ((value: string) => string)> = {
-  telefone: (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    // (99) 9999-9999 ou (99) 99999-9999
-    return cleaned.length <= 10 ? '(99) 9999-99999' : '(99) 99999-9999';
-  },
-  celular: '(99) 9 9999-9999',
-  cpf: '999.999.999-99',
-  cnpj: '99.999.999/9999-99',
-  'cpf-cnpj': (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    // CPF: 999.999.999-99 (11 dígitos)
-    // CNPJ: 99.999.999/9999-99 (14 dígitos)
-    return cleaned.length <= 11 ? '999.999.999-999' : '99.999.999/9999-99';
-  },
-  cep: '99999-999',
+const PATTERNS: Record<MaskType, string> = {
+  telefone: '\\([0-9]{2}\\) [0-9]{4,5}-[0-9]{4}',
+  celular: '\\([0-9]{2}\\) [0-9]{5}-[0-9]{4}',
+  cpf: '[0-9]{3}\\.[0-9]{3}\\.[0-9]{3}-[0-9]{2}',
+  cnpj: '[0-9]{2}\\.[0-9]{3}\\.[0-9]{3}/[0-9]{4}-[0-9]{2}',
+  'cpf-cnpj': '([0-9]{3}\\.[0-9]{3}\\.[0-9]{3}-[0-9]{2}|[0-9]{2}\\.[0-9]{3}\\.[0-9]{3}/[0-9]{4}-[0-9]{2})',
+  cep: '[0-9]{5}-[0-9]{3}',
+};
+
+/**
+ * Máximos de caracteres para cada tipo
+ */
+const MAX_LENGTHS: Record<MaskType, number> = {
+  telefone: 15, // (99) 99999-9999
+  celular: 15, // (99) 99999-9999
+  cpf: 14, // 999.999.999-99
+  cnpj: 18, // 99.999.999/9999-99
+  'cpf-cnpj': 18, // Maior entre CPF e CNPJ
+  cep: 9, // 99999-999
 };
 
 /**
@@ -44,12 +46,71 @@ const MASKS: Record<MaskType, string | ((value: string) => string)> = {
  */
 const PLACEHOLDERS: Record<MaskType, string> = {
   telefone: '(00) 00000-0000',
-  celular: '(00) 0 0000-0000',
+  celular: '(00) 00000-0000',
   cpf: '000.000.000-00',
   cnpj: '00.000.000/0000-00',
   'cpf-cnpj': 'CPF ou CNPJ',
   cep: '00000-000',
 };
+
+/**
+ * Aplica máscara ao valor digitado
+ */
+function applyMask(value: string, maskType: MaskType): string {
+  const cleaned = value.replace(/\D/g, '');
+
+  switch (maskType) {
+    case 'telefone':
+    case 'celular':
+      if (cleaned.length <= 10) {
+        // Telefone fixo: (99) 9999-9999
+        return cleaned
+          .replace(/(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{4})(\d)/, '$1-$2');
+      } else {
+        // Celular: (99) 99999-9999
+        return cleaned
+          .replace(/(\d{2})(\d)/, '($1) $2')
+          .replace(/(\d{5})(\d)/, '$1-$2');
+      }
+
+    case 'cpf':
+      return cleaned
+        .replace(/(\d{3})(\d)/, '$1.$2')
+        .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+
+    case 'cnpj':
+      return cleaned
+        .replace(/(\d{2})(\d)/, '$1.$2')
+        .replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+        .replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+        .replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+
+    case 'cpf-cnpj':
+      if (cleaned.length <= 11) {
+        // Aplica máscara de CPF
+        return cleaned
+          .replace(/(\d{3})(\d)/, '$1.$2')
+          .replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+          .replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4');
+      } else {
+        // Aplica máscara de CNPJ
+        return cleaned
+          .replace(/(\d{2})(\d)/, '$1.$2')
+          .replace(/(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+          .replace(/(\d{2})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3/$4')
+          .replace(/(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, '$1.$2.$3/$4-$5');
+      }
+
+    case 'cep':
+      return cleaned
+        .replace(/(\d{5})(\d)/, '$1-$2');
+
+    default:
+      return value;
+  }
+}
 
 /**
  * FormMaskedInput - Input com máscara e validação visual
@@ -97,12 +158,25 @@ export function FormMaskedInput({
   const hasError = !!error;
   const hasSuccess = success && !hasError;
 
-  const maskDefinition = MASKS[maskType];
   const defaultPlaceholder = PLACEHOLDERS[maskType];
+  const maxLength = MAX_LENGTHS[maskType];
+  const pattern = PATTERNS[maskType];
 
-  const mask = typeof maskDefinition === 'function'
-    ? maskDefinition(value)
-    : maskDefinition;
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    const maskedValue = applyMask(rawValue, maskType);
+
+    // Cria um evento sintético com o valor mascarado
+    const syntheticEvent = {
+      ...e,
+      target: {
+        ...e.target,
+        value: maskedValue
+      }
+    };
+
+    onChange(syntheticEvent);
+  };
 
   return (
     <div className="space-y-2">
@@ -113,29 +187,25 @@ export function FormMaskedInput({
       )}
 
       <div className="relative">
-        <InputMask
-          mask={mask}
+        <Input
+          id={id}
           value={value}
-          onChange={onChange}
-          {...props}
-        >
-          {(inputProps: any) => (
-            <Input
-              {...inputProps}
-              id={id}
-              placeholder={placeholder || defaultPlaceholder}
-              className={cn(
-                className,
-                hasError && "border-red-500 focus-visible:ring-red-500",
-                hasSuccess && "border-green-500 focus-visible:ring-green-500"
-              )}
-              aria-invalid={hasError}
-              aria-describedby={
-                hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
-              }
-            />
+          onChange={handleInputChange}
+          placeholder={placeholder || defaultPlaceholder}
+          maxLength={maxLength}
+          pattern={pattern}
+          inputMode="numeric"
+          className={cn(
+            className,
+            hasError && "border-red-500 focus-visible:ring-red-500",
+            hasSuccess && "border-green-500 focus-visible:ring-green-500"
           )}
-        </InputMask>
+          aria-invalid={hasError}
+          aria-describedby={
+            hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
+          }
+          {...props}
+        />
 
         {(hasError || hasSuccess) && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">

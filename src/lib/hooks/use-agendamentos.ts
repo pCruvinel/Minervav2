@@ -37,6 +37,11 @@ export interface Agendamento {
   atualizadoEm?: string;
   canceladoEm?: string;
   canceladoMotivo?: string;
+  usuarioNome?: string;
+  osCodigo?: string;
+  clienteNome?: string;
+  statusGeralOS?: string;
+  etapasAtivas?: number;
 }
 
 export interface AgendamentoComTurno extends Agendamento {
@@ -46,6 +51,28 @@ export interface AgendamentoComTurno extends Agendamento {
     cor: string;
     setores: string[];
   };
+  colaborador?: {
+    nome_completo?: string;
+  };
+  ordens_servico?: {
+    codigo_os?: string;
+    status_geral?: string;
+    cliente?: {
+      nome_razao_social?: string;
+    };
+    etapas?: { status: string }[];
+  };
+}
+
+export interface AgendamentoRealizadoCard {
+  id: string;
+  categoria: string;
+  setor: string;
+  usuarioNome?: string;
+  osCodigo?: string;
+  clienteNome?: string;
+  statusGeralOS?: string;
+  etapasAtivas?: number;
 }
 
 export interface CreateAgendamentoInput {
@@ -106,6 +133,19 @@ const agendamentosAPI = {
           hora_fim,
           cor,
           setores
+        ),
+        colaborador:criado_por (
+          nome_completo
+        ),
+        ordens_servico:os_id (
+          codigo_os,
+          status_geral,
+          cliente:cliente_id (
+            nome_razao_social
+          ),
+          etapas:os_etapas (
+            status
+          )
         )
       `)
       .order('data', { ascending: true })
@@ -332,7 +372,34 @@ export function useAgendamentos(filters?: AgendamentoFilters) {
     }
   );
 
-  const agendamentos = useMemo(() => data || [], [data]);
+  const agendamentos = useMemo(() => {
+    if (!data) return [];
+
+    return data
+      .map((agendamento) => {
+        const statusGeral =
+          agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
+        const etapasAtivas =
+          agendamento.ordens_servico?.etapas?.filter((etapa) =>
+            ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
+          ).length || agendamento.etapasAtivas || 0;
+
+        return {
+          ...agendamento,
+          usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
+          osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
+          clienteNome:
+            agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
+          statusGeralOS: statusGeral,
+          etapasAtivas,
+        };
+      })
+      .filter(
+        (agendamento) =>
+          agendamento.status !== 'cancelado' &&
+          (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
+      );
+  }, [data]);
 
   return { agendamentos, loading, error, refetch };
 }
@@ -513,6 +580,14 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     atualizadoEm: data.atualizado_em,
     canceladoEm: data.cancelado_em,
     canceladoMotivo: data.cancelado_motivo,
+    usuarioNome: data.colaborador?.nome_completo,
+    osCodigo: data.ordens_servico?.codigo_os,
+    clienteNome: data.ordens_servico?.cliente?.nome_razao_social,
+    statusGeralOS: data.ordens_servico?.status_geral,
+    etapasAtivas:
+      data.ordens_servico?.etapas?.filter((etapa: any) =>
+        ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
+      ).length || 0,
   };
 
   if (data.turno) {

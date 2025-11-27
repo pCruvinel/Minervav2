@@ -42,12 +42,12 @@ import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
 import { CalendarioSemana } from '../calendario/calendario-semana';
 import { ModalNovoAgendamento } from '../calendario/modal-novo-agendamento';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
+import { useOrdemServico } from '../../lib/hooks/use-ordens-servico';
 import { toast } from '../../lib/utils/safe-toast';
 import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
 import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
 import { ErrorBoundary } from '../error-boundary';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
-import { useAutoSave, useLocalStorageData } from '../../lib/hooks/use-auto-save';
 import { useAuth } from '../../lib/contexts/auth-context';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
@@ -148,7 +148,11 @@ interface EtapaPrincipal {
 }
 
 interface Etapa7Data {
+  objetivo?: string;
   etapasPrincipais?: EtapaPrincipal[];
+  planejamentoInicial?: string;
+  logisticaTransporte?: string;
+  preparacaoArea?: string;
 }
 
 interface Etapa8Data {
@@ -223,9 +227,15 @@ interface OSDetailsWorkflowPageProps {
   onBack?: () => void;
   osId?: string; // ID da OS sendo editada
   initialStep?: number;
+  readonly?: boolean;
 }
 
-export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: OSDetailsWorkflowPageProps = {}) {
+export function OSDetailsWorkflowPage({
+  onBack,
+  osId: osIdProp,
+  initialStep,
+  readonly = false,
+}: OSDetailsWorkflowPageProps = {}) {
   // DEBUG: Track component lifecycle
   React.useEffect(() => {
     logger.log('🎯 OSDetailsWorkflowPage mounted', {
@@ -274,6 +284,9 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
   // Obter ID do usuário logado
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || 'user-unknown';
+
+  // Fetch OS details to ensure we have client and type info (fallback for existing OSs)
+  const { data: os } = useOrdemServico(osId as string);
 
   // Hook de Estado do Workflow
   const {
@@ -398,93 +411,6 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
   // Armazena dados de todas as etapas em um único objeto
 
   // ========================================
-  // AUTO-SAVE CONFIG
-  // ========================================
-  // Recuperar dados salvos em localStorage (se existirem)
-  const savedData = useLocalStorageData(`os_workflow_${osId || 'new'}`);
-
-  // Inicializar formData com dados salvos
-  useEffect(() => {
-    if (savedData && Object.keys(savedData).length > 0) {
-      // Se houver dados salvos localmente, mesclar com o estado do hook
-      // Isso pode ser complexo, por enquanto apenas logamos
-      logger.log('📁 Dados recuperados do localStorage:', savedData);
-
-      // Opcional: Atualizar o hook com dados locais se estiverem vazios
-      // Mas o hook carrega do banco, então cuidado para não sobrescrever
-    }
-  }, [osId]);
-
-  // DEBUG: Track auto-save triggers and performance
-  const autoSaveStartTime = React.useRef<number>();
-
-  // Auto-save quando dados mudam (com debounce de 1s)
-  const { isSaving, isSaved, markDirty } = useAutoSave(
-    async (data: Record<number, EtapaData>) => {
-      autoSaveStartTime.current = performance.now();
-      logger.log('💾 Auto-save triggered', {
-        step: currentStep,
-        dataKeys: Object.keys(data),
-        hasOsId: !!osId,
-        timestamp: new Date().toISOString()
-      });
-
-      // Se temos osId, salvar no banco de dados
-      if (osId && etapas && etapas.length > 0) {
-        try {
-          // O data aqui é { [stepNum]: stepData }
-          // Precisamos extrair o dado da etapa atual
-          const stepData = data[currentStep];
-
-          if (stepData) {
-            // Usar saveStep do hook (mas ele pega do state, e o state pode não estar atualizado ainda se for muito rápido?)
-            // Melhor usar saveFormData direto do useEtapas (que está dentro do useWorkflowState mas não exposto diretamente aqui,
-            // exceto via saveStep que usa getStepData).
-            // Mas saveStep usa getStepData que lê de formDataByStep.
-            // Se hookSetStepData atualizou o state, deve estar ok.
-
-            // Mas para garantir, vamos usar o data passado para o callback
-            const etapaAtual = etapas.find((e) => e.ordem === currentStep);
-            if (etapaAtual) {
-              // Precisamos acessar saveFormData. Como não temos acesso direto (está dentro do hook),
-              // podemos usar saveStep se confiarmos no state, ou expor saveFormData do hook.
-              // Vamos confiar no saveStep por enquanto, mas passando isDraft=true
-              await saveStep(currentStep, true);
-            }
-          }
-        } catch (error) {
-          logger.error('❌ Erro ao auto-salvar:', error);
-          throw error;
-        }
-      } else {
-        logger.log('⚠️ Auto-save skipped: no osId or etapas not loaded');
-      }
-    },
-    {
-      debounceMs: 1000,
-      useLocalStorage: true,
-      storageKey: `os_workflow_${osId || 'new'}`,
-      onSaveSuccess: () => {
-        const duration = autoSaveStartTime.current ? performance.now() - autoSaveStartTime.current : 0;
-        logger.log('✅ Auto-save successful', {
-          duration: `${duration.toFixed(2)}ms`,
-          step: currentStep,
-          timestamp: new Date().toISOString()
-        });
-      },
-      onSaveError: (error) => {
-        const duration = autoSaveStartTime.current ? performance.now() - autoSaveStartTime.current : 0;
-        logger.error('❌ Auto-save failed', {
-          error,
-          duration: `${duration.toFixed(2)}ms`,
-          step: currentStep,
-          timestamp: new Date().toISOString()
-        });
-      },
-    }
-  );
-
-  // ========================================
   // HELPERS PARA GERENCIAR FORMULÁRIO
   // ========================================
 
@@ -598,7 +524,7 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
     return { ...defaultData, ...data };
   };
 
-  // Atualizar dados de uma etapa (sem auto-save imediato)
+  // Atualizar dados de uma etapa
   const setStepData = (stepNum: number, data: EtapaData) => {
     logger.log('📝 setStepData called', {
       stepNum,
@@ -607,18 +533,14 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
       timestamp: new Date().toISOString()
     });
     hookSetStepData(stepNum, data);
-    // markDirty removed to disable auto-save on keystroke
-    // markDirty({ [stepNum]: data });
   };
 
-  // Atualizar campo individual de uma etapa (sem auto-save imediato)
+  // Atualizar campo individual de uma etapa
   const updateStepField = (stepNum: number, field: string, value: unknown) => {
     const currentData = formDataByStep[stepNum] || {};
     const newData = { ...currentData, [field]: value };
 
     hookSetStepData(stepNum, newData);
-    // markDirty removed to disable auto-save on keystroke
-    // markDirty({ [stepNum]: newData });
   };
 
   // Aliases para compatibilidade com código existente (memoizados para performance)
@@ -666,6 +588,111 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
   const setEtapa13Data = (data: Etapa13Data) => setStepData(13, data);
   const setEtapa14Data = (data: Etapa14Data) => setStepData(14, data);
   const setEtapa15Data = (data: Etapa15Data) => setStepData(15, data);
+
+  // Sync OS data to workflow state if missing (fallback for existing OSs)
+  useEffect(() => {
+    if (os && etapas && etapas.length > 0) {
+      // Sync Step 1 (Client) - Complete client data
+      if (os.cliente) {
+        const clienteData = os.cliente;
+        const syncedEtapa1Data = { ...etapa1Data };
+
+        // Sync leadId if missing
+        if (!syncedEtapa1Data.leadId && os.cliente_id) {
+          syncedEtapa1Data.leadId = os.cliente_id;
+        }
+
+        // Sync client details if missing
+        if (!syncedEtapa1Data.nome && clienteData.nome_razao_social) {
+          syncedEtapa1Data.nome = clienteData.nome_razao_social;
+        }
+        if (!syncedEtapa1Data.cpfCnpj && clienteData.cpf_cnpj) {
+          syncedEtapa1Data.cpfCnpj = clienteData.cpf_cnpj;
+        }
+        if (!syncedEtapa1Data.email && clienteData.email) {
+          syncedEtapa1Data.email = clienteData.email;
+        }
+        if (!syncedEtapa1Data.telefone && clienteData.telefone) {
+          syncedEtapa1Data.telefone = clienteData.telefone;
+        }
+
+        // Sync address data if missing
+        if (clienteData.endereco) {
+          const endereco = clienteData.endereco;
+          if (!syncedEtapa1Data.endereco && endereco.rua) {
+            syncedEtapa1Data.endereco = endereco.rua;
+          }
+          if (!syncedEtapa1Data.numero && endereco.numero) {
+            syncedEtapa1Data.numero = endereco.numero;
+          }
+          if (!syncedEtapa1Data.complemento && endereco.complemento) {
+            syncedEtapa1Data.complemento = endereco.complemento;
+          }
+          if (!syncedEtapa1Data.bairro && endereco.bairro) {
+            syncedEtapa1Data.bairro = endereco.bairro;
+          }
+          if (!syncedEtapa1Data.cidade && endereco.cidade) {
+            syncedEtapa1Data.cidade = endereco.cidade;
+          }
+          if (!syncedEtapa1Data.estado && endereco.estado) {
+            syncedEtapa1Data.estado = endereco.estado;
+          }
+          if (!syncedEtapa1Data.cep && endereco.cep) {
+            syncedEtapa1Data.cep = endereco.cep;
+          }
+
+          // Sync additional building data
+          if (!syncedEtapa1Data.tipoEdificacao && endereco.tipo_edificacao) {
+            syncedEtapa1Data.tipoEdificacao = endereco.tipo_edificacao;
+          }
+          if (!syncedEtapa1Data.qtdUnidades && endereco.qtd_unidades) {
+            syncedEtapa1Data.qtdUnidades = endereco.qtd_unidades;
+          }
+          if (!syncedEtapa1Data.qtdBlocos && endereco.qtd_blocos) {
+            syncedEtapa1Data.qtdBlocos = endereco.qtd_blocos;
+          }
+          if (!syncedEtapa1Data.qtdPavimentos && endereco.qtd_pavimentos) {
+            syncedEtapa1Data.qtdPavimentos = endereco.qtd_pavimentos;
+          }
+          if (!syncedEtapa1Data.tipoTelhado && endereco.tipo_telhado) {
+            syncedEtapa1Data.tipoTelhado = endereco.tipo_telhado;
+          }
+          if (syncedEtapa1Data.possuiElevador === undefined && endereco.possui_elevador !== undefined) {
+            syncedEtapa1Data.possuiElevador = endereco.possui_elevador;
+          }
+          if (syncedEtapa1Data.possuiPiscina === undefined && endereco.possui_piscina !== undefined) {
+            syncedEtapa1Data.possuiPiscina = endereco.possui_piscina;
+          }
+        }
+
+        // Sync client type
+        if (!syncedEtapa1Data.tipo && clienteData.tipo_cliente) {
+          syncedEtapa1Data.tipo = clienteData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica';
+        }
+
+        // Sync responsible person
+        if (!syncedEtapa1Data.nomeResponsavel && clienteData.nome_responsavel) {
+          syncedEtapa1Data.nomeResponsavel = clienteData.nome_responsavel;
+        }
+
+        // Only update if there are changes
+        const hasChanges = Object.keys(syncedEtapa1Data).some(key =>
+          syncedEtapa1Data[key] !== etapa1Data[key]
+        );
+
+        if (hasChanges) {
+          logger.log('🔄 Syncing complete Step 1 data from OS record:', syncedEtapa1Data);
+          setEtapa1Data(syncedEtapa1Data);
+        }
+      }
+
+      // Sync Step 2 (OS Type)
+      if (!etapa2Data.tipoOS && os.tipo_os_nome) {
+        logger.log('🔄 Syncing Step 2 data from OS record:', os.tipo_os_nome);
+        setEtapa2Data({ ...etapa2Data, tipoOS: os.tipo_os_nome });
+      }
+    }
+  }, [os, etapas, etapa1Data, etapa2Data.tipoOS]);
 
   // Funções para gerenciar agendamento na Etapa 4
   const handleSelecionarTurno = (turno: any, dia: Date) => {
@@ -1181,8 +1208,11 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
           // Realizar upload dos arquivos pendentes
           let uploadedFiles = [];
           try {
-            if (stepFollowup1Ref.current.uploadPendingFiles) {
-              uploadedFiles = await stepFollowup1Ref.current.uploadPendingFiles();
+            if (stepFollowup1Ref.current) {
+              const ref = stepFollowup1Ref.current as any;
+              if (ref.uploadPendingFiles && typeof ref.uploadPendingFiles === 'function') {
+                uploadedFiles = await ref.uploadPendingFiles();
+              }
             }
           } catch (uploadError) {
             logger.error('❌ Erro ao fazer upload dos arquivos:', uploadError);
@@ -1206,6 +1236,71 @@ export function OSDetailsWorkflowPage({ onBack, osId: osIdProp, initialStep }: O
         }
 
         if (currentStep < steps.length) {
+          setCurrentStep(currentStep + 1);
+        }
+      } catch (error) {
+        logger.error('❌ Não foi possível avançar devido a erro ao salvar', error);
+      }
+
+      return;
+    }
+
+    // ========================================
+    // CASO ESPECIAL: Etapa 1 - Validação de dados de edificação
+    // ========================================
+    if (currentStep === 1) {
+      logger.log('🎯 Etapa 1: Iniciando validações...', {
+        hasStepLeadRef: !!stepLeadRef.current,
+        hasOsId: !!osId,
+        etapa1Data: etapa1Data
+      });
+
+      // Usar validação imperativa do componente StepIdentificacaoLeadCompleto
+      if (stepLeadRef.current) {
+        // Primeiro validar identificação
+        logger.log('🔍 Etapa 1: Validando identificação...');
+        const isValid = stepLeadRef.current.validate();
+        logger.log('✅ Etapa 1: Validação de identificação:', isValid);
+
+        if (!isValid) {
+          try {
+            toast.error('Preencha todos os campos obrigatórios de identificação antes de avançar');
+          } catch (toastError) {
+            logger.error('❌ Erro ao exibir toast de validação (Etapa 1):', toastError);
+          }
+          logger.log('❌ Etapa 1: Bloqueado por validação de identificação');
+          return;
+        }
+
+        // Depois validar dados de edificação
+        logger.log('🔍 Etapa 1: Validando dados de edificação...');
+        if (stepLeadRef.current.saveEdificacaoData) {
+          const edificacaoValid = await stepLeadRef.current.saveEdificacaoData();
+          logger.log('✅ Etapa 1: Validação de edificação:', edificacaoValid);
+
+          if (!edificacaoValid) {
+            // Erro já tratado no método saveEdificacaoData
+            logger.log('❌ Etapa 1: Bloqueado por validação de edificação');
+            return;
+          }
+        }
+      } else {
+        logger.log('⚠️ Etapa 1: stepLeadRef.current não disponível');
+      }
+
+      // Se passou na validação, continuar com salvamento e avanço
+      logger.log('🚀 Etapa 1: Validações passaram, avançando...');
+      try {
+        if (osId) {
+          logger.log('💾 Etapa 1: Salvando dados...');
+          await saveCurrentStepData(true);
+          logger.log('✅ Etapa 1: Dados salvos');
+        } else {
+          logger.log('⚠️ Etapa 1: Sem osId, pulando salvamento');
+        }
+
+        if (currentStep < steps.length) {
+          logger.log('➡️ Etapa 1: Avançando para etapa 2');
           setCurrentStep(currentStep + 1);
         }
       } catch (error) {

@@ -74,6 +74,7 @@ A lógica de busca e manipulação de dados é encapsulada em hooks.
 - **`useClientes`**: CRUD de Clientes.
 - **`useEtapas`**: Gerencia as etapas do workflow de OS.
 - **`useWorkflowState`**: Gerencia o estado complexo do wizard de criação de OS.
+- **`useFieldValidation`**: Sistema de validação Zod integrado com componentes React (ver [VALIDATION_SYSTEM.md](./VALIDATION_SYSTEM.md)).
 - **`useAutoSave`**: Implementa salvamento automático em formulários longos.
 
 ### Estado Global
@@ -85,7 +86,7 @@ A lógica de busca e manipulação de dados é encapsulada em hooks.
 ### `OSDetailsWorkflowPage` (`src/components/os/os-details-workflow-page.tsx`)
 O componente mais complexo do sistema. Gerencia o ciclo de vida de uma OS, desde a criação até a conclusão.
 - **Workflow**: Controla a navegação entre as 15 etapas.
-- **Validação**: Utiliza Zod para validar dados de cada etapa.
+- **Validação**: Utiliza o hook `useFieldValidation` integrado com schemas Zod para validação em tempo real (ver [VALIDATION_SYSTEM.md](./VALIDATION_SYSTEM.md)).
 - **Persistência**: Salva o progresso automaticamente no banco.
 
 ### `Sidebar` (`src/components/layout/sidebar.tsx`)

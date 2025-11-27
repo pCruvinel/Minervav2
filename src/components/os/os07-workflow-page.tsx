@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Link as LinkIcon, CheckCircle2, Copy, ExternalLink, Clock } from 'lucide-react';
+import { ArrowLeft, Link as LinkIcon, CheckCircle2, Copy, ExternalLink, Clock, Loader2 } from 'lucide-react';
 import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -10,6 +10,10 @@ import { PrimaryButton } from '../ui/primary-button';
 import { Badge } from '../ui/badge';
 import { Label } from '../ui/label';
 import { toast } from '../../lib/utils/safe-toast';
+import { useCreateCliente, transformFormToCliente } from '../../lib/hooks/use-clientes';
+import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
+import { useAuth } from '../../lib/contexts/auth-context';
+import { mapearTipoOSParaCodigo } from '../../lib/utils/os-workflow-helpers';
 
 interface OS07WorkflowPageProps {
   onBack?: () => void;
@@ -28,6 +32,11 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+
+  const { mutate: createCliente, loading: isCreatingClient } = useCreateCliente();
+  const [isCreatingOS, setIsCreatingOS] = useState(false);
+  const { currentUser } = useAuth();
+  const currentUserId = currentUser?.id || 'user-unknown';
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -91,28 +100,88 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   };
 
   // Etapa 1: Identificação do Cliente
-  const handleIdentificarCliente = () => {
+  const handleIdentificarCliente = async () => {
     // Validar formulário
     if (stepLeadRef.current && !stepLeadRef.current.validate()) {
       toast.error('Preencha os campos obrigatórios do cliente');
       return;
     }
 
-    if (!selectedLeadId) {
-      toast.error('Selecione um cliente/lead');
-      return;
+    try {
+      setIsCreatingOS(true);
+      let leadIdFinal = selectedLeadId;
+
+      // Se não selecionou lead mas preencheu o formulário, criar lead automaticamente
+      if (!leadIdFinal) {
+        // Transformar dados do formulário para formato do banco
+        const clienteData = transformFormToCliente(formData);
+
+        // Adicionar campos obrigatórios que podem faltar no transform
+        if (!clienteData.nome_razao_social) clienteData.nome_razao_social = formData.nome;
+        if (!clienteData.cpf_cnpj) clienteData.cpf_cnpj = formData.cpfCnpj;
+
+        // Criar cliente
+        const novoCliente = await createCliente(clienteData);
+        leadIdFinal = novoCliente.id;
+        setSelectedLeadId(leadIdFinal);
+        toast.success('Cliente cadastrado automaticamente!');
+      }
+
+      if (!leadIdFinal) {
+        toast.error('Erro ao identificar cliente. Tente novamente.');
+        setIsCreatingOS(false);
+        return;
+      }
+
+      // Criar OS no Supabase
+      try {
+        // Buscar tipo de OS OS-07
+        const tiposOS = await ordensServicoAPI.getTiposOS();
+        const tipoOS07 = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-07');
+
+        if (!tipoOS07) {
+          throw new Error('Tipo de OS OS-07 não encontrado no sistema');
+        }
+
+        // Buscar nome do cliente
+        let nomeCliente = 'Cliente';
+        try {
+          const cliente = await clientesAPI.getById(leadIdFinal);
+          nomeCliente = cliente.nome_razao_social || cliente.nome || 'Cliente';
+        } catch (error) {
+          console.warn('Não foi possível buscar nome do cliente, usando nome genérico');
+        }
+
+        // Criar OS no banco
+        const novaOS = await ordensServicoAPI.create({
+          cliente_id: leadIdFinal,
+          tipo_os_id: tipoOS07.id,
+          descricao: `OS 07: Termo de Comunicação de Reforma - ${nomeCliente}`,
+          criado_por_id: currentUserId,
+          status_geral: 'em_andamento',
+        });
+
+        // Gerar link do formulário
+        const baseUrl = window.location.origin;
+        const novoLink = `${baseUrl}/reforma/${novaOS.id}`;
+
+        setOsId(novaOS.id);
+        setLinkFormulario(novoLink);
+        setEtapaAtual('aguardando_cliente');
+
+        toast.success(`OS ${novaOS.codigo_os} criada! Copie o link e envie ao cliente.`);
+      } catch (error) {
+        console.error('Erro ao criar OS:', error);
+        toast.error('Erro ao criar Ordem de Serviço. Tente novamente.');
+        setIsCreatingOS(false);
+        return;
+      }
+    } catch (error) {
+      console.error('Erro ao processar cliente:', error);
+      toast.error('Erro ao processar dados do cliente');
+    } finally {
+      setIsCreatingOS(false);
     }
-
-    // Gerar ID da OS e link do formulário
-    const novoOsId = `OS-007-${Date.now()}`;
-    const baseUrl = window.location.origin;
-    const novoLink = `${baseUrl}/reforma/${novoOsId}`;
-
-    setOsId(novoOsId);
-    setLinkFormulario(novoLink);
-    setEtapaAtual('aguardando_cliente');
-
-    toast.success('OS criada! Copie o link e envie ao cliente.');
   };
 
   // Copiar link do formulário
@@ -174,9 +243,18 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
               Voltar
             </Button>
           )}
-          <PrimaryButton onClick={handleIdentificarCliente}>
-            Criar OS e Gerar Formulário
-            <CheckCircle2 className="w-4 h-4 ml-2" />
+          <PrimaryButton onClick={handleIdentificarCliente} disabled={isCreatingClient || isCreatingOS}>
+            {(isCreatingClient || isCreatingOS) ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Processando...
+              </>
+            ) : (
+              <>
+                Criar OS e Gerar Formulário
+                <CheckCircle2 className="w-4 h-4 ml-2" />
+              </>
+            )}
           </PrimaryButton>
         </div>
       </CardContent>

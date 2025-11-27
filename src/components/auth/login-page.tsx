@@ -1,6 +1,6 @@
 import { logger } from '@/lib/utils/logger';
 import { useState, useEffect, useRef } from "react";
-import { Mail, Lock, AlertCircle } from "lucide-react";
+import { Mail, Lock } from "lucide-react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { PrimaryButton } from "../ui/primary-button";
@@ -17,7 +17,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showCredentials, setShowCredentials] = useState(false);
+
   const isLoggingInRef = useRef(false); // Flag para saber se estamos fazendo login
 
   // ✅ FIX: Monitorar quando o usuário está pronto após login e navegar
@@ -70,35 +70,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
       isLoggingInRef.current = false;
     }
   };
-
-  // Credenciais de demonstração
-  const demoCredentials = [
-    {
-      role: "Diretoria",
-      email: "diretoria@minerva.com",
-      desc: "Acesso total ao sistema"
-    },
-    {
-      role: "Gestor Administrativo",
-      email: "gestor.administrativo@minerva.com",
-      desc: "Gestão administrativa e financeira"
-    },
-    {
-      role: "Gestor Assessoria",
-      email: "gestor.assessoria@minerva.com",
-      desc: "Gestão da assessoria técnica"
-    },
-    {
-      role: "Gestor Obras",
-      email: "gestor.obras@minerva.com",
-      desc: "Gestão de obras"
-    },
-    {
-      role: "Colaborador",
-      email: "colaborador.adm@minerva.com",
-      desc: "Colaborador administrativo"
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 via-stone-50 to-neutral-100 flex items-center justify-center p-4 relative overflow-hidden">
@@ -208,65 +179,6 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
               Entrar
             </PrimaryButton>
           </form>
-
-          {/* Demo Credentials */}
-          <div className="mt-6">
-            <button
-              type="button"
-              onClick={() => setShowCredentials(!showCredentials)}
-              className="w-full p-3 bg-accent rounded-md border border-primary/20 hover:bg-primary/5 transition-colors text-left"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4 text-primary" />
-                  <span className="text-sm font-medium">
-                    Credenciais de Demonstração
-                  </span>
-                </div>
-                <span className="text-xs text-neutral-500">
-                  {showCredentials ? "Ocultar" : "Mostrar"}
-                </span>
-              </div>
-            </button>
-
-            {showCredentials && (
-              <div className="mt-3 p-4 bg-neutral-50 rounded-md border border-neutral-200 space-y-3">
-                <p className="text-xs text-neutral-600 mb-3">
-                  <strong>Ambiente de desenvolvimento:</strong> Clique em qualquer email abaixo para preencher automaticamente. Senha: qualquer texto com 6+ caracteres.
-                </p>
-
-                {demoCredentials.map((cred) => (
-                  <button
-                    key={cred.email}
-                    type="button"
-                    onClick={() => {
-                      setEmail(cred.email);
-                      setPassword("senha123");
-                      toast.success(`Credenciais preenchidas: ${cred.role}`);
-                    }}
-                    className="w-full text-left p-3 bg-white rounded border border-neutral-200 hover:border-primary hover:bg-primary/5 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-primary truncate">
-                          {cred.role}
-                        </p>
-                        <p className="text-xs text-neutral-600 truncate mt-0.5">
-                          {cred.email}
-                        </p>
-                        <p className="text-xs text-neutral-500 mt-1">
-                          {cred.desc}
-                        </p>
-                      </div>
-                      <span className="text-xs text-neutral-400 whitespace-nowrap">
-                        Clique para usar
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>

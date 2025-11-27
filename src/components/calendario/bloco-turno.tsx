@@ -1,20 +1,26 @@
 import { memo } from 'react';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
 
-interface Agendamento {
+interface AgendamentoRealizado {
   id: string;
   categoria: string;
   setor: string;
+  usuarioNome?: string;
+  osCodigo?: string;
+  clienteNome?: string;
+  statusGeralOS?: string;
+  etapasAtivas?: number;
 }
 
 interface Turno {
   id: string;
-  horaInicio: string;
-  horaFim: string;
   vagasOcupadas: number;
   vagasTotal: number;
   setores: string[];
   cor: string;
-  agendamentos?: Agendamento[];
+  agendamentosRealizados?: AgendamentoRealizado[];
+  etapasAtivas?: number;
 }
 
 interface BlocoTurnoProps {
@@ -23,53 +29,55 @@ interface BlocoTurnoProps {
 }
 
 function BlocoTurnoComponent({ turno, onClick }: BlocoTurnoProps) {
-  const temVagasDisponiveis = turno.vagasOcupadas < turno.vagasTotal;
+  // Calcular disponibilidade baseada em etapas ativas
+  const etapasAtivas = turno.etapasAtivas || 0;
+  const ocupado = etapasAtivas > 0;
+  const vagasDisponiveis = ocupado ? 0 : 1;
+  const textoVagas = `${vagasDisponiveis}/${turno.vagasTotal}`;
+
+  // Filtrar apenas agendamentos realizados (OS não cancelada)
+  const agendamentosRealizados = turno.agendamentosRealizados || [];
 
   return (
     <div
-      onClick={onClick}
+      onClick={!ocupado ? onClick : undefined}
       className={`
-        w-full h-full rounded-sm shadow-sm border flex flex-col
-        ${temVagasDisponiveis ? 'cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all duration-200' : 'cursor-default opacity-75'}
+        w-full h-full rounded-lg shadow-sm border-2 flex flex-col
+        ${!ocupado ? 'cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200' : 'cursor-default opacity-75'}
       `}
       style={{
-        backgroundColor: `${turno.cor}20`,
-        borderColor: turno.cor
+        backgroundColor: `${turno.cor}CC`,
+        borderColor: ocupado ? `${turno.cor}88` : `${turno.cor}DD`
       }}
     >
-      {/* Header com horário e vagas */}
-      <div className="flex items-center justify-between p-2 border-b border-black/10">
-        <span className="text-sm font-medium">
-          {turno.horaInicio} - {turno.horaFim}
-        </span>
-        <div className="flex items-center gap-1">
-          <span className="text-sm">
-            {turno.vagasOcupadas}/{turno.vagasTotal} vagas
-          </span>
-          {!temVagasDisponiveis && (
-            <span className="text-xs bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
-              Lotado
+      {/* Badge de agendamento realizado */}
+      <div className="flex-1 p-3 flex items-center justify-center">
+        {agendamentosRealizados.length > 0 ? (
+          <Badge
+            variant="secondary"
+            className="bg-white/90 text-gray-800 border-white/50 flex items-center gap-2 px-3 py-2 shadow-sm"
+          >
+            <Avatar className="w-5 h-5 flex-shrink-0">
+              <AvatarFallback className="bg-gray-200 text-xs font-medium text-gray-700">
+                {agendamentosRealizados[0].usuarioNome?.substring(0, 2).toUpperCase() || '??'}
+              </AvatarFallback>
+            </Avatar>
+            <span className="text-xs font-medium truncate">
+              {agendamentosRealizados[0].categoria}
             </span>
-          )}
-        </div>
+          </Badge>
+        ) : (
+          <span className="text-white/60 text-xs">Disponível</span>
+        )}
       </div>
 
-      {/* Lista de agendamentos */}
-      <div className="flex-1 p-2 space-y-1">
-        {turno.agendamentos && turno.agendamentos.length > 0 ? (
-          turno.agendamentos.map((agendamento: any) => (
-            <div
-              key={agendamento.id}
-              className="w-full bg-gray-100/80 rounded px-2 py-1 text-xs text-center truncate border border-gray-200/50"
-              title={agendamento.categoria}
-            >
-              {agendamento.categoria}
-            </div>
-          ))
-        ) : (
-          // Espaçamento vazio quando não há agendamentos
-          <div className="flex-1" />
-        )}
+      {/* Indicador de vagas */}
+      <div className="px-3 pb-2">
+        <div className="text-right">
+          <span className="text-xs font-medium text-white bg-black/20 px-2 py-1 rounded">
+            {textoVagas}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -77,9 +85,9 @@ function BlocoTurnoComponent({ turno, onClick }: BlocoTurnoProps) {
 
 // Memoize component para evitar re-renders desnecessários
 export const BlocoTurno = memo(BlocoTurnoComponent, (prevProps, nextProps) => {
-  // Custom comparison: apenas re-render se turno.id ou vagas ocupadas mudarem
+  // Custom comparison: apenas re-render se turno.id ou etapas ativas mudarem
   return (
     prevProps.turno.id === nextProps.turno.id &&
-    prevProps.turno.vagasOcupadas === nextProps.turno.vagasOcupadas
+    prevProps.turno.etapasAtivas === nextProps.turno.etapasAtivas
   );
 });

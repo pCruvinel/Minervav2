@@ -40,7 +40,8 @@ export type EtapaStatus =
   | 'pendente'
   | 'em_andamento'
   | 'concluida'
-  | 'bloqueada';
+  | 'bloqueada'
+  | 'cancelada';
 
 export interface Etapa {
   id: string;

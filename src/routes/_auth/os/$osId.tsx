@@ -1,6 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OSDetailsPage } from '../../../components/os/os-details-page'
-import { mockComentarios, mockDocumentos, mockHistorico } from '../../../lib/mock-data'
+import { OSDetailsRedesignPage } from '../../../components/os/os-details-redesign-page'
 import { useOrdemServico, useEtapasOS } from '../../../lib/hooks/use-ordens-servico'
 import { useEffect } from 'react'
 
@@ -42,14 +41,6 @@ function OSDetailsRoute() {
   }
 
   return (
-    <OSDetailsPage
-      ordemServico={os}
-      comentarios={mockComentarios} // TODO: Implement real comments
-      documentos={mockDocumentos}   // TODO: Implement real documents
-      historico={mockHistorico}     // TODO: Implement real history
-      etapas={etapas || []}
-      onBack={() => router.history.back()}
-      onAddComentario={(texto) => console.log('Add comment:', texto)}
-    />
+    <OSDetailsRedesignPage osId={osId} />
   )
 }

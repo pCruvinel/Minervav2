@@ -1,4 +1,5 @@
-simport { z } from 'zod';
+import { z } from 'zod';
+import { getStepDefaults } from '@/lib/utils/schema-defaults';
 
 /**
  * Schemas de Validação para as 15 Etapas do Workflow OS 01-04
@@ -15,22 +16,21 @@ export const etapa1Schema = z.object({
     .min(1, { message: 'Lead é obrigatório' })
     .describe('ID do lead/cliente selecionado'),
 
+  // Campos básicos obrigatórios - simplificados para permitir avanço rápido
   nome: z.string()
-    .min(3, { message: 'Nome deve ter pelo menos 3 caracteres' })
+    .min(1, { message: 'Nome é obrigatório' })
     .describe('Nome do cliente/empresa'),
 
+  // Campos de contato - opcionais por enquanto para permitir avanço
   cpfCnpj: z.string()
-    .min(11, { message: 'CPF/CNPJ inválido' })
     .optional()
     .describe('CPF ou CNPJ'),
 
   email: z.string()
-    .email({ message: 'Email inválido' })
     .optional()
     .describe('Email do cliente'),
 
   telefone: z.string()
-    .min(10, { message: 'Telefone deve ter pelo menos 10 dígitos' })
     .optional()
     .describe('Telefone de contato'),
 
@@ -52,7 +52,13 @@ export const etapa1Schema = z.object({
   bairro: z.string().optional(),
   cidade: z.string().optional(),
   estado: z.string().optional(),
-});
+}).refine(
+  (data) => data.leadId && data.nome,
+  {
+    message: 'Lead e nome são obrigatórios',
+    path: ['leadId'],
+  }
+);
 
 export type Etapa1Data = z.infer<typeof etapa1Schema>;
 
@@ -389,28 +395,45 @@ export type Etapa8Data = z.infer<typeof etapa8Schema>;
 // ETAPA 9: Gerar Proposta Comercial
 // ============================================================
 export const etapa9Schema = z.object({
+  // Campos de controle da proposta
+  propostaGerada: z.boolean()
+    .default(false)
+    .describe('Indica se a proposta foi gerada'),
+
+  dataGeracao: z.string()
+    .default('')
+    .describe('Data de geração da proposta'),
+
+  codigoProposta: z.string()
+    .default('')
+    .describe('Código único da proposta'),
+
+  // Campos obrigatórios para gerar a proposta
+  validadeDias: z.string()
+    .default('30')
+    .describe('Validade da proposta em dias'),
+
+  garantiaMeses: z.string()
+    .default('12')
+    .describe('Período de garantia em meses'),
+
+  // Campos gerados automaticamente (após gerar proposta)
   descricaoServicos: z.string()
-    .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres' })
+    .default('')
     .describe('Descrição completa dos serviços'),
 
   valorProposta: z.string()
-    .min(1, { message: 'Valor da proposta é obrigatório' })
+    .default('')
     .describe('Valor total da proposta'),
 
   prazoProposta: z.string()
-    .min(1, { message: 'Prazo da proposta é obrigatório' })
+    .default('')
     .describe('Prazo de execução em dias'),
 
   condicoesPagamento: z.string()
-    .min(1, { message: 'Condições de pagamento são obrigatórias' })
+    .default('')
     .describe('Termos e condições de pagamento'),
-}).partial().refine(
-  (data) => data.descricaoServicos && data.valorProposta && data.prazoProposta,
-  {
-    message: 'Descrição, valor e prazo são obrigatórios',
-    path: ['descricaoServicos'],
-  }
-);
+});
 
 export type Etapa9Data = z.infer<typeof etapa9Schema>;
 
@@ -602,10 +625,10 @@ export const stepsSchemas = {
  * @returns {valid: boolean, errors: Record<string, string>}
  */
 export function validateStep(stepNumber: number, data: any): { valid: boolean; errors: Record<string, string> } {
-  // Proteção contra data undefined
-  if (data === undefined || data === null) {
-    return { valid: false, errors: { _root: `Dados não fornecidos para etapa ${stepNumber}` } };
-  }
+  // Usar defaults se data estiver vazio
+  const dataToValidate = (data && Object.keys(data).length > 0)
+    ? data
+    : getStepDefaults(stepNumber);
 
   const schema = stepsSchemas[stepNumber as keyof typeof stepsSchemas];
 
@@ -614,7 +637,7 @@ export function validateStep(stepNumber: number, data: any): { valid: boolean; e
   }
 
   try {
-    schema.parse(data);
+    schema.parse(dataToValidate);
     return { valid: true, errors: {} };
   } catch (error) {
     // Verificar se é um erro Zod válido

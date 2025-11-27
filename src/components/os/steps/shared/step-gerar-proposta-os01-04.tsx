@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Download, Eye, EyeOff, Printer, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Download, Eye, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface EtapaPrincipal {
   nome: string;
@@ -91,7 +91,6 @@ export function StepGerarPropostaOS0104({
   onDataChange,
   readOnly = false,
 }: StepGerarPropostaOS0104Props) {
-  const [showPreview, setShowPreview] = useState(false);
 
   // Validar campos obrigatórios da Etapa 1 (apenas os essenciais para a proposta)
   const validarDadosEtapa1 = () => {
@@ -131,11 +130,14 @@ export function StepGerarPropostaOS0104({
     const planejamento = parseFloat(etapa7Data.planejamentoInicial) || 0;
     const logistica = parseFloat(etapa7Data.logisticaTransporte) || 0;
     const preparacao = parseFloat(etapa7Data.preparacaoArea) || 0;
-    const execucao = etapa7Data.etapasPrincipais.reduce((total, etapa) => {
-      return total + etapa.subetapas.reduce((subtotal, sub) => {
+
+    // Verificação de segurança para etapasPrincipais
+    const execucao = etapa7Data.etapasPrincipais?.reduce((total, etapa) => {
+      return total + (etapa.subetapas?.reduce((subtotal, sub) => {
         return subtotal + (parseFloat(sub.diasUteis) || 0);
-      }, 0);
-    }, 0);
+      }, 0) || 0);
+    }, 0) || 0;
+
     return planejamento + logistica + preparacao + execucao;
   };
 
@@ -178,7 +180,10 @@ export function StepGerarPropostaOS0104({
       prazoProposta: prazoTotal.toString(),
       condicoesPagamento: `Entrada de ${etapa8Data.percentualEntrada}% (${formatCurrency(valorEntrada)}) em até 7 dias após assinatura do contrato. Demais pagamentos parcelados em ${etapa8Data.numeroParcelas}x de ${formatCurrency(valorParcela)}.`,
     });
-    setShowPreview(true);
+
+    // Abrir proposta em nova aba
+    const propostaUrl = `/os/proposta/${data.codigoProposta}`;
+    window.open(propostaUrl, '_blank');
   };
 
   // Gerar descrição automática dos serviços
@@ -188,16 +193,13 @@ export function StepGerarPropostaOS0104({
         etapa2Data.tipoOS === 'OS-03' ? 'Impermeabilização' :
           etapa2Data.tipoOS === 'OS-04' ? 'Reforma/Recuperação Estrutural' : 'Serviço';
 
-    const servicosAgrupados = etapa7Data.etapasPrincipais.map(etapa =>
-      `${etapa.nome}: ${etapa.subetapas.map(sub => sub.nome).join(', ')}`
-    ).join('. ');
+    const servicosAgrupados = etapa7Data.etapasPrincipais?.map(etapa =>
+      `${etapa.nome}: ${etapa.subetapas?.map(sub => sub.nome).join(', ') || ''}`
+    ).join('. ') || 'Serviços não especificados';
 
     return `Serviços de ${tipoServico}. ${servicosAgrupados}. Prazo total de execução: ${prazoTotal} dias úteis. Valor total: ${formatCurrency(valorTotal)}.`;
   };
 
-  const handleImprimir = () => {
-    window.print();
-  };
 
   return (
     <div className="space-y-6">
@@ -307,14 +309,10 @@ export function StepGerarPropostaOS0104({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setShowPreview(!showPreview)}
+                  onClick={() => window.open(`/os/proposta/${data.codigoProposta}`, '_blank')}
                 >
-                  {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-                  {showPreview ? 'Ocultar' : 'Visualizar'}
-                </Button>
-                <Button variant="outline" size="sm" onClick={handleImprimir}>
-                  <Printer className="h-4 w-4 mr-2" />
-                  Imprimir
+                  <Eye className="h-4 w-4 mr-2" />
+                  Visualizar Proposta
                 </Button>
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
@@ -326,301 +324,6 @@ export function StepGerarPropostaOS0104({
         </Card>
       )}
 
-      {/* Preview da Proposta */}
-      {data.propostaGerada && showPreview && (
-        <Card className="print-shadow-none print-max-w-none print-w-full print-min-h-a4 proposal-preview">
-          <CardContent className="p-8 space-y-6 print-p-6">
-            {/* Cabeçalho em 2 Colunas */}
-            <div className="grid grid-cols-2 gap-8 pb-6 border-b proposal-header">
-              {/* Coluna Esquerda */}
-              <div className="space-y-4">
-                {/* Logo/Empresa */}
-                <div className="mb-4">
-                  <img
-                    src="/src/img/logo.png"
-                    alt="Minerva Engenharia"
-                    className="h-12 w-auto object-contain"
-                  />
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Engenharia & Consultoria
-                  </div>
-                </div>
-
-                {/* Informações do Cliente */}
-                <div>
-                  <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-                    👤 Informações do Cliente
-                  </h2>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Cliente:</span>{' '}
-                      <span className="font-medium">{etapa1Data.nome}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Responsável:</span>{' '}
-                      <span className="font-medium">{etapa1Data.nomeResponsavel}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">CPF/CNPJ:</span>{' '}
-                      <span className="font-medium">{etapa1Data.cpfCnpj}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Telefone:</span>{' '}
-                      <span className="font-medium">{etapa1Data.telefone}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Bairro:</span>{' '}
-                      <span className="font-medium">{etapa1Data.bairro}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">E-mail:</span>{' '}
-                      <span className="font-medium">{etapa1Data.email}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Endereço:</span>{' '}
-                      <span className="font-medium">{etapa1Data.endereco}{etapa1Data.numero ? `, ${etapa1Data.numero}` : ''}{etapa1Data.complemento ? ` - ${etapa1Data.complemento}` : ''}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Cidade/Estado:</span>{' '}
-                      <span className="font-medium">{etapa1Data.cidade}/{etapa1Data.estado}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Coluna Direita */}
-              <div className="space-y-4">
-                {/* Informações da Proposta */}
-                <div>
-                  <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-                    📄 Informações da Proposta
-                  </h2>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Código da Proposta:</span>{' '}
-                      <span className="font-medium">{data.codigoProposta}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Data de Emissão:</span>{' '}
-                      <span className="font-medium">{data.dataGeracao}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Detalhes da Edificação */}
-                <div className="pt-4">
-                  <h2 className="text-xs uppercase tracking-wide text-muted-foreground mb-3">
-                    🏢 Detalhes da Edificação
-                  </h2>
-                  <div className="space-y-2 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Quantidade de Unidades:</span>{' '}
-                      <span className="font-medium">{etapa1Data.qtdUnidades} unidades autônomas</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Quantidade de Blocos:</span>{' '}
-                      <span className="font-medium">{etapa1Data.qtdBlocos} blocos</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 1. Detalhes do Projeto */}
-            <div className="space-y-3 proposal-section">
-              <h2 className="font-medium pb-2 border-b">1. DETALHES DO PROJETO (OBRA)</h2>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="text-muted-foreground">Objeto:</span>{' '}
-                  <span className="font-medium">
-                    Proposta de {etapa2Data.tipoOS === 'OS-01' ? 'Diagnóstico de Fachada' :
-                      etapa2Data.tipoOS === 'OS-02' ? 'Laudo Estrutural' :
-                        etapa2Data.tipoOS === 'OS-03' ? 'Impermeabilização' :
-                          etapa2Data.tipoOS === 'OS-04' ? 'Reforma/Recuperação Estrutural' : 'Serviço'}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Objetivo:</span>{' '}
-                  <span className="font-medium">{etapa7Data.objetivo}</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Prazo Total:</span>{' '}
-                  <span className="font-medium">{prazoTotal} dias úteis</span>
-                </div>
-                <div>
-                  <span className="text-muted-foreground">Garantia:</span>{' '}
-                  <span className="font-medium">{data.garantiaMeses} meses</span>
-                </div>
-                <div className="mt-2 space-y-1">
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Seguro de Obra incluso</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Serviço garantido por nota fiscal e emissão de ART (CREA-MA)</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span>Garantia conforme NBR 15571-1</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 2. Especificações Técnicas */}
-            <div className="space-y-3 proposal-section">
-              <h2 className="font-medium pb-2 border-b">2. ESPECIFICAÇÕES TÉCNICAS</h2>
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium mb-3">Cronograma de Serviços:</h3>
-
-                  {/* Tabela de Serviços Agrupados por Etapa Principal */}
-                  <div className="border border-gray-300 rounded-lg overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left font-medium border-b">Etapa Principal</th>
-                          <th className="px-4 py-2 text-left font-medium border-b">Serviços</th>
-                          <th className="px-4 py-2 text-center font-medium border-b">Área (m²)</th>
-                          <th className="px-4 py-2 text-center font-medium border-b">Prazo (dias úteis)</th>
-                          <th className="px-4 py-2 text-right font-medium border-b">Valor (R$)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {etapa7Data.etapasPrincipais.map((etapa, etapaIndex) => (
-                          <React.Fragment key={etapaIndex}>
-                            {etapa.subetapas.map((sub, subIndex) => (
-                              <tr key={`${etapaIndex}-${subIndex}`} className={subIndex === 0 ? 'border-t' : ''}>
-                                {subIndex === 0 && (
-                                  <td className="px-4 py-3 font-medium bg-gray-50 border-r" rowSpan={etapa.subetapas.length}>
-                                    {etapa.nome}
-                                  </td>
-                                )}
-                                <td className="px-4 py-2">{sub.nome}</td>
-                                <td className="px-4 py-2 text-center">{sub.m2 || '-'}</td>
-                                <td className="px-4 py-2 text-center">{sub.diasUteis || '-'}</td>
-                                <td className="px-4 py-2 text-right">{sub.total ? formatCurrency(parseFloat(sub.total)) : '-'}</td>
-                              </tr>
-                            ))}
-                          </React.Fragment>
-                        ))}
-                      </tbody>
-                      <tfoot className="bg-gray-100 border-t-2">
-                        <tr>
-                          <td colSpan={3} className="px-4 py-3 font-medium text-right">Total Geral:</td>
-                          <td className="px-4 py-3 text-center font-medium">{prazoTotal} dias</td>
-                          <td className="px-4 py-3 text-right font-medium">{formatCurrency(valorTotal)}</td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-
-                  {/* Informações adicionais */}
-                  <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>Prazo de planejamento inicial: {etapa7Data.planejamentoInicial} dias úteis</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>Logística e transporte: {etapa7Data.logisticaTransporte} dias úteis</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>Preparação de área: {etapa7Data.preparacaoArea} dias úteis</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 3. Valores e Pagamento */}
-            <div className="space-y-3 proposal-section">
-              <h2 className="font-medium pb-2 border-b">3. VALORES E CONDIÇÕES DE PAGAMENTO</h2>
-              <div className="space-y-4 text-sm">
-                <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
-                  <div className="font-medium mb-2">Valor Total (Investimento + Impostos):</div>
-                  <div className="text-2xl font-medium" style={{ color: '#D3AF37' }}>
-                    {formatCurrency(valorTotal)}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="font-medium mb-2">Parcelamento:</div>
-                  <div className="space-y-2 ml-4">
-                    <div className="flex justify-between">
-                      <span>Entrada ({etapa8Data.percentualEntrada}%):</span>
-                      <span className="font-medium">{formatCurrency(valorEntrada)}</span>
-                    </div>
-                    <div className="text-xs text-muted-foreground ml-4">
-                      Prazo: 7 dias após assinatura de contrato
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex justify-between">
-                      <span>Parcelas:</span>
-                      <span className="font-medium">
-                        {etapa8Data.numeroParcelas}x de {formatCurrency(valorParcela)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {etapa1Data.qtdUnidades && parseFloat(etapa1Data.qtdUnidades) > 0 && (
-                  <div className="bg-neutral-50 p-4 rounded-lg">
-                    <div className="font-medium mb-2">Investimento por Unidade Autônoma:</div>
-                    <div className="space-y-1 ml-4 text-sm">
-                      <div className="flex justify-between">
-                        <span>Entrada:</span>
-                        <span className="font-medium">{formatCurrency(entradaPorUnidade)}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Cada Parcela:</span>
-                        <span className="font-medium">{formatCurrency(parcelaPorUnidade)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 4. Informações da Empresa */}
-            <div className="space-y-3 border-t pt-6 proposal-section">
-              <h2 className="font-medium pb-2 border-b">4. INFORMAÇÕES DA EMPRESA EMISSORA</h2>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Empresa:</span> MINERVA ENGENHARIA
-                </div>
-                <div>
-                  <span className="font-medium">Endereço:</span>{' '}
-                  Av. Colares Moreira, Edifício Los Angeles, N°100, Loja 01, Renascença, São Luís - MA, CEP: 65075-144
-                </div>
-                <div>
-                  <span className="font-medium">Telefones:</span>{' '}
-                  (98) 98226-7909 / (98) 98151-3355
-                </div>
-                <div>
-                  <span className="font-medium">Contato Digital:</span>{' '}
-                  www.minerva-eng.com.br / contato@minerva-eng.com.br
-                </div>
-              </div>
-            </div>
-
-            {/* Assinatura */}
-            <div className="pt-12 space-y-8 signature-section">
-              <div className="text-center">
-                <div className="signature-line"></div>
-                <div className="text-sm">
-                  <div className="font-medium">MINERVA ENGENHARIA</div>
-                  <div className="text-muted-foreground text-xs">Responsável Técnico</div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
     </div>
   );
 }

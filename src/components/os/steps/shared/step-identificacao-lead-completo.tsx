@@ -64,6 +64,7 @@ interface StepIdentificacaoLeadCompletoProps {
 export interface StepIdentificacaoLeadCompletoHandle {
   validate: () => boolean;
   isFormValid: () => boolean;
+  saveEdificacaoData: () => Promise<boolean>;
 }
 
 export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCompletoHandle, StepIdentificacaoLeadCompletoProps>(
@@ -101,11 +102,53 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
      */
     useImperativeHandle(ref, () => ({
       validate: () => {
+        logger.log('🔍 validate(): Iniciando validação...', {
+          formData: {
+            nome: formData.nome,
+            cpfCnpj: formData.cpfCnpj,
+            email: formData.email,
+            telefone: formData.telefone,
+            selectedLeadId: selectedLeadId
+          }
+        });
+
         markAllTouched();
-        const isValid = validateAll(formData);
+
+        // Incluir leadId na validação
+        const validationData = {
+          leadId: selectedLeadId,
+          nome: formData.nome,
+          cpfCnpj: formData.cpfCnpj,
+          email: formData.email,
+          telefone: formData.telefone,
+          tipo: formData.tipo,
+          nomeResponsavel: formData.nomeResponsavel,
+          cargoResponsavel: formData.cargoResponsavel,
+          tipoEdificacao: formData.tipoEdificacao,
+          qtdUnidades: formData.qtdUnidades,
+          qtdBlocos: formData.qtdBlocos,
+          qtdPavimentos: formData.qtdPavimentos,
+          tipoTelhado: formData.tipoTelhado,
+          possuiElevador: formData.possuiElevador,
+          possuiPiscina: formData.possuiPiscina,
+          cep: formData.cep,
+          endereco: formData.endereco,
+          numero: formData.numero,
+          complemento: formData.complemento,
+          bairro: formData.bairro,
+          cidade: formData.cidade,
+          estado: formData.estado,
+        };
+
+        const isValid = validateAll(validationData);
+
+        logger.log('🔍 validate(): Resultado da validação:', isValid);
+        logger.log('🔍 validate(): Erros encontrados:', errors);
 
         if (!isValid) {
           const firstErrorField = Object.keys(errors)[0];
+          logger.log('🔍 validate(): Primeiro campo com erro:', firstErrorField);
+
           if (firstErrorField) {
             const element = document.getElementById(firstErrorField);
             if (element) {
@@ -118,7 +161,91 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
         return isValid;
       },
       isFormValid: () => {
-        return validateAll(formData);
+        const validationData = {
+          leadId: selectedLeadId,
+          nome: formData.nome,
+          cpfCnpj: formData.cpfCnpj,
+          email: formData.email,
+          telefone: formData.telefone,
+          tipo: formData.tipo,
+          nomeResponsavel: formData.nomeResponsavel,
+          cargoResponsavel: formData.cargoResponsavel,
+          tipoEdificacao: formData.tipoEdificacao,
+          qtdUnidades: formData.qtdUnidades,
+          qtdBlocos: formData.qtdBlocos,
+          qtdPavimentos: formData.qtdPavimentos,
+          tipoTelhado: formData.tipoTelhado,
+          possuiElevador: formData.possuiElevador,
+          possuiPiscina: formData.possuiPiscina,
+          cep: formData.cep,
+          endereco: formData.endereco,
+          numero: formData.numero,
+          complemento: formData.complemento,
+          bairro: formData.bairro,
+          cidade: formData.cidade,
+          estado: formData.estado,
+        };
+        return validateAll(validationData);
+      },
+      saveEdificacaoData: async () => {
+        try {
+          logger.log('🔍 saveEdificacaoData: Iniciando validação...', {
+            formData: {
+              tipoEdificacao: formData.tipoEdificacao,
+              cep: formData.cep,
+              endereco: formData.endereco,
+              numero: formData.numero,
+              bairro: formData.bairro,
+              cidade: formData.cidade,
+              estado: formData.estado,
+            }
+          });
+
+          // Validação básica dos campos obrigatórios de edificação
+          const erros: any = {};
+          if (!formData.tipoEdificacao) {
+            erros.tipoEdificacao = 'Tipo de edificação é obrigatório';
+          }
+          if (!formData.cep) {
+            erros.cep = 'CEP é obrigatório';
+          }
+          if (!formData.endereco) {
+            erros.endereco = 'Endereço é obrigatório';
+          }
+          if (!formData.numero) {
+            erros.numero = 'Número é obrigatório';
+          }
+          if (!formData.bairro) {
+            erros.bairro = 'Bairro é obrigatório';
+          }
+          if (!formData.cidade) {
+            erros.cidade = 'Cidade é obrigatória';
+          }
+          if (!formData.estado) {
+            erros.estado = 'Estado é obrigatório';
+          }
+
+          logger.log('🔍 saveEdificacaoData: Erros encontrados:', erros);
+
+          if (Object.keys(erros).length > 0) {
+            // Forçar exibição de erros nos campos
+            Object.keys(erros).forEach(key => {
+              markFieldTouched(key);
+            });
+            toast.error('Preencha todos os campos obrigatórios da edificação');
+            logger.log('❌ saveEdificacaoData: Validação falhou');
+            return false;
+          }
+
+          logger.log('✅ saveEdificacaoData: Validação passou');
+          // Os dados já estão sendo salvos automaticamente pelo componente pai
+          // através do onFormDataChange, então apenas retornamos sucesso
+          return true;
+        } catch (error) {
+          logger.error('Erro ao salvar dados de edificação:', error);
+          toast.error('Erro ao salvar dados da edificação');
+          return false;
+        }
       }
     }), [markAllTouched, validateAll, formData, errors]);
 
@@ -202,7 +329,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
       }
     };
 
-    // Handler para salvar novo lead no banco
+    // Handler para salvar novo lead no banco - APENAS IDENTIFICAÇÃO
     const handleSaveNewLead = async () => {
       try {
         setIsSaving(true);
@@ -210,23 +337,53 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
         // Marcar todos os campos como tocados para mostrar erros
         markAllTouched();
 
-        // Validar todos os campos usando Zod
-        const dataToValidate = {
-          leadId: 'temp', // Será criado após salvar
-          ...formData,
+        // Validar apenas campos de identificação (nome, cpfCnpj, telefone, email)
+        const camposIdentificacao = {
+          nome: formData.nome,
+          cpfCnpj: formData.cpfCnpj,
+          telefone: formData.telefone,
+          email: formData.email,
         };
 
-        if (!validateAll(dataToValidate)) {
-          try {
-            toast.error('Corrija os erros de validação antes de continuar');
-          } catch (toastError) {
-            logger.error('❌ Erro ao exibir toast (validação novo lead):', toastError);
-          }
+        // Validar campos obrigatórios de identificação
+        const erros: any = {};
+        if (!camposIdentificacao.nome || camposIdentificacao.nome.length < 3) {
+          erros.nome = 'Nome deve ter pelo menos 3 caracteres';
+        }
+        if (!camposIdentificacao.cpfCnpj) {
+          erros.cpfCnpj = formData.tipo === 'juridica' ? 'CNPJ é obrigatório' : 'CPF é obrigatório';
+        }
+        if (!camposIdentificacao.telefone) {
+          erros.telefone = 'Telefone é obrigatório';
+        }
+        if (!camposIdentificacao.email || !camposIdentificacao.email.includes('@')) {
+          erros.email = 'Email válido é obrigatório';
+        }
+
+        if (Object.keys(erros).length > 0) {
+          // Atualizar erros através do hook de validação
+          Object.keys(erros).forEach(key => {
+            if (erros[key]) {
+              // Forçar erro visual nos campos
+              markFieldTouched(key);
+            }
+          });
+          toast.error('Corrija os erros de validação antes de continuar');
           return;
         }
 
-        // Transformar dados do formulário para formato da API
-        const clienteData = transformFormToCliente(formData);
+        // Criar cliente com apenas dados de identificação
+        const clienteData = {
+          nome_razao_social: formData.nome,
+          cpf_cnpj: removeMask(formData.cpfCnpj),
+          tipo_cliente: formData.tipo === 'juridica' ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
+          telefone: removeMask(formData.telefone),
+          email: formData.email,
+          nome_responsavel: formData.nomeResponsavel || null,
+          endereco: {
+            cargo_responsavel: formData.cargoResponsavel || null,
+          }
+        };
 
         // Criar cliente no banco
         const novoCliente = await createCliente(clienteData);
@@ -237,15 +394,33 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
         // Selecionar o novo lead criado
         onSelectLead(novoCliente.id);
 
-        // Fechar dialog
+        // Fechar dialog - cliente criado, agora mostrar formulário de edificação
         onShowNewLeadDialogChange(false);
 
-        // Chamar callback original (se necessário)
-        onSaveNewLead();
+        // Resetar campos de edificação para que sejam preenchidos do zero
+        onFormDataChange({
+          ...formData,
+          tipoEdificacao: '',
+          qtdUnidades: '',
+          qtdBlocos: '',
+          qtdPavimentos: '',
+          tipoTelhado: '',
+          possuiElevador: false,
+          possuiPiscina: false,
+          cep: '',
+          endereco: '',
+          numero: '',
+          complemento: '',
+          bairro: '',
+          cidade: '',
+          estado: '',
+        });
+
+        toast.success('Cliente criado com sucesso! Agora preencha os dados da edificação.');
 
       } catch (error) {
         logger.error('Erro ao salvar lead:', error);
-        toast.error(`Erro ao salvar lead: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        toast.error(`Erro ao salvar cliente: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       } finally {
         setIsSaving(false);
       }
@@ -404,244 +579,49 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
             </Popover>
           </div>
 
-          {/* Card de Confirmação de Dados Carregados */}
+          {/* Formulário de Dados da Edificação - Aparece após seleção/cadastro do cliente */}
           {selectedLead && (
-            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
-              <div className="flex items-start gap-3">
-                <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
-                <div className="space-y-3 flex-1">
-                  <div>
-                    <p className="text-sm font-medium text-green-900">Lead selecionado com sucesso!</p>
-                  </div>
+            <div className="space-y-6">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <div>
+                      <p className="text-sm font-medium text-blue-900">
+                        {selectedLeadId === selectedLead.id ? 'Cliente selecionado' : 'Cliente criado'} com sucesso!
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        Agora preencha os dados da edificação para continuar.
+                      </p>
+                    </div>
 
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                    <div>
-                      <span className="text-green-700">Nome:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.nome || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">CPF/CNPJ:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.cpfCnpj || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">Responsável:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.nomeResponsavel || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">Telefone:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.telefone || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">Email:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.email || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">Qtd. Unidades:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.qtdUnidades || '-'}</span>
-                    </div>
-                    <div>
-                      <span className="text-green-700">Qtd. Blocos:</span>{' '}
-                      <span className="font-medium text-green-900">{formData.qtdBlocos || '-'}</span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-green-700">Endereço:</span>{' '}
-                      <span className="font-medium text-green-900">
-                        {formData.endereco && formData.numero
-                          ? `${formData.endereco}, ${formData.numero}${formData.complemento ? ` - ${formData.complemento}` : ''} - ${formData.bairro}, ${formData.cidade}/${formData.estado}`
-                          : '-'}
-                      </span>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div>
+                        <span className="text-blue-700">Nome:</span>{' '}
+                        <span className="font-medium text-blue-900">{formData.nome || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700">CPF/CNPJ:</span>{' '}
+                        <span className="font-medium text-blue-900">{formData.cpfCnpj || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Telefone:</span>{' '}
+                        <span className="font-medium text-blue-900">{formData.telefone || '-'}</span>
+                      </div>
+                      <div>
+                        <span className="text-blue-700">Email:</span>{' '}
+                        <span className="font-medium text-blue-900">{formData.email || '-'}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
 
-          {/* Dialog de Criação de Novo Lead */}
-          <Dialog open={showNewLeadDialog} onOpenChange={onShowNewLeadDialogChange}>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Cadastrar Novo</DialogTitle>
-                <DialogDescription>
-                  Preencha os dados do novo lead. Campos com * são obrigatórios.
-                </DialogDescription>
-              </DialogHeader>
+              {/* Formulário de Dados da Edificação */}
+              <div className="space-y-6">
+                <div className="rounded-lg border bg-white p-6">
+                  <h3 className="text-lg font-medium mb-4">Dados da Edificação</h3>
 
-              <div className="space-y-6 py-4">
-                {/* Bloco 1: Identificação */}
-                <div>
-                  <h3 className="text-sm font-medium mb-4">Identificação</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="tipo">
-                        Tipo de Pessoa <span className="text-destructive">*</span>
-                      </Label>
-                      <Select
-                        value={formData.tipo}
-                        onValueChange={(value) => {
-                          onFormDataChange({
-                            ...formData,
-                            tipo: value,
-                            // Limpar campos dependentes ao mudar o tipo
-                            cpfCnpj: '',
-                            nome: ''
-                          });
-                        }}
-                      >
-                        <SelectTrigger id="tipo">
-                          <SelectValue placeholder="Selecione o tipo de pessoa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="fisica">Pessoa Física</SelectItem>
-                          <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="col-span-2">
-                      <FormInput
-                        id="nome"
-                        label={formData.tipo === 'juridica' ? "Razão Social" : "Nome Completo"}
-                        required
-                        value={formData.nome}
-                        onChange={(e) => {
-                          if (!readOnly) {
-                            onFormDataChange({ ...formData, nome: e.target.value });
-                            if (touched.nome) validateField('nome', e.target.value);
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!readOnly) {
-                            markFieldTouched('nome');
-                            validateField('nome', formData.nome);
-                          }
-                        }}
-                        error={touched.nome ? errors.nome : undefined}
-                        success={touched.nome && !errors.nome && formData.nome.length >= 3}
-                        helperText="Mínimo 3 caracteres"
-                        placeholder={formData.tipo === 'juridica' ? "Digite a razão social da empresa" : "Digite o nome completo"}
-                        disabled={readOnly}
-                      />
-                    </div>
-
-                    <div>
-                      <FormMaskedInput
-                        id="cpfCnpj"
-                        label={formData.tipo === 'juridica' ? "CNPJ" : "CPF"}
-                        required
-                        maskType={formData.tipo === 'juridica' ? "cnpj" : "cpf"}
-                        value={formData.cpfCnpj}
-                        onChange={(e) => {
-                          if (!readOnly) {
-                            onFormDataChange({ ...formData, cpfCnpj: e.target.value });
-                            if (touched.cpfCnpj) {
-                              validateField('cpfCnpj', e.target.value);
-                            }
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!readOnly) {
-                            markFieldTouched('cpfCnpj');
-                            const cleaned = removeMask(formData.cpfCnpj);
-                            if (cleaned.length > 0) {
-                              const isValid = formData.tipo === 'juridica' ? validarCNPJ(formData.cpfCnpj) : validarCPF(formData.cpfCnpj);
-                              if (!isValid) {
-                                // O erro será setado pelo validateField se o schema validar, 
-                                // mas podemos forçar uma validação visual aqui se necessário
-                              }
-                            }
-                            validateField('cpfCnpj', formData.cpfCnpj);
-                          }
-                        }}
-                        error={touched.cpfCnpj ? errors.cpfCnpj : undefined}
-                        success={touched.cpfCnpj && !errors.cpfCnpj && (formData.tipo === 'juridica' ? formData.cpfCnpj.length >= 14 : formData.cpfCnpj.length >= 11)}
-                        helperText={formData.tipo === 'juridica' ? "Digite o CNPJ (14 dígitos)" : "Digite o CPF (11 dígitos)"}
-                        placeholder={formData.tipo === 'juridica' ? "00.000.000/0001-00" : "000.000.000-00"}
-                        disabled={readOnly}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="nomeResponsavel">Nome do Responsável</Label>
-                      <Input
-                        id="nomeResponsavel"
-                        value={formData.nomeResponsavel}
-                        onChange={(e) => onFormDataChange({ ...formData, nomeResponsavel: e.target.value })}
-                        placeholder="Nome do contato principal"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="cargoResponsavel">Cargo do Responsável</Label>
-                      <Input
-                        id="cargoResponsavel"
-                        value={formData.cargoResponsavel}
-                        onChange={(e) => onFormDataChange({ ...formData, cargoResponsavel: e.target.value })}
-                        placeholder="Ex: Síndico, Gerente, Proprietário"
-                      />
-                    </div>
-
-                    <div>
-                      <FormMaskedInput
-                        id="telefone"
-                        label="Celular"
-                        required
-                        maskType="celular"
-                        value={formData.telefone}
-                        onChange={(e) => {
-                          if (!readOnly) {
-                            onFormDataChange({ ...formData, telefone: e.target.value });
-                            if (touched.telefone) validateField('telefone', e.target.value);
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!readOnly) {
-                            markFieldTouched('telefone');
-                            validateField('telefone', formData.telefone);
-                          }
-                        }}
-                        error={touched.telefone ? errors.telefone : undefined}
-                        success={touched.telefone && !errors.telefone && validarTelefone(formData.telefone)}
-                        helperText="Digite com DDD"
-                        placeholder="(00) 0 0000-0000"
-                        disabled={readOnly}
-                      />
-                    </div>
-
-                    <div>
-                      <FormInput
-                        id="email"
-                        label="Email"
-                        required
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => {
-                          if (!readOnly) {
-                            onFormDataChange({ ...formData, email: e.target.value });
-                            if (touched.email) validateField('email', e.target.value);
-                          }
-                        }}
-                        onBlur={() => {
-                          if (!readOnly) {
-                            markFieldTouched('email');
-                            validateField('email', formData.email);
-                          }
-                        }}
-                        error={touched.email ? errors.email : undefined}
-                        success={touched.email && !errors.email && formData.email.includes('@')}
-                        helperText="Digite um email válido"
-                        placeholder="email@exemplo.com"
-                        disabled={readOnly}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Bloco 2: Dados da Edificação */}
-                <div>
-                  <h3 className="text-sm font-medium mb-4">Dados da Edificação</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="col-span-2 space-y-2">
                       <Label htmlFor="tipoEdificacao">
@@ -768,11 +748,10 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
                   </div>
                 </div>
 
-                <Separator />
+                {/* Formulário de Endereço */}
+                <div className="rounded-lg border bg-white p-6">
+                  <h3 className="text-lg font-medium mb-4">Endereço da Edificação</h3>
 
-                {/* Bloco 3: Endereço */}
-                <div>
-                  <h3 className="text-sm font-medium mb-4">Endereço</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <FormMaskedInput
@@ -896,6 +875,189 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
                         value={formData.estado}
                         onChange={(e) => onFormDataChange({ ...formData, estado: e.target.value })}
                         placeholder="UF"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Dialog de Criação de Novo Lead - APENAS IDENTIFICAÇÃO */}
+          <Dialog open={showNewLeadDialog} onOpenChange={onShowNewLeadDialogChange}>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+                <DialogDescription>
+                  Preencha apenas os dados de identificação. Campos com * são obrigatórios.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-6 py-4">
+                {/* Bloco 1: Identificação */}
+                <div>
+                  <h3 className="text-sm font-medium mb-4">Identificação</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="col-span-2 space-y-2">
+                      <Label htmlFor="tipo">
+                        Tipo de Pessoa <span className="text-destructive">*</span>
+                      </Label>
+                      <Select
+                        value={formData.tipo}
+                        onValueChange={(value) => {
+                          onFormDataChange({
+                            ...formData,
+                            tipo: value,
+                            // Limpar campos dependentes ao mudar o tipo
+                            cpfCnpj: '',
+                            nome: ''
+                          });
+                        }}
+                      >
+                        <SelectTrigger id="tipo">
+                          <SelectValue placeholder="Selecione o tipo de pessoa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="fisica">Pessoa Física</SelectItem>
+                          <SelectItem value="juridica">Pessoa Jurídica</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="col-span-2">
+                      <FormInput
+                        id="nome"
+                        label={formData.tipo === 'juridica' ? "Razão Social" : "Nome Completo"}
+                        required
+                        value={formData.nome}
+                        onChange={(e) => {
+                          if (!readOnly) {
+                            onFormDataChange({ ...formData, nome: e.target.value });
+                            if (touched.nome) validateField('nome', e.target.value);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!readOnly) {
+                            markFieldTouched('nome');
+                            validateField('nome', formData.nome);
+                          }
+                        }}
+                        error={touched.nome ? errors.nome : undefined}
+                        success={touched.nome && !errors.nome && formData.nome.length >= 3}
+                        helperText="Mínimo 3 caracteres"
+                        placeholder={formData.tipo === 'juridica' ? "Digite a razão social da empresa" : "Digite o nome completo"}
+                        disabled={readOnly}
+                      />
+                    </div>
+
+                    <div>
+                      <FormMaskedInput
+                        id="cpfCnpj"
+                        label={formData.tipo === 'juridica' ? "CNPJ" : "CPF"}
+                        required
+                        maskType={formData.tipo === 'juridica' ? "cnpj" : "cpf"}
+                        value={formData.cpfCnpj}
+                        onChange={(e) => {
+                          if (!readOnly) {
+                            onFormDataChange({ ...formData, cpfCnpj: e.target.value });
+                            if (touched.cpfCnpj) {
+                              validateField('cpfCnpj', e.target.value);
+                            }
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!readOnly) {
+                            markFieldTouched('cpfCnpj');
+                            const cleaned = removeMask(formData.cpfCnpj);
+                            if (cleaned.length > 0) {
+                              const isValid = formData.tipo === 'juridica' ? validarCNPJ(formData.cpfCnpj) : validarCPF(formData.cpfCnpj);
+                              if (!isValid) {
+                                // O erro será setado pelo validateField se o schema validar,
+                                // mas podemos forçar uma validação visual aqui se necessário
+                              }
+                            }
+                            validateField('cpfCnpj', formData.cpfCnpj);
+                          }
+                        }}
+                        error={touched.cpfCnpj ? errors.cpfCnpj : undefined}
+                        success={touched.cpfCnpj && !errors.cpfCnpj && (formData.tipo === 'juridica' ? formData.cpfCnpj.length >= 14 : formData.cpfCnpj.length >= 11)}
+                        helperText={formData.tipo === 'juridica' ? "Digite o CNPJ (14 dígitos)" : "Digite o CPF (11 dígitos)"}
+                        placeholder={formData.tipo === 'juridica' ? "00.000.000/0001-00" : "000.000.000-00"}
+                        disabled={readOnly}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="nomeResponsavel">Nome do Responsável</Label>
+                      <Input
+                        id="nomeResponsavel"
+                        value={formData.nomeResponsavel}
+                        onChange={(e) => onFormDataChange({ ...formData, nomeResponsavel: e.target.value })}
+                        placeholder="Nome do contato principal"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="cargoResponsavel">Cargo do Responsável</Label>
+                      <Input
+                        id="cargoResponsavel"
+                        value={formData.cargoResponsavel}
+                        onChange={(e) => onFormDataChange({ ...formData, cargoResponsavel: e.target.value })}
+                        placeholder="Ex: Síndico, Gerente, Proprietário"
+                      />
+                    </div>
+
+                    <div>
+                      <FormMaskedInput
+                        id="telefone"
+                        label="Celular"
+                        required
+                        maskType="celular"
+                        value={formData.telefone}
+                        onChange={(e) => {
+                          if (!readOnly) {
+                            onFormDataChange({ ...formData, telefone: e.target.value });
+                            if (touched.telefone) validateField('telefone', e.target.value);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!readOnly) {
+                            markFieldTouched('telefone');
+                            validateField('telefone', formData.telefone);
+                          }
+                        }}
+                        error={touched.telefone ? errors.telefone : undefined}
+                        success={touched.telefone && !errors.telefone && validarTelefone(formData.telefone)}
+                        helperText="Digite com DDD"
+                        placeholder="(00) 0 0000-0000"
+                        disabled={readOnly}
+                      />
+                    </div>
+
+                    <div>
+                      <FormInput
+                        id="email"
+                        label="Email"
+                        required
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => {
+                          if (!readOnly) {
+                            onFormDataChange({ ...formData, email: e.target.value });
+                            if (touched.email) validateField('email', e.target.value);
+                          }
+                        }}
+                        onBlur={() => {
+                          if (!readOnly) {
+                            markFieldTouched('email');
+                            validateField('email', formData.email);
+                          }
+                        }}
+                        error={touched.email ? errors.email : undefined}
+                        success={touched.email && !errors.email && formData.email.includes('@')}
+                        helperText="Digite um email válido"
+                        placeholder="email@exemplo.com"
+                        disabled={readOnly}
                       />
                     </div>
                   </div>

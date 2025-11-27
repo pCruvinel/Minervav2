@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useEtapas } from './use-etapas';
 import { toast } from '../utils/safe-toast';
+import { getStepDefaults } from '@/lib/utils/schema-defaults';
 
 export interface WorkflowStateOptions {
   osId?: string;
@@ -70,7 +71,15 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
 
   // Helper: Get data for a specific step
   const getStepData = (step: number) => {
-    return formDataByStep[step] || {};
+    const existingData = formDataByStep[step];
+
+    // Se tem dados salvos, retorna eles
+    if (existingData && Object.keys(existingData).length > 0) {
+      return existingData;
+    }
+
+    // Caso contrário, retorna defaults baseados no schema
+    return getStepDefaults(step);
   };
 
   // Helper: Update data for a specific step
