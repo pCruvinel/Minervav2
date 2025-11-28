@@ -30,3 +30,7 @@ yarn-error.log*
 # Supabase
 supabase/.temp/
 supabase/.branches/
+
+# Generated files
+src/routeTree.gen.ts
+*.tsbuildinfo
