@@ -4,7 +4,7 @@
 **Contexto:** ERP para empresa de engenharia/construção (Minerva).
 **Arquitetura:** Supabase (PostgreSQL).
 **Modelo de Permissão:** Relacional e Dinâmico (RBAC via tabelas `cargos` e `setores`).
-**Última Atualização:** 21/11/2025
+**Última Atualização:** 28/11/2025
 
 ---
 
@@ -129,6 +129,50 @@ TABLE public.clientes (
   * **`validar_regras_delegacao()`**: Roda ao inserir delegação.
       * Garante que Gestores não deleguem para setores fora de sua alçada.
 
+### 2.5 Calendário (Sistema de Agendamentos)
+O sistema de calendário foi atualizado para usar componentes customizados em substituição ao FullCalendar:
+
+```sql
+TABLE public.turnos (
+  id uuid PK,
+  hora_inicio TIME NOT NULL,
+  hora_fim TIME NOT NULL,
+  vagas_total INTEGER NOT NULL,
+  setores TEXT[] NOT NULL,
+  cor VARCHAR(7) NOT NULL,
+  tipo_recorrencia VARCHAR(20) NOT NULL, -- 'todos', 'uteis', 'custom'
+  data_inicio DATE,
+  data_fim DATE,
+  dias_semana INTEGER[],
+  ativo BOOLEAN DEFAULT true
+);
+
+TABLE public.agendamentos (
+  id uuid PK,
+  turno_id uuid FK(turnos.id),
+  data DATE NOT NULL,
+  horario_inicio TIME NOT NULL,
+  horario_fim TIME NOT NULL,
+  duracao_horas INTEGER NOT NULL,
+  categoria VARCHAR(100) NOT NULL,
+  setor VARCHAR(50) NOT NULL,
+  os_id uuid FK(ordens_servico.id),
+  status VARCHAR(20) DEFAULT 'confirmado', -- 'confirmado', 'cancelado', 'realizado', 'ausente'
+  criado_por uuid FK(colaboradores.id)
+);
+```
+
+**Funcionalidades do Calendário:**
+- Visualização semanal e diária customizada
+- Criação de turnos com recorrência
+- Agendamento em tempo real com verificação de disponibilidade
+- Integração com OS (Ordens de Serviço)
+- Controle de permissões por setor
+
+**Funções RPC Importantes:**
+- `obter_turnos_disponiveis(p_data)` → Lista turnos disponíveis por data
+- `verificar_vagas_turno(turno_id, data, hora_inicio, hora_fim)` → Verifica disponibilidade
+
 -----
 
 ## 3\. Reference: Slugs & Enums
@@ -138,6 +182,9 @@ Use estes valores exatos no código (Case Sensitive no banco, mas slugs são min
   * **Cargos (Slugs):** `admin`, `diretoria`, `gestor_administrativo`, `gestor_obras`, `gestor_assessoria`, `colaborador`, `mao_de_obra`.
   * **Setores (Slugs):** `diretoria`, `administrativo`, `obras`, `assessoria`.
   * **OS Status:** `em_triagem`, `em_andamento`, `concluido`, `cancelado`.
+  * **Turnos (Tipo Recorrência):** `todos`, `uteis`, `custom`.
+  * **Agendamentos (Status):** `confirmado`, `cancelado`, `realizado`, `ausente`.
+  * **Agendamentos (Categoria):** `Vistoria Inicial`, `Apresentação de Proposta`, `Vistoria Técnica`, `Visita Semanal`.
 
 <!-- end list -->
 
