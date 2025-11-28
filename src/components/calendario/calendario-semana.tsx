@@ -9,6 +9,7 @@ import '@schedule-x/theme-default/dist/index.css';
 import { Temporal } from '@js-temporal/polyfill';
 import { toast } from 'sonner';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
+import { convertToScheduleXDateTime } from '../../lib/utils/temporal-helpers';
 
 // Initialize Temporal polyfill globally
 if (typeof (globalThis as any).Temporal === 'undefined') {
@@ -17,58 +18,6 @@ if (typeof (globalThis as any).Temporal === 'undefined') {
 
 // Lazy load modal
 const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
-
-// Componente wrapper para Schedule-X que só renderiza quando pronto
-function ScheduleXWrapper({
-    calendarEvents,
-    dataAtual,
-    onClickDateTime
-}: {
-    calendarEvents: any[];
-    dataAtual: Date;
-    onClickDateTime: (dateTime: Date) => void;
-}) {
-    // Helper function to format date as YYYY-MM-DD
-    const formatDateForScheduleX = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
-
-    // Create calendar app - sempre chamado quando o componente é renderizado
-    const calendarApp = useCalendarApp({
-        views: [createViewWeek(), createViewDay()],
-        events: calendarEvents,
-        selectedDate: formatDateForScheduleX(dataAtual),
-        locale: 'pt-BR',
-        firstDayOfWeek: 1, // Segunda-feira
-        plugins: [
-            createEventsServicePlugin(),
-            createDragAndDropPlugin(),
-            createEventModalPlugin(),
-            createCalendarControlsPlugin()
-        ],
-        callbacks: {
-            onEventClick: (event: any) => {
-                const customContent = event._customContent;
-                if (customContent?.type === 'agendamento') {
-                    // TODO: abrir modal de detalhes do agendamento
-                    console.log('Detalhes do agendamento:', customContent.agendamento);
-                }
-            },
-            onClickDateTime: (dateTime: Date) => {
-                onClickDateTime(dateTime);
-            }
-        }
-    });
-
-    return (
-        <div className="border border-neutral-200 rounded-lg overflow-hidden bg-white">
-            <ScheduleXCalendar calendarApp={calendarApp} />
-        </div>
-    );
-}
 
 interface CalendarioSemanaProps {
     dataAtual: Date;
@@ -86,20 +35,11 @@ function CalendarioSemanaComponent({
     agendamentos,
     loading,
     error,
-    onRefresh,
-    onTurnoClick
+    onRefresh
 }: CalendarioSemanaProps) {
     const [modalAgendamento, setModalAgendamento] = useState(false);
     const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoComVagas | null>(null);
     const [isClientReady, setIsClientReady] = useState(false);
-
-    // Helper function to format date as YYYY-MM-DD
-    const formatDateForScheduleX = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
 
     // Initialize Temporal polyfill and mark client as ready
     useEffect(() => {
@@ -111,23 +51,30 @@ function CalendarioSemanaComponent({
         }
     }, []);
 
-    // Preparar eventos para Schedule-X
+    // Helper para formatar data para Schedule-X
+    const formatDateForScheduleX = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
+
+    // Preparar eventos para Schedule-X com conversão Temporal
     const calendarEvents = useMemo(() => {
         const events: any[] = [];
 
         if (!turnosPorDia) return events;
 
-        // Mapear turnos como background events (áreas permitidas)
+        // Mapear turnos como background events (janelas de disponibilidade)
         turnosPorDia.forEach((turnos, dataStr) => {
             turnos.forEach(turno => {
                 if (turno.ativo === false) return;
 
-                // Background event para turno (área permitida)
                 events.push({
                     id: `turno-${turno.id}`,
                     title: `Turno ${turno.horaInicio}-${turno.horaFim}`,
-                    start: `${dataStr} ${turno.horaInicio}`,
-                    end: `${dataStr} ${turno.horaFim}`,
+                    start: convertToScheduleXDateTime(dataStr, turno.horaInicio),
+                    end: convertToScheduleXDateTime(dataStr, turno.horaFim),
                     _options: {
                         backgroundColor: turno.cor,
                         opacity: 0.3,
@@ -150,8 +97,8 @@ function CalendarioSemanaComponent({
             events.push({
                 id: `agendamento-${agendamento.id}`,
                 title: agendamento.categoria,
-                start: `${agendamento.data} ${agendamento.horarioInicio}`,
-                end: `${agendamento.data} ${agendamento.horarioFim}`,
+                start: convertToScheduleXDateTime(agendamento.data, agendamento.horarioInicio),
+                end: convertToScheduleXDateTime(agendamento.data, agendamento.horarioFim),
                 _options: {
                     backgroundColor: '#3B82F6',
                     borderColor: '#2563EB',
@@ -167,8 +114,7 @@ function CalendarioSemanaComponent({
         return events;
     }, [turnosPorDia, agendamentos]);
 
-
-    // Verificar se um horário específico tem um turno válido
+    // Verificar se um horário específico tem um turno válido (lógica whitelist)
     const encontrarTurnoNoHorario = (dateTime: Date): TurnoComVagas | null => {
         if (!turnosPorDia) return null;
 
@@ -185,7 +131,6 @@ function CalendarioSemanaComponent({
             return hora >= horaInicio && hora < horaFim;
         }) || null;
     };
-
 
     // Loading state
     if (loading) {
@@ -223,26 +168,49 @@ function CalendarioSemanaComponent({
         );
     }
 
+    // Wrapper do calendário que só renderiza no client
+    const ScheduleXCalendarWrapper = () => {
+        const calendarApp = useCalendarApp({
+            views: [createViewWeek(), createViewDay()],
+            events: calendarEvents,
+            selectedDate: formatDateForScheduleX(dataAtual),
+            locale: 'pt-BR',
+            firstDayOfWeek: 1,
+            plugins: [
+                createEventsServicePlugin(),
+                createDragAndDropPlugin(),
+                createEventModalPlugin(),
+                createCalendarControlsPlugin()
+            ],
+            callbacks: {
+                onEventClick: (event: any) => {
+                    const customContent = event._customContent;
+                    if (customContent?.type === 'agendamento') {
+                        console.log('Detalhes do agendamento:', customContent.agendamento);
+                    }
+                },
+                onClickDateTime: (dateTime: Date) => {
+                    const turno = encontrarTurnoNoHorario(dateTime);
+                    if (!turno) {
+                        toast.error('Não há turnos abertos neste horário');
+                        return;
+                    }
+                    setTurnoSelecionado(turno);
+                    setModalAgendamento(true);
+                }
+            }
+        });
+
+        return <ScheduleXCalendar calendarApp={calendarApp} />;
+    };
+
     return (
         <div className="p-6">
             {/* Calendário Schedule-X */}
             {isClientReady ? (
-                <ScheduleXWrapper
-                    calendarEvents={calendarEvents}
-                    dataAtual={dataAtual}
-                    onClickDateTime={(dateTime: Date) => {
-                        // Verificar se há turno neste horário (lógica whitelist)
-                        const turno = encontrarTurnoNoHorario(dateTime);
-                        if (!turno) {
-                            toast.error('Não há turnos abertos neste horário');
-                            return;
-                        }
-
-                        // Abrir modal de agendamento com turno restrito
-                        setTurnoSelecionado(turno);
-                        setModalAgendamento(true);
-                    }}
-                />
+                <div className="border border-neutral-200 rounded-lg overflow-hidden bg-white">
+                    <ScheduleXCalendarWrapper />
+                </div>
             ) : (
                 <div className="border border-neutral-200 rounded-lg overflow-hidden p-6">
                     <div className="animate-pulse">
@@ -256,13 +224,13 @@ function CalendarioSemanaComponent({
                 </div>
             )}
 
-            {/* Modal de Agendamento */}
+            {/* Modal de Agendamento com Turno Restrito */}
             <Suspense fallback={null}>
                 <ModalNovoAgendamento
                     open={modalAgendamento}
                     onClose={() => setModalAgendamento(false)}
                     turno={turnoSelecionado}
-                    dia={new Date()} // TODO: passar data correta
+                    dia={new Date()} // TODO: passar data correta do clique
                     onSuccess={onRefresh}
                 />
             </Suspense>

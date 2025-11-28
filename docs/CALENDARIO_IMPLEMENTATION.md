@@ -20,7 +20,8 @@ Sistema completo de agendamento com calendário para gerenciar turnos e agendame
 ### Funcionalidades Implementadas
 
 - ✅ Criação de turnos com recorrência (todos os dias, dias úteis, datas personalizadas)
-- ✅ Agendamento em turnos disponíveis
+- ✅ Múltiplos agendamentos por turno (até limite de vagas)
+- ✅ Agendamento em turnos disponíveis com tooltip interativo
 - ✅ Validação automática de conflitos e capacidade
 - ✅ 3 visualizações: Mês, Semana, Dia
 - ✅ Loading states e feedback visual
@@ -247,7 +248,9 @@ Visualização semanal com turnos e agendamentos.
 - Grid de 5 dias úteis (Seg-Sex)
 - Horários de 8h às 18h
 - Turnos posicionados por horário
+- Cards de turno com badges de agendamento e tooltips interativos
 - Click no turno abre modal de agendamento
+- Suporte a múltiplos agendamentos por turno
 
 ### ModalCriarTurno
 
@@ -266,6 +269,33 @@ Modal para admin criar novos turnos.
 - Número de vagas > 0
 - Pelo menos 1 setor selecionado
 - Datas obrigatórias se recorrência = 'custom'
+
+### BlocoTurno
+
+Card interativo para exibição de turnos no calendário.
+
+```tsx
+<BlocoTurno
+  turno={turno}
+  onClick={() => handleClickTurno(turno)}
+/>
+```
+
+**Funcionalidades:**
+- Badge com categoria e avatar do usuário responsável
+- Tooltip interativo no hover com detalhes completos do agendamento
+- Indicador visual de vagas disponíveis (X/Y)
+- Estado visual baseado na ocupação (cores e opacidade)
+- Suporte a múltiplos agendamentos por turno
+- Memoização para performance otimizada
+
+**Tooltip inclui:**
+- Categoria do agendamento
+- Nome do usuário responsável
+- Código da OS (se vinculada)
+- Nome do cliente
+- Status da OS
+- Número de etapas ativas
 
 ### ModalNovoAgendamento
 
@@ -386,16 +416,18 @@ import { CalendarioPage } from './components/calendario/calendario-page';
 
 ### 4. Fazer um Agendamento
 
-1. Na visualização de semana, clique em um turno com vagas
+1. Na visualização de semana/dia, clique em um turno com vagas disponíveis
 2. Selecione categoria e setor
 3. Escolha horário de início e duração
-4. Confirmar
+4. Confirme o agendamento
+5. **Nota**: Um turno pode aceitar múltiplos agendamentos até atingir o limite de vagas
 
 ### 5. Visualizar Agendamentos
 
 - **Mês**: Resumo visual com contadores
-- **Semana**: Turnos detalhados por dia
+- **Semana**: Turnos detalhados por dia com badges de agendamento
 - **Dia**: Visão completa de um único dia
+- **Dica**: Passe o mouse sobre os badges de agendamento para ver detalhes completos em tooltip
 
 ---
 
@@ -466,9 +498,22 @@ Todos os componentes exibem loading states:
 
 ### Erro ao criar agendamento
 
-1. Verifique se turno tem vagas
+1. Verifique se turno tem vagas disponíveis (X/Y no indicador)
 2. Confirme que setor está no array do turno
 3. Horário deve estar dentro do turno
+4. **Nota**: Um turno pode ter múltiplos agendamentos até o limite de vagas
+
+### Badge de agendamento não aparece
+
+1. Verifique se agendamento tem status 'confirmado'
+2. Confirme que agendamento não foi cancelado
+3. Dados podem demorar a atualizar - aguarde refresh automático
+
+### Tooltip não aparece no hover
+
+1. Certifique-se de passar o mouse exatamente sobre o badge
+2. Verifique se há dados completos do agendamento (usuário, OS, cliente)
+3. Tooltip aparece apenas em agendamentos com dados válidos
 
 ### RLS bloqueando operação
 
@@ -478,6 +523,17 @@ Todos os componentes exibem loading states:
 
 ---
 
-**Documentação criada em:** 2025-01-18
-**Versão:** 1.0.0
+## 📋 Histórico de Atualizações
+
+### v1.1.0 - 2025-11-27
+- ✅ **Múltiplos agendamentos por turno**: Correção da lógica de ocupação
+- ✅ **Tooltip interativo**: Detalhes completos no hover dos badges
+- ✅ **Performance otimizada**: Memoização aprimorada do BlocoTurno
+- ✅ **UX melhorada**: Interface mais limpa e informativa
+
+### v1.0.0 - 2025-01-18
+- ✅ Implementação inicial completa do sistema de calendário
+
+**Última atualização:** 2025-11-27
+**Versão atual:** 1.1.0
 **Autor:** Claude Code

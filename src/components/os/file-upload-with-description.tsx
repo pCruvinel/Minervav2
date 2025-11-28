@@ -73,159 +73,201 @@ export function FileUploadWithDescription({
         setPendingFile(null);
         setShowDescriptionInput(false);
         setDescricao('');
-        await deleteDocument(documento.id);
-        toast.success('Arquivo removido com sucesso');
-
-        if (onFileRemove) {
-            onFileRemove(documento.id);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
         }
-    } catch (error) {
-        console.error('Erro ao remover:', error);
-        toast.error('Erro ao remover arquivo');
-    }
-};
+    };
 
-const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-};
+    const handleConfirmUpload = async () => {
+        if (!pendingFile) return;
 
-return (
-    <div className="space-y-4">
-        {/* Título e Instrução */}
-        <div>
-            <h3 className="text-base font-medium mb-1">{titulo}</h3>
-            <p className="text-sm text-muted-foreground">{instrucao}</p>
-        </div>
+        if (!osId) {
+            toast.error('Erro: OS ainda não foi criada. Salve a etapa anterior primeiro.');
+            return;
+        }
 
-        {/* Área de Upload */}
-        {!showDescriptionInput && !readOnly && (
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-neutral-400 transition-colors">
-                <input
-                    ref={fileInputRef}
-                    type="file"
-                    id={`file-upload-${tipoDocumento}`}
-                    className="hidden"
-                    accept={acceptedFileTypes}
-                    onChange={handleFileSelect}
-                    disabled={isUploading || readOnly}
-                    multiple={multiple}
-                />
-                <label htmlFor={`file-upload-${tipoDocumento}`} className="cursor-pointer">
-                    {isUploading ? (
-                        <>
-                            <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
-                            <p className="text-sm text-neutral-600 mb-2">Enviando arquivo...</p>
-                        </>
-                    ) : (
-                        <>
-                            <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-                            <p className="text-sm text-neutral-600 mb-2">
-                                Clique para selecionar ou arraste o arquivo
-                            </p>
-                            <p className="text-xs text-neutral-500">
-                                Tipos aceitos: {acceptedFileTypes.replace(/\./g, '').toUpperCase()} • Máx: {maxFileSizeMB}MB
-                            </p>
-                        </>
-                    )}
-                </label>
+        try {
+            const documento = await uploadDocument({
+                file: pendingFile,
+                tipoDocumento,
+                etapaId,
+                descricao: descricao || undefined,
+                metadata: {
+                    etapa: tipoDocumento,
+                }
+            });
+
+            toast.success('Arquivo enviado com sucesso!');
+
+            if (onUploadComplete) {
+                onUploadComplete(documento);
+            }
+
+            // Limpar estado
+            handleCancelUpload();
+        } catch (error) {
+            console.error('Erro no upload:', error);
+            toast.error('Erro ao fazer upload do arquivo');
+        }
+    };
+
+    const handleRemove = async (documento: OSDocumento) => {
+        if (readOnly) return;
+
+        try {
+            await deleteDocument(documento.id);
+            toast.success('Arquivo removido com sucesso');
+
+            if (onFileRemove) {
+                onFileRemove(documento.id);
+            }
+        } catch (error) {
+            console.error('Erro ao remover:', error);
+            toast.error('Erro ao remover arquivo');
+        }
+    };
+
+    const formatFileSize = (bytes: number) => {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Título e Instrução */}
+            <div>
+                <h3 className="text-base font-medium mb-1">{titulo}</h3>
+                <p className="text-sm text-muted-foreground">{instrucao}</p>
             </div>
-        )}
 
-        {/* Input de Descrição */}
-        {showDescriptionInput && pendingFile && (
-            <div className="border border-neutral-200 rounded-lg p-4 space-y-4 bg-neutral-50">
-                <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 text-primary mt-0.5" />
-                    <div className="flex-1">
-                        <p className="text-sm font-medium">{pendingFile.name}</p>
-                        <p className="text-xs text-muted-foreground">{formatFileSize(pendingFile.size)}</p>
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="descricao">Observação (opcional)</Label>
-                    <Textarea
-                        id="descricao"
-                        placeholder="Adicione uma observação sobre este arquivo..."
-                        value={descricao}
-                        onChange={(e) => setDescricao(e.target.value)}
-                        rows={3}
-                        className="resize-none"
+            {/* Área de Upload */}
+            {!showDescriptionInput && !readOnly && (
+                <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-neutral-400 transition-colors">
+                    <input
+                        ref={fileInputRef}
+                        type="file"
+                        id={`file-upload-${tipoDocumento}`}
+                        className="hidden"
+                        accept={acceptedFileTypes}
+                        onChange={handleFileSelect}
+                        disabled={isUploading || readOnly}
+                        multiple={multiple}
                     />
-                </div>
-
-                <div className="flex items-center justify-end gap-2">
-                    <Button
-                        variant="outline"
-                        onClick={handleCancelUpload}
-                        disabled={isUploading}
-                    >
-                        Cancelar
-                    </Button>
-                    <Button
-                        onClick={handleConfirmUpload}
-                        disabled={isUploading}
-                    >
+                    <label htmlFor={`file-upload-${tipoDocumento}`} className="cursor-pointer">
                         {isUploading ? (
                             <>
-                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Enviando...
+                                <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
+                                <p className="text-sm text-neutral-600 mb-2">Enviando arquivo...</p>
                             </>
                         ) : (
-                            'Confirmar Upload'
-                        )}
-                    </Button>
-                </div>
-            </div>
-        )}
-
-        {/* Lista de Arquivos Anexados */}
-        {documentos.length > 0 && (
-            <div className="space-y-2">
-                <Label>Arquivos Anexados</Label>
-                {documentos.map((doc) => (
-                    <div
-                        key={doc.id}
-                        className="flex items-start gap-3 p-3 bg-white border border-neutral-200 rounded-lg"
-                    >
-                        <FileText className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{doc.nome}</p>
-                            <p className="text-xs text-muted-foreground">
-                                {formatFileSize(doc.tamanho_bytes)}
-                            </p>
-                            {doc.metadados?.descricao && (
-                                <p className="text-xs text-neutral-600 mt-1 italic">
-                                    "{doc.metadados.descricao}"
+                            <>
+                                <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
+                                <p className="text-sm text-neutral-600 mb-2">
+                                    Clique para selecionar ou arraste o arquivo
                                 </p>
+                                <p className="text-xs text-neutral-500">
+                                    Tipos aceitos: {acceptedFileTypes.replace(/\./g, '').toUpperCase()} • Máx: {maxFileSizeMB}MB
+                                </p>
+                            </>
+                        )}
+                    </label>
+                </div>
+            )}
+
+            {/* Input de Descrição */}
+            {showDescriptionInput && pendingFile && (
+                <div className="border border-neutral-200 rounded-lg p-4 space-y-4 bg-neutral-50">
+                    <div className="flex items-start gap-3">
+                        <FileText className="w-5 h-5 text-primary mt-0.5" />
+                        <div className="flex-1">
+                            <p className="text-sm font-medium">{pendingFile.name}</p>
+                            <p className="text-xs text-muted-foreground">{formatFileSize(pendingFile.size)}</p>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="descricao">Observação (opcional)</Label>
+                        <Textarea
+                            id="descricao"
+                            placeholder="Adicione uma observação sobre este arquivo..."
+                            value={descricao}
+                            onChange={(e) => setDescricao(e.target.value)}
+                            rows={3}
+                            className="resize-none"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-2">
+                        <Button
+                            variant="outline"
+                            onClick={handleCancelUpload}
+                            disabled={isUploading}
+                        >
+                            Cancelar
+                        </Button>
+                        <Button
+                            onClick={handleConfirmUpload}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Enviando...
+                                </>
+                            ) : (
+                                'Confirmar Upload'
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            )}
+
+            {/* Lista de Arquivos Anexados */}
+            {documentos.length > 0 && (
+                <div className="space-y-2">
+                    <Label>Arquivos Anexados</Label>
+                    {documentos.map((doc) => (
+                        <div
+                            key={doc.id}
+                            className="flex items-start gap-3 p-3 bg-white border border-neutral-200 rounded-lg"
+                        >
+                            <FileText className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium truncate">{doc.nome}</p>
+                                <p className="text-xs text-muted-foreground">
+                                    {formatFileSize(doc.tamanho_bytes)}
+                                </p>
+                                {doc.metadados?.descricao && (
+                                    <p className="text-xs text-neutral-600 mt-1 italic">
+                                        "{doc.metadados.descricao as string}"
+                                    </p>
+                                )}
+                            </div>
+                            {!readOnly && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon-sm"
+                                    onClick={() => handleRemove(doc)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
                             )}
                         </div>
-                        {!readOnly && (
-                            <Button
-                                variant="ghost"
-                                size="icon-sm"
-                                onClick={() => handleRemove(doc)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        )}
-                    </div>
-                ))}
-            </div>
-        )}
+                    ))}
+                </div>
+            )}
 
-        {/* Alerta se não tem osId */}
-        {!osId && (
-            <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                    A OS precisa ser criada antes de fazer upload de arquivos. Complete e salve a etapa anterior.
-                </AlertDescription>
-            </Alert>
-        )}
-    </div>
-);
+            {/* Alerta se não tem osId */}
+            {!osId && (
+                <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                        A OS precisa ser criada antes de fazer upload de arquivos. Complete e salve a etapa anterior.
+                    </AlertDescription>
+                </Alert>
+            )}
+        </div>
+    );
 }

@@ -1,6 +1,6 @@
 # 📚 ÍNDICE DA DOCUMENTAÇÃO - ERP Minerva
 
-**Última atualização:** 22/11/2025
+**Última atualização:** 28/11/2025
 **Status:** Documentação consolidada e organizada
 
 ---
@@ -76,6 +76,7 @@
 | [CALENDARIO_IMPLEMENTATION.md](./CALENDARIO_IMPLEMENTATION.md) | Implementação do calendário | `/docs/` |
 | [CALENDARIO_TEST_PLAN.md](./CALENDARIO_TEST_PLAN.md) | Plano de testes do calendário | `/docs/` |
 | [apply-calendario-migration.md](./technical/apply-calendario-migration.md) | Migration do calendário | `/docs/technical/` |
+| [usuarios-sistema.md](./guides/usuarios-sistema.md) | Schema de usuários e calendário | `/docs/guides/` |
 
 ### 👷 Módulo Colaborador
 
@@ -105,7 +106,15 @@
 
 ---
 
-## 🚀 DEPLOY E PRODUÇÃO
+## 📋 REGRAS DE NEGÓCIO
+
+| Arquivo | Descrição | Localização |
+|---------|-----------|-------------|
+| [REGRAS_NEGOCIO_FUNCIONALIDADES.md](./business/REGRAS_NEGOCIO_FUNCIONALIDADES.md) | Regras de negócio, perfis e funcionalidades | `/docs/business/` |
+
+---
+
+##  DEPLOY E PRODUÇÃO
 
 | Arquivo | Descrição | Localização |
 |---------|-----------|-------------|
@@ -192,10 +201,11 @@
 ## 📊 ESTATÍSTICAS
 
 ```
-Total de Documentos Ativos: ~40
+Total de Documentos Ativos: ~41
 ├── Técnicos: 8
 ├── Planejamento: 13
 ├── Implementação: 10
+├── Regras de Negócio: 1
 ├── Deploy: 3
 └── Geral: 6
 
@@ -233,6 +243,6 @@ Scripts utilitários Python foram movidos para `/scripts/utils/`.
 
 ---
 
-**Última Organização:** 22/11/2025
+**Última Organização:** 28/11/2025
 **Sistema:** ERP Minerva Engenharia v2.0
 **Documentação:** Consolidada e organizada

@@ -177,6 +177,10 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   // Função para manipular seleção de lead (compatível com o componente)
   const handleSelectLead = (leadId: string, leadData?: any) => {
     setSelectedLeadId(leadId);
+
+    // IMPORTANTE: Salvar leadId no formDataByStep para habilitar botão Avançar
+    setStepData(1, { ...formDataByStep[1], leadId });
+
     if (leadData) {
       setFormData(prev => ({
         ...prev,
@@ -202,8 +206,6 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
         cidade: leadData.endereco?.cidade || '',
         estado: leadData.endereco?.estado || '',
       }));
-      // Salvar leadId no state da etapa 1
-      setStepData(1, { ...formDataByStep[1], leadId });
     }
   };
 

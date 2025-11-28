@@ -1,4 +1,4 @@
-import { StrictMode } from 'react'
+import { StrictMode, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
@@ -23,7 +23,12 @@ declare module '@tanstack/react-router' {
 
 function InnerApp() {
   const auth = useAuth()
-  return <RouterProvider router={router} context={{ auth }} />
+
+  // Memoize context para evitar recriação em cada render
+  // Isso previne race conditions no router durante navegação
+  const routerContext = useMemo(() => ({ auth }), [auth])
+
+  return <RouterProvider router={router} context={routerContext} />
 }
 
 function App() {

@@ -20,8 +20,6 @@ import {
   Building2,
   Shield,
   ChevronRight,
-  Menu,
-  X,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -95,7 +93,7 @@ const menuItems = [
   },
 ];
 
-export function NewSidebar() {
+export function Sidebar() {
   const { currentUser } = useAuth();
   const location = useLocation();
   const { isOpen, toggle } = useSidebarContext();
@@ -152,20 +150,20 @@ export function NewSidebar() {
       <div
         className="flex items-center justify-center px-4 shrink-0 border-b"
         style={{
-          height: 'var(--header-height)',
+          height: 'var(--sidebar-header-height)',
           borderColor: 'var(--color-border-light)',
         }}
       >
         {isOpen ? (
-          <MinervaLogo variant="full" className="h-10" />
+          <MinervaLogo variant="full" className="h-14" />
         ) : (
-          <MinervaLogo variant="icon" className="h-8 w-8" />
+          <MinervaLogo variant="icon" className="h-10 w-10" />
         )}
       </div>
 
       {/* Menu Items */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden" style={{ padding: 'var(--spacing-lg) var(--spacing-sm)' }}>
-        <ul className="flex flex-col" style={{ gap: 'var(--spacing-xs)' }}>
+        <ul className="flex flex-col" style={{ gap: 'var(--spacing-sm)' }}>
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const hasSubmenu = !!item.submenu;
