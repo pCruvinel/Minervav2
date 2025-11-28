@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Download, Eye, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, Download, Eye, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
+import { PDFDownloadButton } from '@/components/pdf/pdf-download-button';
+import { toast } from '@/lib/utils/safe-toast';
 
 interface EtapaPrincipal {
   nome: string;
@@ -20,6 +23,8 @@ interface EtapaPrincipal {
 }
 
 interface StepGerarPropostaOS0104Props {
+  osId: string;
+
   // Dados da Etapa 1 (Cliente/Lead)
   etapa1Data: {
     leadId?: string;
@@ -80,6 +85,7 @@ interface StepGerarPropostaOS0104Props {
 }
 
 export function StepGerarPropostaOS0104({
+  osId,
   etapa1Data,
   etapa2Data,
   etapa7Data,
@@ -91,6 +97,9 @@ export function StepGerarPropostaOS0104({
   onDataChange,
   readOnly = false,
 }: StepGerarPropostaOS0104Props) {
+  // Hook para geração de PDF
+  const { generating, error, generate } = usePDFGeneration();
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Validar campos obrigatórios da Etapa 1 (apenas os essenciais para a proposta)
   const validarDadosEtapa1 = () => {
@@ -164,26 +173,55 @@ export function StepGerarPropostaOS0104({
     }
   };
 
-  const handleGerarProposta = () => {
+  const handleGerarProposta = async () => {
+    // DEBUG: Log do osId
+    console.log('[Step 9] Gerando proposta para osId:', osId);
+    console.log('[Step 9] Tipo de osId:', typeof osId);
+    console.log('[Step 9] osId válido?:', !!osId);
+
     gerarCodigoProposta();
 
     // Gerar descrição dos serviços baseada nas etapas
     const descricaoServicos = gerarDescricaoServicos();
 
-    // Salvar dados obrigatórios do schema da Etapa 9
+    // Salvar dados locais primeiro
     onDataChange({
       ...data,
-      propostaGerada: true,
-      dataGeracao: new Date().toLocaleDateString('pt-BR'),
+      propostaGerada: false, // Manter false até gerar PDF
       descricaoServicos,
       valorProposta: formatCurrency(valorTotal),
       prazoProposta: prazoTotal.toString(),
       condicoesPagamento: `Entrada de ${etapa8Data.percentualEntrada}% (${formatCurrency(valorEntrada)}) em até 7 dias após assinatura do contrato. Demais pagamentos parcelados em ${etapa8Data.numeroParcelas}x de ${formatCurrency(valorParcela)}.`,
     });
 
-    // Abrir proposta em nova aba
-    const propostaUrl = `/os/proposta/${data.codigoProposta}`;
-    window.open(propostaUrl, '_blank');
+    try {
+      // DEBUG: Log antes da chamada
+      console.log('[Step 9] Chamando generate() com osId:', osId);
+
+      // Chamar backend real para gerar PDF
+      const result = await generate('proposta', osId, {});
+
+      // DEBUG: Log do resultado
+      console.log('[Step 9] Resultado do generate():', result);
+
+      if (result && result.success && result.url) {
+        setPdfUrl(result.url);
+
+        // Marcar como gerada
+        onDataChange({
+          ...data,
+          propostaGerada: true,
+          dataGeracao: new Date().toLocaleDateString('pt-BR'),
+        });
+
+        toast.success('Proposta gerada com sucesso!');
+      } else {
+        toast.error(`Erro ao gerar proposta: ${result?.error || 'Erro desconhecido'}`);
+      }
+    } catch (err) {
+      console.error('Erro ao gerar proposta:', err);
+      toast.error('Erro ao gerar proposta. Tente novamente.');
+    }
   };
 
   // Gerar descrição automática dos serviços
@@ -244,6 +282,16 @@ export function StepGerarPropostaOS0104({
               </Alert>
             )}
 
+            {/* Exibir erros de geração de PDF */}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Erro ao gerar PDF: {typeof error === 'string' ? error : error.message || 'Erro desconhecido'}
+                </AlertDescription>
+              </Alert>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="validadeDias">
@@ -282,11 +330,20 @@ export function StepGerarPropostaOS0104({
         <div className="flex justify-center">
           <PrimaryButton
             onClick={handleGerarProposta}
-            disabled={readOnly || !data.validadeDias || !data.garantiaMeses || !validacao.valido}
+            disabled={readOnly || !data.validadeDias || !data.garantiaMeses || !validacao.valido || generating}
             className="px-8"
           >
-            <FileText className="h-4 w-4 mr-2" />
-            Gerar Proposta Comercial
+            {generating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Gerando PDF...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                Gerar Proposta Comercial
+              </>
+            )}
           </PrimaryButton>
         </div>
       )}
@@ -314,10 +371,15 @@ export function StepGerarPropostaOS0104({
                   <Eye className="h-4 w-4 mr-2" />
                   Visualizar Proposta
                 </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-2" />
-                  Baixar PDF
-                </Button>
+                {pdfUrl && (
+                  <PDFDownloadButton
+                    pdfUrl={pdfUrl}
+                    tipo="proposta"
+                    osId={osId}
+                    variant="outline"
+                    size="sm"
+                  />
+                )}
               </div>
             </div>
           </CardContent>

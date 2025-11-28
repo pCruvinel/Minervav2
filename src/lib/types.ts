@@ -731,3 +731,26 @@ export const PERMISSOES_POR_ROLE_LEGADO: Record<RoleLevel, PermissoesLegadas> = 
     acesso_modulos: [],
   },
 };
+
+// ============================================================
+// TIPOS PARA GERAÇÃO DE PDFs
+// ============================================================
+
+export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica';
+
+export interface PDFGenerationRequest {
+  tipo: PDFType;
+  osId: string;
+  dados: Record<string, unknown>;
+}
+
+export interface PDFGenerationResponse {
+  success: boolean;
+  url?: string;
+  error?: string;
+  metadata?: {
+    filename: string;
+    size: number;
+    tipo: PDFType;
+  };
+}

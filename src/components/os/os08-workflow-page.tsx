@@ -262,6 +262,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             {/* ETAPA 6: Gerar Documento */}
             {currentStep === 6 && (
               <StepGerarDocumento
+                osId={osId || ''}
                 data={etapa6Data}
                 onDataChange={setEtapa6Data}
                 readOnly={isHistoricalNavigation}

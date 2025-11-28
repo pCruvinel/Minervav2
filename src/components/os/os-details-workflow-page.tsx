@@ -39,7 +39,7 @@ import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentaca
 import { StepRealizarApresentacao } from './steps/shared/step-realizar-apresentacao';
 import { StepGerarContrato } from './steps/shared/step-gerar-contrato';
 import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
-import { CalendarioSemana } from '../calendario/calendario-semana';
+import { Calendario } from '../calendario/calendario';
 import { ModalNovoAgendamento } from '../calendario/modal-novo-agendamento';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { useOrdemServico } from '../../lib/hooks/use-ordens-servico';
@@ -1597,7 +1597,7 @@ export function OSDetailsWorkflowPage({
 
                   {/* Calendário Integrado */}
                   <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-                    <CalendarioSemana
+                    <Calendario
                       dataAtual={semanaAtualCalendario}
                       turnosPorDia={turnosCalendario}
                       agendamentos={agendamentosCalendario}
@@ -1890,6 +1890,7 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 9: Gerar Proposta Comercial */}
               {currentStep === 9 && (
                 <StepGerarPropostaOS0104
+                  osId={osId!}
                   etapa1Data={etapa1Data}
                   etapa2Data={etapa2Data}
                   etapa7Data={etapa7Data}

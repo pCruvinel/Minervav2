@@ -3,10 +3,10 @@
 
 import { logger } from '@/lib/utils/logger';
 import React, { useState } from 'react';
-import { 
-  ArrowLeft, 
-  FileText, 
-  CheckCircle2, 
+import {
+  ArrowLeft,
+  FileText,
+  CheckCircle2,
   XCircle,
   FileDown,
   Send,
@@ -23,6 +23,7 @@ import { Label } from '../ui/label';
 import { Textarea } from '../ui/textarea';
 import { Switch } from '../ui/switch';
 import { toast } from '../../lib/utils/safe-toast';
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
 
 interface OS07AnalisePageProps {
   osId: string;
@@ -33,6 +34,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
   const [aprovarReforma, setAprovarReforma] = useState(true);
   const [comentarioEngenharia, setComentarioEngenharia] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { generating: generatingPDF, generate: generatePDF } = usePDFGeneration();
 
   // Dados mock do formulário recebido
   const dadosFormulario = {
@@ -87,30 +89,41 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
     setIsSubmitting(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
       const parecer = {
-        osId,
         aprovado: aprovarReforma,
         comentario: comentarioEngenharia,
         dataAnalise: new Date().toISOString(),
         analista: 'Gestor de Assessoria',
       };
 
-      logger.log('📄 Parecer gerado:', parecer);
+      logger.log('📄 Gerando parecer:', parecer);
 
-      toast.success(
-        aprovarReforma
-          ? 'Parecer aprovado! PDF gerado e enviado ao cliente.'
-          : 'Parecer de reprovação enviado ao cliente.'
-      );
+      // TODO: Salvar análise no banco de dados (metadata.analise da OS)
+      // await supabase.from('ordens_servico').update({
+      //   metadata: { analise: parecer }
+      // }).eq('id', osId);
 
-      // Redirecionar ou fechar
-      setTimeout(() => {
-        if (onBack) {
-          onBack();
-        }
-      }, 1500);
+      // Gerar PDF do parecer
+      logger.log('📄 Gerando PDF do parecer...');
+      const result = await generatePDF('parecer-reforma', osId, {});
+
+      if (result?.success) {
+        logger.log('✅ PDF gerado com sucesso:', result.url);
+        toast.success(
+          aprovarReforma
+            ? 'Parecer aprovado! PDF gerado com sucesso.'
+            : 'Parecer de reprovação gerado com sucesso.'
+        );
+
+        // Redirecionar ou fechar
+        setTimeout(() => {
+          if (onBack) {
+            onBack();
+          }
+        }, 1500);
+      } else {
+        throw new Error('Falha ao gerar PDF');
+      }
     } catch (error) {
       logger.error('Erro ao gerar parecer:', error);
       toast.error('Erro ao gerar parecer. Tente novamente.');
@@ -369,12 +382,12 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                 {/* Botão de Gerar Parecer */}
                 <PrimaryButton
                   onClick={handleGerarParecer}
-                  disabled={isSubmitting || (!aprovarReforma && !comentarioEngenharia.trim())}
-                  isLoading={isSubmitting}
-                  loadingText="Gerando..."
+                  disabled={isSubmitting || generatingPDF || (!aprovarReforma && !comentarioEngenharia.trim())}
+                  isLoading={isSubmitting || generatingPDF}
+                  loadingText={generatingPDF ? 'Gerando PDF...' : 'Salvando...'}
                   className={aprovarReforma ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
                 >
-                  {!isSubmitting && (
+                  {!isSubmitting && !generatingPDF && (
                     <>
                       {aprovarReforma ? (
                         <CheckCircle2 className="w-4 h-4 mr-2" />

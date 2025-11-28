@@ -1,11 +1,18 @@
 import { createFileRoute, redirect, Outlet, useRouter } from '@tanstack/react-router'
-import { NewSidebar } from '../components/layout/new-sidebar'
+import { Sidebar } from '../components/layout/sidebar'
 import { SidebarProvider, useSidebarContext } from '../components/layout/sidebar-context'
 import { Header } from '../components/layout/header'
 import { useAuth } from '../lib/contexts/auth-context'
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: ({ context, location }) => {
+    // Se ainda está carregando, retorna sem bloquear
+    // TanStack Router vai re-executar quando context mudar
+    if (context.auth.isLoading) {
+      return
+    }
+
+    // Só verificar se usuário está autenticado após loading terminar
     if (!context.auth.currentUser) {
       throw redirect({
         to: '/login',
@@ -66,7 +73,7 @@ function AuthLayoutContent() {
 
   return (
     <div className="flex min-h-screen bg-neutral-100">
-      <NewSidebar />
+      <Sidebar />
 
       {/* Main Content */}
       <main

@@ -1,9 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
-import { StepDadosCliente } from './steps/os13/step-dados-cliente';
+import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
 import { StepAnexarART } from './steps/os13/step-anexar-art';
 import { StepRelatorioFotografico } from './steps/os13/step-relatorio-fotografico';
 import { StepImagemAreas } from './steps/os13/step-imagem-areas';
@@ -51,6 +51,37 @@ interface OS13WorkflowPageProps {
 }
 
 export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
+  // Estados para StepIdentificacaoLeadCompleto
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
+  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+
+  // Estado do formulário de dados do lead
+  const [formData, setFormData] = useState({
+    nome: '',
+    cpfCnpj: '',
+    tipo: '',
+    nomeResponsavel: '',
+    cargoResponsavel: '',
+    telefone: '',
+    email: '',
+    tipoEdificacao: '',
+    qtdUnidades: '',
+    qtdBlocos: '',
+    qtdPavimentos: '',
+    tipoTelhado: '',
+    possuiElevador: false,
+    possuiPiscina: false,
+    cep: '',
+    endereco: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+  });
+
   // Hook de Estado do Workflow
   const {
     currentStep,
@@ -73,7 +104,6 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const {
     handleStepClick,
     handleReturnToActive,
-    handleNextStep,
     handlePrevStep
   } = useWorkflowNavigation({
     totalSteps: steps.length,
@@ -86,24 +116,99 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     onSaveStep: (step) => saveStep(step, false)
   });
 
-  // Mapeamento de dados para compatibilidade
-  const etapa1Data = formDataByStep[1] || {
-    cliente: '',
-    tipoEdificacao: '',
-    qtdPavimentos: '',
-    tipoTelhado: '',
-    possuiElevador: false,
-    possuiPiscina: false,
-    cnpj: '',
-    cep: '',
-    estado: '',
-    cidade: '',
-    endereco: '',
-    bairro: '',
-    responsavel: '',
-    cargo: '',
-    telefone: '',
-    email: '',
+  // Handler customizado para validação da Etapa 1
+  const handleNextStep = async () => {
+    console.log('🔍 handleNextStep chamado', { currentStep, selectedLeadId, formDataByStep1: formDataByStep[1] });
+
+    // Etapa 1: Validar componente de identificação de lead
+    if (currentStep === 1) {
+      console.log('✅ Etapa 1 detectada, iniciando validação...');
+
+      if (stepLeadRef.current) {
+        console.log('🔍 Validando via stepLeadRef...');
+        const isValid = stepLeadRef.current.validate();
+        console.log('📋 Resultado da validação:', isValid);
+
+        if (!isValid) {
+          console.log('❌ Validação falhou');
+          toast.error('Preencha todos os campos obrigatórios antes de continuar');
+          return;
+        }
+        console.log('✅ Validação passou');
+      }
+
+      // Verificar se há lead selecionado
+      console.log('🔍 Verificando leadId:', { selectedLeadId, savedLeadId: formDataByStep[1]?.leadId });
+      if (!selectedLeadId && !formDataByStep[1]?.leadId) {
+        console.log('❌ Nenhum lead selecionado');
+        toast.error('Selecione ou cadastre um cliente antes de continuar');
+        return;
+      }
+      console.log('✅ Lead verificado');
+
+      // Salvar leadId no formData da etapa 1 se ainda não foi salvo
+      if (selectedLeadId && !formDataByStep[1]?.leadId) {
+        console.log('💾 Salvando leadId no state:', selectedLeadId);
+        await setStepData(1, { ...formDataByStep[1], leadId: selectedLeadId });
+        console.log('✅ LeadId salvo no state');
+      }
+
+      // IMPORTANTE: Salvar a etapa no banco antes de avançar
+      console.log('💾 Salvando etapa 1 no banco...');
+      try {
+        await saveStep(1, false);
+        console.log('✅ Etapa 1 salva no banco');
+      } catch (error) {
+        console.error('❌ Erro ao salvar etapa:', error);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        return;
+      }
+    }
+
+    // Avançar para próxima etapa manualmente
+    console.log('➡️ Avançando para próxima etapa...');
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+      setLastActiveStep(currentStep + 1);
+      console.log('✅ Avançado para etapa:', currentStep + 1);
+    }
+  };
+
+  // Função para manipular seleção de lead (compatível com o componente)
+  const handleSelectLead = (leadId: string, leadData?: any) => {
+    setSelectedLeadId(leadId);
+    if (leadData) {
+      setFormData(prev => ({
+        ...prev,
+        nome: leadData.nome_razao_social || '',
+        cpfCnpj: leadData.cpf_cnpj || '',
+        email: leadData.email || '',
+        telefone: leadData.telefone || '',
+        tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
+        nomeResponsavel: leadData.nome_responsavel || '',
+        cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
+        tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
+        qtdUnidades: leadData.endereco?.qtd_unidades || '',
+        qtdBlocos: leadData.endereco?.qtd_blocos || '',
+        qtdPavimentos: leadData.endereco?.qtd_pavimentos || '',
+        tipoTelhado: leadData.endereco?.tipo_telhado || '',
+        possuiElevador: leadData.endereco?.possui_elevador || false,
+        possuiPiscina: leadData.endereco?.possui_piscina || false,
+        cep: leadData.endereco?.cep || '',
+        endereco: leadData.endereco?.rua || '',
+        numero: leadData.endereco?.numero || '',
+        complemento: leadData.endereco?.complemento || '',
+        bairro: leadData.endereco?.bairro || '',
+        cidade: leadData.endereco?.cidade || '',
+        estado: leadData.endereco?.estado || '',
+      }));
+      // Salvar leadId no state da etapa 1
+      setStepData(1, { ...formDataByStep[1], leadId });
+    }
+  };
+
+  const handleSaveNewLead = () => {
+    setShowNewLeadDialog(false);
   };
 
   const etapa2Data = formDataByStep[2] || { artAnexada: '' };
@@ -124,7 +229,6 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const etapa17Data = formDataByStep[17] || { visitaFinalRealizada: false };
 
   // Setters wrappers
-  const setEtapa1Data = (data: any) => setStepData(1, data);
   const setEtapa2Data = (data: any) => setStepData(2, data);
   const setEtapa3Data = (data: any) => setStepData(3, data);
   const setEtapa4Data = (data: any) => setStepData(4, data);
@@ -147,7 +251,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
    */
   // Regras de completude
   const completionRules = useMemo(() => ({
-    1: (data: any) => !!(data.cliente && data.cnpj),
+    1: () => !!(formDataByStep[1]?.leadId || selectedLeadId),
     2: (data: any) => !!data.artAnexada,
     3: (data: any) => !!data.relatorioAnexado,
     4: (data: any) => !!data.imagemAnexada,
@@ -208,14 +312,14 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
 
         {/* Stepper */}
         <div className="relative">
-          <WorkflowStepper 
+          <WorkflowStepper
             steps={steps}
             currentStep={currentStep}
             onStepClick={handleStepClick}
             completedSteps={completedSteps}
             lastActiveStep={lastActiveStep || undefined}
           />
-          
+
           {/* Botão de retorno rápido */}
           {isHistoricalNavigation && lastActiveStep && (
             <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
@@ -254,7 +358,21 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
       <div className="px-6 py-6">
         <Card className="max-w-5xl mx-auto">
           <div className="p-6">
-            {currentStep === 1 && <StepDadosCliente data={etapa1Data} onDataChange={setEtapa1Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 1 && (
+              <StepIdentificacaoLeadCompleto
+                ref={stepLeadRef}
+                selectedLeadId={selectedLeadId}
+                onSelectLead={handleSelectLead}
+                showCombobox={showLeadCombobox}
+                onShowComboboxChange={setShowLeadCombobox}
+                showNewLeadDialog={showNewLeadDialog}
+                onShowNewLeadDialogChange={setShowNewLeadDialog}
+                formData={formData}
+                onFormDataChange={setFormData}
+                onSaveNewLead={handleSaveNewLead}
+                readOnly={isHistoricalNavigation}
+              />
+            )}
             {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} />}
@@ -284,6 +402,8 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData}
+        isFormInvalid={!completedSteps.includes(currentStep)}
+        invalidFormMessage="Complete todos os campos obrigatórios desta etapa antes de continuar"
       />
     </div>
   );

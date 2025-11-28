@@ -4,8 +4,11 @@ import { PrimaryButton } from '@/components/ui/primary-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, Download, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
+import { logger } from '@/lib/utils/logger';
 
 interface StepGerarDocumentoProps {
+  osId: string;
   data: {
     documentoGerado: boolean;
     documentoUrl: string;
@@ -14,28 +17,36 @@ interface StepGerarDocumentoProps {
   readOnly?: boolean;
 }
 
-export function StepGerarDocumento({ data, onDataChange, readOnly }: StepGerarDocumentoProps) {
+export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepGerarDocumentoProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const { generating: generatingPDF, generate: generatePDF } = usePDFGeneration();
 
   const handleGerarDocumento = async () => {
     if (readOnly) return;
     setIsGenerating(true);
-    
+
     try {
-      // Simular geração de documento (substituir com lógica real)
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      
-      const mockUrl = 'https://example.com/documento-visita-tecnica.pdf';
-      
-      onDataChange({
-        ...data,
-        documentoGerado: true,
-        documentoUrl: mockUrl,
-      });
-      
-      toast.success('Documento gerado com sucesso!');
+      logger.log('📄 Gerando documento de visita técnica para OS:', osId);
+
+      // Gerar PDF de visita técnica
+      const result = await generatePDF('visita-tecnica', osId, {});
+
+      if (result?.success && result.url) {
+        logger.log('✅ PDF de visita técnica gerado com sucesso:', result.url);
+
+        onDataChange({
+          ...data,
+          documentoGerado: true,
+          documentoUrl: result.url,
+        });
+
+        toast.success('Documento de visita técnica gerado com sucesso!');
+      } else {
+        throw new Error('Falha ao gerar PDF');
+      }
     } catch (error) {
-      toast.error('Erro ao gerar documento');
+      logger.error('Erro ao gerar documento:', error);
+      toast.error('Erro ao gerar documento. Verifique se todas as etapas anteriores foram concluídas.');
     } finally {
       setIsGenerating(false);
     }
@@ -106,13 +117,13 @@ export function StepGerarDocumento({ data, onDataChange, readOnly }: StepGerarDo
           <div className="flex flex-col items-center gap-4 py-8">
             <PrimaryButton
               onClick={handleGerarDocumento}
-              disabled={isGenerating || readOnly}
+              disabled={isGenerating || generatingPDF || readOnly}
               className="px-8 py-3"
             >
-              {isGenerating ? (
+              {(isGenerating || generatingPDF) ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Gerando Documento...
+                  {generatingPDF ? 'Gerando PDF...' : 'Processando...'}
                 </>
               ) : (
                 <>

@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from '../ui/select';
 import { toast } from 'sonner';
-import { Calendar, Clock, Loader2, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { logger } from '../../lib/utils/logger';
 import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
 import { useSetores } from '../../lib/hooks/use-setores';
 
@@ -297,6 +298,23 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
               Vagas disponíveis: {turno.vagasTotal - turno.vagasOcupadas} de {turno.vagasTotal}
             </div>
           </div>
+
+          {/* Mensagem de restrição de setores */}
+          {turno.setores && turno.setores.length < 10 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800 mb-1">
+                    Este horário é exclusivo
+                  </h4>
+                  <p className="text-sm text-amber-700">
+                    Setores permitidos: <strong>{turno.setores.join(', ')}</strong>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             {/* Categoria */}
