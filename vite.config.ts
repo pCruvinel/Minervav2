@@ -62,5 +62,9 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    host: true, // Permite conexões de qualquer host
+    hmr: {
+      port: 3000, // Mesmo porta para HMR
+    },
   },
 });
