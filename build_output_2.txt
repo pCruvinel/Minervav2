@@ -1,0 +1,31 @@
+
+> Minerva v2@0.1.0 build
+> vite build
+
+[36mvite v6.3.5 [32mbuilding for production...[36m[39m
+transforming...
+[32m✓[39m 1813 modules transformed.
+[31m✗[39m Build failed in 5.26s
+[31merror during build:
+[31m[vite:esbuild] Transform failed with 1 error:
+C:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/components/os/steps/shared/cadastrar-lead.tsx:817:11: ERROR: Unterminated regular expression[31m
+file: [36mC:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/components/os/steps/shared/cadastrar-lead.tsx:817:11[31m
+[33m
+[33mUnterminated regular expression[33m
+815|                  </DialogContent>
+816|                </Dialog>
+817|      </div >
+   |             ^
+818|    </>
+819|  );
+[31m
+    at failureErrorWithLog (C:\Users\Usuario\OneDrive\Documentos\claude\Minervav2\node_modules\esbuild\lib\main.js:1467:15)
+    at C:\Users\Usuario\OneDrive\Documentos\claude\Minervav2\node_modules\esbuild\lib\main.js:736:50
+    at responseCallbacks.<computed> (C:\Users\Usuario\OneDrive\Documentos\claude\Minervav2\node_modules\esbuild\lib\main.js:603:9)
+    at handleIncomingPacket (C:\Users\Usuario\OneDrive\Documentos\claude\Minervav2\node_modules\esbuild\lib\main.js:658:12)
+    at Socket.readFromStdout (C:\Users\Usuario\OneDrive\Documentos\claude\Minervav2\node_modules\esbuild\lib\main.js:581:7)
+    at Socket.emit (node:events:508:28)
+    at addChunk (node:internal/streams/readable:559:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:510:3)
+    at Readable.push (node:internal/streams/readable:390:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:189:23)[39m

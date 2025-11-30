@@ -1241,3 +1241,80 @@ a:hover {
 .hover\:after\:bg-sidebar-border:hover::after {
   background-color: hsl(var(--sidebar-border));
 }
+
+/* ==========================================
+ * MODAL THEME COLORS (Manual Tailwind Support)
+ * ========================================== */
+
+/* Gradients */
+.bg-gradient-to-r {
+  background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+
+/* Gradient Stops - Blue/Purple */
+.from-blue-500 { --tw-gradient-from: #3b82f6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-purple-600 { --tw-gradient-to: #9333ea; }
+
+/* Gradient Stops - Green/Emerald */
+.from-green-500 { --tw-gradient-from: #22c55e; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-emerald-600 { --tw-gradient-to: #059669; }
+
+/* Gradient Stops - Amber/Orange */
+.from-amber-500 { --tw-gradient-from: #f59e0b; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-orange-600 { --tw-gradient-to: #ea580c; }
+
+/* Gradient Stops - Red/Pink */
+.from-red-500 { --tw-gradient-from: #ef4444; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-pink-600 { --tw-gradient-to: #db2777; }
+
+/* Gradient Stops - Cyan/Blue */
+.from-cyan-500 { --tw-gradient-from: #06b6d4; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-blue-600 { --tw-gradient-to: #2563eb; }
+
+/* Gradient Stops - Teal/Cyan */
+.from-teal-500 { --tw-gradient-from: #14b8a6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+.to-cyan-600 { --tw-gradient-to: #0891b2; }
+
+/* Gradient Stops - Purple/Pink */
+.from-purple-500 { --tw-gradient-from: #a855f7; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+
+/* Gradient Stops - Orange/Red */
+.from-orange-500 { --tw-gradient-from: #f97316; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent); }
+
+/* Text Colors */
+.text-blue-50 { color: #eff6ff; }
+.text-green-50 { color: #f0fdf4; }
+.text-amber-50 { color: #fffbeb; }
+.text-red-50 { color: #fef2f2; }
+.text-cyan-50 { color: #ecfeff; }
+.text-blue-100 { color: #dbeafe; }
+
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-amber-600 { color: #d97706; }
+.text-red-600 { color: #dc2626; }
+.text-cyan-600 { color: #0891b2; }
+
+/* Background Colors */
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-amber-50 { background-color: #fffbeb; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-cyan-50 { background-color: #ecfeff; }
+.bg-purple-50 { background-color: #faf5ff; }
+
+/* Icon Backgrounds (Opacity) */
+.bg-blue-500\/20 { background-color: rgba(59, 130, 246, 0.2); }
+.bg-green-500\/20 { background-color: rgba(34, 197, 94, 0.2); }
+.bg-amber-500\/20 { background-color: rgba(245, 158, 11, 0.2); }
+.bg-red-500\/20 { background-color: rgba(239, 68, 68, 0.2); }
+.bg-cyan-500\/20 { background-color: rgba(6, 182, 212, 0.2); }
+.bg-white\/20 { background-color: rgba(255, 255, 255, 0.2); }
+
+/* Border Colors */
+.border-blue-200 { border-color: #bfdbfe; }
+.border-green-200 { border-color: #bcf0da; }
+.border-amber-200 { border-color: #fde68a; }
+.border-red-200 { border-color: #fecaca; }
+.border-cyan-200 { border-color: #a5f3fc; }
+.border-blue-100 { border-color: #dbeafe; }

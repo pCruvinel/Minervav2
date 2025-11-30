@@ -3,7 +3,9 @@ import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
-import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
+import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
+import { CadastrarClienteObra, type CadastrarClienteObraHandle } from './steps/os13/cadastrar-cliente-obra';
+import { cadastrarClienteObraDefaults, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
 import { StepAnexarART } from './steps/os13/step-anexar-art';
 import { StepRelatorioFotografico } from './steps/os13/step-relatorio-fotografico';
 import { StepImagemAreas } from './steps/os13/step-imagem-areas';
@@ -55,7 +57,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
-  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+  const stepLeadRef = useRef<CadastrarLeadHandle | CadastrarClienteObraHandle>(null);
 
   // Estado do formulário de dados do lead
   const [formData, setFormData] = useState({
@@ -118,13 +120,14 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
 
   // Handler customizado para validação da Etapa 1
   const handleNextStep = async () => {
-    console.log('🔍 handleNextStep chamado', { currentStep, selectedLeadId, formDataByStep1: formDataByStep[1] });
+    console.log('🔍 handleNextStep chamado', { currentStep, formDataByStep1: formDataByStep[1] });
 
-    // Etapa 1: Validar componente de identificação de lead
+    // Etapa 1: Validar e salvar componente CadastrarClienteObra
     if (currentStep === 1) {
-      console.log('✅ Etapa 1 detectada, iniciando validação...');
+      console.log('✅ Etapa 1 detectada, iniciando validação e salvamento...');
 
       if (stepLeadRef.current) {
+        // Validar
         console.log('🔍 Validando via stepLeadRef...');
         const isValid = stepLeadRef.current.validate();
         console.log('📋 Resultado da validação:', isValid);
@@ -135,28 +138,22 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
           return;
         }
         console.log('✅ Validação passou');
+
+        // Salvar dados (cliente, documentos, centro de custo, metadata)
+        console.log('💾 Salvando dados da obra...');
+        const saved = await stepLeadRef.current.saveData();
+
+        if (!saved) {
+          console.log('❌ Salvamento falhou');
+          return;
+        }
+        console.log('✅ Dados salvos com sucesso');
       }
 
-      // Verificar se há lead selecionado
-      console.log('🔍 Verificando leadId:', { selectedLeadId, savedLeadId: formDataByStep[1]?.leadId });
-      if (!selectedLeadId && !formDataByStep[1]?.leadId) {
-        console.log('❌ Nenhum lead selecionado');
-        toast.error('Selecione ou cadastre um cliente antes de continuar');
-        return;
-      }
-      console.log('✅ Lead verificado');
-
-      // Salvar leadId no formData da etapa 1 se ainda não foi salvo
-      if (selectedLeadId && !formDataByStep[1]?.leadId) {
-        console.log('💾 Salvando leadId no state:', selectedLeadId);
-        await setStepData(1, { ...formDataByStep[1], leadId: selectedLeadId });
-        console.log('✅ LeadId salvo no state');
-      }
-
-      // IMPORTANTE: Salvar a etapa no banco antes de avançar
+      // Salvar a etapa no banco (marcar como concluída)
       console.log('💾 Salvando etapa 1 no banco...');
       try {
-        await saveStep(1, false);
+        await saveStep(1, true); // true = mark as complete
         console.log('✅ Etapa 1 salva no banco');
       } catch (error) {
         console.error('❌ Erro ao salvar etapa:', error);
@@ -213,7 +210,11 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     setShowNewLeadDialog(false);
   };
 
-  const etapa2Data = formDataByStep[2] || { artAnexada: '' };
+  // Etapa 1: Dados do Cliente (novo componente CadastrarClienteObra)
+  const etapa1Data: CadastrarClienteObraData = formDataByStep[1] || cadastrarClienteObraDefaults;
+  const setEtapa1Data = (data: CadastrarClienteObraData) => setStepData(1, data);
+
+  const etapa2Data = formDataByStep[2] || { arquivos: [] };
   const etapa3Data = formDataByStep[3] || { relatorioAnexado: '' };
   const etapa4Data = formDataByStep[4] || { imagemAnexada: '' };
   const etapa5Data = formDataByStep[5] || { cronogramaAnexado: '' };
@@ -226,7 +227,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const etapa12Data = formDataByStep[12] || { evidenciaAnexada: '' };
   const etapa13Data = formDataByStep[13] || { diarioAnexado: '' };
   const etapa14Data = formDataByStep[14] || { decisaoSeguro: '' };
-  const etapa15Data = formDataByStep[15] || { documentosAnexados: [] };
+  const etapa15Data = formDataByStep[15] || { arquivos: [] };
   const etapa16Data = formDataByStep[16] || { dataVisitaFinal: '' };
   const etapa17Data = formDataByStep[17] || { visitaFinalRealizada: false };
 
@@ -253,8 +254,18 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
    */
   // Regras de completude
   const completionRules = useMemo(() => ({
-    1: () => !!(formDataByStep[1]?.leadId || selectedLeadId),
-    2: (data: any) => !!data.artAnexada,
+    1: () => !!(
+      formDataByStep[1]?.clienteId &&
+      formDataByStep[1]?.dataContratacao &&
+      formDataByStep[1]?.aniversarioGestor &&
+      formDataByStep[1]?.senhaAcesso &&
+      formDataByStep[1]?.centroCusto?.id &&
+      formDataByStep[1]?.documentosFoto?.length > 0 &&
+      formDataByStep[1]?.comprovantesResidencia?.length > 0 &&
+      formDataByStep[1]?.contratoSocial?.length > 0 &&
+      formDataByStep[1]?.contratoAssinado?.length > 0
+    ),
+    2: (data: any) => !!(data.arquivos && data.arquivos.length > 0),
     3: (data: any) => !!data.relatorioAnexado,
     4: (data: any) => !!data.imagemAnexada,
     5: (data: any) => !!data.cronogramaAnexado,
@@ -267,10 +278,10 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     12: (data: any) => !!data.evidenciaAnexada,
     13: (data: any) => !!data.diarioAnexado,
     14: (data: any) => !!data.decisaoSeguro,
-    15: (data: any) => !!(data.documentosAnexados && data.documentosAnexados.length > 0),
+    15: (data: any) => !!(data.arquivos && data.arquivos.length > 0),
     16: (data: any) => !!data.dataVisitaFinal,
     17: (data: any) => !!data.visitaFinalRealizada,
-  }), []);
+  }), [formDataByStep, selectedLeadId]);
 
   const { completedSteps } = useWorkflowCompletion({
     currentStep,
@@ -361,32 +372,26 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
         <Card className="max-w-5xl mx-auto">
           <div className="p-6">
             {currentStep === 1 && (
-              <StepIdentificacaoLeadCompleto
+              <CadastrarClienteObra
                 ref={stepLeadRef}
-                selectedLeadId={selectedLeadId}
-                onSelectLead={handleSelectLead}
-                showCombobox={showLeadCombobox}
-                onShowComboboxChange={setShowLeadCombobox}
-                showNewLeadDialog={showNewLeadDialog}
-                onShowNewLeadDialogChange={setShowNewLeadDialog}
-                formData={formData}
-                onFormDataChange={setFormData}
-                onSaveNewLead={handleSaveNewLead}
+                data={etapa1Data}
+                onDataChange={setEtapa1Data}
                 readOnly={isHistoricalNavigation}
+                osId={osId || ''}
               />
             )}
             {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 6 && <StepAgendarVisitaInicial data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 16 && <StepAgendarVisitaFinal data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}

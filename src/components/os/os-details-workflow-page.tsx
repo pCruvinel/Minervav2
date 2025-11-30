@@ -30,7 +30,7 @@ import {
 import { Separator } from '../ui/separator';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
-import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
+import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-followup-1';
 import { StepMemorialEscopo, type StepMemorialEscopoHandle } from './steps/shared/step-memorial-escopo';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
@@ -39,7 +39,7 @@ import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentaca
 import { StepRealizarApresentacao } from './steps/shared/step-realizar-apresentacao';
 import { StepGerarContrato } from './steps/shared/step-gerar-contrato';
 import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
-import { Calendario } from '../calendario/calendario';
+import { CalendarioSemana } from '../calendario/calendario-semana';
 import { ModalNovoAgendamento } from '../calendario/modal-novo-agendamento';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { useOrdemServico } from '../../lib/hooks/use-ordens-servico';
@@ -52,7 +52,7 @@ import { useAuth } from '../../lib/contexts/auth-context';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
-import { FileUploadSection } from './file-upload-section';
+import { FileUploadUnificado } from '../ui/file-upload-unificado';
 import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '../../constants/os-workflow';
 import { isValidUUID, mapearTipoOSParaCodigo, calcularValoresPrecificacao } from '../../lib/utils/os-workflow-helpers';
 
@@ -385,7 +385,7 @@ export function OSDetailsWorkflowPage({
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
 
   // Refs para componentes com validação imperativa
-  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+  const stepLeadRef = useRef<CadastrarLeadHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
   const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
 
@@ -1255,7 +1255,7 @@ export function OSDetailsWorkflowPage({
         etapa1Data: etapa1Data
       });
 
-      // Usar validação imperativa do componente StepIdentificacaoLeadCompleto
+      // Usar validação imperativa do componente CadastrarLead
       if (stepLeadRef.current) {
         // Primeiro validar identificação
         logger.log('🔍 Etapa 1: Validando identificação...');
@@ -1363,14 +1363,15 @@ export function OSDetailsWorkflowPage({
       case 3:
         return stepFollowup1Ref.current?.isFormValid() === false;
       case 4:
-        // Etapa 4 requer agendamento realizado
-        return !etapa4Data.dataAgendamento;
+        // Etapa 4: Agendamento é recomendado mas não obrigatório
+        // Permite avanço mesmo sem agendamento, mas mostra aviso
+        return false; // Sempre válido - agendamento é opcional
       case 7:
         return stepMemorialRef.current?.isFormValid() === false;
       default:
         return false; // Etapas sem validação obrigatória
     }
-  }, [currentStep, isHistoricalNavigation, etapa4Data.dataAgendamento, stepLeadRef, stepFollowup1Ref, stepMemorialRef]);
+  }, [currentStep, isHistoricalNavigation, stepLeadRef, stepFollowup1Ref, stepMemorialRef]);
 
   return (
     <div className="h-screen flex flex-col bg-neutral-50">
@@ -1466,7 +1467,7 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
                 <ErrorBoundary>
-                  <StepIdentificacaoLeadCompleto
+                  <CadastrarLead
                     ref={stepLeadRef}
                     selectedLeadId={selectedLeadId}
                     onSelectLead={handleSelectLead}
@@ -1565,6 +1566,18 @@ export function OSDetailsWorkflowPage({
                     </AlertDescription>
                   </Alert>
 
+                  {/* Aviso: Agendamento recomendado mas não obrigatório */}
+                  {!etapa4Data.dataAgendamento && (
+                    <Alert className="border-amber-200 bg-amber-50">
+                      <AlertCircle className="h-4 w-4 text-amber-600" />
+                      <AlertDescription className="text-amber-700">
+                        <strong>Agendamento recomendado:</strong> Embora seja possível avançar sem agendamento,
+                        recomendamos agendar uma visita técnica para melhor avaliação do local.
+                        Você pode agendar agora ou avançar e agendar posteriormente.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   {/* Controles de Navegação da Semana */}
                   <div className="flex items-center justify-between bg-white rounded-lg border border-neutral-200 p-4">
                     <Button
@@ -1597,7 +1610,7 @@ export function OSDetailsWorkflowPage({
 
                   {/* Calendário Integrado */}
                   <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-                    <Calendario
+                    <CalendarioSemana
                       dataAtual={semanaAtualCalendario}
                       turnosPorDia={turnosCalendario}
                       agendamentos={agendamentosCalendario}
@@ -1764,14 +1777,12 @@ export function OSDetailsWorkflowPage({
                       />
                     </div>
 
-                    <FileUploadSection
+                    <FileUploadUnificado
                       label="5. Anexar fotos do sistema de ancoragem"
                       files={etapa6Data.fotosAncoragem || []}
                       onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, fotosAncoragem: files })}
-                      accept="image/*"
                       disabled={isHistoricalNavigation}
                       osId={osId || undefined}
-                      colaboradorId={currentUserId}
                     />
                   </div>
 
@@ -1854,13 +1865,12 @@ export function OSDetailsWorkflowPage({
                       />
                     </div>
 
-                    <FileUploadSection
+                    <FileUploadUnificado
                       label="10. Anexar Arquivos (Fotos gerais, croquis, etc)"
                       files={etapa6Data.arquivosGerais || []}
                       onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, arquivosGerais: files })}
                       disabled={isHistoricalNavigation}
                       osId={osId || undefined}
-                      colaboradorId={currentUserId}
                     />
                   </div>
                 </div>
@@ -2172,7 +2182,11 @@ export function OSDetailsWorkflowPage({
               totalSteps={TOTAL_WORKFLOW_STEPS}
               onPrevStep={handlePrevStep}
               onNextStep={handleNextStep}
-              nextButtonText="Avançar"
+              nextButtonText={
+                currentStep === 4 && !etapa4Data.dataAgendamento
+                  ? "Avançar sem agendamento"
+                  : "Avançar"
+              }
               onSaveDraft={handleSaveRascunho}
               showDraftButton={DRAFT_ENABLED_STEPS.includes(currentStep)}
               disableNext={isLoading}

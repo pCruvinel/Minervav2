@@ -82,17 +82,17 @@ export type Etapa2Data = z.infer<typeof etapa2Schema>;
 // ETAPA 3: Follow-up 1 (Entrevista Inicial)
 // ============================================================
 export const etapa3Schema = z.object({
-  // Campos obrigatórios do formulário
+  // Campos obrigatórios do formulário (flexibilizados para permitir avanço rápido)
   idadeEdificacao: z.string()
     .min(1, { message: 'Idade da edificação é obrigatória' })
     .describe('Qual a idade da edificação?'),
 
   motivoProcura: z.string()
-    .min(10, { message: 'Motivo da procura deve ter pelo menos 10 caracteres' })
+    .min(5, { message: 'Motivo da procura deve ter pelo menos 5 caracteres' })
     .describe('Qual o motivo fez você nos procurar?'),
 
   quandoAconteceu: z.string()
-    .min(10, { message: 'Histórico deve ter pelo menos 10 caracteres' })
+    .min(5, { message: 'Histórico deve ter pelo menos 5 caracteres' })
     .describe('Quando aconteceu? Há quanto tempo?'),
 
   grauUrgencia: z.string()
@@ -100,15 +100,15 @@ export const etapa3Schema = z.object({
     .describe('Qual o grau de urgência para executar esse serviço?'),
 
   apresentacaoProposta: z.string()
-    .min(10, { message: 'Resposta sobre apresentação é obrigatória' })
+    .min(5, { message: 'Resposta sobre apresentação deve ter pelo menos 5 caracteres' })
     .describe('Concordância e agendamento para apresentação da proposta'),
 
   nomeContatoLocal: z.string()
-    .min(3, { message: 'Nome do contato no local é obrigatório' })
+    .min(2, { message: 'Nome do contato no local deve ter pelo menos 2 caracteres' })
     .describe('Nome do contato no local'),
 
   telefoneContatoLocal: z.string()
-    .min(10, { message: 'Telefone do contato no local é obrigatório' })
+    .min(8, { message: 'Telefone do contato no local deve ter pelo menos 8 caracteres' })
     .describe('Telefone do contato no local'),
 
   // Campos opcionais

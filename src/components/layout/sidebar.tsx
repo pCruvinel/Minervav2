@@ -50,7 +50,6 @@ const menuItems = [
     submenu: [
       { id: 'os-criar', label: 'Nova OS', icon: Plus, to: '/os/criar' },
       { id: 'os-list', label: 'Minhas OS', icon: Kanban, to: '/os' },
-      { id: 'historico-os', label: 'Histórico', icon: History, to: '/os' },
     ]
   },
   {

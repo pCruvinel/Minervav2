@@ -3,7 +3,7 @@
 
 import React, { useState, useRef } from 'react';
 import { ArrowLeft, Link as LinkIcon, CheckCircle2, Copy, ExternalLink, Clock, Loader2 } from 'lucide-react';
-import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
+import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { PrimaryButton } from '../ui/primary-button';
@@ -31,7 +31,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
-  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+  const stepLeadRef = useRef<CadastrarLeadHandle>(null);
 
   const { mutate: createCliente, loading: isCreatingClient } = useCreateCliente();
   const [isCreatingOS, setIsCreatingOS] = useState(false);
@@ -223,7 +223,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <StepIdentificacaoLeadCompleto
+        <CadastrarLead
           ref={stepLeadRef}
           selectedLeadId={selectedLeadId}
           onSelectLead={handleSelectLead}

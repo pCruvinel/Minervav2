@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, X, AlertCircle } from 'lucide-react';
-import { toast } from '@/lib/utils/safe-toast';
+import { AlertCircle } from 'lucide-react';
+import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
+import { FileWithComment } from '@/components/ui/file-upload-unificado';
 import { StepLayout, StepSection } from '../../step-layout';
 
 const AREAS_VISTORIA = [
@@ -36,43 +37,19 @@ interface StepIdentificacaoSolicitanteProps {
     detalhesSolicitacao: string;
     tempoSituacao: string;
     primeiraVisita: string;
-    fotosAnexadas: string[];
+    arquivos?: FileWithComment[];
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
+  osId?: string;
 }
 
-export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly }: StepIdentificacaoSolicitanteProps) {
-  const [uploadingFiles, setUploadingFiles] = useState(false);
+export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osId }: StepIdentificacaoSolicitanteProps) {
+  const arquivos = data.arquivos || [];
 
   const handleInputChange = (field: string, value: any) => {
     if (readOnly) return;
     onDataChange({ ...data, [field]: value });
-  };
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (readOnly) return;
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadingFiles(true);
-    try {
-      // Simular upload (substituir com lógica real de upload)
-      const newFiles = Array.from(files).map((file) => URL.createObjectURL(file));
-      handleInputChange('fotosAnexadas', [...data.fotosAnexadas, ...newFiles]);
-      toast.success(`${files.length} arquivo(s) anexado(s) com sucesso!`);
-    } catch (error) {
-      toast.error('Erro ao fazer upload dos arquivos');
-    } finally {
-      setUploadingFiles(false);
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    if (readOnly) return;
-    const newFiles = data.fotosAnexadas.filter((_, i) => i !== index);
-    handleInputChange('fotosAnexadas', newFiles);
-    toast.info('Arquivo removido');
   };
 
   return (
@@ -296,63 +273,15 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly }: S
 
         {/* Upload de Fotos */}
         <StepSection title="Anexar Fotos">
-          <div className="space-y-2">
-            <Label>
-              Anexe fotos da situação <span className="text-red-500">*</span>
-            </Label>
-
-            {!readOnly && (
-              <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
-                <input
-                  type="file"
-                  id="file-upload"
-                  className="hidden"
-                  multiple
-                  accept="image/*"
-                  onChange={handleFileUpload}
-                  disabled={uploadingFiles}
-                />
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
-                  <p className="text-sm text-neutral-600 mb-1">
-                    Clique para selecionar ou arraste arquivos
-                  </p>
-                  <p className="text-xs text-neutral-500">
-                    PNG, JPG, JPEG até 10MB
-                  </p>
-                </label>
-              </div>
-            )}
-
-            {data.fotosAnexadas.length > 0 && (
-              <div className="space-y-2 mt-4">
-                <p className="text-sm text-neutral-600">
-                  {data.fotosAnexadas.length} arquivo(s) anexado(s)
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {data.fotosAnexadas.map((file, index) => (
-                    <div key={index} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
-                        <img
-                          src={file}
-                          alt={`Foto ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      {!readOnly && (
-                        <button
-                          onClick={() => handleRemoveFile(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+          <FileUploadUnificado
+            label="Anexe fotos da situação"
+            files={arquivos}
+            onFilesChange={(files) => onDataChange({ ...data, arquivos: files })}
+            disabled={readOnly}
+            osId={osId}
+            maxFiles={10}
+            acceptedTypes={['image/jpeg', 'image/jpg', 'image/png']}
+          />
         </StepSection>
 
         {/* Alert Informativo */}

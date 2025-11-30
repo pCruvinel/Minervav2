@@ -10,7 +10,7 @@ import { FormInput } from '@/components/ui/form-input';
 import { FormTextarea } from '@/components/ui/form-textarea';
 import { FormSelect } from '@/components/ui/form-select';
 import { FormMaskedInput, validarTelefone } from '@/components/ui/form-masked-input';
-import { FileUploadSection } from '../../file-upload-section';
+import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { etapa3Schema } from '@/lib/validations/os-etapas-schema';
 
@@ -78,55 +78,10 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
       validateAll,
     } = useFieldValidation(etapa3Schema);
 
-    // Estado para arquivos pendentes de upload
-    const [pendingFiles, setPendingFiles] = React.useState<File[]>([]);
-
-    // Função para realizar upload dos arquivos pendentes
+    // Função para realizar upload dos arquivos pendentes (mantida para compatibilidade)
     const uploadPendingFiles = async (): Promise<ArquivoComComentario[]> => {
-      if (pendingFiles.length === 0) return [];
-
-      if (!osId || !colaboradorId) {
-        console.error('❌ Missing IDs for upload:', { osId, colaboradorId });
-        throw new Error('OS ID e Colaborador ID são necessários para upload');
-      }
-
-      console.log(`🚀 Uploading ${pendingFiles.length} pending files...`);
-
-      // Importar dinamicamente para evitar dependência circular se houver
-      const { uploadFile } = await import('@/lib/utils/supabase-storage');
-
-      const uploadPromises = pendingFiles.map(async (file) => {
-        try {
-          const uploadedFile = await uploadFile({
-            file,
-            osNumero: `os${osId}`,
-            etapa: 'follow-up1',
-            osId,
-            colaboradorId,
-          });
-
-          return {
-            id: uploadedFile.id,
-            name: uploadedFile.name,
-            url: uploadedFile.url,
-            path: uploadedFile.path,
-            size: uploadedFile.size,
-            type: uploadedFile.type,
-            uploadedAt: uploadedFile.uploadedAt,
-            comment: '', // Comentário inicial vazio
-          } as ArquivoComComentario;
-        } catch (error) {
-          console.error(`❌ Error uploading file ${file.name}:`, error);
-          return null;
-        }
-      });
-
-      const newUploadedFiles = (await Promise.all(uploadPromises)).filter(Boolean) as ArquivoComComentario[];
-
-      // Limpar arquivos pendentes após upload
-      setPendingFiles([]);
-
-      return newUploadedFiles;
+      // O novo componente já faz upload automático, então retorna os arquivos atuais
+      return data.anexos || [];
     };
 
     /**
@@ -163,7 +118,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
       uploadPendingFiles: async () => {
         return await uploadPendingFiles();
       }
-    }), [markAllTouched, validateAll, data, errors, pendingFiles, osId, colaboradorId]);
+    }), [markAllTouched, validateAll, data, errors, osId, colaboradorId]);
 
     return (
       <div className="space-y-6">
@@ -171,6 +126,16 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Realize a entrevista inicial com o lead/cliente para levantar informações sobre o projeto.
+          </AlertDescription>
+        </Alert>
+
+        {/* Aviso: Requisitos flexibilizados para avanço rápido */}
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertCircle className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-700">
+            <strong>Requisitos flexibilizados:</strong> Os campos obrigatórios têm requisitos mínimos reduzidos
+            para permitir avanço mais rápido quando necessário. Complete o máximo possível de informações
+            para melhor qualidade do atendimento.
           </AlertDescription>
         </Alert>
 
@@ -227,8 +192,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.motivoProcura ? errors.motivoProcura : undefined}
-            success={touched.motivoProcura && !errors.motivoProcura && safeData.motivoProcura.length >= 10}
-            helperText="Mínimo 10 caracteres - Descreva os problemas e motivações"
+            success={touched.motivoProcura && !errors.motivoProcura && safeData.motivoProcura.length >= 5}
+            helperText="Mínimo 5 caracteres - Descreva os problemas e motivações"
             placeholder="Descreva os problemas e motivações..."
             disabled={readOnly}
           />
@@ -255,8 +220,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.quandoAconteceu ? errors.quandoAconteceu : undefined}
-            success={touched.quandoAconteceu && !errors.quandoAconteceu && safeData.quandoAconteceu.length >= 10}
-            helperText="Mínimo 10 caracteres - Descreva o histórico do problema"
+            success={touched.quandoAconteceu && !errors.quandoAconteceu && safeData.quandoAconteceu.length >= 5}
+            helperText="Mínimo 5 caracteres - Descreva o histórico do problema"
             placeholder="Descreva o histórico do problema..."
             disabled={readOnly}
           />
@@ -347,8 +312,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }
             }}
             error={touched.apresentacaoProposta ? errors.apresentacaoProposta : undefined}
-            success={touched.apresentacaoProposta && !errors.apresentacaoProposta && safeData.apresentacaoProposta.length >= 10}
-            helperText="Mínimo 10 caracteres - Resposta do cliente sobre apresentação"
+            success={touched.apresentacaoProposta && !errors.apresentacaoProposta && safeData.apresentacaoProposta.length >= 5}
+            helperText="Mínimo 5 caracteres - Resposta do cliente sobre apresentação"
             placeholder="Resposta do cliente..."
             disabled={readOnly}
           />
@@ -377,8 +342,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 }
               }}
               error={touched.nomeContatoLocal ? errors.nomeContatoLocal : undefined}
-              success={touched.nomeContatoLocal && !errors.nomeContatoLocal && safeData.nomeContatoLocal.length >= 3}
-              helperText="Mínimo 3 caracteres"
+              success={touched.nomeContatoLocal && !errors.nomeContatoLocal && safeData.nomeContatoLocal.length >= 2}
+              helperText="Mínimo 2 caracteres"
               placeholder="Nome completo"
               disabled={readOnly}
             />
@@ -404,7 +369,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               }}
               error={touched.telefoneContatoLocal ? errors.telefoneContatoLocal : undefined}
               success={touched.telefoneContatoLocal && !errors.telefoneContatoLocal && validarTelefone(safeData.telefoneContatoLocal)}
-              helperText="Digite com DDD"
+              helperText="Mínimo 8 caracteres - Digite com DDD"
               placeholder="(00) 0 0000-0000"
               disabled={readOnly}
             />
@@ -424,19 +389,15 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
 
           <Separator />
 
-          <FileUploadSection
+          <FileUploadUnificado
             label="Anexar Arquivos (escopo, laudo, fotos)"
             files={data.anexos || []}
             onFilesChange={(files) => {
               console.log('📁 Updating files:', files);
               onDataChange({ ...safeData, anexos: files });
             }}
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
             disabled={readOnly}
             osId={osId}
-            colaboradorId={colaboradorId}
-            pendingFiles={pendingFiles}
-            onPendingFilesChange={setPendingFiles}
           />
         </div>
       </div>

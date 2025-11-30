@@ -2,11 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
+import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 import { Button } from '../ui/button';
 import { Label } from '../ui/label';
 import {
@@ -17,10 +15,11 @@ import {
   SelectValue,
 } from '../ui/select';
 import { toast } from 'sonner';
-import { Calendar, Clock, Loader2, AlertCircle, Shield } from 'lucide-react';
+import { Calendar, Clock, Loader2, AlertCircle, Shield, Tag, Briefcase } from 'lucide-react';
 import { logger } from '../../lib/utils/logger';
 import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
 import { useSetores } from '../../lib/hooks/use-setores';
+import { categoryColors } from '@/lib/design-tokens';
 
 interface ModalNovoAgendamentoProps {
   open: boolean;
@@ -271,17 +270,17 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
   return (
     <Dialog open={open} onOpenChange={handleFechar}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>Novo Agendamento</DialogTitle>
-          <DialogDescription>
-            Confirme os detalhes do agendamento para o turno selecionado.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-md p-0">
+        <ModalHeaderPadrao
+          title="Novo Agendamento"
+          description="Confirme os detalhes do agendamento para o turno selecionado."
+          icon={Calendar}
+          theme="confirm"
+        />
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 p-6">
           {/* Confirmação do Turno */}
-          <div className="bg-neutral-100 rounded-lg p-4 space-y-2">
+          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 space-y-2 border border-blue-100 shadow-sm">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-neutral-600" />
               <span>
@@ -319,9 +318,12 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           <div className="grid grid-cols-2 gap-4">
             {/* Categoria */}
             <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-red-50 border border-red-200' : ''}`}>
-              <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : ''}>
-                Categoria *
-              </Label>
+              <div className="flex items-center gap-2">
+                <Tag className={`h-4 w-4 ${errors.categoria ? 'text-red-600' : 'text-blue-500'}`} />
+                <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : 'font-medium'}>
+                  Categoria *
+                </Label>
+              </div>
               <Select value={categoria} onValueChange={(value: string) => {
                 setCategoria(value);
                 setErrors((prev) => {
@@ -351,9 +353,12 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
             {/* Setor */}
             <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-red-50 border border-red-200' : ''}`}>
-              <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : ''}>
-                Setor *
-              </Label>
+              <div className="flex items-center gap-2">
+                <Briefcase className={`h-4 w-4 ${errors.setor ? 'text-red-600' : 'text-purple-500'}`} />
+                <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : 'font-medium'}>
+                  Setor *
+                </Label>
+              </div>
               <Select value={setor} onValueChange={(value: string) => {
                 setSetor(value);
                 setErrors((prev) => {
@@ -452,32 +457,47 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           </div>
 
           {/* Preview do Horário Calculado */}
-          <div className="bg-primary/10 border border-primary/30 rounded-lg p-4 mt-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-primary" />
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 mt-4 shadow-lg">
+            <div className="flex items-center justify-between text-white">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 rounded-lg p-2">
+                  <Clock className="h-5 w-5" />
+                </div>
                 <div>
-                  <p className="text-sm text-neutral-600">Horário do agendamento</p>
-                  <p className="font-medium">
+                  <p className="text-xs text-blue-100">Horário do agendamento</p>
+                  <p className="font-semibold text-lg">
                     {horarioInicio ? `${horarioInicio} - ${calcularHorarioFim()}` : '--:--'}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-sm text-neutral-600">Duração</p>
-                <p className="font-medium">{duracao}h</p>
+              <div className="text-right bg-white/20 rounded-lg px-4 py-2">
+                <p className="text-xs text-blue-100">Duração</p>
+                <p className="font-semibold text-lg">{duracao}h</p>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleFechar} disabled={criando}>
+        <DialogFooter className="p-6 bg-neutral-50 border-t">
+          <Button
+            variant="outline"
+            onClick={handleFechar}
+            disabled={criando}
+            className="px-6 hover:bg-neutral-100"
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmar}
-            className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="
+              bg-gradient-to-r from-green-500 to-emerald-600
+              hover:from-green-600 hover:to-emerald-700
+              text-white px-8
+              shadow-lg hover:shadow-xl
+              disabled:opacity-50 disabled:cursor-not-allowed
+              disabled:from-neutral-300 disabled:to-neutral-400
+              transition-all duration-200
+            "
             disabled={criando || !isFormValid}
             title={!isFormValid ? 'Corrija os erros antes de confirmar' : ''}
           >

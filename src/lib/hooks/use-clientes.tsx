@@ -69,6 +69,35 @@ export function useCreateCliente() {
   return { mutate, loading, error };
 }
 
+export function useUpdateCliente() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const mutate = async (clienteId: string, data: Partial<any>) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('📝 Atualizando cliente no backend...', clienteId, data);
+
+      // Chamar API real do backend
+      const updated = await clientesAPI.update(clienteId, data);
+
+      console.log('✅ Cliente atualizado com sucesso:', updated);
+      return updated;
+    } catch (err) {
+      console.error('❌ Erro ao atualizar cliente:', err);
+      const errorObj = err instanceof Error ? err : new Error(String(err));
+      setError(errorObj);
+      throw errorObj;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { mutate, loading, error };
+}
+
 export function transformFormToCliente(formData: any) {
   const nomeRazao = formData.nomeCompleto || formData.razaoSocial || formData.nome || '';
 

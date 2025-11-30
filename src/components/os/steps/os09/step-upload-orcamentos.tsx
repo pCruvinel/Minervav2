@@ -1,62 +1,21 @@
-import React, { useState } from 'react';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
+import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Upload, X, FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { toast } from '@/lib/utils/safe-toast';
+import { FileText, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
+import { FileWithComment } from '@/components/ui/file-upload-unificado';
 
 interface StepUploadOrcamentosProps {
   data: {
-    orcamentosAnexados: string[];
+    arquivos?: FileWithComment[];
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
+  osId?: string;
 }
 
-export function StepUploadOrcamentos({ data, onDataChange, readOnly }: StepUploadOrcamentosProps) {
-  const [uploadingFiles, setUploadingFiles] = useState(false);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (readOnly) return;
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    // Validar que não ultrapasse 3 arquivos
-    const totalFiles = data.orcamentosAnexados.length + files.length;
-    if (totalFiles > 3) {
-      toast.error('Você só pode anexar até 3 orçamentos');
-      return;
-    }
-
-    setUploadingFiles(true);
-    try {
-      // Simular upload (substituir com lógica real de upload)
-      const newFiles = Array.from(files).map((file) => ({
-        url: URL.createObjectURL(file),
-        name: file.name,
-        size: file.size,
-      }));
-      
-      const updatedFiles = [...data.orcamentosAnexados, ...newFiles.map(f => f.url)];
-      onDataChange({ ...data, orcamentosAnexados: updatedFiles });
-      
-      toast.success(`${files.length} orçamento(s) anexado(s) com sucesso!`);
-    } catch (error) {
-      toast.error('Erro ao fazer upload dos arquivos');
-    } finally {
-      setUploadingFiles(false);
-    }
-  };
-
-  const handleRemoveFile = (index: number) => {
-    if (readOnly) return;
-    const newFiles = data.orcamentosAnexados.filter((_, i) => i !== index);
-    onDataChange({ ...data, orcamentosAnexados: newFiles });
-    toast.info('Orçamento removido');
-  };
-
-  const remainingUploads = 3 - data.orcamentosAnexados.length;
-  const isComplete = data.orcamentosAnexados.length === 3;
+export function StepUploadOrcamentos({ data, onDataChange, readOnly, osId }: StepUploadOrcamentosProps) {
+  const arquivos = data.arquivos || [];
+  const isComplete = arquivos.length === 3;
 
   return (
     <div className="space-y-6">
@@ -70,7 +29,7 @@ export function StepUploadOrcamentos({ data, onDataChange, readOnly }: StepUploa
       {/* Status dos Uploads */}
       <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
         <div className="flex items-start gap-4">
-          <div 
+          <div
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ backgroundColor: isComplete ? '#10b981' : '#DDC063' }}
           >
@@ -80,126 +39,44 @@ export function StepUploadOrcamentos({ data, onDataChange, readOnly }: StepUploa
               <FileText className="w-6 h-6 text-white" />
             )}
           </div>
-          
+
           <div className="flex-1">
             <h3 className="text-base mb-2">
               {isComplete ? 'Todos os orçamentos foram anexados!' : 'Progresso do Upload'}
             </h3>
             <p className="text-sm text-neutral-600 mb-4">
-              {isComplete 
+              {isComplete
                 ? 'Você anexou os 3 orçamentos necessários. Revise os arquivos antes de avançar.'
-                : `Você anexou ${data.orcamentosAnexados.length} de 3 orçamentos obrigatórios.`
+                : `Você anexou ${arquivos.length} de 3 orçamentos obrigatórios.`
               }
             </p>
-            
+
             {/* Barra de Progresso */}
             <div className="w-full bg-neutral-200 rounded-full h-2">
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{
-                  width: `${(data.orcamentosAnexados.length / 3) * 100}%`,
+                  width: `${(arquivos.length / 3) * 100}%`,
                   backgroundColor: isComplete ? '#10b981' : '#D3AF37',
                 }}
               />
             </div>
             <p className="text-xs text-neutral-600 mt-2">
-              {data.orcamentosAnexados.length} / 3 orçamentos
+              {arquivos.length} / 3 orçamentos
             </p>
           </div>
         </div>
       </div>
 
-      {/* Área de Upload */}
-      {!isComplete && (
-        <div className="space-y-2">
-          <Label>
-            Anexar Orçamentos <span className="text-red-500">*</span>
-          </Label>
-          
-          <div className={`border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center transition-colors ${readOnly ? 'opacity-50 cursor-not-allowed' : 'hover:border-neutral-400'}`}>
-            <input
-              type="file"
-              id="file-upload-orcamentos"
-              className="hidden"
-              multiple
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.png,.jpg,.jpeg"
-              onChange={handleFileUpload}
-              disabled={uploadingFiles || isComplete || readOnly}
-            />
-            <label htmlFor="file-upload-orcamentos" className={`cursor-pointer ${readOnly ? 'pointer-events-none' : ''}`}>
-              <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-              <p className="text-sm text-neutral-600 mb-2">
-                Clique para selecionar ou arraste arquivos
-              </p>
-              <p className="text-xs text-neutral-500 mb-3">
-                PDF, DOC, DOCX, XLS, XLSX, PNG, JPG até 10MB
-              </p>
-              <p className="text-sm" style={{ color: '#D3AF37' }}>
-                {remainingUploads === 3 
-                  ? 'Anexe os 3 orçamentos'
-                  : `Faltam ${remainingUploads} orçamento${remainingUploads > 1 ? 's' : ''}`
-                }
-              </p>
-            </label>
-          </div>
-        </div>
-      )}
-
-      {/* Lista de Arquivos Anexados */}
-      {data.orcamentosAnexados.length > 0 && (
-        <div className="space-y-3">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
-            Orçamentos Anexados ({data.orcamentosAnexados.length})
-          </h3>
-          
-          <div className="space-y-2">
-            {data.orcamentosAnexados.map((file, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-lg hover:border-neutral-300 transition-colors"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <div 
-                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ backgroundColor: '#DDC063' }}
-                  >
-                    <FileText className="w-5 h-5 text-white" />
-                  </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">
-                      Orçamento {index + 1}
-                    </p>
-                    <p className="text-xs text-neutral-500">
-                      Arquivo anexado
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => window.open(file, '_blank')}
-                    className="text-neutral-600 hover:text-neutral-900"
-                  >
-                    Visualizar
-                  </Button>
-                  
-                  {!readOnly && (
-                    <button
-                      onClick={() => handleRemoveFile(index)}
-                      className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <FileUploadUnificado
+        label="Anexar Orçamentos (3 obrigatórios)"
+        files={arquivos}
+        onFilesChange={(files) => onDataChange({ arquivos: files })}
+        disabled={readOnly}
+        osId={osId}
+        maxFiles={3}
+        acceptedTypes={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/jpeg', 'image/jpg', 'image/png']}
+      />
 
       {/* Alertas */}
       {isComplete ? (

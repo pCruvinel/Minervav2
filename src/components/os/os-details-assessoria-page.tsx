@@ -17,7 +17,7 @@ import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
 
 // Componentes compartilhados
-import { StepIdentificacaoLeadCompleto, type StepIdentificacaoLeadCompletoHandle } from './steps/shared/step-identificacao-lead-completo';
+import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from './steps/shared/step-followup-1';
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarProposta } from './steps/shared/step-gerar-proposta';
@@ -96,7 +96,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
   const [isSaving, setIsSaving] = useState(false);
 
   // Refs para componentes com validação imperativa
-  const stepLeadRef = useRef<StepIdentificacaoLeadCompletoHandle>(null);
+  const stepLeadRef = useRef<CadastrarLeadHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
 
   // Mapeamento de dados para compatibilidade com componentes existentes
@@ -337,7 +337,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
 
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
-                <StepIdentificacaoLeadCompleto
+                <CadastrarLead
                   ref={stepLeadRef}
                   selectedLeadId={selectedLeadId}
                   onSelectLead={handleSelectLead}

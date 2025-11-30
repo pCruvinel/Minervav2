@@ -2,11 +2,9 @@ import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
   DialogFooter,
 } from '../ui/dialog';
+import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -16,9 +14,10 @@ import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
 import { toast } from 'sonner';
 import { useCreateTurno } from '../../lib/hooks/use-turnos';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, Clock, Calendar, Users, Palette, Briefcase } from 'lucide-react';
 import { useSetores } from '../../lib/hooks/use-setores';
 import { logger } from '../../lib/utils/logger';
+import { designTokens } from '@/lib/design-tokens';
 
 interface ModalCriarTurnoProps {
   open: boolean;
@@ -34,8 +33,6 @@ const coresTurno = [
   { nome: 'Roxo', valor: '#C4B5FD' },
   { nome: 'Dourado', valor: '#D3AF37' }
 ];
-
-
 
 interface ValidationErrors {
   horaInicio?: string;
@@ -258,68 +255,78 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Configurar Novo Turno</DialogTitle>
-          <DialogDescription>
-            Configure os detalhes do turno para os funcionários.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0">
+        {/* Header com Gradiente */}
+        <ModalHeaderPadrao
+          title="Configurar Novo Turno"
+          description="Configure os detalhes do turno para os funcionários."
+          icon={Briefcase}
+          theme="create"
+        />
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 p-6">
           {/* Horários */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="horaInicio">Hora de Início</Label>
-              <Input
-                id="horaInicio"
-                type="time"
-                value={horaInicio}
-                onChange={(e) => {
-                  setHoraInicio(e.target.value);
-                  setErrors((prev) => {
-                    const novo = { ...prev };
-                    delete novo.horaInicio;
-                    return novo;
-                  });
-                }}
-                className={errors.horaInicio ? 'border-red-500 focus:border-red-500' : ''}
-              />
-              {errors.horaInicio && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.horaInicio}
-                </p>
-              )}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+              <Clock className="h-5 w-5 text-blue-500" />
+              <span>Horários</span>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="horaFim">Hora de Fim</Label>
-              <Input
-                id="horaFim"
-                type="time"
-                value={horaFim}
-                onChange={(e) => {
-                  setHoraFim(e.target.value);
-                  setErrors((prev) => {
-                    const novo = { ...prev };
-                    delete novo.horaFim;
-                    return novo;
-                  });
-                }}
-                className={errors.horaFim ? 'border-red-500 focus:border-red-500' : ''}
-              />
-              {errors.horaFim && (
-                <p className="text-sm text-red-500 flex items-center gap-1">
-                  <AlertCircle className="h-4 w-4" />
-                  {errors.horaFim}
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="horaInicio">Hora de Início</Label>
+                <Input
+                  id="horaInicio"
+                  type="time"
+                  value={horaInicio}
+                  onChange={(e) => {
+                    setHoraInicio(e.target.value);
+                    setErrors((prev) => {
+                      const novo = { ...prev };
+                      delete novo.horaInicio;
+                      return novo;
+                    });
+                  }}
+                  className={errors.horaInicio ? 'border-red-500 focus:border-red-500' : ''}
+                />
+                {errors.horaInicio && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.horaInicio}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="horaFim">Hora de Fim</Label>
+                <Input
+                  id="horaFim"
+                  type="time"
+                  value={horaFim}
+                  onChange={(e) => {
+                    setHoraFim(e.target.value);
+                    setErrors((prev) => {
+                      const novo = { ...prev };
+                      delete novo.horaFim;
+                      return novo;
+                    });
+                  }}
+                  className={errors.horaFim ? 'border-red-500 focus:border-red-500' : ''}
+                />
+                {errors.horaFim && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    {errors.horaFim}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Recorrência */}
           <div className="space-y-4">
-            <Label>Recorrência</Label>
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+              <Calendar className="h-5 w-5 text-purple-500" />
+              <span>Recorrência</span>
+            </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="todos" className="cursor-pointer font-normal">
@@ -409,8 +416,11 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           {/* Número de Vagas */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Número de Vagas</Label>
-              <span className="text-sm font-medium text-primary">{numeroVagas[0]}</span>
+              <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+                <Users className="h-5 w-5 text-green-500" />
+                <span>Número de Vagas</span>
+              </div>
+              <span className="text-lg font-semibold text-blue-600">{numeroVagas[0]}</span>
             </div>
             <Slider
               value={numeroVagas}
@@ -441,27 +451,44 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
 
           {/* Cor do Turno */}
           <div className="space-y-3">
-            <Label>Cor do Turno</Label>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+              <Palette className="h-5 w-5 text-pink-500" />
+              <span>Cor do Turno</span>
+            </div>
+            <div className="flex gap-3 flex-wrap">
               {coresTurno.map((cor) => (
                 <button
                   key={cor.valor}
                   type="button"
                   onClick={() => setCorSelecionada(cor.valor)}
                   className={`
-                    w-12 h-12 rounded-lg border-2 transition-all
-                    ${corSelecionada === cor.valor ? 'border-neutral-900 scale-110' : 'border-neutral-300'}
+                    relative w-12 h-12 rounded-full transition-all
+                    hover:scale-110 shadow-sm border-2
+                    ${corSelecionada === cor.valor ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 border-transparent' : 'border-neutral-200'}
                   `}
                   style={{ backgroundColor: cor.valor }}
                   title={cor.nome}
-                />
+                >
+                  {corSelecionada === cor.valor && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    </div>
+                  )}
+                </button>
               ))}
             </div>
           </div>
 
           {/* Limitar Setores */}
-          <div className={`space-y-4 p-4 rounded-lg ${errors.setores ? 'bg-red-50 border border-red-200' : 'bg-neutral-50'}`}>
-            <Label className={errors.setores ? 'text-red-700' : ''}>Limitar Setores</Label>
+          <div className={`space-y-4 p-5 rounded-xl ${errors.setores ? 'bg-red-50 border-2 border-red-200' : 'bg-gradient-to-br from-neutral-50 to-neutral-100 border border-neutral-200'}`}>
+            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
+              <Briefcase className={`h-5 w-5 ${errors.setores ? 'text-red-500' : 'text-orange-500'}`} />
+              <span className={errors.setores ? 'text-red-700' : ''}>Setores</span>
+            </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label htmlFor="todos-setores" className="cursor-pointer font-normal">
@@ -516,13 +543,26 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={criando}>
+        <DialogFooter className="p-6 bg-neutral-50 border-t">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={criando}
+            className="px-6 hover:bg-neutral-100"
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleSalvar}
-            className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="
+              bg-gradient-to-r from-blue-500 to-purple-600
+              hover:from-blue-600 hover:to-purple-700
+              text-white px-8
+              shadow-lg hover:shadow-xl
+              disabled:opacity-50 disabled:cursor-not-allowed
+              disabled:from-neutral-300 disabled:to-neutral-400
+              transition-all duration-200
+            "
             disabled={criando || !isFormValid}
             title={!isFormValid ? 'Corrija os erros antes de salvar' : ''}
           >

@@ -1,0 +1,396 @@
+/**
+ * Calendario Custom CSS - Modern Design
+ *
+ * Estilos customizados para FullCalendar seguindo o design system pastel moderno.
+ * Aplica cores suaves, bordas arredondadas, sombras sutis e tipografia moderna.
+ */
+
+/* ============================================
+   TOOLBAR - Cabeçalho do Calendário
+   ============================================ */
+
+.fc .fc-toolbar.fc-header-toolbar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 1.5rem;
+  border-radius: 1rem 1rem 0 0;
+  margin-bottom: 0;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+}
+
+.fc .fc-toolbar-title {
+  color: #FFFFFF;
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+/* Botões do Toolbar */
+/* Botões do Toolbar (Standard FullCalendar) */
+.fc .fc-button {
+  background-color: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #FFFFFF !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  text-transform: none !important;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
+}
+
+.fc .fc-button:hover {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1) !important;
+}
+
+.fc .fc-button:active,
+.fc .fc-button-active {
+  background-color: rgba(255, 255, 255, 0.4) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: inset 0 2px 4px 0 rgb(0 0 0 / 0.06) !important;
+}
+
+.fc .fc-button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
+
+.fc .fc-button-group {
+  gap: 0.5rem;
+}
+
+/* ============================================
+   CABEÇALHOS DE COLUNAS (Dias da Semana)
+   ============================================ */
+
+.fc .fc-col-header-cell {
+  background: #F9FAFB;
+  border-color: #E5E7EB;
+  padding: 1rem 0.5rem;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: #6B7280;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.5rem;
+}
+
+/* ============================================
+   CÉLULAS DO CALENDÁRIO
+   ============================================ */
+
+.fc .fc-daygrid-day,
+.fc .fc-timegrid-slot {
+  background: #FFFFFF;
+  border-color: #E5E7EB;
+}
+
+.fc .fc-daygrid-day:hover,
+.fc .fc-timegrid-slot:hover {
+  background: #F9FAFB;
+  transition: background-color 0.15s ease;
+}
+
+/* Número do dia */
+.fc .fc-daygrid-day-number {
+  color: #111827;
+  font-weight: 500;
+  padding: 0.5rem;
+}
+
+/* Dia atual */
+.fc .fc-day-today {
+  background-color: #FEF3C7 !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+  color: #FFFFFF;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.25rem;
+  font-weight: 600;
+}
+
+/* ============================================
+   EVENTOS - Agendamentos e Turnos
+   ============================================ */
+
+.fc-event {
+  border-radius: 0.5rem;
+  border-width: 0;
+  border-left-width: 3px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.fc-event:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  z-index: 10;
+}
+
+/* Evento de Agendamento */
+.fc-event:not(.fc-event-start):not(.fc-event-end) {
+  border-radius: 0.25rem;
+}
+
+/* Título do evento */
+.fc-event-title {
+  font-weight: 500;
+  padding: 0.125rem 0;
+}
+
+/* Horário do evento */
+.fc-event-time {
+  font-weight: 600;
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Background Events (Turnos) */
+.fc-bg-event {
+  border: none;
+  opacity: 0.8;
+  cursor: pointer;
+  border-radius: 0.25rem;
+}
+
+.fc-bg-event:hover {
+  opacity: 1;
+}
+
+/* ============================================
+   VISUALIZAÇÃO MENSAL (Month View)
+   ============================================ */
+
+.fc-daygrid-event {
+  margin: 0.125rem 0.25rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fc-daygrid-event-dot {
+  border-radius: 50%;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin: 0 0.25rem;
+}
+
+/* ============================================
+   VISUALIZAÇÃO SEMANAL/DIÁRIA (Time Grid)
+   ============================================ */
+
+.fc-timegrid-event {
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+}
+
+.fc-timegrid-event-harness {
+  margin-right: 2px;
+}
+
+/* Linha "Now" (indicador de hora atual) */
+.fc-timegrid-now-indicator-line {
+  border-color: #EF4444;
+  border-width: 2px;
+}
+
+.fc-timegrid-now-indicator-arrow {
+  border-color: #EF4444;
+}
+
+/* Slots de tempo */
+.fc-timegrid-slot {
+  height: 3rem;
+}
+
+.fc-timegrid-slot-label {
+  color: #6B7280;
+  font-size: 0.75rem;
+  font-weight: 500;
+  vertical-align: middle;
+}
+
+/* ============================================
+   SELEÇÃO DE INTERVALO
+   ============================================ */
+
+.fc-highlight {
+  background: rgba(59, 130, 246, 0.1);
+  border: 2px dashed #3B82F6;
+  border-radius: 0.5rem;
+}
+
+/* ============================================
+   POPOVER E MAIS EVENTOS (+X more)
+   ============================================ */
+
+.fc-popover {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  padding: 0.5rem;
+}
+
+.fc-popover-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #FFFFFF;
+  padding: 0.75rem;
+  border-radius: 0.5rem 0.5rem 0 0;
+  font-weight: 600;
+}
+
+.fc-popover-body {
+  padding: 0.5rem;
+}
+
+.fc-daygrid-more-link {
+  color: #3B82F6;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: background-color 0.15s ease;
+}
+
+.fc-daygrid-more-link:hover {
+  background: #DBEAFE;
+  text-decoration: none;
+}
+
+/* ============================================
+   SCROLLBARS CUSTOMIZADAS
+   ============================================ */
+
+.fc-scroller::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background: #F3F4F6;
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background: #D1D5DB;
+  border-radius: 4px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background: #9CA3AF;
+}
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+
+@media (max-width: 768px) {
+  .fc .fc-toolbar.fc-header-toolbar {
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.25rem;
+    order: -1;
+  }
+
+  .fc .fc-button {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+
+  .fc-col-header-cell-cushion {
+    font-size: 0.75rem;
+    padding: 0.25rem;
+  }
+
+  .fc-event {
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================
+   ACESSIBILIDADE
+   ============================================ */
+
+.fc-event:focus,
+.fc-daygrid-day:focus,
+.fc-button:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Alto contraste para leitores de tela */
+@media (prefers-contrast: high) {
+  .fc .fc-button {
+    border-width: 2px;
+  }
+
+  .fc-event {
+    border-width: 2px;
+  }
+}
+
+/* Redução de movimento */
+@media (prefers-reduced-motion: reduce) {
+  .fc-event,
+  .fc .fc-button,
+  .fc-daygrid-day {
+    transition: none;
+  }
+
+  .fc-event:hover {
+    transform: none;
+  }
+}
+
+/* ============================================
+   CORES POR CATEGORIA (Override inline styles)
+   ============================================ */
+
+/* Vistoria Inicial - Blue */
+.fc-event[data-category="Vistoria Inicial"] {
+  background-color: #DBEAFE !important;
+  border-left-color: #93C5FD !important;
+  color: #1E40AF !important;
+}
+
+/* Apresentação de Proposta - Green */
+.fc-event[data-category="Apresentação de Proposta"] {
+  background-color: #D1FAE5 !important;
+  border-left-color: #6EE7B7 !important;
+  color: #065F46 !important;
+}
+
+/* Vistoria Técnica - Yellow */
+.fc-event[data-category="Vistoria Técnica"] {
+  background-color: #FEF3C7 !important;
+  border-left-color: #FCD34D !important;
+  color: #92400E !important;
+}
+
+/* Visita Semanal - Pink */
+.fc-event[data-category="Visita Semanal"] {
+  background-color: #FEE2E2 !important;
+  border-left-color: #FCA5A5 !important;
+  color: #991B1B !important;
+}

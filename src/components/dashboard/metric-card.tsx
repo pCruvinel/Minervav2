@@ -17,6 +17,7 @@ interface MetricCardProps {
     direction: 'up' | 'down' | 'neutral';
   };
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
+  modalVariant?: 'compact' | 'highlight' | 'minimal';
   onClick?: () => void;
   to?: string;
 }
@@ -28,6 +29,7 @@ export function MetricCard({
   description,
   trend,
   variant = 'default',
+  modalVariant,
   onClick,
   to,
 }: MetricCardProps) {
@@ -61,6 +63,42 @@ export function MetricCard({
 
   const style = variantStyles[variant];
 
+  // Estilos específicos para variantes de modal
+  const getModalStyles = () => {
+    if (!modalVariant) return null;
+
+    const modalStyles = {
+      compact: {
+        cardClass: 'p-4 shadow-sm',
+        iconSize: 'w-8 h-8',
+        innerIconSize: 'w-6 h-6',
+        titleSize: 'text-xs',
+        valueSize: 'text-xl',
+        spacing: 'mb-2'
+      },
+      highlight: {
+        cardClass: 'p-5 bg-gradient-to-br from-white to-neutral-50 border-2 border-primary/20 shadow-lg',
+        iconSize: 'w-10 h-10',
+        innerIconSize: 'w-8 h-8',
+        titleSize: 'text-sm font-medium',
+        valueSize: 'text-2xl',
+        spacing: 'mb-3'
+      },
+      minimal: {
+        cardClass: 'p-3 bg-transparent border-none shadow-none',
+        iconSize: 'w-6 h-6',
+        innerIconSize: 'w-5 h-5',
+        titleSize: 'text-xs text-neutral-500',
+        valueSize: 'text-lg',
+        spacing: 'mb-1'
+      }
+    };
+
+    return modalStyles[modalVariant];
+  };
+
+  const modalStyles = getModalStyles();
+
   const getTrendIcon = () => {
     if (!trend) return null;
 
@@ -88,20 +126,22 @@ export function MetricCard({
   const cardContent = (
     <Card
       className={`
-        transition-all hover:shadow-md
+        transition-all
+        ${modalStyles ? modalStyles.cardClass : 'hover:shadow-md p-6'}
         ${(onClick || to) ? 'cursor-pointer hover:border-primary' : ''}
+        ${!modalVariant ? 'hover:shadow-md' : ''}
       `}
       onClick={onClick}
     >
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-12 h-12 rounded-lg ${style.bg} flex items-center justify-center`}>
-            <div className={`w-10 h-10 rounded-lg ${style.iconBg} flex items-center justify-center`}>
+      <CardContent className={modalStyles ? modalStyles.cardClass : "p-6"}>
+        <div className={`flex items-start justify-between ${modalStyles?.spacing || 'mb-4'}`}>
+          <div className={`${modalStyles?.iconSize || 'w-12 h-12'} rounded-lg ${style.bg} flex items-center justify-center`}>
+            <div className={`${modalStyles?.innerIconSize || 'w-10 h-10'} rounded-lg ${style.iconBg} flex items-center justify-center`}>
               <Icon className={`w-5 h-5 ${style.iconColor}`} />
             </div>
           </div>
 
-          {trend && (
+          {trend && modalVariant !== 'minimal' && (
             <Badge
               variant="outline"
               className={`${getTrendColor()} flex items-center gap-1 text-xs`}
@@ -113,14 +153,14 @@ export function MetricCard({
         </div>
 
         <div>
-          <p className="text-sm text-neutral-600 mb-1">{title}</p>
-          <p className="text-3xl font-semibold mb-2">{value}</p>
+          <p className={`${modalStyles?.titleSize || 'text-sm'} text-neutral-600 mb-1`}>{title}</p>
+          <p className={`${modalStyles?.valueSize || 'text-3xl'} font-semibold mb-2`}>{value}</p>
 
           {description && (
             <p className="text-xs text-neutral-500">{description}</p>
           )}
 
-          {trend && (
+          {trend && modalVariant !== 'minimal' && (
             <p className="text-xs text-neutral-500 mt-2">
               {trend.label}
             </p>
