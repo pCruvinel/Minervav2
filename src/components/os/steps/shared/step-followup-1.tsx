@@ -96,8 +96,30 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
         // Valida todo o formulário e popula objeto de erros
         const isValid = validateAll(data);
 
+        // Debug: Log detalhado da validação
+        console.log('[STEP-FOLLOWUP-1] ✅ Iniciando validação', {
+          isValid,
+          dataKeys: Object.keys(data),
+          errorsFound: Object.keys(errors),
+          errorDetails: errors,
+          safeDataValues: {
+            idadeEdificacao: safeData.idadeEdificacao,
+            motivoProcura: safeData.motivoProcura?.substring(0, 20) + '...',
+            quandoAconteceu: safeData.quandoAconteceu?.substring(0, 20) + '...',
+            grauUrgencia: safeData.grauUrgencia,
+            apresentacaoProposta: safeData.apresentacaoProposta?.substring(0, 20) + '...',
+            nomeContatoLocal: safeData.nomeContatoLocal,
+            telefoneContatoLocal: safeData.telefoneContatoLocal,
+          }
+        });
+
         // Se houver erros, scroll para o primeiro campo inválido
         if (!isValid) {
+          console.warn('[STEP-FOLLOWUP-1] ❌ Validação falhou!', {
+            errorFields: Object.keys(errors),
+            firstError: Object.keys(errors)[0],
+            allErrors: errors
+          });
           // Encontra o primeiro campo com erro e faz scroll
           const firstErrorField = Object.keys(errors)[0];
           if (firstErrorField) {
@@ -107,6 +129,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
               element.focus();
             }
           }
+        } else {
+          console.log('[STEP-FOLLOWUP-1] ✅ Validação passou!');
         }
 
         return isValid;

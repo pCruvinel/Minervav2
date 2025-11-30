@@ -8,11 +8,9 @@ import { Button } from '../ui/button';
 import { PrimaryButton } from '../ui/primary-button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Textarea } from '../ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Switch } from '../ui/switch';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import {
   Upload,
   FileText,
@@ -27,7 +25,6 @@ import {
   Info,
   X
 } from 'lucide-react';
-import { Separator } from '../ui/separator';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
 import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
@@ -36,16 +33,14 @@ import { StepMemorialEscopo, type StepMemorialEscopoHandle } from './steps/share
 import { StepPrecificacao } from './steps/shared/step-precificacao';
 import { StepGerarPropostaOS0104 } from './steps/shared/step-gerar-proposta-os01-04';
 import { StepAgendarApresentacao } from './steps/shared/step-agendar-apresentacao';
+import { StepPrepararOrcamentos } from './steps/shared/step-preparar-orcamentos';
+import { StepAnaliseRelatorio } from './steps/shared/step-analise-relatorio';
 import { StepRealizarApresentacao } from './steps/shared/step-realizar-apresentacao';
 import { StepGerarContrato } from './steps/shared/step-gerar-contrato';
 import { StepContratoAssinado } from './steps/shared/step-contrato-assinado';
-import { CalendarioSemana } from '../calendario/calendario-semana';
-import { ModalNovoAgendamento } from '../calendario/modal-novo-agendamento';
 import { ordensServicoAPI, clientesAPI } from '../../lib/api-client';
 import { useOrdemServico } from '../../lib/hooks/use-ordens-servico';
 import { toast } from '../../lib/utils/safe-toast';
-import { useTurnosPorSemana } from '../../lib/hooks/use-turnos';
-import { useAgendamentos } from '../../lib/hooks/use-agendamentos';
 import { ErrorBoundary } from '../error-boundary';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../../lib/validations/os-etapas-schema';
 import { useAuth } from '../../lib/contexts/auth-context';
@@ -269,15 +264,6 @@ export function OSDetailsWorkflowPage({
   // Estado de loading para criação de OS (Etapa 2 → 3)
   const [isCreatingOS, setIsCreatingOS] = useState(false);
 
-  // Estado para modal de agendamento da Etapa 4
-  const [modalAgendamentoAberto, setModalAgendamentoAberto] = useState(false);
-  const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
-  const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
-  const [agendamentoConfirmado, setAgendamentoConfirmado] = useState(false);
-
-  // Estado para navegação de semanas na Etapa 4
-  const [semanaAtualCalendario, setSemanaAtualCalendario] = useState(new Date());
-
   // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
   const osId = osIdProp || internalOsId;
 
@@ -311,47 +297,6 @@ export function OSDetailsWorkflowPage({
     initialStep: initialStep || 1
   });
 
-  // Calcular datas da semana atual do calendário
-  const datasSemanaCalendario = useMemo(() => {
-    const datas: string[] = [];
-    const data = new Date(semanaAtualCalendario);
-
-    // Ir para segunda-feira da semana
-    const dayOfWeek = data.getDay();
-    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    data.setDate(data.getDate() + distanceToMonday);
-
-    // Gerar 7 dias (segunda a domingo)
-    for (let i = 0; i < 7; i++) {
-      datas.push(data.toISOString().split('T')[0]);
-      data.setDate(data.getDate() + 1);
-    }
-
-    return datas;
-  }, [semanaAtualCalendario]);
-
-  // Hooks para calendário na Etapa 4 - buscar um período maior para garantir que turnos recorrentes apareçam
-  const dataInicioBusca = useMemo(() => {
-    const data = new Date(semanaAtualCalendario);
-    data.setDate(data.getDate() - 30); // Buscar 30 dias antes
-    return data.toISOString().split('T')[0];
-  }, [semanaAtualCalendario]);
-
-  const dataFimBusca = useMemo(() => {
-    const data = new Date(semanaAtualCalendario);
-    data.setDate(data.getDate() + 30); // Buscar 30 dias depois
-    return data.toISOString().split('T')[0];
-  }, [semanaAtualCalendario]);
-
-  const { turnosPorDia: turnosCalendario, loading: loadingTurnos, error: errorTurnos, refetch: refetchTurnos } = useTurnosPorSemana(
-    dataInicioBusca,
-    dataFimBusca
-  );
-
-  const { agendamentos: agendamentosCalendario, refetch: refetchAgendamentos } = useAgendamentos({
-    dataInicio: datasSemanaCalendario[0],
-    dataFim: datasSemanaCalendario[6],
-  });
 
   // Hook de Navegação
   const {
@@ -695,68 +640,6 @@ export function OSDetailsWorkflowPage({
   }, [os, etapas, etapa1Data, etapa2Data.tipoOS]);
 
   // Funções para gerenciar agendamento na Etapa 4
-  const handleSelecionarTurno = (turno: any, dia: Date) => {
-    setTurnoSelecionado(turno);
-    setDiaSelecionado(dia);
-    setModalAgendamentoAberto(true);
-  };
-
-  const handleAgendamentoSucesso = () => {
-    setModalAgendamentoAberto(false);
-    setTurnoSelecionado(null);
-
-    // Salvar dados do agendamento na Etapa 4
-    if (turnoSelecionado && diaSelecionado) {
-      const dataFormatada = diaSelecionado.toLocaleDateString('pt-BR');
-      setEtapa4Data({
-        dataAgendamento: `${dataFormatada} - ${turnoSelecionado.horaInicio} às ${turnoSelecionado.horaFim}`
-      });
-    }
-
-    // Marcar agendamento como confirmado para mostrar confirmação visual
-    setAgendamentoConfirmado(true);
-
-    // Recarregar dados do calendário
-    refetchTurnos();
-    refetchAgendamentos();
-  };
-
-  const handleFecharModalAgendamento = () => {
-    setModalAgendamentoAberto(false);
-    setTurnoSelecionado(null);
-  };
-
-  // Funções para navegação entre semanas
-  const handleSemanaAnterior = () => {
-    const novaSemana = new Date(semanaAtualCalendario);
-    novaSemana.setDate(novaSemana.getDate() - 7);
-    setSemanaAtualCalendario(novaSemana);
-  };
-
-  const handleProximaSemana = () => {
-    const novaSemana = new Date(semanaAtualCalendario);
-    novaSemana.setDate(novaSemana.getDate() + 7);
-    setSemanaAtualCalendario(novaSemana);
-  };
-
-  // Formatar período da semana para exibição
-  const formatarPeriodoSemana = () => {
-    const dataInicio = new Date(semanaAtualCalendario);
-    const dayOfWeek = dataInicio.getDay();
-    const distanceToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-    dataInicio.setDate(dataInicio.getDate() + distanceToMonday);
-
-    const dataFim = new Date(dataInicio);
-    dataFim.setDate(dataFim.getDate() + 6);
-
-    const formatarData = (data: Date) => {
-      const dia = String(data.getDate()).padStart(2, '0');
-      const mes = String(data.getMonth() + 1).padStart(2, '0');
-      return `${dia}/${mes}`;
-    };
-
-    return `${formatarData(dataInicio)} - ${formatarData(dataFim)}`;
-  };
 
   // Estado do formulário de novo lead (Dialog)
   const [formData, setFormData] = useState({
@@ -1066,13 +949,17 @@ export function OSDetailsWorkflowPage({
   const saveCurrentStepData = async (markAsComplete: boolean = true) => {
     if (!osId) {
       logger.warn('⚠️ Não é possível salvar: osId não disponível');
+      console.warn('[SAVE-STEP] ⚠️ osId vazio, não pode salvar');
       return;
     }
 
     try {
       logger.log(`💾 Salvando etapa ${currentStep}...`);
+      console.log(`[SAVE-STEP] 💾 Iniciando save da etapa ${currentStep}, markAsComplete=${markAsComplete}`);
 
+      const saveStartTime = performance.now();
       await saveStep(currentStep, !markAsComplete); // saveStep recebe isDraft como segundo argumento
+      const saveDuration = performance.now() - saveStartTime;
 
       const successMessage = markAsComplete
         ? 'Etapa concluída e dados salvos!'
@@ -1083,9 +970,11 @@ export function OSDetailsWorkflowPage({
       } catch (toastError) {
         logger.error('❌ Erro ao exibir toast de sucesso (saveStep):', toastError);
       }
-      logger.log(`✅ ${successMessage}`);
+      logger.log(`✅ ${successMessage} (${saveDuration.toFixed(0)}ms)`);
+      console.log(`[SAVE-STEP] ✅ Etapa ${currentStep} salva com sucesso (${saveDuration.toFixed(0)}ms)`);
     } catch (error) {
       logger.error('❌ Erro ao salvar etapa:', error);
+      console.error('[SAVE-STEP] ❌ Erro ao salvar:', error);
       try {
         toast.error('Erro ao salvar dados. Tente novamente.');
       } catch (toastError) {
@@ -1239,11 +1128,21 @@ export function OSDetailsWorkflowPage({
     // CASO ESPECIAL: Etapa 3 (Follow-up 1) - Usar validação imperativa
     // ========================================
     if (currentStep === 3) {
+      logger.log('🔍 [STEP 3→4] Iniciando fluxo de avanço');
+      console.log('[OS-WORKFLOW] Step 3→4: Começando validação');
+
       // Usar validação imperativa do componente StepFollowup1
       if (stepFollowup1Ref.current) {
+        logger.log('🔍 [STEP 3→4] stepFollowup1Ref.current existe, iniciando validate()');
+        console.log('[OS-WORKFLOW] Step 3→4: Ref existe, chamando validate()');
         const isValid = stepFollowup1Ref.current.validate();
 
+        logger.log('🔍 [STEP 3→4] Resultado da validação:', { isValid });
+        console.log('[OS-WORKFLOW] Step 3→4: Validação resultado=', isValid);
+
         if (!isValid) {
+          logger.warn('⚠️ [STEP 3→4] Validação falhou - bloqueando avanço');
+          console.warn('[OS-WORKFLOW] Step 3→4: ❌ Validação FALHOU - não pode avançar');
           try {
             toast.error('Preencha todos os campos obrigatórios antes de avançar');
           } catch (toastError) {
@@ -1251,29 +1150,46 @@ export function OSDetailsWorkflowPage({
           }
           return;
         }
+      } else {
+        logger.warn('⚠️ [STEP 3→4] stepFollowup1Ref.current é null/undefined!');
+        console.warn('[OS-WORKFLOW] Step 3→4: ⚠️ Ref é null!');
       }
 
       // Se passou na validação, continuar com salvamento e avanço
       try {
+        logger.log('✅ [STEP 3→4] Passou validação, continuando com salvamento');
+        console.log('[OS-WORKFLOW] Step 3→4: ✅ Validação passou, continuando...');
+
         if (osId) {
+          logger.log('🔍 [STEP 3→4] osId disponível:', osId);
+          console.log('[OS-WORKFLOW] Step 3→4: osId=', osId);
 
           // Realizar upload dos arquivos pendentes
           let uploadedFiles = [];
           try {
+            logger.log('📁 [STEP 3→4] Tentando fazer upload de arquivos pendentes');
+            console.log('[OS-WORKFLOW] Step 3→4: Iniciando upload de arquivos');
             if (stepFollowup1Ref.current) {
               const ref = stepFollowup1Ref.current as any;
               if (ref.uploadPendingFiles && typeof ref.uploadPendingFiles === 'function') {
                 uploadedFiles = await ref.uploadPendingFiles();
+                logger.log('📁 [STEP 3→4] Upload concluído:', { filesCount: uploadedFiles.length });
+                console.log('[OS-WORKFLOW] Step 3→4: ✅ Upload de arquivos concluído, count=', uploadedFiles.length);
+              } else {
+                logger.log('📁 [STEP 3→4] uploadPendingFiles não é função ou não existe');
+                console.log('[OS-WORKFLOW] Step 3→4: uploadPendingFiles não existe');
               }
             }
           } catch (uploadError) {
-            logger.error('❌ Erro ao fazer upload dos arquivos:', uploadError);
+            logger.error('❌ [STEP 3→4] Erro ao fazer upload dos arquivos:', uploadError);
+            console.error('[OS-WORKFLOW] Step 3→4: ❌ Erro no upload:', uploadError);
             toast.error('Erro ao enviar arquivos anexados. Tente novamente.');
             return; // Interrompe o avanço se falhar o upload
           }
 
           // Se houver novos arquivos, atualizar os dados da etapa antes de salvar
           if (uploadedFiles.length > 0) {
+            logger.log('📁 [STEP 3→4] Atualizando dados com novos arquivos');
             const currentData = getStepData(3);
             const currentAnexos = currentData.anexos || [];
             const newAnexos = [...currentAnexos, ...uploadedFiles];
@@ -1284,14 +1200,26 @@ export function OSDetailsWorkflowPage({
             await new Promise(resolve => setTimeout(resolve, 100));
           }
 
+          logger.log('💾 [STEP 3→4] Iniciando saveCurrentStepData');
+          console.log('[OS-WORKFLOW] Step 3→4: Salvando dados da etapa');
           await saveCurrentStepData(true);
+          logger.log('✅ [STEP 3→4] saveCurrentStepData concluído');
+          console.log('[OS-WORKFLOW] Step 3→4: ✅ Dados salvos');
+        } else {
+          logger.warn('⚠️ [STEP 3→4] osId não disponível, pulando save');
+          console.warn('[OS-WORKFLOW] Step 3→4: ⚠️ osId vazio, pulando save');
         }
 
         if (currentStep < steps.length) {
+          logger.log('📍 [STEP 3→4] Avançando para próxima etapa:', { from: currentStep, to: currentStep + 1 });
+          console.log('[OS-WORKFLOW] Step 3→4: 📍 Avançando para etapa', currentStep + 1);
           setCurrentStep(currentStep + 1);
+        } else {
+          logger.warn('⚠️ [STEP 3→4] currentStep >= steps.length, não pode avançar');
         }
       } catch (error) {
-        logger.error('❌ Não foi possível avançar devido a erro ao salvar', error);
+        logger.error('❌ [STEP 3→4] Erro geral ao processar avanço:', error);
+        console.error('[OS-WORKFLOW] Step 3→4: ❌ Erro:', error);
       }
 
       return;
@@ -1670,170 +1598,14 @@ export function OSDetailsWorkflowPage({
               )}
 
               {/* ETAPA 6: Follow-up 2 (Pós-Visita) */}
+              {/* ETAPA 6: Preparar Orçamentos (Formulário Técnico Pós-Visita) */}
               {currentStep === 6 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <FileText className="h-4 w-4" />
-                    <AlertDescription>
-                      Preencha o formulário técnico dividido em três momentos com as informações coletadas durante e após a visita.
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Momento 1: Perguntas Durante a Visita - Respostas do Cliente */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 1: Perguntas Durante a Visita - Respostas do Cliente</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="outrasEmpresas">
-                        1. Há outras empresas realizando visita técnica? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="outrasEmpresas"
-                        rows={3}
-                        value={etapa6Data.outrasEmpresas}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, outrasEmpresas: e.target.value })}
-                        placeholder="Descreva se há outras empresas realizando visita técnica e quais..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="comoEsperaResolver">
-                        2. Como você espera resolver esse problema? (Solução, Material e metodologia) <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="comoEsperaResolver"
-                        rows={4}
-                        value={etapa6Data.comoEsperaResolver}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, comoEsperaResolver: e.target.value })}
-                        placeholder="Descreva as expectativas do cliente quanto à solução, materiais e metodologia..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="expectativaCliente">
-                        3. Qual a principal expectativa do cliente? (Solução, Material e metodologia) <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="expectativaCliente"
-                        rows={4}
-                        value={etapa6Data.expectativaCliente}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, expectativaCliente: e.target.value })}
-                        placeholder="Descreva as principais expectativas em relação à solução, materiais e metodologia..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="estadoAncoragem">
-                        4. Qual o estado do sistema de ancoragem? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="estadoAncoragem"
-                        rows={3}
-                        value={etapa6Data.estadoAncoragem}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, estadoAncoragem: e.target.value })}
-                        placeholder="Descreva o estado atual do sistema de ancoragem..."
-                      />
-                    </div>
-
-                    <FileUploadUnificado
-                      label="5. Anexar fotos do sistema de ancoragem"
-                      files={etapa6Data.fotosAncoragem || []}
-                      onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, fotosAncoragem: files })}
-                      disabled={isHistoricalNavigation}
-                      osId={osId || undefined}
-                    />
-                  </div>
-
-                  <Separator />
-
-                  {/* Momento 2: Avaliação Geral da Visita */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 2: Avaliação Geral da Visita</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="quemAcompanhou">
-                        6. Quem acompanhou a visita? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="quemAcompanhou"
-                        rows={3}
-                        value={etapa6Data.quemAcompanhou}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, quemAcompanhou: e.target.value })}
-                        placeholder="Descreva quem acompanhou a visita e suas funções..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>
-                        7. Avaliação da Visita <span className="text-destructive">*</span>
-                      </Label>
-                      <RadioGroup
-                        value={etapa6Data.avaliacaoVisita}
-                        onValueChange={(value: string) => setEtapa6Data({ ...etapa6Data, avaliacaoVisita: value })}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Produtiva, cliente muito interessado" id="av1" />
-                          <Label htmlFor="av1" className="cursor-pointer">Produtiva, cliente muito interessado</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Pouco produtiva" id="av2" />
-                          <Label htmlFor="av2" className="cursor-pointer">Pouco produtiva</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Improdutiva" id="av3" />
-                          <Label htmlFor="av3" className="cursor-pointer">Improdutiva</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Momento 3: Respostas do Engenheiro */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 3: Respostas do Engenheiro</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="estadoGeralEdificacao">
-                        8. Qual o estado geral da edificação (Condições encontradas)? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="estadoGeralEdificacao"
-                        rows={4}
-                        value={etapa6Data.estadoGeralEdificacao}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, estadoGeralEdificacao: e.target.value })}
-                        placeholder="Descreva detalhadamente as condições da edificação encontradas..."
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="servicoResolver">
-                        9. Qual o serviço deve ser feito para resolver o problema? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="servicoResolver"
-                        rows={4}
-                        value={etapa6Data.servicoResolver}
-                        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setEtapa6Data({ ...etapa6Data, servicoResolver: e.target.value })}
-                        placeholder="Descreva os serviços recomendados para resolver o problema..."
-                      />
-                    </div>
-
-                    <FileUploadUnificado
-                      label="10. Anexar Arquivos (Fotos gerais, croquis, etc)"
-                      files={etapa6Data.arquivosGerais || []}
-                      onFilesChange={(files) => setEtapa6Data({ ...etapa6Data, arquivosGerais: files })}
-                      disabled={isHistoricalNavigation}
-                      osId={osId || undefined}
-                    />
-                  </div>
-                </div>
+                <StepPrepararOrcamentos
+                  data={etapa6Data}
+                  onDataChange={setEtapa6Data}
+                  readOnly={isHistoricalNavigation}
+                  osId={osId}
+                />
               )}
 
               {/* ETAPA 7: Formulário Memorial (Escopo e Prazos) */}
@@ -1894,170 +1666,13 @@ export function OSDetailsWorkflowPage({
               )}
 
               {/* ETAPA 12: Follow-up 3 (Pós-Apresentação) */}
+              {/* ETAPA 12: Follow-up 3 (Análise e Relatório) */}
               {currentStep === 12 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Documente a reação do cliente após a apresentação da proposta comercial.
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Momento 1: Apresentação */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 1: Sobre a Apresentação</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="propostaApresentada">
-                        1. Qual a proposta apresentada? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="propostaApresentada"
-                        rows={3}
-                        value={etapa12Data.propostaApresentada}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, propostaApresentada: e.target.value })}
-                        placeholder="Descreva a proposta apresentada..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="metodoApresentacao">
-                        2. Qual o método de apresentação? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="metodoApresentacao"
-                        rows={2}
-                        value={etapa12Data.metodoApresentacao}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, metodoApresentacao: e.target.value })}
-                        placeholder="Ex: Presencial, Online, Slides..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="clienteAchouProposta">
-                        3. O que o cliente achou da proposta? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="clienteAchouProposta"
-                        rows={3}
-                        value={etapa12Data.clienteAchouProposta}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, clienteAchouProposta: e.target.value })}
-                        placeholder="Descreva a reação e comentários do cliente..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Momento 2: Contrato e Dores */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 2: Contrato e Dores do Cliente</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="clienteAchouContrato">
-                        4. O que o cliente achou do contrato? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="clienteAchouContrato"
-                        rows={3}
-                        value={etapa12Data.clienteAchouContrato}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, clienteAchouContrato: e.target.value })}
-                        placeholder="Descreva a opinião do cliente sobre o contrato..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="doresNaoAtendidas">
-                        5. Quais as dores do cliente não atendidas?
-                      </Label>
-                      <Textarea
-                        id="doresNaoAtendidas"
-                        rows={3}
-                        value={etapa12Data.doresNaoAtendidas}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, doresNaoAtendidas: e.target.value })}
-                        placeholder="Liste possíveis objeções ou pontos não atendidos..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="indicadorFechamento">
-                        6. Qual o indicador de fechamento da proposta? <span className="text-destructive">*</span>
-                      </Label>
-                      <Select
-                        value={etapa12Data.indicadorFechamento}
-                        onValueChange={(value: string) => setEtapa12Data({ ...etapa12Data, indicadorFechamento: value })}
-                        disabled={isHistoricalNavigation}
-                      >
-                        <SelectTrigger id="indicadorFechamento">
-                          <SelectValue placeholder="Selecione" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Fechado">Fechado</SelectItem>
-                          <SelectItem value="Quente">Quente</SelectItem>
-                          <SelectItem value="Morno">Morno</SelectItem>
-                          <SelectItem value="Frio">Frio</SelectItem>
-                          <SelectItem value="Perdido">Perdido</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  {/* Momento 3: Satisfação */}
-                  <div className="space-y-4">
-                    <div className="bg-neutral-100 px-4 py-2 rounded-md">
-                      <h3 className="text-sm font-medium">Momento 3: Satisfação do Cliente</h3>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="quemEstavaNaApresentacao">
-                        7. Quem estava na apresentação? <span className="text-destructive">*</span>
-                      </Label>
-                      <Textarea
-                        id="quemEstavaNaApresentacao"
-                        rows={2}
-                        value={etapa12Data.quemEstavaNaApresentacao}
-                        onChange={(e) => setEtapa12Data({ ...etapa12Data, quemEstavaNaApresentacao: e.target.value })}
-                        placeholder="Liste os participantes da reunião..."
-                        disabled={isHistoricalNavigation}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>
-                        8. Qual o nível de satisfação do cliente? <span className="text-destructive">*</span>
-                      </Label>
-                      <RadioGroup
-                        value={etapa12Data.nivelSatisfacao}
-                        onValueChange={(value: string) => setEtapa12Data({ ...etapa12Data, nivelSatisfacao: value })}
-                        disabled={isHistoricalNavigation}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Produtiva, cliente interessado" id="ns1" />
-                          <Label htmlFor="ns1" className="cursor-pointer">Produtiva, cliente interessado</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Pouco produtiva" id="ns2" />
-                          <Label htmlFor="ns2" className="cursor-pointer">Pouco produtiva</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Improdutiva" id="ns3" />
-                          <Label htmlFor="ns3" className="cursor-pointer">Improdutiva</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
-                  </div>
-                </div>
+                <StepAnaliseRelatorio
+                  data={etapa12Data}
+                  onDataChange={setEtapa12Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 13: Gerar Contrato (Upload) */}
@@ -2156,11 +1771,6 @@ export function OSDetailsWorkflowPage({
               totalSteps={TOTAL_WORKFLOW_STEPS}
               onPrevStep={handlePrevStep}
               onNextStep={handleNextStep}
-              nextButtonText={
-                currentStep === 4 && !etapa4Data.dataAgendamento
-                  ? "Avançar sem agendamento"
-                  : "Avançar"
-              }
               onSaveDraft={handleSaveRascunho}
               showDraftButton={DRAFT_ENABLED_STEPS.includes(currentStep)}
               disableNext={isLoading}
@@ -2175,14 +1785,6 @@ export function OSDetailsWorkflowPage({
         </div>
       </div>
 
-      {/* Modal de Agendamento da Etapa 4 */}
-      <ModalNovoAgendamento
-        open={modalAgendamentoAberto}
-        onClose={handleFecharModalAgendamento}
-        turno={turnoSelecionado}
-        dia={diaSelecionado}
-        onSuccess={handleAgendamentoSucesso}
-      />
     </div >
   );
 }

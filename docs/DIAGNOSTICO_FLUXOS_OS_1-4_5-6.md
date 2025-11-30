@@ -201,6 +201,7 @@ As **Fases 1, 2 e 3 foram concluídas com sucesso total**. A página de detalhes
 | **Error Tracking** | ❌ Ausente | ✅ Sentry | **100%** |
 | **Analytics** | ❌ Ausente | ✅ Vercel Analytics | **100%** |
 | **Feature Flags** | ❌ Ausente | ✅ Deploy gradual | **100%** |
+| **Validação Etapa 1** | ❌ Excessivamente rigorosa | ✅ Flexibilizada | **100%** |
 
 ### **🎯 CORREÇÕES CRÍTICAS IMPLEMENTADAS**
 
@@ -227,6 +228,17 @@ As **Fases 1, 2 e 3 foram concluídas com sucesso total**. A página de detalhes
   - CSS de impressão otimizado
   - Botão "Imprimir" integrado na página
   - Botão "Gerar Proposta" abre automaticamente a nova aba
+
+#### **🚨 VALIDAÇÃO EXCESSIVAMENTE RIGOROSA NA ETAPA 1 - CORRIGIDA**
+- **Problema**: Validação da edificação bloqueava avanço mesmo com dados mínimos preenchidos
+- **Sintoma**: Usuários não conseguiam avançar da Etapa 1 mesmo selecionando lead existente
+- **Causa Raiz**: Função `saveEdificacaoData` exigia TODOS os campos de edificação obrigatórios (tipo, CEP, endereço, número, bairro, cidade, estado)
+- **Solução Implementada**: Validação flexibilizada para permitir avanço com dados mínimos
+- **Implementação**:
+  - Mantido obrigatório apenas: **tipo de edificação**
+  - Adicionado requisito mínimo: **pelo menos um campo de endereço** (CEP, endereço, cidade ou estado)
+  - Permitido avanço com campos opcionais vazios (usuário pode preencher durante o fluxo)
+  - Mensagem de erro mais clara: "Preencha pelo menos o tipo de edificação e algum campo de endereço"
 
 #### **🚨 ERRO CRÍTICO CORRIGIDO - undefined.reduce()**
 - **Problema**: Erro "Cannot read properties of undefined (reading 'reduce')" na Etapa 9
@@ -256,4 +268,10 @@ As **Fases 1, 2 e 3 foram concluídas com sucesso total**. A página de detalhes
 - **🚀 Deploy Seguro**: Testes automatizados e rollout gradual
 - **🎯 Interface Otimizada**: Cards organizados por contexto (tab Geral)
 
-**🏆 O projeto está 100% pronto para produção com confiança total. Todas as correções críticas foram implementadas com sucesso, incluindo o bug da Etapa 9, o erro de undefined.reduce(), e a nova funcionalidade de abertura da proposta comercial em formato A3 para impressão.**
+**🏆 O projeto está 100% pronto para produção com confiança total. Todas as correções críticas foram implementadas com sucesso, incluindo:**
+
+- ✅ **Bug da Etapa 9**: Sincronização completa dos dados do cliente
+- ✅ **Erro undefined.reduce()**: Proteções de segurança nas funções de cálculo
+- ✅ **Validação Etapa 1**: Flexibilização da validação de edificação
+- ✅ **Proposta comercial**: Abertura em nova aba com formato A3 para impressão
+- ✅ **Rota de autenticação**: Correção do problema de acesso à proposta comercial

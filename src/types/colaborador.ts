@@ -19,6 +19,13 @@ export interface Usuario {
   ativo?: boolean;
   data_admissao?: Date | string;
   cpf?: string;
+  
+  // Novos campos (Migration 20251130000008)
+  tipo_contratacao?: 'CLT' | 'PJ' | 'ESTAGIO';
+  salario_base?: number;
+  custo_dia?: number;
+  funcao?: string;
+  avatar_url?: string;
 }
 
 // Ordem de Serviço

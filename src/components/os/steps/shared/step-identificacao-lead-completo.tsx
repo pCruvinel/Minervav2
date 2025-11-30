@@ -201,28 +201,18 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
             }
           });
 
-          // Validação básica dos campos obrigatórios de edificação
+          // Validação flexibilizada - apenas campos críticos obrigatórios
           const erros: any = {};
-          if (!formData.tipoEdificacao) {
+
+          // Campo crítico: tipo de edificação
+          if (!formData.tipoEdificacao || formData.tipoEdificacao.trim() === '') {
             erros.tipoEdificacao = 'Tipo de edificação é obrigatório';
           }
-          if (!formData.cep) {
-            erros.cep = 'CEP é obrigatório';
-          }
-          if (!formData.endereco) {
-            erros.endereco = 'Endereço é obrigatório';
-          }
-          if (!formData.numero) {
-            erros.numero = 'Número é obrigatório';
-          }
-          if (!formData.bairro) {
-            erros.bairro = 'Bairro é obrigatório';
-          }
-          if (!formData.cidade) {
-            erros.cidade = 'Cidade é obrigatória';
-          }
-          if (!formData.estado) {
-            erros.estado = 'Estado é obrigatório';
+
+          // Pelo menos um campo de endereço deve estar preenchido
+          const temAlgumEndereco = formData.cep || formData.endereco || formData.cidade || formData.estado;
+          if (!temAlgumEndereco) {
+            erros.endereco = 'Pelo menos um campo de endereço deve ser preenchido (CEP, endereço, cidade ou estado)';
           }
 
           logger.log('🔍 saveEdificacaoData: Erros encontrados:', erros);
@@ -232,7 +222,7 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
             Object.keys(erros).forEach(key => {
               markFieldTouched(key);
             });
-            toast.error('Preencha todos os campos obrigatórios da edificação');
+            toast.error('Preencha pelo menos o tipo de edificação e algum campo de endereço');
             logger.log('❌ saveEdificacaoData: Validação falhou');
             return false;
           }

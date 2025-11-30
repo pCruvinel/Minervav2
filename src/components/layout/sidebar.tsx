@@ -11,7 +11,7 @@ import {
   CreditCard,
   Plus,
   Kanban,
-  History,
+
   Receipt,
   TrendingUp,
   TrendingDown,
