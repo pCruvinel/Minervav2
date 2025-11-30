@@ -9,7 +9,7 @@ interface OSListHeaderProps {
 export function OSListHeader({ }: OSListHeaderProps) {
   return (
     <div className="flex items-center justify-between">
-      <h1>Ordens de Serviço</h1>
+      <h1>Painel de Ordens de Serviço</h1>
       <PrimaryButton asChild>
         <Link to="/os/criar">
           <Plus className="h-4 w-4 mr-2" />

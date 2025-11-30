@@ -143,12 +143,18 @@ export const etapa3Schema = z.object({
 export type Etapa3Data = z.infer<typeof etapa3Schema>;
 
 // ============================================================
-// ETAPA 4: Agendar Visita Técnica
+// ETAPA 4: Agendar Apresentação/Visita
 // ============================================================
 export const etapa4Schema = z.object({
+  // Campo novo: ID do agendamento no sistema centralizado
+  agendamentoId: z.string()
+    .optional()
+    .describe('ID do agendamento no sistema de calendário centralizado'),
+
+  // Campo legado mantido para compatibilidade
   dataAgendamento: z.string()
-    .min(1, { message: 'Agendamento é obrigatório' })
-    .describe('Data e horário agendados para a visita técnica'),
+    .optional()
+    .describe('Data e horário agendados (campo legado)'),
 
   // Campos legados mantidos para compatibilidade
   dataVisita: z.string()
@@ -167,10 +173,10 @@ export const etapa4Schema = z.object({
     .optional()
     .describe('Observações adicionais'),
 }).refine(
-  (data) => data.dataAgendamento || (data.dataVisita && data.horaVisita && data.responsavelVisita),
+  (data) => data.agendamentoId || data.dataAgendamento || (data.dataVisita && data.horaVisita && data.responsavelVisita),
   {
     message: 'Agendamento é obrigatório',
-    path: ['dataAgendamento'],
+    path: ['agendamentoId'],
   }
 );
 
@@ -491,24 +497,38 @@ export type Etapa11Data = z.infer<typeof etapa11Schema>;
 // ETAPA 12: Follow-up 3 (Pós-Apresentação)
 // ============================================================
 export const etapa12Schema = z.object({
-  dataFollowup3: z.string()
-    .min(1, { message: 'Data do follow-up é obrigatória' })
-    .describe('Data do follow-up pós-apresentação'),
+  propostaApresentada: z.string()
+    .optional()
+    .describe('Qual a proposta apresentada?'),
 
-  statusNegociacao: z.string()
-    .min(1, { message: 'Status da negociação é obrigatório' })
-    .describe('Status: Interessado/Negociando/Pronto/Rejeitado'),
+  metodoApresentacao: z.string()
+    .optional()
+    .describe('Qual o método de apresentação?'),
 
-  observacoesFollowup: z.string()
-    .min(10, { message: 'Observações devem ter pelo menos 10 caracteres' })
-    .describe('Observações do follow-up'),
-}).partial().refine(
-  (data) => data.dataFollowup3 && data.statusNegociacao,
-  {
-    message: 'Data e status são obrigatórios',
-    path: ['dataFollowup3'],
-  }
-);
+  clienteAchouProposta: z.string()
+    .optional()
+    .describe('O que o cliente achou da proposta?'),
+
+  clienteAchouContrato: z.string()
+    .optional()
+    .describe('O que o cliente achou do contrato?'),
+
+  doresNaoAtendidas: z.string()
+    .optional()
+    .describe('Quais dores não foram atendidas?'),
+
+  indicadorFechamento: z.string()
+    .optional()
+    .describe('Qual é o indicador de fechamento?'),
+
+  quemEstavaNaApresentacao: z.string()
+    .optional()
+    .describe('Quem estava presente na apresentação?'),
+
+  nivelSatisfacao: z.string()
+    .optional()
+    .describe('Nível de satisfação do cliente'),
+}).partial();
 
 export type Etapa12Data = z.infer<typeof etapa12Schema>;
 

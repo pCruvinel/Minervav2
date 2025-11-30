@@ -32,7 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -76,7 +76,6 @@ interface ResumoMensal {
 }
 
 export function ControlePresencaPage() {
-  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('diario');
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
   const [mesSelecionado, setMesSelecionado] = useState<Date>(new Date());
@@ -153,9 +152,7 @@ export function ControlePresencaPage() {
 
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao carregar dados',
+      toast.error('Erro ao carregar dados', {
         description: 'Não foi possível carregar a lista de colaboradores.'
       });
     } finally {
@@ -209,9 +206,7 @@ export function ControlePresencaPage() {
 
     } catch (error) {
       console.error('Erro ao buscar registros:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao buscar registros',
+      toast.error('Erro ao buscar registros', {
         description: 'Não foi possível carregar os registros do dia.'
       });
     }
@@ -291,9 +286,7 @@ export function ControlePresencaPage() {
 
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erro ao gerar relatório',
+      toast.error('Erro ao gerar relatório', {
         description: 'Não foi possível processar os dados do mês.'
       });
     } finally {
@@ -349,9 +342,7 @@ export function ControlePresencaPage() {
             if (url) anexoUrl = url;
           } catch (e) {
             console.error(`Erro upload ${col.nome_completo}:`, e);
-            toast({
-              variant: 'destructive',
-              title: `Erro no anexo de ${col.nome_completo}`,
+            toast.error(`Erro no anexo de ${col.nome_completo}`, {
               description: 'Não foi possível enviar o arquivo. Tente novamente.'
             });
             continue; // Pula este colaborador mas tenta salvar os outros? Ou aborta? Abortando para segurança.
@@ -367,7 +358,7 @@ export function ControlePresencaPage() {
           justificativa: reg.justificativa || null,
           performance: reg.performance,
           performance_justificativa: reg.performanceJustificativa || null,
-          centros_custo: reg.centros_custo,
+          centros_custo: reg.centrosCusto,
           anexo_url: anexoUrl,
           updated_at: new Date().toISOString()
         };
@@ -382,8 +373,7 @@ export function ControlePresencaPage() {
         if (error) throw error;
       }
 
-      toast({
-        title: "Presença registrada",
+      toast.success("Presença registrada", {
         description: `Dados de ${format(dataSelecionada, "dd/MM/yyyy")} salvos com sucesso.`,
       });
 
@@ -392,9 +382,7 @@ export function ControlePresencaPage() {
 
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      toast({
-        variant: 'destructive',
-        title: "Erro ao salvar",
+      toast.error("Erro ao salvar", {
         description: error.message || "Ocorreu um erro ao salvar os registros.",
       });
     } finally {
@@ -583,8 +571,8 @@ export function ControlePresencaPage() {
 
               return (
                 <Card key={colaborador.id} className={`transition-colors ${registro.status === 'FALTA' ? 'bg-red-50 border-red-200' :
-                    registro.status === 'FALTA_JUSTIFICADA' ? 'bg-orange-50 border-orange-200' :
-                      registro.status === 'ATRASADO' ? 'bg-yellow-50 border-yellow-200' : ''
+                  registro.status === 'FALTA_JUSTIFICADA' ? 'bg-orange-50 border-orange-200' :
+                    registro.status === 'ATRASADO' ? 'bg-yellow-50 border-yellow-200' : ''
                   }`}>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-6">

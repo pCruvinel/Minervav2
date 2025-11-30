@@ -49,7 +49,7 @@ const menuItems = [
     icon: FileText,
     submenu: [
       { id: 'os-criar', label: 'Nova OS', icon: Plus, to: '/os/criar' },
-      { id: 'os-list', label: 'Minhas OS', icon: Kanban, to: '/os' },
+      { id: 'os-list', label: 'Painel', icon: Kanban, to: '/os' },
     ]
   },
   {

@@ -218,7 +218,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const etapa3Data = formDataByStep[3] || { relatorioAnexado: '' };
   const etapa4Data = formDataByStep[4] || { imagemAnexada: '' };
   const etapa5Data = formDataByStep[5] || { cronogramaAnexado: '' };
-  const etapa6Data = formDataByStep[6] || { dataVisita: '' };
+  const etapa6Data = formDataByStep[6] || { dataVisita: '', agendamentoId: '' };
   const etapa7Data = formDataByStep[7] || { visitaRealizada: false };
   const etapa8Data = formDataByStep[8] || { histogramaAnexado: '' };
   const etapa9Data = formDataByStep[9] || { placaAnexada: '' };
@@ -228,7 +228,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
   const etapa13Data = formDataByStep[13] || { diarioAnexado: '' };
   const etapa14Data = formDataByStep[14] || { decisaoSeguro: '' };
   const etapa15Data = formDataByStep[15] || { arquivos: [] };
-  const etapa16Data = formDataByStep[16] || { dataVisitaFinal: '' };
+  const etapa16Data = formDataByStep[16] || { dataVisitaFinal: '', agendamentoId: '' };
   const etapa17Data = formDataByStep[17] || { visitaFinalRealizada: false };
 
   // Setters wrappers
@@ -269,7 +269,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     3: (data: any) => !!data.relatorioAnexado,
     4: (data: any) => !!data.imagemAnexada,
     5: (data: any) => !!data.cronogramaAnexado,
-    6: (data: any) => !!data.dataVisita,
+    6: (data: any) => !!(data.agendamentoId || data.dataVisita),
     7: (data: any) => !!data.visitaRealizada,
     8: (data: any) => !!data.histogramaAnexado,
     9: (data: any) => !!data.placaAnexada,
@@ -279,7 +279,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     13: (data: any) => !!data.diarioAnexado,
     14: (data: any) => !!data.decisaoSeguro,
     15: (data: any) => !!(data.arquivos && data.arquivos.length > 0),
-    16: (data: any) => !!data.dataVisitaFinal,
+    16: (data: any) => !!(data.agendamentoId || data.dataVisitaFinal),
     17: (data: any) => !!data.visitaFinalRealizada,
   }), [formDataByStep, selectedLeadId]);
 
@@ -384,7 +384,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
             {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 6 && <StepAgendarVisitaInicial data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 6 && osId && <StepAgendarVisitaInicial osId={osId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={osId} />}
@@ -394,7 +394,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
             {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={osId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 16 && <StepAgendarVisitaFinal data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 16 && osId && <StepAgendarVisitaFinal osId={osId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isHistoricalNavigation} />}
           </div>
         </Card>

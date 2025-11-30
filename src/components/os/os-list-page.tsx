@@ -3,7 +3,7 @@ import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Alert, AlertDescription } from '../ui/alert';
-import { FileDown, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileDown, Loader2, AlertCircle, RefreshCw, ClipboardList, AlertTriangle, Clock, CheckCircle2 } from 'lucide-react';
 import { User } from '../../lib/types';
 import { OSListHeader } from './os-list-header';
 import { OSFiltersCard } from './os-filters-card';
@@ -86,6 +86,20 @@ export function OSListPage({ currentUser }: OSListPageProps) {
     primeiras_3_OS: ordensServicoFromAPI?.slice(0, 3)
   });
 
+  // Calcular estatísticas para os cards
+  const stats = useMemo(() => {
+    const data = ordensServicoFromAPI || [];
+    // Filtrar apenas OS onde o usuário é responsável para os cards de "Minha Atuação"
+    const myOS = data.filter(os => os.responsavel_id === currentUser.id);
+
+    return {
+      total: myOS.length,
+      actionNeeded: myOS.filter(os => ['aguardando_aprovacao', 'atrasada'].includes(os.status_geral)).length,
+      inProgress: myOS.filter(os => os.status_geral === 'em_andamento').length,
+      completed: myOS.filter(os => os.status_geral === 'concluida').length
+    };
+  }, [ordensServicoFromAPI, currentUser.id]);
+
   // Filtrar OS baseado em filtros de UI
   // NOTA: A segurança real (RLS) é aplicada no banco de dados via Supabase Row Level Security
   // Este código é apenas para filtros de UI e fallback de exibição
@@ -166,6 +180,50 @@ export function OSListPage({ currentUser }: OSListPageProps) {
         {/* Header da Página */}
         <OSListHeader />
 
+        {/* Cards de Resumo */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Alocadas</CardTitle>
+              <ClipboardList className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stats.total}</div>
+              <p className="text-xs text-muted-foreground">Sob sua responsabilidade</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ação Necessária</CardTitle>
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-amber-600">{stats.actionNeeded}</div>
+              <p className="text-xs text-muted-foreground">Aguardando ou Atrasadas</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
+              <Clock className="h-4 w-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-600">{stats.inProgress}</div>
+              <p className="text-xs text-muted-foreground">Em execução ativa</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Concluídas</CardTitle>
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+              <p className="text-xs text-muted-foreground">Finalizadas</p>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Loading State */}
         {loading && (
           <Alert>
@@ -235,6 +293,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
           <CardContent>
             <OSTable
               ordensServico={ordensServico}
+              currentUser={currentUser}
               canViewSetorColumn={canViewSetorColumn}
               onCancelOS={handleCancelOS}
               isCancelling={isCancelling}

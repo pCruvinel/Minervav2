@@ -1,54 +1,49 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar } from 'lucide-react';
+import { Calendar, Loader2 } from 'lucide-react';
+import { AgendamentoOS } from '@/components/os/agendamento-os';
+import { useOS } from '@/lib/hooks/use-os';
 
 interface StepAgendarApresentacaoProps {
+  osId: string;
   data: {
-    dataAgendamento: string;
+    dataAgendamento?: string;
+    agendamentoId?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
 }
 
-export function StepAgendarApresentacao({ data, onDataChange, readOnly = false }: StepAgendarApresentacaoProps) {
+export function StepAgendarApresentacao({ osId, data, onDataChange, readOnly = false }: StepAgendarApresentacaoProps) {
+  // Buscar setor da OS
+  const { os, loading } = useOS(osId);
+  const setorSlug = os?.tipo_os?.setor?.slug || '';
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Alert>
         <Calendar className="h-4 w-4" />
         <AlertDescription>
-          Agende a apresentação da proposta comercial com o cliente.
+          Agende a apresentação da proposta comercial com o cliente usando o sistema de calendário.
         </AlertDescription>
       </Alert>
 
-      <div className="space-y-4">
-        <div>
-          <Label>Data e Hora do Agendamento</Label>
-          <Input
-            type="datetime-local"
-            value={data.dataAgendamento}
-            onChange={(e) => !readOnly && onDataChange({ dataAgendamento: e.target.value })}
-            disabled={readOnly}
-          />
-        </div>
-      </div>
-
-      {data.dataAgendamento && (
-        <Card className="bg-green-50 border-green-200">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-green-600" />
-              <div>
-                <div className="text-sm">Apresentação agendada para:</div>
-                <div className="text-base">
-                  {new Date(data.dataAgendamento).toLocaleString('pt-BR')}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      <AgendamentoOS
+        osId={osId}
+        categoria="Apresentação de Proposta"
+        setorSlug={setorSlug}
+        agendamentoId={data.agendamentoId}
+        onAgendamentoChange={(id) => onDataChange({ ...data, agendamentoId: id })}
+        readOnly={readOnly}
+        dataLegacy={data.dataAgendamento}
+      />
     </div>
   );
 }

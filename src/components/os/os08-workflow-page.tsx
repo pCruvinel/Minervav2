@@ -86,7 +86,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
   };
 
   const etapa2Data = formDataByStep[2] || { clienteId: '' };
-  const etapa3Data = formDataByStep[3] || { dataAgendamento: '' };
+  const etapa3Data = formDataByStep[3] || { dataAgendamento: '', agendamentoId: '' };
   const etapa4Data = formDataByStep[4] || { visitaRealizada: false, dataRealizacao: '' };
   const etapa5Data = formDataByStep[5] || {
     pontuacaoEngenheiro: '',
@@ -121,7 +121,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
   const completionRules = useMemo(() => ({
     1: (data: any) => !!(data.nomeCompleto && data.contatoWhatsApp && data.tipoDocumento),
     2: (data: any) => !!data.clienteId,
-    3: (data: any) => !!data.dataAgendamento,
+    3: (data: any) => !!(data.agendamentoId || data.dataAgendamento),
     4: (data: any) => !!(data.visitaRealizada && data.dataRealizacao),
     5: (data: any) => !!(data.resultadoVisita && data.tipoDocumento),
     6: (data: any) => !!(data.documentoGerado && data.documentoUrl),
@@ -233,8 +233,9 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             )}
 
             {/* ETAPA 3: Agendar Visita */}
-            {currentStep === 3 && (
+            {currentStep === 3 && osId && (
               <StepAgendarVisita
+                osId={osId}
                 data={etapa3Data}
                 onDataChange={setEtapa3Data}
                 readOnly={isHistoricalNavigation}

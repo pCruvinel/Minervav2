@@ -1,101 +1,49 @@
-import React from 'react';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar as CalendarIcon, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/components/ui/utils';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { AgendamentoOS } from '@/components/os/agendamento-os';
+import { useOS } from '@/lib/hooks/use-os';
 
 export interface StepAgendarVisitaInicialProps {
-  data: { dataVisita: string };
+  osId: string;
+  data: {
+    dataVisita?: string;
+    agendamentoId?: string;
+  };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
 }
 
-export function StepAgendarVisitaInicial({ data, onDataChange, readOnly }: StepAgendarVisitaInicialProps) {
-  const dataVisita = data.dataVisita ? new Date(data.dataVisita) : undefined;
-  const isComplete = !!data.dataVisita;
+export function StepAgendarVisitaInicial({ osId, data, onDataChange, readOnly }: StepAgendarVisitaInicialProps) {
+  // Buscar setor da OS
+  const { os, loading } = useOS(osId);
+  const setorSlug = os?.tipo_os?.setor?.slug || '';
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      onDataChange({ dataVisita: date.toISOString() });
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Agendar Visita Inicial</h2>
         <p className="text-sm text-neutral-600">
-          Agende a data da visita técnica inicial para verificação das condições da obra
+          Agende a visita técnica inicial para verificação das condições da obra usando o sistema de calendário
         </p>
       </div>
 
-      {/* Status */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
-        <div className="flex items-start gap-4">
-          <div 
-            className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: isComplete ? '#10b981' : '#DDC063' }}
-          >
-            {isComplete ? (
-              <CheckCircle2 className="w-6 h-6 text-white" />
-            ) : (
-              <CalendarIcon className="w-6 h-6 text-white" />
-            )}
-          </div>
-          
-          <div className="flex-1">
-            <h3 className="text-base mb-2">
-              {isComplete ? 'Visita agendada!' : 'Aguardando agendamento'}
-            </h3>
-            {isComplete && dataVisita ? (
-              <p className="text-sm text-neutral-600">
-                Visita agendada para: <strong>{format(dataVisita, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</strong>
-              </p>
-            ) : (
-              <p className="text-sm text-neutral-600">
-                Selecione uma data no calendário abaixo
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Calendário */}
-      <div className="space-y-3">
-        <label className="text-sm">
-          Selecione a Data da Visita <span className="text-red-500">*</span>
-        </label>
-        
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                'w-full justify-start text-left',
-                !dataVisita && 'text-muted-foreground'
-              )}
-              disabled={readOnly}
-            >
-              <CalendarIcon className="mr-2 h-4 w-4" />
-              {dataVisita ? format(dataVisita, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="single"
-              selected={dataVisita}
-              onSelect={handleDateSelect}
-              locale={ptBR}
-              disabled={(date: Date) => date < new Date() || !!readOnly}
-              initialFocus
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+      <AgendamentoOS
+        osId={osId}
+        categoria="Vistoria Inicial"
+        setorSlug={setorSlug}
+        agendamentoId={data.agendamentoId}
+        onAgendamentoChange={(id) => onDataChange({ ...data, agendamentoId: id })}
+        readOnly={readOnly}
+        dataLegacy={data.dataVisita}
+      />
 
       <Alert>
         <AlertCircle className="h-4 w-4" />

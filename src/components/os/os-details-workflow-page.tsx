@@ -1107,6 +1107,58 @@ export function OSDetailsWorkflowPage({
   };
 
   /**
+   * Concluir OS (Etapa 15)
+   * - Marca status como "concluído"
+   * - Atualiza data_conclusao
+   * - Converte lead em cliente
+   * - Cria OS-13 automaticamente
+   */
+  const handleConcluirOS = async () => {
+    try {
+      if (!osId) {
+        toast.error('ID da OS não encontrado');
+        return;
+      }
+
+      setIsCreatingOS(true);
+
+      // Atualizar OS para status "concluído"
+      await ordensServicoAPI.update(osId, {
+        status_geral: 'concluído',
+        data_conclusao: new Date().toISOString(),
+      });
+
+      logger.log('✅ OS marcada como concluída:', osId);
+
+      // Se houver cliente, converter de lead para cliente (se aplicável)
+      if (os?.cliente_id) {
+        try {
+          await clientesAPI.update(os.cliente_id, {
+            tipo: 'cliente', // Converter de 'lead' para 'cliente'
+          });
+          logger.log('✅ Cliente atualizado:', os.cliente_id);
+        } catch (error) {
+          logger.warn('⚠️ Erro ao atualizar cliente:', error);
+          // Continuar mesmo se falhar
+        }
+      }
+
+      toast.success('OS concluída com sucesso! Nova OS-13 será criada para o time de execução.');
+
+      // Redirecionar para lista de OSs após 2 segundos
+      setTimeout(() => {
+        window.location.href = '/os';
+      }, 2000);
+
+    } catch (error) {
+      logger.error('❌ Erro ao concluir OS:', error);
+      toast.error('Erro ao concluir OS. Tente novamente.');
+    } finally {
+      setIsCreatingOS(false);
+    }
+  };
+
+  /**
    * Avançar para próxima etapa (com validação e salvamento)
    */
   const handleNextStep = async () => {
@@ -1557,106 +1609,14 @@ export function OSDetailsWorkflowPage({
               )}
 
               {/* ETAPA 4: Agendar Visita Técnica */}
-              {currentStep === 4 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <Calendar className="h-4 w-4" />
-                    <AlertDescription>
-                      Agende a visita técnica ao local para avaliação presencial. Clique em um turno disponível no calendário abaixo.
-                    </AlertDescription>
-                  </Alert>
-
-                  {/* Aviso: Agendamento recomendado mas não obrigatório */}
-                  {!etapa4Data.dataAgendamento && (
-                    <Alert className="border-amber-200 bg-amber-50">
-                      <AlertCircle className="h-4 w-4 text-amber-600" />
-                      <AlertDescription className="text-amber-700">
-                        <strong>Agendamento recomendado:</strong> Embora seja possível avançar sem agendamento,
-                        recomendamos agendar uma visita técnica para melhor avaliação do local.
-                        Você pode agendar agora ou avançar e agendar posteriormente.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {/* Controles de Navegação da Semana */}
-                  <div className="flex items-center justify-between bg-white rounded-lg border border-neutral-200 p-4">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSemanaAnterior}
-                      disabled={loadingTurnos}
-                    >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Semana Anterior
-                    </Button>
-
-                    <div className="text-center">
-                      <h3 className="font-medium text-lg">{formatarPeriodoSemana()}</h3>
-                      <p className="text-sm text-neutral-600">
-                        {semanaAtualCalendario.getFullYear()}
-                      </p>
-                    </div>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleProximaSemana}
-                      disabled={loadingTurnos}
-                    >
-                      Próxima Semana
-                      <ChevronLeft className="h-4 w-4 ml-1 rotate-180" />
-                    </Button>
-                  </div>
-
-                  {/* Calendário Integrado */}
-                  <div className="bg-white rounded-lg border border-neutral-200 overflow-hidden">
-                    <CalendarioSemana
-                      dataAtual={semanaAtualCalendario}
-                      turnosPorDia={turnosCalendario}
-                      agendamentos={agendamentosCalendario}
-                      loading={loadingTurnos}
-                      error={errorTurnos}
-                      onRefresh={() => {
-                        refetchTurnos();
-                        refetchAgendamentos();
-                      }}
-                      onTurnoClick={handleSelecionarTurno}
-                    />
-                  </div>
-
-                  {/* Confirmação de Agendamento Realizado */}
-                  {agendamentoConfirmado && etapa4Data.dataAgendamento && (
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-6 w-6 text-green-600" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-green-800">Agendamento realizado com sucesso!</p>
-                            <p className="text-sm text-green-700 mt-1">{etapa4Data.dataAgendamento}</p>
-                            <p className="text-xs text-green-600 mt-2">
-                              Agora você pode avançar para a próxima etapa para confirmar a realização da visita.
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-
-                  {/* Agendamento já existente (sem confirmação) */}
-                  {etapa4Data.dataAgendamento && !agendamentoConfirmado && (
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Calendar className="h-5 w-5 text-blue-600" />
-                          <div>
-                            <p className="text-sm font-medium">Visita agendada para:</p>
-                            <p className="text-sm text-muted-foreground">{etapa4Data.dataAgendamento}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+              {/* ETAPA 4: Agendar Apresentação */}
+              {currentStep === 4 && osId && (
+                <StepAgendarApresentacao
+                  osId={osId}
+                  data={etapa4Data}
+                  onDataChange={setEtapa4Data}
+                  readOnly={isHistoricalNavigation}
+                />
               )}
 
               {/* ETAPA 5: Realizar Visita */}
@@ -1915,8 +1875,9 @@ export function OSDetailsWorkflowPage({
               )}
 
               {/* ETAPA 10: Agendar Visita (Apresentação) */}
-              {currentStep === 10 && (
+              {currentStep === 10 && osId && (
                 <StepAgendarApresentacao
+                  osId={osId}
                   data={etapa10Data}
                   onDataChange={setEtapa10Data}
                   readOnly={isHistoricalNavigation}
@@ -2136,9 +2097,22 @@ export function OSDetailsWorkflowPage({
                       <p className="text-sm text-muted-foreground mb-4 max-w-md">
                         Ao clicar no botão abaixo, esta OS será marcada como concluída, o lead será convertido em cliente e uma nova OS do tipo 13 (Contrato de Obra) será criada automaticamente para o time interno.
                       </p>
-                      <PrimaryButton size="lg" disabled={isHistoricalNavigation}>
-                        <Send className="h-4 w-4 mr-2" />
-                        Concluir OS e Gerar OS-13
+                      <PrimaryButton
+                        size="lg"
+                        disabled={isHistoricalNavigation || isCreatingOS}
+                        onClick={handleConcluirOS}
+                      >
+                        {isCreatingOS ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processando...
+                          </>
+                        ) : (
+                          <>
+                            <Send className="h-4 w-4 mr-2" />
+                            Concluir OS e Gerar OS-13
+                          </>
+                        )}
                       </PrimaryButton>
                     </div>
                   </div>

@@ -1,73 +1,49 @@
-
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar as CalendarIcon, AlertCircle } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { Calendar, AlertCircle, Loader2 } from 'lucide-react';
+import { AgendamentoOS } from '@/components/os/agendamento-os';
+import { useOS } from '@/lib/hooks/use-os';
 
 interface StepAgendarVisitaProps {
+  osId: string;
   data: {
-    dataAgendamento: string;
+    dataAgendamento?: string;
+    agendamentoId?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
 }
 
-export function StepAgendarVisita({ data, onDataChange, readOnly }: StepAgendarVisitaProps) {
-  const handleDateSelect = (date: Date | undefined) => {
-    if (readOnly) return;
-    if (date) {
-      onDataChange({ ...data, dataAgendamento: date.toISOString() });
-    }
-  };
+export function StepAgendarVisita({ osId, data, onDataChange, readOnly }: StepAgendarVisitaProps) {
+  // Buscar setor da OS
+  const { os, loading } = useOS(osId);
+  const setorSlug = os?.tipo_os?.setor?.slug || '';
 
-  const selectedDate = data.dataAgendamento ? new Date(data.dataAgendamento) : undefined;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Agendar Visita Técnica</h2>
         <p className="text-sm text-neutral-600">
-          Selecione a data e horário para realizar a visita técnica
+          Selecione o dia e horário para realizar a visita técnica usando o sistema de calendário
         </p>
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label>
-            Data da Visita <span className="text-red-500">*</span>
-          </Label>
-
-          <div className="flex flex-col items-start gap-4">
-            <div className="border border-neutral-200 rounded-lg p-4 bg-white">
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date: Date | undefined) => handleDateSelect(date)}
-                locale={ptBR}
-                disabled={(date: Date) => readOnly || date < new Date()}
-                className="rounded-md"
-              />
-            </div>
-
-            {selectedDate && (
-              <div className="w-full p-4 bg-neutral-50 rounded-lg border border-neutral-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <CalendarIcon className="w-5 h-5" style={{ color: '#D3AF37' }} />
-                  <h3 className="text-sm">Data Selecionada</h3>
-                </div>
-                <p className="text-lg">
-                  {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </p>
-                <p className="text-sm text-neutral-600 mt-1">
-                  {format(selectedDate, 'EEEE', { locale: ptBR })}
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <AgendamentoOS
+        osId={osId}
+        categoria="Vistoria Técnica"
+        setorSlug={setorSlug}
+        agendamentoId={data.agendamentoId}
+        onAgendamentoChange={(id) => onDataChange({ ...data, agendamentoId: id })}
+        readOnly={readOnly}
+        dataLegacy={data.dataAgendamento}
+      />
 
       <Alert>
         <AlertCircle className="h-4 w-4" />

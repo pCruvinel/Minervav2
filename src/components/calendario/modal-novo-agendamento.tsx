@@ -33,7 +33,8 @@ const categorias = [
   'Vistoria Inicial',
   'Apresentação de Proposta',
   'Vistoria Técnica',
-  'Visita Semanal'
+  'Visita Semanal',
+  'Vistoria Final'
 ];
 
 
