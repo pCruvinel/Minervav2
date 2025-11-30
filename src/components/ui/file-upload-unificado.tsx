@@ -131,7 +131,16 @@ export function FileUploadUnificado({
                     comment: ''
                 };
 
-                uploadedFiles.push(fileWithComment);
+                // Para compatibilidade com schema de Etapa 3: { id?, url, nome, tamanho? }
+                // Transformar antes de enviar ao callback
+                const fileForSchema = {
+                    id: fileWithComment.id,
+                    url: fileWithComment.url,
+                    nome: fileWithComment.name,  // Mapear 'name' para 'nome'
+                    tamanho: fileWithComment.size  // Mapear 'size' para 'tamanho'
+                };
+
+                uploadedFiles.push(fileForSchema as unknown as FileWithComment);
             }
 
             onFilesChange([...files, ...uploadedFiles]);
