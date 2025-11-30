@@ -52,6 +52,25 @@ const DEFAULT_ACCEPTED_TYPES = [
 
 const DEFAULT_ACCEPTED_EXTENSIONS = '.pdf,.docx,.jpg,.jpeg,.png';
 
+// Helper: Converte formato do schema { id?, url, nome, tamanho? } para FileWithComment
+function normalizeFileFromSchema(file: any): FileWithComment {
+    // Se já é FileWithComment (tem name, size, type), retorna como está
+    if (file.name && file.type !== undefined) {
+        return file;
+    }
+    // Se é formato do schema, converte para FileWithComment
+    return {
+        id: file.id || '',
+        name: file.nome || '',
+        url: file.url || '',
+        path: '',
+        size: file.tamanho || 0,
+        type: '', // Não temos o tipo original no schema
+        uploadedAt: new Date().toISOString(),
+        comment: ''
+    };
+}
+
 export function FileUploadUnificado({
     label,
     files,
@@ -68,13 +87,16 @@ export function FileUploadUnificado({
     const [dragOver, setDragOver] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Normalizar files em caso de vir do schema
+    const normalizedFiles = files.map(normalizeFileFromSchema);
+
     const handleFileSelect = async (selectedFiles: FileList | null) => {
         if (!selectedFiles || selectedFiles.length === 0) return;
 
         const filesArray = Array.from(selectedFiles);
 
         // Check file limits
-        if (files.length + filesArray.length > maxFiles) {
+        if (normalizedFiles.length + filesArray.length > maxFiles) {
             toast.error(`Máximo de ${maxFiles} arquivos permitidos`);
             return;
         }
@@ -131,19 +153,10 @@ export function FileUploadUnificado({
                     comment: ''
                 };
 
-                // Para compatibilidade com schema de Etapa 3: { id?, url, nome, tamanho? }
-                // Transformar antes de enviar ao callback
-                const fileForSchema = {
-                    id: fileWithComment.id,
-                    url: fileWithComment.url,
-                    nome: fileWithComment.name,  // Mapear 'name' para 'nome'
-                    tamanho: fileWithComment.size  // Mapear 'size' para 'tamanho'
-                };
-
-                uploadedFiles.push(fileForSchema as unknown as FileWithComment);
+                uploadedFiles.push(fileWithComment);
             }
 
-            onFilesChange([...files, ...uploadedFiles]);
+            onFilesChange([...normalizedFiles, ...uploadedFiles]);
             toast.success(`${uploadedFiles.length} arquivo(s) enviado(s) com sucesso`);
 
             // Reset file input
@@ -269,7 +282,7 @@ export function FileUploadUnificado({
             <div className="flex items-center justify-between">
                 <Label className="text-base font-medium">{label}</Label>
                 <Badge variant="outline" className="text-xs">
-                    {files.length}/{maxFiles} arquivos
+                    {normalizedFiles.length}/{maxFiles} arquivos
                 </Badge>
             </div>
 
@@ -293,7 +306,7 @@ export function FileUploadUnificado({
                             multiple
                             accept={DEFAULT_ACCEPTED_EXTENSIONS}
                             onChange={(e) => handleFileSelect(e.target.files)}
-                            disabled={disabled || uploading || files.length >= maxFiles}
+                            disabled={disabled || uploading || normalizedFiles.length >= maxFiles}
                             className="hidden"
                         />
 
@@ -301,7 +314,7 @@ export function FileUploadUnificado({
                             type="button"
                             variant="outline"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={disabled || uploading || files.length >= maxFiles}
+                            disabled={disabled || uploading || normalizedFiles.length >= maxFiles}
                             className="mb-4"
                         >
                             {uploading ? (
@@ -328,9 +341,9 @@ export function FileUploadUnificado({
             </Card>
 
             {/* Files List */}
-            {files.length > 0 && (
+            {normalizedFiles.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {files.map((file) => (
+                    {normalizedFiles.map((file) => (
                         <Card key={file.id} className="overflow-hidden">
                             <CardContent className="p-4">
                                 {/* File Preview */}
@@ -429,7 +442,7 @@ export function FileUploadUnificado({
                 </div>
             )}
 
-            {files.length === 0 && (
+            {normalizedFiles.length === 0 && (
                 <Card className="bg-gray-50 border-dashed">
                     <CardContent className="pt-6 text-center text-sm text-gray-500">
                         Nenhum arquivo enviado ainda

@@ -414,7 +414,14 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             files={data.anexos || []}
             onFilesChange={(files) => {
               console.log('📁 Updating files:', files);
-              onDataChange({ ...safeData, anexos: files });
+              // Transformar para formato do schema: { id?, url, nome, tamanho? }
+              const filesForSchema = files.map((file: any) => ({
+                id: file.id,
+                url: file.url,
+                nome: file.name || file.nome,  // Handle both formats
+                tamanho: file.size || file.tamanho,  // Handle both formats
+              }));
+              onDataChange({ ...safeData, anexos: filesForSchema });
             }}
             disabled={readOnly}
             osId={osId}
