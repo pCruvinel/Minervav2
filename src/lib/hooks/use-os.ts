@@ -58,8 +58,8 @@ const osAPI = {
           id,
           nome,
           codigo,
-          setor_id,
-          setor:setor_id (
+          setor_padrao_id,
+          setor:setor_padrao_id (
             id,
             nome,
             slug

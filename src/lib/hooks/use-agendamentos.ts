@@ -205,7 +205,12 @@ const agendamentosAPI = {
   /**
    * Obter um agendamento específico
    */
-  async getById(id: string): Promise<AgendamentoComTurno> {
+  async getById(id?: string): Promise<AgendamentoComTurno | null> {
+    // Validação: previne query com UUID vazio ou undefined
+    if (!id) {
+      return null;
+    }
+
     const { data, error } = await supabase
       .from('agendamentos')
       .select(`
@@ -427,7 +432,7 @@ export function useAgendamentosPorData(data: string) {
 /**
  * Hook para obter um agendamento específico
  */
-export function useAgendamento(id: string) {
+export function useAgendamento(id?: string) {
   return useApi(
     () => agendamentosAPI.getById(id),
     {
