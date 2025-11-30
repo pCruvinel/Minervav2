@@ -134,9 +134,9 @@ export const etapa3Schema = z.object({
     nome: z.string(),
     tamanho: z.number().optional(),
   }))
-    .optional()
     .nullable()
     .default([])
+    .optional()
     .describe('Arquivos anexados (escopo, laudo, fotos)'),
 });
 
