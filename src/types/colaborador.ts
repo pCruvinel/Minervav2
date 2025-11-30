@@ -7,6 +7,7 @@ export type UserSetor = SetorSlug;
 export interface Usuario {
   id: string;
   nome: string;
+  nome_completo?: string;
   email?: string;
   role_nivel: UserRole;
   setor: UserSetor;
@@ -27,6 +28,8 @@ export interface Usuario {
   funcao?: string;
   avatar_url?: string;
 }
+
+export type Colaborador = Usuario;
 
 // Ordem de Serviço
 export type TipoOS = 

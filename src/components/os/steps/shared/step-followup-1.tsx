@@ -96,33 +96,29 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
         // Valida todo o formulário e popula objeto de erros
         const isValid = validateAll(data);
 
-        // Debug: Log detalhado da validação
-        console.log('[STEP-FOLLOWUP-1] ✅ Iniciando validação', {
+        // Debug: Log detalhado - MOSTRAR VALORES ATUAIS ANTES DE VALIDAR
+        console.log('[STEP-FOLLOWUP-1] 🔍 Dados para validação:', {
+          idadeEdificacao: safeData.idadeEdificacao,
+          motivoProcura: safeData.motivoProcura,
+          quandoAconteceu: safeData.quandoAconteceu,
+          grauUrgencia: safeData.grauUrgencia,
+          apresentacaoProposta: safeData.apresentacaoProposta,
+          nomeContatoLocal: safeData.nomeContatoLocal,
+          telefoneContatoLocal: safeData.telefoneContatoLocal,
+        });
+
+        console.log('[STEP-FOLLOWUP-1] ✅ Resultado validação:', {
           isValid,
-          dataKeys: Object.keys(data),
-          errorsFound: Object.keys(errors),
-          errorDetails: errors,
-          safeDataValues: {
-            idadeEdificacao: safeData.idadeEdificacao,
-            motivoProcura: safeData.motivoProcura?.substring(0, 20) + '...',
-            quandoAconteceu: safeData.quandoAconteceu?.substring(0, 20) + '...',
-            grauUrgencia: safeData.grauUrgencia,
-            apresentacaoProposta: safeData.apresentacaoProposta?.substring(0, 20) + '...',
-            nomeContatoLocal: safeData.nomeContatoLocal,
-            telefoneContatoLocal: safeData.telefoneContatoLocal,
-          }
+          errorsKeys: Object.keys(errors)
         });
 
         // Se houver erros, scroll para o primeiro campo inválido
         if (!isValid) {
-          console.warn('[STEP-FOLLOWUP-1] ❌ Validação falhou!', {
-            errorFields: Object.keys(errors),
-            firstError: Object.keys(errors)[0],
-            allErrors: errors
-          });
+          console.warn('[STEP-FOLLOWUP-1] ❌ Validação falhou! Erros:', errors);
           // Encontra o primeiro campo com erro e faz scroll
           const firstErrorField = Object.keys(errors)[0];
           if (firstErrorField) {
+            console.log('[STEP-FOLLOWUP-1] 📍 Scrolling para campo:', firstErrorField);
             const element = document.getElementById(firstErrorField);
             if (element) {
               element.scrollIntoView({ behavior: 'smooth', block: 'center' });

@@ -1,22 +1,18 @@
 import { useState, useEffect } from 'react';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, getDay, parseISO } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   Calendar as CalendarIcon,
   Search,
   Save,
-  Filter,
   CheckCircle2,
-  AlertCircle,
   Clock,
   XCircle,
-  FileText,
   Paperclip,
   DollarSign,
   Loader2,
   Download,
-  Eye,
-  Trash2
+  Eye
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -29,7 +25,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
