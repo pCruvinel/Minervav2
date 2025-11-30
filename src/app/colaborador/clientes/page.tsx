@@ -4,13 +4,17 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Building2, MapPin, Phone, Mail, Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Search, Building2, MapPin, Phone, Mail, Lock, History, Eye } from "lucide-react";
 import { mockClientes } from "@/lib/mock-data-colaborador";
+import { ClienteHistoricoCompleto } from "@/components/clientes/ClienteHistoricoCompleto";
 
 // Mock de dados - substituir por API real
 
 export default function ClientesConsultaPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [clienteHistoricoAberto, setClienteHistoricoAberto] = useState<string | null>(null);
 
   // Filtrar clientes pela busca
   const clientesFiltrados = mockClientes.filter(
@@ -91,6 +95,31 @@ export default function ClientesConsultaPage() {
                   >
                     {cliente.status}
                   </Badge>
+                </div>
+
+                {/* Botão Histórico Completo */}
+                <div className="mb-4">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="w-full border-[#D3AF37] text-[#D3AF37] hover:bg-[#D3AF37] hover:text-white"
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Ver Histórico Completo
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+                      <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                          <Eye className="w-5 h-5" />
+                          Histórico Completo - {cliente.nome}
+                        </DialogTitle>
+                      </DialogHeader>
+                      <ClienteHistoricoCompleto clienteId={cliente.id.toString()} />
+                    </DialogContent>
+                  </Dialog>
                 </div>
 
                 <div className="space-y-3">
