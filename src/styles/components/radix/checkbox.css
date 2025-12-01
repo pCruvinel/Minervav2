@@ -1,0 +1,207 @@
+/**
+ * Checkbox Component Styles - Radix UI
+ *
+ * Estilos específicos para garantir que o checkbox renderize corretamente.
+ * Prioriza a funcionalidade visual: check mark deve ser sempre visível quando marcado.
+ *
+ * @see src/components/ui/checkbox.tsx
+ */
+
+/* ==========================================
+ * CHECKBOX ROOT
+ * data-slot="checkbox"
+ * ========================================== */
+
+[data-slot='checkbox'] {
+  /* Dimensões consistentes */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+
+  /* Visual base */
+  border-radius: calc(var(--radius) / 2);
+  border-width: 1px;
+  border-style: solid;
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--background));
+
+  /* Transições suaves */
+  transition-property: background-color, border-color, color;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Cursor */
+  cursor: pointer;
+
+  /* Focus outline removido - será aplicado via focus-visible */
+  outline: none;
+}
+
+/* ==========================================
+ * CHECKBOX STATES
+ * ========================================== */
+
+/* Hover */
+[data-slot='checkbox']:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.5);
+  border-color: hsl(var(--input) / 0.8);
+}
+
+/* Focus visible - acessibilidade */
+[data-slot='checkbox']:focus-visible {
+  border-color: hsl(var(--ring));
+  outline: 3px solid hsl(var(--ring) / 0.5);
+  outline-offset: 2px;
+}
+
+/* Checked state - CRÍTICO */
+[data-slot='checkbox'][data-state='checked'] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Checked + Hover */
+[data-slot='checkbox'][data-state='checked']:hover:not(:disabled) {
+  background-color: hsl(var(--primary-hover));
+  border-color: hsl(var(--primary-hover));
+}
+
+/* Indeterminate state (se usado) */
+[data-slot='checkbox'][data-state='indeterminate'] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Disabled */
+[data-slot='checkbox']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Invalid/Error state */
+[data-slot='checkbox'][aria-invalid='true'] {
+  border-color: hsl(var(--error));
+  outline: 2px solid hsl(var(--error) / 0.2);
+  outline-offset: 0;
+}
+
+[data-slot='checkbox'][aria-invalid='true']:focus-visible {
+  outline: 3px solid hsl(var(--error) / 0.4);
+  outline-offset: 2px;
+}
+
+/* ==========================================
+ * CHECKBOX INDICATOR
+ * data-slot="checkbox-indicator"
+ * Container do ícone de check
+ * ========================================== */
+
+[data-slot='checkbox-indicator'] {
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+
+  /* Cor do ícone - herda do parent */
+  color: currentColor;
+
+  /* SEM transição - aparecer instantaneamente */
+  transition: none;
+}
+
+/* Garantir que o ícone SVG seja visível */
+[data-slot='checkbox-indicator'] svg {
+  /* Dimensões do CheckIcon */
+  width: 0.875rem;
+  height: 0.875rem;
+
+  /* Cor branca quando checked */
+  color: inherit;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+
+  /* Anti-aliasing para suavidade */
+  shape-rendering: geometricPrecision;
+}
+
+/* ==========================================
+ * CHECKBOX STATES - INDICATOR
+ * Garantir visibilidade do check mark
+ * ========================================== */
+
+/* Quando checked, o ícone deve ser branco */
+[data-slot='checkbox'][data-state='checked'] [data-slot='checkbox-indicator'] {
+  color: hsl(var(--primary-foreground));
+}
+
+[data-slot='checkbox'][data-state='checked'] [data-slot='checkbox-indicator'] svg {
+  color: hsl(var(--primary-foreground));
+  stroke: hsl(var(--primary-foreground));
+}
+
+/* Quando indeterminate, mostrar dash ao invés de check */
+[data-slot='checkbox'][data-state='indeterminate'] [data-slot='checkbox-indicator'] svg {
+  color: hsl(var(--primary-foreground));
+  stroke: hsl(var(--primary-foreground));
+}
+
+/* ==========================================
+ * ACESSIBILIDADE - DARK MODE PREP
+ * ========================================== */
+
+/* Preparação para dark mode (futuro) */
+@media (prefers-color-scheme: dark) {
+  [data-slot='checkbox'] {
+    /* Ajustes automáticos se necessário */
+  }
+}
+
+/* Reduzir animações se preferido pelo usuário */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='checkbox'] {
+    transition: none;
+  }
+}
+
+/* ==========================================
+ * CHECKBOX EM CONTEXTOS ESPECÍFICOS
+ * ========================================== */
+
+/* Dentro de formulários */
+form [data-slot='checkbox'] {
+  /* Garantir que não herde estilos indesejados */
+}
+
+/* Dentro de labels - aumentar área de clique */
+label [data-slot='checkbox'] {
+  /* Label já aumenta área de clique naturalmente */
+}
+
+/* ==========================================
+ * DEBUGGING
+ * Remover após verificação
+ * ========================================== */
+
+/* Descomentar para debug visual */
+/*
+[data-slot='checkbox'] {
+  outline: 2px solid red !important;
+}
+
+[data-slot='checkbox-indicator'] {
+  outline: 2px solid blue !important;
+}
+
+[data-slot='checkbox'][data-state='checked'] {
+  outline: 2px solid green !important;
+}
+*/

@@ -150,14 +150,15 @@ export function DashboardColaborador({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">Minhas Tarefas</h1>
-        <p className="text-muted-foreground">
-          Acompanhe suas ordens de serviço e delegações
-        </p>
-      </div>
+    <div className="content-wrapper">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-semibold mb-2">Minhas Tarefas</h1>
+          <p className="text-muted-foreground">
+            Acompanhe suas ordens de serviço e delegações
+          </p>
+        </div>
 
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -366,6 +367,7 @@ export function DashboardColaborador({
             </div>
           </div>
         )}
+      </div>
       </div>
     </div>
   );

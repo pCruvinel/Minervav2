@@ -51,8 +51,12 @@ export function OSCreationHub({ onNavigate }: OSCreationHubProps) {
                 route: '/os/criar/assessoria-lead'
               },
               {
-                label: 'Start Contrato (OS 11, 12)',
-                route: '/os/criar/start-contrato-assessoria'
+                label: 'Laudo Pontual (OS 11)',
+                route: '/os/criar/laudo-pontual'
+              },
+              {
+                label: 'Assessoria Mensal/Anual (OS 12)',
+                route: '/os/criar/assessoria-recorrente'
               },
               {
                 label: 'Solicitação de Reforma (OS 07)',
@@ -90,7 +94,7 @@ export function OSCreationHub({ onNavigate }: OSCreationHubProps) {
             options={[
               {
                 label: 'Requisição de Mão de Obra (OS 10)',
-                route: '/os/criar/requisicao-mao-obra'
+                route: '/os/criar/requisicao-mao-de-obra'
               }
             ]}
             onNavigate={onNavigate}

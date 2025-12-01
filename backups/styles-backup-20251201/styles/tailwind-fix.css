@@ -110,17 +110,7 @@
   stroke-width: 2 !important;
 }
 
-/* Correção para elementos que podem estar invisíveis */
-* {
-  color: inherit !important;
-}
-
-/* Forçar visibilidade de elementos de formulário */
-input, button, select, textarea {
-  color: #18181b !important;
-  background-color: #ffffff !important;
-  border-color: #d4d4d8 !important;
-}
+/* Forçar visibilidade de elementos de formulário - REMOVIDO para não interferir com componentes personalizados */
 
 /* Correção específica para checkboxes */
 input[type="checkbox"] {
@@ -147,12 +137,7 @@ input[type="range"] {
   z-index: 1500 !important;
 }
 
-/* Correções para elementos interativos */
-button, input, select, textarea, [role="button"], [role="switch"] {
-  color: inherit !important;
-  background-color: inherit !important;
-  border-color: inherit !important;
-}
+/* Correções para elementos interativos - Removido para não interferir com componentes Radix UI */
 
 /* Correções específicas para elementos focados */
 *:focus-visible {
@@ -164,4 +149,47 @@ button, input, select, textarea, [role="button"], [role="switch"] {
 *:disabled {
   opacity: 0.5 !important;
   cursor: not-allowed !important;
+}
+
+/* ==========================================
+ * PROTEÇÕES PARA COMPONENTES RADIX UI
+ * Garante que estados visuais sejam preservados
+ * ========================================== */
+
+/* Checkbox - Garantir que o ícone Check seja visível quando marcado */
+[data-slot="checkbox"][data-state="checked"] {
+  background-color: #D3AF37 !important;  /* primary */
+  border-color: #D3AF37 !important;
+}
+
+[data-slot="checkbox-indicator"] svg {
+  color: #ffffff !important;  /* Ícone branco quando marcado */
+  stroke: #ffffff !important;
+}
+
+/* RadioGroup - Garantir que o círculo seja visível quando selecionado */
+[data-slot="radio-group-item"][data-state="checked"] {
+  border-color: #D3AF37 !important;  /* primary */
+}
+
+[data-slot="radio-group-indicator"] svg {
+  fill: #D3AF37 !important;  /* Círculo dourado quando selecionado */
+  color: #D3AF37 !important;
+}
+
+/* Slider - Garantir que a faixa e thumb sejam visíveis */
+[data-slot="slider-track"] {
+  background-color: #e4e4e7 !important;  /* neutral-200 - trilha cinza */
+  position: relative !important;
+}
+
+[data-slot="slider-range"] {
+  background-color: #D3AF37 !important;  /* primary - preenchimento dourado */
+  position: absolute !important;
+}
+
+[data-slot="slider-thumb"] {
+  border-color: #D3AF37 !important;  /* primary */
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1) !important;
 }

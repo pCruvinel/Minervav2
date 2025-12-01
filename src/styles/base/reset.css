@@ -1,0 +1,246 @@
+/**
+ * CSS Reset Moderno - Sistema Minerva
+ *
+ * Baseado em:
+ * - Josh Comeau's CSS Reset
+ * - Modern Normalize
+ * - Tailwind Preflight
+ *
+ * Objetivo: Criar base consistente cross-browser sem opiniões de estilo
+ */
+
+/* ==========================================
+ * 1. Box Sizing e Margens
+ * ========================================== */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ==========================================
+ * 2. Document e Body
+ * ========================================== */
+
+html {
+  /* Previne ajustes de fonte em mudanças de orientação no iOS */
+  -webkit-text-size-adjust: 100%;
+  /* Suaviza fontes em todos os browsers */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Remove highlight em toque no mobile */
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  /* Line height natural e melhor para leitura */
+  line-height: 1.5;
+  /* Permite que o body cresça */
+  min-height: 100vh;
+}
+
+/* ==========================================
+ * 3. Elementos de Mídia
+ * ========================================== */
+
+img,
+picture,
+video,
+canvas,
+svg {
+  /* Elementos de mídia são block por padrão */
+  display: block;
+  /* Previne overflow */
+  max-width: 100%;
+  height: auto;
+}
+
+/* ==========================================
+ * 4. Elementos de Formulário
+ * ========================================== */
+
+input,
+button,
+textarea,
+select {
+  /* Herda a fonte do documento */
+  font: inherit;
+  /* Remove estilos padrão do navegador */
+  color: inherit;
+}
+
+/* Remove estilos padrão de button */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Remove spinner de inputs numéricos */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+/* Remove X de inputs search no IE/Edge */
+input[type='search']::-webkit-search-decoration,
+input[type='search']::-webkit-search-cancel-button,
+input[type='search']::-webkit-search-results-button,
+input[type='search']::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+}
+
+/* ==========================================
+ * 5. Tipografia
+ * ========================================== */
+
+/* Remove estilos de lista */
+ul,
+ol {
+  list-style: none;
+}
+
+/* Melhora quebra de palavras longas */
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  overflow-wrap: break-word;
+  /* Previne overflow de texto */
+  word-wrap: break-word;
+  /* Hyphens para quebra mais natural */
+  hyphens: auto;
+}
+
+/* ==========================================
+ * 6. Links
+ * ========================================== */
+
+a {
+  /* Remove underline padrão */
+  text-decoration: none;
+  /* Herda cor do pai */
+  color: inherit;
+}
+
+/* ==========================================
+ * 7. Acessibilidade
+ * ========================================== */
+
+/* Foco visível para navegação por teclado */
+:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Remove outline padrão (será substituído por focus-visible) */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ==========================================
+ * 8. Elementos Interativos
+ * ========================================== */
+
+/* Previne double-tap zoom em iOS */
+button,
+[role='button'],
+a {
+  touch-action: manipulation;
+}
+
+/* Cursor pointer para elementos clicáveis */
+[role='button'],
+[role='link'],
+[role='menuitem'],
+[role='tab'] {
+  cursor: pointer;
+}
+
+/* ==========================================
+ * 9. Disabled States
+ * ========================================== */
+
+:disabled,
+[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ==========================================
+ * 10. Root Container
+ * ========================================== */
+
+#root {
+  /* Garante que o container raiz ocupe toda altura */
+  min-height: 100vh;
+  /* Isola o stacking context */
+  isolation: isolate;
+}
+
+/* ==========================================
+ * 11. Scrollbar (WebKit)
+ * ========================================== */
+
+/* Customização leve de scrollbar para consistência */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ==========================================
+ * 12. Selection
+ * ========================================== */
+
+::selection {
+  /* Cor de seleção customizada será aplicada via variáveis */
+  background-color: hsl(var(--primary) / 0.2);
+  color: inherit;
+}
+
+::-moz-selection {
+  background-color: hsl(var(--primary) / 0.2);
+  color: inherit;
+}

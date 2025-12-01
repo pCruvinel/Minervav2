@@ -1,6 +1,5 @@
 "use client";
 
-import { logger } from '@/lib/utils/logger';
 import React from 'react';
 import { Check, Lock, ArrowLeft } from 'lucide-react';
 import { cn } from '../ui/utils';
@@ -22,7 +21,8 @@ export interface WorkflowStepperProps {
   /** ID da etapa atual */
   currentStep: number;
   /** Callback executado ao clicar em uma etapa acessível */
-  onStepClick?: (stepId: number) => void;
+  // eslint-disable-next-line
+  onStepClick?: (_stepId: number) => void;
   /** Classes adicionais para o container */
   className?: string;
   /** Array de IDs de etapas concluídas */

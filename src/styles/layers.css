@@ -1,0 +1,44 @@
+/**
+ * CSS Layers - Define a ordem de prioridade do cascade
+ *
+ * Ordem: reset < base < components < utilities
+ * Isso garante que utilities (Tailwind) sempre ganhem,
+ * seguido por componentes, depois base, e reset por último.
+ *
+ * @see https://developer.mozilla.org/en-US/docs/Web/CSS/@layer
+ */
+
+@layer reset, base, components, utilities;
+
+/**
+ * Importações na ordem correta das camadas
+ */
+
+/* Layer: reset - CSS reset moderno */
+@import './base/reset.css' layer(reset);
+
+/* Layer: base - Variáveis, tipografia, layout estrutural */
+@import './base/variables.css' layer(base);
+@import './base/typography.css' layer(base);
+@import './layout.css' layer(base);
+
+/* Layer: components - Componentes Radix UI */
+@import './components/radix/checkbox.css' layer(components);
+@import './components/radix/radio-group.css' layer(components);
+@import './components/radix/slider.css' layer(components);
+@import './components/radix/switch.css' layer(components);
+@import './components/radix/dialog.css' layer(components);
+@import './components/radix/popover.css' layer(components);
+@import './components/radix/select.css' layer(components);
+@import './components/radix/accordion.css' layer(components);
+
+/* Layer: components - Componentes Custom Minerva */
+@import './components/custom/color-selector.css' layer(components);
+@import './components/custom/form-components.css' layer(components);
+
+/* Layer: components - Utilities complementares do Tailwind */
+@import './globals.css' layer(components);
+
+/* Layer: utilities - Tailwind utilities já são aplicados automaticamente */
+/* Overrides específicos apenas se absolutamente necessário */
+/* @import './overrides/specificity-fixes.css' layer(utilities); */

@@ -1,486 +1,148 @@
 # 04 - Banco de Dados
 
-> **Template**: Preencha este documento com o schema específico do seu projeto
-
 ## 🗄️ Visão Geral
 
-[PREENCHER - Descreva a estrutura geral do banco de dados]
+O banco de dados utiliza **PostgreSQL** hospedado no **Supabase**. A arquitetura é centrada na segurança através de **Row Level Security (RLS)**, garantindo que o acesso aos dados seja controlado diretamente no nível do banco, complementando a lógica de aplicação.
 
-**Exemplo:**
-> O banco de dados utiliza PostgreSQL via Supabase, com Row Level Security (RLS) habilitado em todas as tabelas. A estrutura é normalizada seguindo a terceira forma normal (3NF), com relacionamentos bem definidos. Todas as tabelas têm campos de auditoria (created_at, updated_at) e triggers automáticos para gerenciá-los.
-
-## 📊 Diagrama Entidade-Relacionamento (ERD)
-
-```mermaid
-erDiagram
-    auth-users {
-        uuid id PK
-        text email
-        text encrypted_password
-        timestamp created_at
-    }
-
-    public-roles {
-        uuid id PK
-        text name UK
-        text description
-        jsonb permissions
-        timestamp created_at
-    }
-
-    public-users {
-        uuid id PK
-        uuid auth_id FK UK
-        uuid role_id FK
-        text name
-        text avatar_url
-        text bio
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    projects {
-        uuid id PK
-        uuid owner_id FK
-        text name
-        text description
-        enum status
-        date start_date
-        date end_date
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    tasks {
-        uuid id PK
-        uuid project_id FK
-        uuid assigned_to FK
-        text title
-        text description
-        enum status
-        timestamp due_date
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    auth-users ||--|| public-users : "1:1"
-    public-users ||--o{ projects : "1:N"
-    public-users ||--o{ tasks : "1:N"
-    public-roles ||--o{ public-users : "1:N"
-    projects ||--o{ tasks : "1:N"
-```
-
-## 📋 Tabelas
-
-### 🔐 Tabela: `public.roles`
-
-**Descrição**: [PREENCHER]
-
-**Exemplo**: Armazena os papéis/permissões disponíveis no sistema
-
-```sql
-CREATE TABLE public.roles (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT UNIQUE NOT NULL,
-  description TEXT,
-  permissions JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Índices
-CREATE INDEX idx_roles_name ON public.roles(name);
-
--- Seed data
-INSERT INTO public.roles (name, description, permissions) VALUES
-  ('user', 'Usuário padrão', '{"read": true, "write": true}'),
-  ('admin', 'Administrador', '{"read": true, "write": true, "delete": true, "admin": true}'),
-  ('moderator', 'Moderador', '{"read": true, "write": true, "delete": true}');
-```
-
-| Coluna | Tipo | Restrições | Descrição |
-|--------|------|------------|-----------|
-| id | UUID | PK, DEFAULT | Identificador único |
-| name | TEXT | UNIQUE, NOT NULL | Nome do papel (ex: 'admin', 'user') |
-| description | TEXT | | Descrição do papel |
-| permissions | JSONB | DEFAULT '{}' | Permissões em JSON |
-| created_at | TIMESTAMPTZ | DEFAULT NOW() | Data de criação |
-
-**RLS Policies**:
-```sql
--- Todos podem ler roles
-CREATE POLICY "Anyone can read roles"
-  ON public.roles FOR SELECT
-  USING (true);
-
--- Apenas admins podem modificar roles
-CREATE POLICY "Only admins can modify roles"
-  ON public.roles FOR ALL
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE users.auth_id = auth.uid()
-      AND users.role_id IN (SELECT id FROM public.roles WHERE name = 'admin')
-    )
-  );
-```
+### Principais Características
+- **Autenticação**: Integrada com Supabase Auth (`auth.users`).
+- **Segurança**: RLS habilitado em todas as tabelas sensíveis.
+- **Auditoria**: Campos `created_at`, `updated_at`, `criado_por_id` em quase todas as tabelas.
+- **Tipagem**: Enums utilizados para status e categorias fixas.
 
 ---
 
-### 👤 Tabela: `public.users`
+## 📋 Tabelas Principais
 
-**Descrição**: [PREENCHER]
+### 🔐 Controle de Acesso e Usuários
 
-**Exemplo**: Estende auth.users com informações adicionais do perfil
+#### `public.users`
+Extensão da tabela `auth.users` contendo dados do perfil público.
+- **id**: UUID (PK)
+- **auth_id**: UUID (FK -> auth.users)
+- **nome_completo**: TEXT
+- **email**: TEXT
+- **cargo_slug**: TEXT (Enum: `admin`, `diretoria`, `gestor_administrativo`, `gestor_obras`, `gestor_assessoria`, `colaborador`)
+- **setor_slug**: TEXT (Enum: `administrativo`, `obras`, `assessoria`, `diretoria`)
+- **ativo**: BOOLEAN
+- **avatar_url**: TEXT
+- **telefone**: TEXT
+- **cpf**: TEXT
 
-```sql
-CREATE TABLE public.users (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  auth_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  role_id UUID NOT NULL REFERENCES public.roles(id),
-  name TEXT NOT NULL,
-  avatar_url TEXT,
-  bio TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Índices
-CREATE INDEX idx_users_auth_id ON public.users(auth_id);
-CREATE INDEX idx_users_role_id ON public.users(role_id);
-
--- Trigger para atualizar updated_at
-CREATE TRIGGER update_users_updated_at
-  BEFORE UPDATE ON public.users
-  FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at_column();
-```
-
-| Coluna | Tipo | Restrições | Descrição |
-|--------|------|------------|-----------|
-| id | UUID | PK, DEFAULT | Identificador único |
-| auth_id | UUID | FK, UNIQUE, NOT NULL | Referência para auth.users |
-| role_id | UUID | FK, NOT NULL | Papel do usuário |
-| name | TEXT | NOT NULL | Nome completo |
-| avatar_url | TEXT | | URL do avatar |
-| bio | TEXT | | Biografia/descrição |
-| created_at | TIMESTAMPTZ | DEFAULT NOW() | Data de criação |
-| updated_at | TIMESTAMPTZ | DEFAULT NOW() | Data de atualização |
-
-**RLS Policies**:
-```sql
--- Usuários podem ler próprio perfil
-CREATE POLICY "Users can read own profile"
-  ON public.users FOR SELECT
-  USING (auth_id = auth.uid());
-
--- Usuários podem atualizar próprio perfil (exceto role_id)
-CREATE POLICY "Users can update own profile"
-  ON public.users FOR UPDATE
-  USING (auth_id = auth.uid())
-  WITH CHECK (
-    auth_id = auth.uid() AND
-    role_id = (SELECT role_id FROM public.users WHERE auth_id = auth.uid())
-  );
-
--- Admins podem ver todos
-CREATE POLICY "Admins can see all users"
-  ON public.users FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.users
-      WHERE users.auth_id = auth.uid()
-      AND users.role_id IN (SELECT id FROM public.roles WHERE name = 'admin')
-    )
-  );
-```
+#### `public.roles` (Conceitual/Enum)
+Os papéis são definidos via coluna `cargo_slug` na tabela `users`, mapeados na aplicação para níveis de permissão.
 
 ---
 
-### 📁 Tabela: `projects`
+### 🛠️ Ordens de Serviço (Core)
 
-**Descrição**: [PREENCHER]
+#### `public.ordens_servico`
+Tabela central do sistema. Armazena as OSs.
+- **id**: UUID (PK)
+- **codigo_os**: TEXT (Ex: "OS-2024-001")
+- **cliente_id**: UUID (FK -> clientes)
+- **tipo_os_id**: UUID (FK -> tipos_os)
+- **responsavel_id**: UUID (FK -> users)
+- **status_geral**: TEXT (Enum: `em_triagem`, `em_andamento`, `aguardando_aprovacao`, `concluida`, `cancelada`)
+- **descricao**: TEXT
+- **valor_proposta**: NUMERIC
+- **valor_contrato**: NUMERIC
+- **data_entrada**: DATE
+- **data_prazo**: DATE
+- **data_conclusao**: DATE
 
-**Exemplo**: Projetos criados pelos usuários
+#### `public.os_etapas`
+Controla o progresso das 15 etapas de cada OS.
+- **id**: UUID (PK)
+- **os_id**: UUID (FK -> ordens_servico)
+- **numero_etapa**: INTEGER (1-15)
+- **status**: TEXT (Enum: `pendente`, `em_andamento`, `concluida`, `bloqueada`)
+- **dados**: JSONB (Armazena os dados do formulário da etapa)
+- **aprovado_por**: UUID (FK -> users)
+- **data_aprovacao**: TIMESTAMPTZ
 
-```sql
-CREATE TYPE project_status AS ENUM ('planning', 'active', 'paused', 'completed', 'archived');
-
-CREATE TABLE projects (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  owner_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  name TEXT NOT NULL,
-  description TEXT,
-  status project_status DEFAULT 'planning',
-  start_date DATE,
-  end_date DATE,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
-CREATE INDEX idx_projects_owner_id ON projects(owner_id);
-CREATE INDEX idx_projects_status ON projects(status);
-```
-
-[PREENCHER - Continuar com todas as tabelas do projeto]
-
----
-
-### 📌 Tabela: `tasks`
-
-[PREENCHER]
-
----
-
-### 💬 Tabela: `comments`
-
-[PREENCHER]
+#### `public.delegacoes`
+Gerencia a transferência de responsabilidade de tarefas/OSs.
+- **id**: UUID (PK)
+- **os_id**: UUID (FK -> ordens_servico)
+- **delegante_id**: UUID (FK -> users)
+- **delegado_id**: UUID (FK -> users)
+- **status_delegacao**: TEXT (Enum: `pendente`, `aceita`, `recusada`, `concluida`)
+- **descricao_tarefa**: TEXT
+- **data_prazo**: TIMESTAMPTZ
 
 ---
 
-## 🔄 Triggers e Functions
+### 👥 CRM e Clientes
 
-### Function: `update_updated_at_column()`
-
-**Descrição**: [PREENCHER]
-
-**Exemplo**: Atualiza automaticamente o campo updated_at
-
-```sql
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-```
+#### `public.clientes`
+- **id**: UUID (PK)
+- **nome_razao_social**: TEXT
+- **cpf_cnpj**: TEXT
+- **email**: TEXT
+- **telefone**: TEXT
+- **status**: TEXT (Enum: `lead`, `ativo`, `inativo`, `blacklist`)
+- **endereco**: JSONB (CEP, Rua, Bairro, Cidade, UF)
+- **observacoes**: TEXT
 
 ---
 
-### Function: `handle_new_user()`
+### 💰 Financeiro
 
-**Descrição**: [PREENCHER]
-
-**Exemplo**: Cria automaticamente registro em public.users quando usuário se cadastra
-
-```sql
-CREATE OR REPLACE FUNCTION handle_new_user()
-RETURNS TRIGGER AS $$
-DECLARE
-  default_role_id UUID;
-BEGIN
-  -- Busca o role_id padrão 'user'
-  SELECT id INTO default_role_id
-  FROM public.roles
-  WHERE name = 'user'
-  LIMIT 1;
-
-  -- Cria o perfil público
-  INSERT INTO public.users (auth_id, role_id, name, avatar_url)
-  VALUES (
-    NEW.id,
-    default_role_id,
-    COALESCE(NEW.raw_user_meta_data->>'name', NEW.email),
-    NEW.raw_user_meta_data->>'avatar_url'
-  );
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
--- Trigger
-CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW
-  EXECUTE FUNCTION handle_new_user();
-```
+#### `public.financeiro_lancamentos`
+Centraliza contas a pagar e receber.
+- **id**: UUID (PK)
+- **descricao**: TEXT
+- **valor**: NUMERIC
+- **tipo**: TEXT (`receita`, `despesa`)
+- **categoria**: TEXT (`material`, `mao_de_obra`, `impostos`, etc.)
+- **data_vencimento**: DATE
+- **data_pagamento**: DATE
+- **status**: TEXT (`em_aberto`, `pago`, `atrasado`)
+- **os_id**: UUID (FK -> ordens_servico, opcional)
+- **cliente_id**: UUID (FK -> clientes, opcional)
 
 ---
 
-### Function: `is_admin(user_id UUID)`
+### 📅 Agendamentos e Turnos
 
-**Descrição**: [PREENCHER]
+#### `public.turnos`
+Define a disponibilidade de horários para as equipes.
+- **id**: UUID (PK)
+- **titulo**: TEXT
+- **inicio**: TIME
+- **fim**: TIME
+- **dias_semana**: INTEGER[] (Array de 0-6)
+- **setor_responsavel**: TEXT
 
-**Exemplo**: Verifica se usuário é admin
-
-```sql
-CREATE OR REPLACE FUNCTION is_admin(user_id UUID)
-RETURNS BOOLEAN AS $$
-BEGIN
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.users u
-    JOIN public.roles r ON u.role_id = r.id
-    WHERE u.auth_id = user_id AND r.name = 'admin'
-  );
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-```
-
----
-
-## 🔒 Row Level Security (RLS)
-
-### Princípios
-
-[PREENCHER]
-
-**Exemplo:**
-1. **RLS habilitado em TODAS as tabelas públicas**
-2. **Política padrão**: Negar tudo
-3. **Políticas específicas**: Permitir apenas o necessário
-4. **Sempre usar `auth.uid()`** para identificar usuário
-5. **Nunca confiar no cliente** - validar no servidor
-
-### Template de Políticas
-
-```sql
--- Habilitar RLS
-ALTER TABLE [nome_tabela] ENABLE ROW LEVEL SECURITY;
-
--- SELECT: Usuários veem apenas próprios registros
-CREATE POLICY "Users can view own [resource]"
-  ON [nome_tabela] FOR SELECT
-  USING (user_id = auth.uid());
-
--- INSERT: Usuários podem criar próprios registros
-CREATE POLICY "Users can create own [resource]"
-  ON [nome_tabela] FOR INSERT
-  WITH CHECK (user_id = auth.uid());
-
--- UPDATE: Usuários podem atualizar próprios registros
-CREATE POLICY "Users can update own [resource]"
-  ON [nome_tabela] FOR UPDATE
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
--- DELETE: Usuários podem deletar próprios registros
-CREATE POLICY "Users can delete own [resource]"
-  ON [nome_tabela] FOR DELETE
-  USING (user_id = auth.uid());
-
--- Admin pode tudo
-CREATE POLICY "Admins can do everything on [resource]"
-  ON [nome_tabela] FOR ALL
-  USING (is_admin(auth.uid()));
-```
+#### `public.agendamentos`
+Compromissos vinculados a OSs e Turnos.
+- **id**: UUID (PK)
+- **os_id**: UUID (FK -> ordens_servico)
+- **turno_id**: UUID (FK -> turnos)
+- **data**: DATE
+- **status**: TEXT (`agendado`, `confirmado`, `realizado`, `cancelado`)
+- **observacoes**: TEXT
 
 ---
 
-## 📈 Índices
+## 🔒 Políticas de Segurança (RLS)
 
-[PREENCHER - Liste todos os índices importantes]
+As políticas de segurança são aplicadas com base no `cargo_slug` e `setor_slug` do usuário logado (`auth.uid()`).
 
-**Exemplo:**
+1.  **Admin/Diretoria**: Acesso total (SELECT, INSERT, UPDATE, DELETE) em todas as tabelas.
+2.  **Gestores**:
+    - Podem ver todas as OSs do seu setor.
+    - Podem criar e editar OSs.
+    - Podem delegar tarefas.
+    - Acesso financeiro restrito a `gestor_administrativo`.
+3.  **Colaboradores**:
+    - Visualizam apenas OSs onde são responsáveis OU que foram delegadas a eles.
+    - Não podem deletar registros.
+    - Edição restrita às etapas que estão responsáveis.
 
-| Tabela | Coluna(s) | Tipo | Justificativa |
-|--------|-----------|------|---------------|
-| users | auth_id | B-tree | FK lookup, muito usado em JOINs |
-| users | role_id | B-tree | FK lookup, usado em permissões |
-| projects | owner_id | B-tree | Buscar projetos por dono |
-| projects | status | B-tree | Filtrar por status é comum |
-| tasks | project_id | B-tree | Buscar tasks por projeto |
-| tasks | assigned_to | B-tree | Buscar tasks por responsável |
-| tasks | due_date | B-tree | Ordenar/filtrar por prazo |
+## 🔄 Triggers Importantes
 
----
-
-## 🌱 Seeds/Dados Iniciais
-
-### Roles Padrão
-
-```sql
-INSERT INTO public.roles (name, description, permissions) VALUES
-  ('user', 'Usuário padrão do sistema', '{"read": true, "write": true}'),
-  ('admin', 'Administrador com acesso total', '{"read": true, "write": true, "delete": true, "admin": true}'),
-  ('moderator', 'Moderador com permissões extras', '{"read": true, "write": true, "delete": true}')
-ON CONFLICT (name) DO NOTHING;
-```
-
-### [Outros Seeds]
-
-[PREENCHER]
-
----
-
-## 🔄 Migrations
-
-### Estrutura
-
-```
-supabase/migrations/
-├── 20240101000000_create_roles.sql
-├── 20240101000001_create_users.sql
-├── 20240101000002_create_user_trigger.sql
-├── 20240101000003_create_projects.sql
-├── 20240101000004_create_tasks.sql
-└── ...
-```
-
-### Boas Práticas
-
-[PREENCHER]
-
-**Exemplo:**
-1. Uma migration por tabela/funcionalidade
-2. Nomes descritivos com timestamp
-3. Sempre incluir `IF NOT EXISTS`
-4. Incluir migrations de rollback quando possível
-5. Testar em ambiente local primeiro
-
----
-
-## 📊 Estimativas de Volume
-
-[PREENCHER]
-
-**Exemplo:**
-
-| Tabela | Estimativa (1 ano) | Crescimento |
-|--------|-------------------|-------------|
-| users | 10.000 | 833/mês |
-| projects | 50.000 | 5 por usuário |
-| tasks | 500.000 | 10 por projeto |
-| comments | 1.000.000 | 2 por task |
-
----
-
-## 🔧 Manutenção
-
-### Backup
-
-[PREENCHER]
-
-**Exemplo:**
-- **Frequência**: Daily automático (Supabase)
-- **Retenção**: 7 dias (plano free), 30 dias (plano pago)
-- **Backup manual**: Antes de migrations grandes
-
-### Performance Monitoring
-
-[PREENCHER]
-
-**Exemplo:**
-- Monitorar queries lentas (> 100ms)
-- Revisar uso de índices mensalmente
-- VACUUM automático habilitado
-
----
-
-## 📝 Convenções
-
-[PREENCHER]
-
-**Exemplo:**
-- **Nomes de tabelas**: plural, snake_case (ex: `user_projects`)
-- **Nomes de colunas**: snake_case (ex: `created_at`)
-- **PKs**: sempre `id UUID`
-- **FKs**: sempre `[tabela]_id` (ex: `user_id`)
-- **Timestamps**: sempre `TIMESTAMPTZ`
-- **Soft deletes**: coluna `deleted_at TIMESTAMPTZ`
-
----
-
-**Status**: 🟡 Template - Aguardando preenchimento
-**Documento Anterior**: [03-ESPECIFICACAO.md](./03-ESPECIFICACAO.md)
-**Próximo Documento**: [05-API.md](./05-API.md)
+-   **`handle_new_user`**: Cria automaticamente o perfil em `public.users` ao registrar em `auth.users`.
+-   **`update_os_status`**: Atualiza o status geral da OS baseado no avanço das etapas.
+-   **`audit_log`**: Registra alterações críticas em tabelas de auditoria.

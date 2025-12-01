@@ -736,7 +736,7 @@ export const PERMISSOES_POR_ROLE_LEGADO: Record<RoleLevel, PermissoesLegadas> = 
 // TIPOS PARA GERAÇÃO DE PDFs
 // ============================================================
 
-export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica';
+export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica' | 'laudo-tecnico';
 
 export interface PDFGenerationRequest {
   tipo: PDFType;

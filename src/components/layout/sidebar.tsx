@@ -134,12 +134,9 @@ export function Sidebar() {
 
   return (
     <aside
-      className={cn(
-        'fixed left-0 top-0 h-screen flex flex-col transition-all ease-in-out',
-        'bg-white border-r shadow-sm',
-        isOpen ? 'w-64' : 'w-16'
-      )}
+      className="fixed left-0 top-0 h-screen flex flex-col transition-all bg-white border-r shadow-sm sidebar-component"
       style={{
+        width: isOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed)',
         zIndex: 'var(--z-sticky)',
         borderColor: 'var(--color-border-light)',
         transitionDuration: 'var(--transition-base)',

@@ -131,16 +131,17 @@ export function DashboardGestor({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">
-          Dashboard - {getSetorLabel(currentUser.setor || '')}
-        </h1>
-        <p className="text-muted-foreground">
-          Gerencie as ordens de serviço do seu setor
-        </p>
-      </div>
+    <div className="content-wrapper">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-semibold mb-2">
+            Dashboard - {getSetorLabel(currentUser.setor || '')}
+          </h1>
+          <p className="text-muted-foreground">
+            Gerencie as ordens de serviço do seu setor
+          </p>
+        </div>
 
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -320,6 +321,7 @@ export function DashboardGestor({
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

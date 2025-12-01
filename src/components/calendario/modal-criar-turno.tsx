@@ -26,12 +26,12 @@ interface ModalCriarTurnoProps {
 }
 
 const coresTurno = [
-  { nome: 'Azul', valor: 'var(--primary)' },
+  { nome: 'Dourado', valor: 'var(--primary)' },
+  { nome: 'Rosa', valor: 'var(--secondary)' },
   { nome: 'Verde', valor: 'var(--success)' },
   { nome: 'Amarelo', valor: 'var(--warning)' },
-  { nome: 'Rosa', valor: 'var(--secondary)' },
-  { nome: 'Roxo', valor: 'var(--secondary)' },
-  { nome: 'Dourado', valor: 'var(--primary)' }
+  { nome: 'Vermelho', valor: 'var(--error)' },
+  { nome: 'Azul', valor: 'var(--info)' }
 ];
 
 interface ValidationErrors {

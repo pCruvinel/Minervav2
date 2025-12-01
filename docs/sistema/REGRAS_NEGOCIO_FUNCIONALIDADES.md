@@ -229,4 +229,4 @@ Adapta-se ao perfil do usuário:
 
 ---
 
-*Documento atualizado em 28/11/2025.*
+*Documento atualizado em 01/12/2025.*

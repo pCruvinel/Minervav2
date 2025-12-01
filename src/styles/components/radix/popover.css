@@ -1,0 +1,44 @@
+/**
+ * Popover Component Styles - Radix UI
+ *
+ * Estilos para popovers e tooltips posicionados.
+ *
+ * @see src/components/ui/popover.tsx
+ */
+
+/* ==========================================
+ * POPOVER CONTENT
+ * ========================================== */
+
+[data-slot='popover-content'] {
+  z-index: var(--z-popover);
+  background-color: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+
+  /* Animação de entrada */
+  animation: popover-fade-in var(--transition-fast) var(--transition-timing);
+}
+
+@keyframes popover-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='popover-content'] {
+    animation: none;
+  }
+}

@@ -95,14 +95,15 @@ export function DashboardDiretoria({
   }, [ordensServico]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-semibold mb-2">Dashboard Executivo</h1>
-        <p className="text-muted-foreground">
-          Visão geral completa do sistema • Atualizado em tempo real
-        </p>
-      </div>
+    <div className="content-wrapper">
+      <div className="space-y-6">
+        {/* Header */}
+        <div>
+          <h1 className="text-3xl font-semibold mb-2">Dashboard Executivo</h1>
+          <p className="text-muted-foreground">
+            Visão geral completa do sistema • Atualizado em tempo real
+          </p>
+        </div>
 
       {/* Métricas Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -256,6 +257,7 @@ export function DashboardDiretoria({
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }
