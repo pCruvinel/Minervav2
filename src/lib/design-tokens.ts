@@ -15,50 +15,50 @@ export const designTokens = {
         text: '#991B1B'
       },
       blue: {
-        light: '#DBEAFE',
-        DEFAULT: '#BFDBFE',
-        dark: '#93C5FD',
-        text: '#1E40AF'
+        light: 'var(--primary)',
+        DEFAULT: 'var(--primary)',
+        dark: 'var(--primary)',
+        text: 'var(--primary)'
       },
       green: {
-        light: '#D1FAE5',
-        DEFAULT: '#A7F3D0',
-        dark: '#6EE7B7',
-        text: '#065F46'
+        light: 'var(--success)',
+        DEFAULT: 'var(--success)',
+        dark: 'var(--success)',
+        text: 'var(--success)'
       },
       yellow: {
-        light: '#FEF3C7',
-        DEFAULT: '#FDE68A',
-        dark: '#FCD34D',
-        text: '#92400E'
+        light: 'var(--warning)',
+        DEFAULT: 'var(--warning)',
+        dark: 'var(--warning)',
+        text: 'var(--warning)'
       },
       purple: {
-        light: '#E9D5FF',
-        DEFAULT: '#D8B4FE',
-        dark: '#C084FC',
-        text: '#6B21A8'
+        light: 'var(--secondary)',
+        DEFAULT: 'var(--secondary)',
+        dark: 'var(--secondary)',
+        text: 'var(--secondary)'
       },
       orange: {
-        light: '#FFEDD5',
-        DEFAULT: '#FED7AA',
-        dark: '#FDBA74',
-        text: '#9A3412'
+        light: 'var(--warning)',
+        DEFAULT: 'var(--warning)',
+        dark: 'var(--warning)',
+        text: 'var(--warning)'
       }
     },
     background: {
-      primary: '#FFFFFF',
-      secondary: '#F9FAFB',
-      tertiary: '#F3F4F6'
+      primary: 'var(--background)',
+      secondary: 'var(--muted)',
+      tertiary: 'var(--muted)'
     },
     text: {
-      primary: '#111827',
-      secondary: '#6B7280',
-      tertiary: '#9CA3AF'
+      primary: 'var(--foreground)',
+      secondary: 'var(--muted-foreground)',
+      tertiary: 'var(--muted-foreground)'
     },
     border: {
-      light: '#E5E7EB',
-      DEFAULT: '#D1D5DB',
-      dark: '#9CA3AF'
+      light: 'var(--border)',
+      DEFAULT: 'var(--border)',
+      dark: 'var(--muted-foreground)'
     }
   },
   shadows: {

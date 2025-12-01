@@ -92,7 +92,7 @@ export function PDFDownloadButton({
         </>
       ) : downloadUrl ? (
         <>
-          <CheckCircle2 className="w-4 h-4 mr-2 text-green-600" />
+          <CheckCircle2 className="w-4 h-4 mr-2 text-success" />
           {children || `${getTipoLabel()} gerado!`}
         </>
       ) : (

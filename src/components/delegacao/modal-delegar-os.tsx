@@ -175,9 +175,9 @@ export function ModalDelegarOS({
   };
 
   const getRoleBadgeColor = (role: string) => {
-    if (role === 'diretoria') return 'bg-purple-100 text-purple-700 border-purple-200';
-    if (role.startsWith('gestor_')) return 'bg-blue-100 text-blue-700 border-blue-200';
-    return 'bg-neutral-100 text-neutral-700 border-neutral-200';
+    if (role === 'diretoria') return 'bg-secondary/10 text-secondary border-secondary/20';
+    if (role.startsWith('gestor_')) return 'bg-primary/10 text-primary border-primary/20';
+    return 'bg-muted text-muted-foreground border-border';
   };
 
   const getRoleLabel = (role: string) => {
@@ -198,20 +198,20 @@ export function ModalDelegarOS({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Informações da OS */}
-          <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+          <div className="p-4 bg-background rounded-lg border border-border">
             <h3 className="text-sm font-medium mb-3">Ordem de Serviço</h3>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-neutral-600">Código:</span>
+                <span className="text-sm text-muted-foreground">Código:</span>
                 <span className="text-sm font-medium">{os.codigo_os}</span>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <span className="text-sm text-neutral-600">Descrição:</span>
+                <span className="text-sm text-muted-foreground">Descrição:</span>
                 <span className="text-sm font-medium text-right">{os.descricao}</span>
               </div>
               {os.cliente_nome && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-neutral-600">Cliente:</span>
+                  <span className="text-sm text-muted-foreground">Cliente:</span>
                   <span className="text-sm font-medium">{os.cliente_nome}</span>
                 </div>
               )}
@@ -221,23 +221,23 @@ export function ModalDelegarOS({
           {/* Seleção de Colaborador */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">
-              Delegar para <span className="text-red-500">*</span>
+              Delegar para <span className="text-destructive">*</span>
             </Label>
 
             {colaboradoresDisponiveis.length === 0 ? (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="p-4 bg-warning/5 border border-warning/20 rounded-lg flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-amber-900">
+                  <p className="text-sm font-medium text-warning">
                     Nenhum colaborador disponível
                   </p>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <p className="text-sm text-warning mt-1">
                     Você não tem permissão para delegar tarefas ou não há colaboradores ativos no sistema.
                   </p>
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto border border-neutral-200 rounded-lg p-2">
+              <div className="grid grid-cols-1 gap-2 max-h-64 overflow-y-auto border border-border rounded-lg p-2">
                 {colaboradoresDisponiveis.map((colaborador) => (
                   <button
                     key={colaborador.id}
@@ -248,7 +248,7 @@ export function ModalDelegarOS({
                       ${
                         selectedColaborador?.id === colaborador.id
                           ? 'border-primary bg-primary/5'
-                          : 'border-neutral-200 hover:border-primary/50 hover:bg-neutral-50'
+                          : 'border-border hover:border-primary/50 hover:bg-background'
                       }
                     `}
                   >
@@ -276,7 +276,7 @@ export function ModalDelegarOS({
                           >
                             {getRoleLabel(colaborador.cargo_slug || '')}
                           </Badge>
-                          <span className="text-xs text-neutral-500 capitalize">
+                          <span className="text-xs text-muted-foreground capitalize">
                             {colaborador.setor_slug || colaborador.setor || ''}
                           </span>
                         </div>
@@ -291,7 +291,7 @@ export function ModalDelegarOS({
           {/* Descrição da Tarefa */}
           <div className="space-y-2">
             <Label htmlFor="descricao" className="text-sm font-medium">
-              Descrição da Tarefa <span className="text-red-500">*</span>
+              Descrição da Tarefa <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="descricao"
@@ -302,7 +302,7 @@ export function ModalDelegarOS({
               className="resize-none"
               disabled={isSubmitting}
             />
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Mínimo de 10 caracteres • {descricaoTarefa.length} caracteres
             </p>
           </div>
@@ -310,10 +310,10 @@ export function ModalDelegarOS({
           {/* Prazo */}
           <div className="space-y-2">
             <Label htmlFor="prazo" className="text-sm font-medium">
-              Prazo para Conclusão <span className="text-red-500">*</span>
+              Prazo para Conclusão <span className="text-destructive">*</span>
             </Label>
             <div className="relative">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="prazo"
                 type="date"
@@ -329,7 +329,7 @@ export function ModalDelegarOS({
           {/* Observações (Opcional) */}
           <div className="space-y-2">
             <Label htmlFor="observacoes" className="text-sm font-medium">
-              Observações <span className="text-xs text-neutral-500">(Opcional)</span>
+              Observações <span className="text-xs text-muted-foreground">(Opcional)</span>
             </Label>
             <Textarea
               id="observacoes"
@@ -343,7 +343,7 @@ export function ModalDelegarOS({
           </div>
 
           {/* Botões de Ação */}
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
             <Button
               type="button"
               variant="outline"

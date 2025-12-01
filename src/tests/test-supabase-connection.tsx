@@ -22,9 +22,9 @@ export function TestSupabaseConnection() {
           <CardDescription>Status da conexão com o backend</CardDescription>
         </CardHeader>
         <CardContent>
-          <Alert className="border-blue-200 bg-blue-50">
-            <Info className="h-4 w-4 text-blue-600" />
-            <AlertDescription className="text-blue-800">
+          <Alert className="border-primary/20 bg-primary/5">
+            <Info className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary">
               <strong>Modo Frontend Only Ativado</strong>
               <p className="mt-2">
                 O sistema está funcionando em modo frontend sem conexão com o Supabase.
@@ -32,8 +32,8 @@ export function TestSupabaseConnection() {
               </p>
               <p className="mt-2 text-sm">
                 Para reativar a conexão com o Supabase, altere{' '}
-                <code className="bg-blue-100 px-1 py-0.5 rounded">FRONTEND_ONLY_MODE = false</code>
-                {' '}em <code className="bg-blue-100 px-1 py-0.5 rounded">/lib/api-client.ts</code>
+                <code className="bg-primary/10 px-1 py-0.5 rounded">FRONTEND_ONLY_MODE = false</code>
+                {' '}em <code className="bg-primary/10 px-1 py-0.5 rounded">/lib/api-client.ts</code>
               </p>
             </AlertDescription>
           </Alert>

@@ -125,7 +125,7 @@ export function AprovacaoMedicoes() {
                   {medicoes.filter(m => m.statusAprovacao === 'AGUARDANDO_VALIDACAO').length}
                 </div>
               </div>
-              <TrendingUp className="h-8 w-8 text-[#D3AF37]" />
+              <TrendingUp className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
@@ -147,11 +147,11 @@ export function AprovacaoMedicoes() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground">Aprovadas (Mês)</p>
-                <div className="font-mono" style={{ fontSize: '1.5rem' }} className="text-green-600">
+                <div className="font-mono text-success" style={{ fontSize: '1.5rem' }}>
                   {medicoes.filter(m => m.statusAprovacao === 'APROVADO').length}
                 </div>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -255,7 +255,7 @@ export function AprovacaoMedicoes() {
                           <Button
                             size="sm"
                             onClick={() => handleAbrirRevisar(medicao)}
-                            className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Validar
@@ -338,7 +338,7 @@ export function AprovacaoMedicoes() {
                     {medicaoSelecionada.documentos?.relatorioFotografico && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-info" />
                           <span>Relatório Fotográfico: {medicaoSelecionada.documentos.relatorioFotografico}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -349,7 +349,7 @@ export function AprovacaoMedicoes() {
                     {medicaoSelecionada.documentos?.planilhaMedicao && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-green-600" />
+                          <FileText className="h-4 w-4 text-success" />
                           <span>Planilha de Medição: {medicaoSelecionada.documentos.planilhaMedicao}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -360,7 +360,7 @@ export function AprovacaoMedicoes() {
                     {medicaoSelecionada.documentos?.diarioObra && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-purple-600" />
+                          <FileText className="h-4 w-4 text-secondary" />
                           <span>Diário de Obra: {medicaoSelecionada.documentos.diarioObra}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -396,7 +396,7 @@ export function AprovacaoMedicoes() {
             </Button>
             <Button
               onClick={handleAprovar}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+              className="bg-primary hover:bg-primary/90"
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               Aprovar para Faturamento

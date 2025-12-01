@@ -139,7 +139,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
         </div>
         <Button 
           onClick={() => setDialogNovoLead(true)}
-          className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+          className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
         >
           <Plus className="h-4 w-4 mr-2" />
           Novo Lead
@@ -147,10 +147,10 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
       </div>
 
       {/* Filtros */}
-      <Card className="border-[#D3AF37]/20">
+      <Card className="border-[var(--primary)]/20">
         <CardHeader>
           <CardTitle className="text-black flex items-center gap-2">
-            <Filter className="h-5 w-5 text-[#D3AF37]" />
+            <Filter className="h-5 w-5 text-[var(--primary)]" />
             Filtros
           </CardTitle>
         </CardHeader>
@@ -238,7 +238,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
         {leadsFiltrados.map(lead => {
           const statusInfo = getStatusBadge(lead.status);
           return (
-            <Card key={lead.id} className="border-[#D3AF37]/20 hover:border-[#D3AF37]/50 transition-colors">
+            <Card key={lead.id} className="border-[var(--primary)]/20 hover:border-[var(--primary)]/50 transition-colors">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   {/* Informações Principais */}
@@ -250,8 +250,8 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
                           <Badge 
                             variant={statusInfo.variant}
                             className={
-                              statusInfo.variant === 'default' ? 'bg-[#D3AF37] text-black hover:bg-[#C49F2F]' :
-                              statusInfo.variant === 'outline' ? 'border-[#D3AF37] text-black' :
+                              statusInfo.variant === 'default' ? 'bg-[var(--primary)] text-black hover:bg-[#C49F2F]' :
+                              statusInfo.variant === 'outline' ? 'border-[var(--primary)] text-black' :
                               ''
                             }
                           >
@@ -266,21 +266,21 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                           <div className="flex items-center gap-2 text-sm">
-                            <Phone className="h-4 w-4 text-[#D3AF37]" />
+                            <Phone className="h-4 w-4 text-[var(--primary)]" />
                             <span className="text-black/70">{lead.telefone}</span>
                           </div>
                           <div className="flex items-center gap-2 text-sm">
-                            <Mail className="h-4 w-4 text-[#D3AF37]" />
+                            <Mail className="h-4 w-4 text-[var(--primary)]" />
                             <span className="text-black/70">{lead.email}</span>
                           </div>
                           {lead.cidade && (
                             <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="h-4 w-4 text-[#D3AF37]" />
+                              <MapPin className="h-4 w-4 text-[var(--primary)]" />
                               <span className="text-black/70">{lead.cidade}</span>
                             </div>
                           )}
                           <div className="flex items-center gap-2 text-sm">
-                            <User className="h-4 w-4 text-[#D3AF37]" />
+                            <User className="h-4 w-4 text-[var(--primary)]" />
                             <span className="text-black/70">{lead.responsavelNome}</span>
                           </div>
                         </div>
@@ -300,7 +300,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
                       {/* Valor Estimado */}
                       {lead.valorEstimado && (
                         <div className="text-right">
-                          <div className="flex items-center gap-1 text-[#D3AF37] mb-1">
+                          <div className="flex items-center gap-1 text-[var(--primary)] mb-1">
                             <TrendingUp className="h-4 w-4" />
                             <span className="text-sm">Valor Estimado</span>
                           </div>
@@ -327,7 +327,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
                       variant="outline"
                       size="sm"
                       onClick={() => onLeadClick(lead.id)}
-                      className="border-[#D3AF37] text-black hover:bg-[#D3AF37]/10"
+                      className="border-[var(--primary)] text-black hover:bg-[var(--primary)]/10"
                     >
                       <Eye className="h-4 w-4 mr-2" />
                       Ver Detalhes
@@ -340,7 +340,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
         })}
 
         {leadsFiltrados.length === 0 && (
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardContent className="p-12 text-center">
               <Search className="h-12 w-12 text-black/20 mx-auto mb-4" />
               <p className="text-black/60">Nenhum lead encontrado com os filtros aplicados.</p>
@@ -444,7 +444,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
             </Button>
             <Button 
               onClick={handleNovoLead}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
               disabled={!novoLeadForm.nome || !novoLeadForm.email || !novoLeadForm.telefone || !novoLeadForm.interesse}
             >
               Cadastrar Lead

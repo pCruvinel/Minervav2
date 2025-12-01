@@ -200,7 +200,7 @@ export function FilaAprovacaoLaudos() {
                           <Button
                             size="sm"
                             onClick={() => handleAbrirRevisar(laudo)}
-                            className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+                            className="bg-primary hover:bg-primary/90"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Revisar e Aprovar
@@ -304,7 +304,7 @@ export function FilaAprovacaoLaudos() {
             </Button>
             <Button
               onClick={handleAprovar}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+              className="bg-primary hover:bg-primary/90"
             >
               <CheckCircle className="h-4 w-4 mr-1" />
               Aprovar e Gerar PDF

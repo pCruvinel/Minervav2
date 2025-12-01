@@ -70,7 +70,7 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Gerar Documento Interno</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Gere o documento técnico para uso interno da empresa
         </p>
       </div>
@@ -78,34 +78,34 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
       {!data.documentoGerado ? (
         <div className="space-y-4">
           {/* Card Informativo */}
-          <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+          <div className="border border-border rounded-lg p-6 bg-background">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#DDC063' }}>
+              <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--primary)' }}>
                 <FileText className="w-6 h-6 text-white" />
               </div>
               
               <div className="flex-1">
                 <h3 className="text-base mb-2">Documento de Visita Técnica</h3>
-                <p className="text-sm text-neutral-600 mb-4">
+                <p className="text-sm text-muted-foreground mb-4">
                   O documento será gerado com base nas informações coletadas durante a visita técnica.
                   Este documento é para uso interno e controle da empresa.
                 </p>
                 
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#D3AF37' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
                     <span>Parecer técnico completo</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#D3AF37' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
                     <span>Manifestações patológicas identificadas</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#D3AF37' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
                     <span>Recomendações técnicas</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#D3AF37' }}></div>
+                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
                     <span>Registro fotográfico</span>
                   </div>
                 </div>
@@ -145,22 +145,22 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
       ) : (
         <div className="space-y-4">
           {/* Confirmação de Documento Gerado */}
-          <div className="border border-green-200 rounded-lg p-6 bg-green-50">
+          <div className="border border-success/20 rounded-lg p-6 bg-success/5">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
               
               <div className="flex-1">
-                <h3 className="text-lg mb-1 text-green-900">Documento Gerado com Sucesso!</h3>
-                <p className="text-sm text-green-700 mb-4">
+                <h3 className="text-lg mb-1 text-success">Documento Gerado com Sucesso!</h3>
+                <p className="text-sm text-success mb-4">
                   O documento interno está pronto e disponível para visualização e download.
                 </p>
                 
                 <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={handleVisualizarDocumento}
-                    className="bg-white border border-green-600 text-green-700 hover:bg-green-50"
+                    className="bg-white border border-green-600 text-success hover:bg-success/5"
                   >
                     <Eye className="w-4 h-4 mr-2" />
                     Visualizar
@@ -168,7 +168,7 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
                   
                   <Button
                     onClick={handleBaixarDocumento}
-                    className="bg-green-600 text-white hover:bg-green-700"
+                    className="bg-success text-white hover:bg-success"
                   >
                     <Download className="w-4 h-4 mr-2" />
                     Baixar PDF
@@ -179,26 +179,26 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
           </div>
 
           {/* Card com Preview */}
-          <div className="border border-neutral-200 rounded-lg p-6">
-            <h3 className="text-base mb-4" style={{ color: '#D3AF37' }}>
+          <div className="border border-border rounded-lg p-6">
+            <h3 className="text-base mb-4" style={{ color: 'var(--primary)' }}>
               Informações do Documento
             </h3>
             
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Tipo:</span>
+                <span className="text-muted-foreground">Tipo:</span>
                 <span>Parecer Técnico Interno</span>
               </div>
               <div className="flex justify-between py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Formato:</span>
+                <span className="text-muted-foreground">Formato:</span>
                 <span>PDF</span>
               </div>
               <div className="flex justify-between py-2 border-b border-neutral-100">
-                <span className="text-neutral-600">Páginas:</span>
+                <span className="text-muted-foreground">Páginas:</span>
                 <span>--</span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-neutral-600">Gerado em:</span>
+                <span className="text-muted-foreground">Gerado em:</span>
                 <span>{new Date().toLocaleDateString('pt-BR')}</span>
               </div>
             </div>

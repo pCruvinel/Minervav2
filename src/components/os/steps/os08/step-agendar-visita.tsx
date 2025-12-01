@@ -21,7 +21,7 @@ export function StepAgendarVisita({ osId, data, onDataChange, readOnly }: StepAg
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function StepAgendarVisita({ osId, data, onDataChange, readOnly }: StepAg
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Agendar Visita Técnica</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Selecione o dia e horário para realizar a visita técnica usando o sistema de calendário
         </p>
       </div>

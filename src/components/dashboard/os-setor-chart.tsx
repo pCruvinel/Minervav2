@@ -36,7 +36,7 @@ export function OSSetorChart({
     const setorColors: Record<string, string> = {
       COM: '#3b82f6', // blue-500
       ASS: '#8b5cf6', // violet-500
-      OBR: '#f59e0b', // amber-500
+      OBR: 'var(--warning)', // amber-500
       SEM_SETOR: '#9ca3af', // neutral-400
     };
 
@@ -44,7 +44,7 @@ export function OSSetorChart({
       .map(([setor, count]) => ({
         name: setorLabels[setor] || setor,
         value: count,
-        color: setorColors[setor] || '#D3AF37',
+        color: setorColors[setor] || 'var(--primary)',
       }))
       .sort((a, b) => b.value - a.value);
   }, [ordensServico]);
@@ -57,9 +57,9 @@ export function OSSetorChart({
       const percentage = ((data.value / totalOS) * 100).toFixed(1);
       
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-neutral-200">
+        <div className="bg-white p-3 rounded-lg shadow-lg border border-border">
           <p className="text-sm font-medium mb-1">{data.name}</p>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             {data.value} OS ({percentage}%)
           </p>
         </div>
@@ -97,7 +97,7 @@ export function OSSetorChart({
           <CardTitle className="text-lg">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-neutral-500">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p className="text-sm">Nenhuma ordem de serviço disponível</p>
           </div>
         </CardContent>
@@ -109,7 +109,7 @@ export function OSSetorChart({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Total: {totalOS} {totalOS === 1 ? 'ordem' : 'ordens'}
         </p>
       </CardHeader>

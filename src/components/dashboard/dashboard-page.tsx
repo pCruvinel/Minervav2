@@ -31,10 +31,10 @@ export function DashboardPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-3" />
-          <p className="text-sm text-neutral-600">Carregando dashboard...</p>
+          <p className="text-sm text-muted-foreground">Carregando dashboard...</p>
         </div>
       </div>
     );
@@ -43,9 +43,9 @@ export function DashboardPage({
   // Not authenticated
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <p className="text-sm text-neutral-600">Faça login para acessar o dashboard</p>
+          <p className="text-sm text-muted-foreground">Faça login para acessar o dashboard</p>
         </div>
       </div>
     );
@@ -95,10 +95,10 @@ export function DashboardPage({
 
     // Fallback para outros roles (ex: MOBRA - sem acesso ao dashboard)
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
+      <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center max-w-md">
           <h2 className="text-xl font-semibold mb-2">Dashboard Não Disponível</h2>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Seu perfil não tem acesso ao dashboard. Entre em contato com o administrador.
           </p>
         </div>
@@ -107,7 +107,7 @@ export function DashboardPage({
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {renderDashboard()}
       </div>

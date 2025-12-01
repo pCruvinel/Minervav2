@@ -116,7 +116,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 Email
               </Label>
               <div className="relative flex items-center">
-                <Mail className="absolute left-3 w-5 h-5 text-neutral-400 pointer-events-none" />
+                <Mail className="absolute left-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                 <Input
                   id="email"
                   type="email"
@@ -139,7 +139,7 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
                 Senha
               </Label>
               <div className="relative flex items-center">
-                <Lock className="absolute left-3 w-5 h-5 text-neutral-400 pointer-events-none" />
+                <Lock className="absolute left-3 w-5 h-5 text-muted-foreground pointer-events-none" />
                 <Input
                   id="password"
                   type="password"

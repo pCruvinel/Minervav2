@@ -111,19 +111,19 @@ export function DashboardColaborador({
     const configs = {
       pendente: {
         label: 'Pendente',
-        className: 'bg-amber-100 text-amber-700 border-amber-200',
+        className: 'bg-warning/10 text-warning border-warning/20',
       },
       aceita: {
         label: 'Em Progresso',
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
+        className: 'bg-primary/10 text-primary border-primary/20',
       },
       concluida: {
         label: 'Concluída',
-        className: 'bg-green-100 text-green-700 border-green-200',
+        className: 'bg-success/10 text-success border-success/20',
       },
       recusada: {
         label: 'Recusada',
-        className: 'bg-red-100 text-red-700 border-red-200',
+        className: 'bg-destructive/10 text-destructive border-destructive/20',
       },
     };
 
@@ -154,7 +154,7 @@ export function DashboardColaborador({
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold mb-2">Minhas Tarefas</h1>
-        <p className="text-neutral-600">
+        <p className="text-muted-foreground">
           Acompanhe suas ordens de serviço e delegações
         </p>
       </div>
@@ -234,16 +234,16 @@ export function DashboardColaborador({
             <Calendar className="w-5 h-5 text-primary" />
             Próximas Tarefas
           </CardTitle>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Tarefas ordenadas por prazo
           </p>
         </CardHeader>
         <CardContent>
           {proximasTarefas.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-8 text-neutral-500">
-              <CheckCircle2 className="w-12 h-12 mb-3 text-green-500" />
+            <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <CheckCircle2 className="w-12 h-12 mb-3 text-success" />
               <p className="text-sm font-medium">Nenhuma tarefa pendente</p>
-              <p className="text-xs text-neutral-400 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Parabéns! Você está em dia com suas tarefas.
               </p>
             </div>
@@ -259,9 +259,9 @@ export function DashboardColaborador({
                     className={`
                       p-4 rounded-lg border-2 transition-all cursor-pointer
                       hover:border-primary hover:bg-primary/5
-                      ${prazoVencido ? 'border-l-4 border-l-red-500 bg-red-50' : ''}
-                      ${prazoProximo && !prazoVencido ? 'border-l-4 border-l-amber-500 bg-amber-50' : ''}
-                      ${!prazoVencido && !prazoProximo ? 'border-neutral-200' : ''}
+                      ${prazoVencido ? 'border-l-4 border-l-red-500 bg-destructive/5' : ''}
+                      ${prazoProximo && !prazoVencido ? 'border-l-4 border-l-amber-500 bg-warning/5' : ''}
+                      ${!prazoVencido && !prazoProximo ? 'border-border' : ''}
                     `}
                     onClick={() => onDelegacaoClick?.(delegacao)}
                   >
@@ -273,28 +273,28 @@ export function DashboardColaborador({
                           </p>
                           {getStatusBadge(delegacao.status_delegacao)}
                         </div>
-                        <p className="text-sm text-neutral-700 line-clamp-2">
+                        <p className="text-sm text-muted-foreground line-clamp-2">
                           {delegacao.descricao_tarefa}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-xs text-neutral-600">
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Calendar className="w-3 h-3" />
                           <span>Prazo: {delegacao.data_prazo ? new Date(delegacao.data_prazo).toLocaleDateString('pt-BR') : 'Sem prazo'}</span>
                         </div>
 
                         {prazoVencido && (
-                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+                          <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/20 text-xs">
                             <AlertCircle className="w-3 h-3 mr-1" />
                             {calcularDiasAtraso(delegacao.data_prazo || '')} dias atrasado
                           </Badge>
                         )}
 
                         {prazoProximo && !prazoVencido && (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                          <Badge variant="outline" className="bg-warning/5 text-warning border-warning/20 text-xs">
                             <Clock className="w-3 h-3 mr-1" />
                             Prazo próximo
                           </Badge>
@@ -308,7 +308,7 @@ export function DashboardColaborador({
                       )}
 
                       {delegacao.status_delegacao === 'aceita' && (
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700">
+                        <Button size="sm" className="bg-success hover:bg-success">
                           Concluir
                         </Button>
                       )}
@@ -334,14 +334,14 @@ export function DashboardColaborador({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Performance */}
         {metrics.taxaConclusao >= 80 && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="bg-success/5 border border-success/20 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <Award className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <Award className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-green-900 mb-1">
+                <h3 className="font-semibold text-success mb-1">
                   Excelente Performance!
                 </h3>
-                <p className="text-sm text-green-700">
+                <p className="text-sm text-success">
                   Você tem {metrics.taxaConclusao}% de taxa de conclusão. Continue o ótimo trabalho!
                 </p>
               </div>
@@ -351,14 +351,14 @@ export function DashboardColaborador({
 
         {/* Alerta de Tarefas Atrasadas */}
         {metrics.delegacoesAtrasadas > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-red-900 mb-1">
+                <h3 className="font-semibold text-destructive mb-1">
                   Atenção: Tarefas Atrasadas
                 </h3>
-                <p className="text-sm text-red-700">
+                <p className="text-sm text-destructive">
                   Você tem {metrics.delegacoesAtrasadas} {metrics.delegacoesAtrasadas === 1 ? 'tarefa atrasada' : 'tarefas atrasadas'}.
                   Priorize sua conclusão.
                 </p>

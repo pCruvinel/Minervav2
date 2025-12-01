@@ -40,25 +40,25 @@ export function RecentOSList({
     const statusConfig: Record<string, { label: string; className: string }> = {
       em_triagem: {
         label: 'Em Triagem',
-        className: 'bg-blue-100 text-blue-700 border-blue-200'
+        className: 'bg-primary/10 text-primary border-primary/20'
       },
       em_andamento: {
         label: 'Em Andamento',
-        className: 'bg-blue-100 text-blue-700 border-blue-200'
+        className: 'bg-primary/10 text-primary border-primary/20'
       },
       concluido: {
         label: 'Concluído',
-        className: 'bg-green-100 text-green-700 border-green-200'
+        className: 'bg-success/10 text-success border-success/20'
       },
       cancelado: {
         label: 'Cancelado',
-        className: 'bg-red-100 text-red-700 border-red-200'
+        className: 'bg-destructive/10 text-destructive border-destructive/20'
       },
     };
 
     const config = statusConfig[status] || {
       label: status,
-      className: 'bg-neutral-100 text-neutral-700 border-neutral-200'
+      className: 'bg-muted text-muted-foreground border-border'
     };
 
     return (
@@ -75,10 +75,10 @@ export function RecentOSList({
           <CardTitle className="text-lg">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col items-center justify-center py-8 text-neutral-500">
+          <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
             <Building2 className="w-12 h-12 mb-3 text-neutral-300" />
             <p className="text-sm font-medium">Nenhuma OS encontrada</p>
-            <p className="text-xs text-neutral-400 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Crie sua primeira ordem de serviço
             </p>
           </div>
@@ -92,7 +92,7 @@ export function RecentOSList({
       <CardHeader className="flex flex-row items-center justify-between pb-3">
         <div>
           <CardTitle className="text-lg">{title}</CardTitle>
-          <p className="text-sm text-neutral-600 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {ordensServico.length} {ordensServico.length === 1 ? 'ordem' : 'ordens'} no total
           </p>
         </div>
@@ -116,7 +116,7 @@ export function RecentOSList({
             key={os.id}
             to="/os/$osId"
             params={{ osId: os.id }}
-            className="block p-4 rounded-lg border border-neutral-200 transition-all cursor-pointer hover:border-primary hover:bg-primary/5"
+            className="block p-4 rounded-lg border border-border transition-all cursor-pointer hover:border-primary hover:bg-primary/5"
           >
             {/* Header */}
             <div className="flex items-start justify-between gap-3 mb-3">
@@ -127,18 +127,18 @@ export function RecentOSList({
                   </p>
                   {getStatusBadge(os.status_geral)}
                 </div>
-                <p className="text-sm text-neutral-700 truncate">
+                <p className="text-sm text-muted-foreground truncate">
                   {os.descricao}
                 </p>
               </div>
 
               {onOSClick && (
-                <ChevronRight className="w-5 h-5 text-neutral-400 flex-shrink-0" />
+                <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
               )}
             </div>
 
             {/* Details */}
-            <div className="flex flex-wrap items-center gap-3 text-xs text-neutral-600">
+            <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
               {os.cliente_nome && (
                 <div className="flex items-center gap-1">
                   <User className="w-3 h-3" />

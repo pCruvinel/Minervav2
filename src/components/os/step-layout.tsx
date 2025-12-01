@@ -68,12 +68,12 @@ export const StepLayout: React.FC<StepLayoutProps> = ({
       } as React.CSSProperties}
     >
       {/* Cabeçalho do Step */}
-      <div className="space-y-2 border-b border-neutral-200 pb-4">
-        <h2 className="text-2xl font-bold tracking-tight text-neutral-900">
+      <div className="space-y-2 border-b border-border pb-4">
+        <h2 className="text-2xl font-bold tracking-tight text-foreground">
           {title}
         </h2>
         {description && (
-          <p className="text-sm text-neutral-600 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {description}
           </p>
         )}
@@ -86,7 +86,7 @@ export const StepLayout: React.FC<StepLayoutProps> = ({
 
       {/* Footer com Ações (Botões de Navegação) */}
       {footerActions && (
-        <div className="border-t border-neutral-200 pt-6 mt-4">
+        <div className="border-t border-border pt-6 mt-4">
           <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-3">
             {footerActions}
           </div>
@@ -114,8 +114,8 @@ export const StepSection: React.FC<StepSectionProps> = ({
   return (
     <div className={`space-y-4 ${className}`}>
       <h3
-        className="text-base border-b border-neutral-200 pb-2"
-        style={{ color: '#D3AF37' }}
+        className="text-base border-b border-border pb-2"
+        style={{ color: 'var(--primary)' }}
       >
         {title}
       </h3>

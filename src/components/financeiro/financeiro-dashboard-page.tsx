@@ -75,7 +75,7 @@ function KPICard({ title, value, icon, trend, iconBgColor = 'bg-primary/10' }: K
             <p className="text-sm text-muted-foreground mb-1">{title}</p>
             <h3 className="text-3xl mb-2">{value}</h3>
             {trend && (
-              <div className={`flex items-center gap-1 text-sm ${trend.isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <div className={`flex items-center gap-1 text-sm ${trend.isPositive ? 'text-success' : 'text-destructive'}`}>
                 {trend.isPositive ? (
                   <ArrowUpRight className="h-4 w-4" />
                 ) : (
@@ -107,7 +107,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl mb-2">Dashboard Financeiro</h1>
@@ -129,23 +129,23 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
         <KPICard
           title="Previsão de Faturas (Mês)"
           value={formatCurrency(mockKPIs.previsaoFaturasMes)}
-          icon={<Wallet className="h-5 w-5 text-orange-600" />}
-          iconBgColor="bg-orange-100"
+          icon={<Wallet className="h-5 w-5 text-warning" />}
+          iconBgColor="bg-warning/10"
           trend={{ value: '+3.2% vs mês anterior', isPositive: true }}
         />
 
         <KPICard
           title="A Receber HOJE"
           value={formatCurrency(mockKPIs.aReceberHoje)}
-          icon={<DollarSign className="h-5 w-5 text-green-600" />}
-          iconBgColor="bg-green-100"
+          icon={<DollarSign className="h-5 w-5 text-success" />}
+          iconBgColor="bg-success/10"
         />
 
         <KPICard
           title="A Pagar HOJE"
           value={formatCurrency(mockKPIs.aPagarHoje)}
-          icon={<Calendar className="h-5 w-5 text-red-600" />}
-          iconBgColor="bg-red-100"
+          icon={<Calendar className="h-5 w-5 text-destructive" />}
+          iconBgColor="bg-destructive/10"
         />
 
         <KPICard
@@ -159,8 +159,8 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
         <KPICard
           title="Total Clientes (Mês)"
           value={mockKPIs.totalClientesMes.toString()}
-          icon={<Users className="h-5 w-5 text-blue-600" />}
-          iconBgColor="bg-blue-100"
+          icon={<Users className="h-5 w-5 text-primary" />}
+          iconBgColor="bg-primary/10"
           trend={{ value: '+5 novos clientes', isPositive: true }}
         />
       </div>
@@ -171,7 +171,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+              <TrendingUp className="h-5 w-5 text-success" />
               Receitas - Previsto vs. Realizado
             </CardTitle>
           </CardHeader>
@@ -201,7 +201,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                   wrapperStyle={{ fontSize: '14px' }}
                   formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
                 />
-                <Bar dataKey="previsto" fill="#D3AF37" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="previsto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="realizado" fill="#16a34a" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -212,7 +212,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-red-600" />
+              <TrendingDown className="h-5 w-5 text-destructive" />
               Despesas - Previsto vs. Realizado
             </CardTitle>
           </CardHeader>
@@ -242,7 +242,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                   wrapperStyle={{ fontSize: '14px' }}
                   formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
                 />
-                <Bar dataKey="previsto" fill="#DDC063" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="previsto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="realizado" fill="#dc2626" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -274,7 +274,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm">Variação:</span>
-                  <span className="font-medium text-red-600">-{formatCurrency(7000)} (-2.8%)</span>
+                  <span className="font-medium text-destructive">-{formatCurrency(7000)} (-2.8%)</span>
                 </div>
               </div>
             </div>
@@ -296,7 +296,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t">
                   <span className="text-sm">Variação:</span>
-                  <span className="font-medium text-green-600">-{formatCurrency(7000)} (-6.1%)</span>
+                  <span className="font-medium text-success">-{formatCurrency(7000)} (-6.1%)</span>
                 </div>
               </div>
             </div>
@@ -338,7 +338,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                 Lucro calculado após encerramento do contrato
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-medium text-green-600">R$ 45.5k</span>
+                <span className="text-2xl font-medium text-success">R$ 45.5k</span>
                 <span className="text-xs text-muted-foreground">(1 projeto encerrado)</span>
               </div>
             </div>
@@ -354,7 +354,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
                 Lucro calculado mensalmente
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-medium text-green-600">R$ 24.2k</span>
+                <span className="text-2xl font-medium text-success">R$ 24.2k</span>
                 <span className="text-xs text-muted-foreground">(mês atual)</span>
               </div>
             </div>

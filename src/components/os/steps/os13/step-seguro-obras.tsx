@@ -23,18 +23,18 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Contratar Seguro de Obras</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Defina se o seguro de obras será contratado para esta obra
         </p>
       </div>
 
       {/* Status */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ 
-              backgroundColor: !data.decisaoSeguro ? '#DDC063' : isAprovado ? '#10b981' : '#ef4444'
+              backgroundColor: !data.decisaoSeguro ? 'var(--primary)' : isAprovado ? 'var(--success)' : 'var(--destructive)'
             }}
           >
             {!data.decisaoSeguro ? (
@@ -55,7 +55,7 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
                   : 'Seguro de obras não será contratado'
               }
             </h3>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {!data.decisaoSeguro 
                 ? 'Selecione uma opção abaixo para definir a contratação do seguro'
                 : isAprovado 
@@ -70,13 +70,13 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
       {/* Radio Group */}
       <div className="space-y-4">
         <Label className="text-base">
-          Decisão sobre Contratação do Seguro <span className="text-red-500">*</span>
+          Decisão sobre Contratação do Seguro <span className="text-destructive">*</span>
         </Label>
         
         <RadioGroup value={data.decisaoSeguro} onValueChange={handleDecisaoChange} disabled={readOnly}>
           <Card
             className={`transition-all ${
-              data.decisaoSeguro === 'aprovar' ? 'border-green-500 bg-green-50' : 'hover:border-neutral-300'
+              data.decisaoSeguro === 'aprovar' ? 'border-success bg-success/5' : 'hover:border-border'
             } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={readOnly ? undefined : () => handleDecisaoChange('aprovar')}
           >
@@ -87,12 +87,12 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
                   <Label htmlFor="aprovar" className="cursor-pointer text-base">
                     Aprovar Contratação do Seguro
                   </Label>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     O seguro de obras será contratado para cobrir riscos durante a execução
                   </p>
                 </div>
                 {isAprovado && (
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  <CheckCircle2 className="w-5 h-5 text-success" />
                 )}
               </div>
             </CardContent>
@@ -100,7 +100,7 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
 
           <Card
             className={`transition-all ${
-              data.decisaoSeguro === 'reprovar' ? 'border-red-500 bg-red-50' : 'hover:border-neutral-300'
+              data.decisaoSeguro === 'reprovar' ? 'border-destructive bg-destructive/5' : 'hover:border-border'
             } ${readOnly ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={readOnly ? undefined : () => handleDecisaoChange('reprovar')}
           >
@@ -111,12 +111,12 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
                   <Label htmlFor="reprovar" className="cursor-pointer text-base">
                     Reprovar Contratação do Seguro
                   </Label>
-                  <p className="text-sm text-neutral-600 mt-1">
+                  <p className="text-sm text-muted-foreground mt-1">
                     A obra prosseguirá sem contratação de seguro
                   </p>
                 </div>
                 {isReprovado && (
-                  <XCircle className="w-5 h-5 text-red-600" />
+                  <XCircle className="w-5 h-5 text-destructive" />
                 )}
               </div>
             </CardContent>
@@ -126,18 +126,18 @@ export function StepSeguroObras({ data, onDataChange, readOnly }: StepSeguroObra
 
       {/* Alertas Condicionais */}
       {isAprovado && (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="bg-success/5 border-success/20">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             Seguro aprovado. Proceda com a contratação junto à seguradora e anexe a apólice nas próximas etapas.
           </AlertDescription>
         </Alert>
       )}
 
       {isReprovado && (
-        <Alert className="bg-red-50 border-red-200">
-          <AlertCircle className="h-4 w-4 text-red-600" />
-          <AlertDescription className="text-red-800">
+        <Alert className="bg-destructive/5 border-destructive/20">
+          <AlertCircle className="h-4 w-4 text-destructive" />
+          <AlertDescription className="text-destructive">
             Atenção: A obra prosseguirá sem seguro. Certifique-se de que esta decisão está de acordo com as políticas da empresa e contrato com o cliente.
           </AlertDescription>
         </Alert>

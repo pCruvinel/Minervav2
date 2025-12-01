@@ -22,17 +22,17 @@ export function StepAnexarART({ data, onDataChange, readOnly, osId }: StepAnexar
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Anexar ART</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe a Anotação de Responsabilidade Técnica (ART) da obra
         </p>
       </div>
 
       {/* Status */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: isComplete ? '#10b981' : '#DDC063' }}
+            style={{ backgroundColor: isComplete ? 'var(--success)' : 'var(--primary)' }}
           >
             {isComplete ? (
               <CheckCircle2 className="w-6 h-6 text-white" />
@@ -45,7 +45,7 @@ export function StepAnexarART({ data, onDataChange, readOnly, osId }: StepAnexar
             <h3 className="text-base mb-2">
               {isComplete ? 'ART anexada com sucesso!' : 'Aguardando anexo da ART'}
             </h3>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {isComplete
                 ? 'A ART foi anexada e está pronta para ser validada.'
                 : 'Anexe o arquivo da ART em formato PDF.'

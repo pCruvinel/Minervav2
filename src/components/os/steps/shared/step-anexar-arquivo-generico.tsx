@@ -54,14 +54,14 @@ export function StepAnexarArquivoGenerico({
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">{titulo}</h2>
-        <p className="text-sm text-neutral-600">{descricao}</p>
+        <p className="text-sm text-muted-foreground">{descricao}</p>
       </div>
 
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: isComplete ? '#10b981' : '#DDC063' }}
+            style={{ backgroundColor: isComplete ? 'var(--success)' : 'var(--primary)' }}
           >
             {isComplete ? (
               <CheckCircle2 className="w-6 h-6 text-white" />
@@ -74,7 +74,7 @@ export function StepAnexarArquivoGenerico({
             <h3 className="text-base mb-2">
               {isComplete ? mensagemSucesso : mensagemPendente}
             </h3>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {isComplete 
                 ? 'O arquivo foi anexado com sucesso.'
                 : 'Aguardando anexo do arquivo.'
@@ -85,7 +85,7 @@ export function StepAnexarArquivoGenerico({
       </div>
 
       {!isComplete && (
-        <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-neutral-400 transition-colors">
+        <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-border transition-colors">
           <input
             type="file"
             id={`file-upload-${dataKey}`}
@@ -95,11 +95,11 @@ export function StepAnexarArquivoGenerico({
             disabled={uploading || readOnly}
           />
           <label htmlFor={`file-upload-${dataKey}`} className="cursor-pointer">
-            <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-            <p className="text-sm text-neutral-600 mb-2">
+            <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground mb-2">
               Clique para selecionar ou arraste o arquivo
             </p>
-            <p className="text-xs text-neutral-500">
+            <p className="text-xs text-muted-foreground">
               Formatos aceitos: {acceptFormats}
             </p>
           </label>
@@ -107,22 +107,22 @@ export function StepAnexarArquivoGenerico({
       )}
 
       {isComplete && (
-        <div className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-lg">
+        <div className="flex items-center justify-between p-4 bg-white border border-border rounded-lg">
           <div className="flex items-center gap-3">
             <div 
               className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: '#DDC063' }}
+              style={{ backgroundColor: 'var(--primary)' }}
             >
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
               <p className="text-sm">{nomeArquivo}</p>
-              <p className="text-xs text-neutral-500">Arquivo anexado</p>
+              <p className="text-xs text-muted-foreground">Arquivo anexado</p>
             </div>
           </div>
           <button
             onClick={readOnly ? undefined : () => onDataChange({ [dataKey]: '' })}
-            className={`text-sm text-red-500 hover:underline ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`text-sm text-destructive hover:underline ${readOnly ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={readOnly}
           >
             Remover

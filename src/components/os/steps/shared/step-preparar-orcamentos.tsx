@@ -45,7 +45,7 @@ export function StepPrepararOrcamentos({
 
       {/* Momento 1: Perguntas Durante a Visita - Respostas do Cliente */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 1: Perguntas Durante a Visita - Respostas do Cliente</h3>
         </div>
 
@@ -118,7 +118,7 @@ export function StepPrepararOrcamentos({
 
       {/* Momento 2: Avaliação Geral da Visita */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 2: Avaliação Geral da Visita</h3>
         </div>
 
@@ -165,7 +165,7 @@ export function StepPrepararOrcamentos({
 
       {/* Momento 3: Respostas do Engenheiro */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 3: Respostas do Engenheiro</h3>
         </div>
 

@@ -83,29 +83,29 @@ export default function AgendaColaboradorPage() {
   const getTipoColor = (tipo: string) => {
     switch (tipo) {
       case "VISTORIA":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/20";
       case "REUNIAO":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-secondary/10 text-secondary border-secondary/20";
       case "FOLLOW_UP":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-success/10 text-success border-success/20";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-border">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-black mb-1">Minha Agenda</h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Visualize seus compromissos e agendamentos
               </p>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
+            <div className="flex items-center gap-2 text-muted-foreground">
               <CalendarIcon className="w-5 h-5" />
               <span className="text-black">
                 {mockEventos.length} compromissos este mês
@@ -116,9 +116,9 @@ export default function AgendaColaboradorPage() {
       </div>
 
       <div className="p-8">
-        <Card className="border-gray-200">
+        <Card className="border-border">
           {/* Cabeçalho do Calendário */}
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <h2 className="text-black">
                 {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
@@ -128,7 +128,7 @@ export default function AgendaColaboradorPage() {
                   variant="outline"
                   size="sm"
                   onClick={previousMonth}
-                  className="border-gray-300"
+                  className="border-border"
                 >
                   <ChevronLeft className="w-4 h-4" />
                 </Button>
@@ -136,7 +136,7 @@ export default function AgendaColaboradorPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentDate(new Date())}
-                  className="border-gray-300"
+                  className="border-border"
                 >
                   Hoje
                 </Button>
@@ -144,7 +144,7 @@ export default function AgendaColaboradorPage() {
                   variant="outline"
                   size="sm"
                   onClick={nextMonth}
-                  className="border-gray-300"
+                  className="border-border"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </Button>
@@ -159,7 +159,7 @@ export default function AgendaColaboradorPage() {
               {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
                 <div
                   key={day}
-                  className="text-center py-2 text-gray-600 border-b border-gray-200"
+                  className="text-center py-2 text-muted-foreground border-b border-border"
                 >
                   {day}
                 </div>
@@ -187,13 +187,13 @@ export default function AgendaColaboradorPage() {
                     key={day}
                     className={`aspect-square border rounded-lg p-2 ${
                       isToday
-                        ? "border-[#D3AF37] bg-[#D3AF37]/5"
-                        : "border-gray-200"
+                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                        : "border-border"
                     }`}
                   >
                     <div
                       className={`text-right mb-1 ${
-                        isToday ? "text-[#D3AF37]" : "text-gray-700"
+                        isToday ? "text-[var(--primary)]" : "text-muted-foreground"
                       }`}
                     >
                       {day}
@@ -203,7 +203,7 @@ export default function AgendaColaboradorPage() {
                         <button
                           key={evento.id}
                           onClick={() => handleEventoClick(evento)}
-                          className="w-full text-left px-2 py-1 text-xs rounded bg-[#D3AF37] text-black hover:bg-[#D3AF37]/80 transition-colors truncate"
+                          className="w-full text-left px-2 py-1 text-xs rounded bg-[var(--primary)] text-black hover:bg-[var(--primary)]/80 transition-colors truncate"
                         >
                           {evento.horaInicio} - {evento.tipo}
                         </button>
@@ -216,27 +216,27 @@ export default function AgendaColaboradorPage() {
           </div>
 
           {/* Legenda */}
-          <div className="px-6 pb-6 pt-4 border-t border-gray-200">
+          <div className="px-6 pb-6 pt-4 border-t border-border">
             <div className="flex items-center gap-6 flex-wrap">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-blue-100 border border-blue-200" />
-                <span className="text-gray-700">Vistoria</span>
+                <div className="w-4 h-4 rounded bg-primary/10 border border-primary/20" />
+                <span className="text-muted-foreground">Vistoria</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-purple-100 border border-purple-200" />
-                <span className="text-gray-700">Reunião</span>
+                <div className="w-4 h-4 rounded bg-secondary/10 border border-secondary/20" />
+                <span className="text-muted-foreground">Reunião</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 rounded bg-green-100 border border-green-200" />
-                <span className="text-gray-700">Follow-up</span>
+                <div className="w-4 h-4 rounded bg-success/10 border border-success/20" />
+                <span className="text-muted-foreground">Follow-up</span>
               </div>
             </div>
           </div>
         </Card>
 
         {/* Próximos Eventos */}
-        <Card className="mt-6 border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <Card className="mt-6 border-border">
+          <div className="p-6 border-b border-border">
             <h2 className="text-black">Próximos Compromissos</h2>
           </div>
           <div className="divide-y divide-gray-200">
@@ -246,7 +246,7 @@ export default function AgendaColaboradorPage() {
               .map((evento) => (
                 <div
                   key={evento.id}
-                  className="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+                  className="p-6 hover:bg-background transition-colors cursor-pointer"
                   onClick={() => handleEventoClick(evento)}
                 >
                   <div className="flex items-start justify-between">
@@ -260,13 +260,13 @@ export default function AgendaColaboradorPage() {
                         </Badge>
                         <Badge
                           variant="outline"
-                          className="border-[#D3AF37] text-black bg-[#D3AF37]/10"
+                          className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                         >
                           {evento.osCodigo}
                         </Badge>
                       </div>
                       <h3 className="text-black mb-2">{evento.titulo}</h3>
-                      <div className="space-y-1 text-gray-600">
+                      <div className="space-y-1 text-muted-foreground">
                         <div className="flex items-center gap-2">
                           <CalendarIcon className="w-4 h-4" />
                           <span>
@@ -314,7 +314,7 @@ export default function AgendaColaboradorPage() {
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="border-[#D3AF37] text-black bg-[#D3AF37]/10"
+                    className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                   >
                     {selectedEvento.osCodigo}
                   </Badge>
@@ -323,9 +323,9 @@ export default function AgendaColaboradorPage() {
 
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <CalendarIcon className="w-5 h-5 text-gray-500 mt-0.5" />
+                  <CalendarIcon className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-gray-600 mb-1">Data</p>
+                    <p className="text-muted-foreground mb-1">Data</p>
                     <p className="text-black">
                       {new Date(selectedEvento.data).toLocaleDateString(
                         "pt-BR",
@@ -336,9 +336,9 @@ export default function AgendaColaboradorPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-gray-500 mt-0.5" />
+                  <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-gray-600 mb-1">Horário</p>
+                    <p className="text-muted-foreground mb-1">Horário</p>
                     <p className="text-black">
                       {selectedEvento.horaInicio} - {selectedEvento.horaFim}
                     </p>
@@ -346,32 +346,32 @@ export default function AgendaColaboradorPage() {
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <User className="w-5 h-5 text-gray-500 mt-0.5" />
+                  <User className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-gray-600 mb-1">Cliente</p>
+                    <p className="text-muted-foreground mb-1">Cliente</p>
                     <p className="text-black">{selectedEvento.cliente}</p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-gray-500 mt-0.5" />
+                  <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <p className="text-gray-600 mb-1">Local</p>
+                    <p className="text-muted-foreground mb-1">Local</p>
                     <p className="text-black">{selectedEvento.endereco}</p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-border">
                 <Link href={`/colaborador/minhas-os/${selectedEvento.osId}`}>
-                  <Button className="w-full bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black">
+                  <Button className="w-full bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Abrir Ordem de Serviço
                   </Button>
                 </Link>
               </div>
 
-              <div className="text-gray-500 text-center">
+              <div className="text-muted-foreground text-center">
                 Somente gestores podem editar ou excluir compromissos
               </div>
             </div>

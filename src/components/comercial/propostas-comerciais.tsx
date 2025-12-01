@@ -77,27 +77,27 @@ export function PropostasComerciais() {
       'AGUARDANDO_APROVACAO_CLIENTE': {
         label: 'Aguardando Aprovação',
         icon: <Clock className="h-3 w-3" />,
-        className: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+        className: 'bg-warning/10 text-warning border-warning/30'
       },
       'NEGOCIACAO': {
         label: 'Em Negociação',
         icon: <MessageSquare className="h-3 w-3" />,
-        className: 'bg-orange-100 text-orange-800 border-orange-300'
+        className: 'bg-warning/10 text-warning border-warning/30'
       },
       'APROVADA': {
         label: 'Aprovada',
         icon: <CheckCircle className="h-3 w-3" />,
-        className: 'bg-green-100 text-green-800 border-green-300'
+        className: 'bg-success/10 text-success border-success/30'
       },
       'RECUSADA': {
         label: 'Recusada',
         icon: <XCircle className="h-3 w-3" />,
-        className: 'bg-red-100 text-red-800 border-red-300'
+        className: 'bg-destructive/10 text-destructive border-destructive/30'
       },
       'EXPIRADA': {
         label: 'Expirada',
         icon: <AlertCircle className="h-3 w-3" />,
-        className: 'bg-gray-100 text-gray-800 border-gray-300'
+        className: 'bg-muted text-foreground border-border'
       }
     };
     return statusMap[status];
@@ -162,7 +162,7 @@ export function PropostasComerciais() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-black/70">Aguardando Aprovação</CardTitle>
-              <Clock className="h-5 w-5 text-yellow-600" />
+              <Clock className="h-5 w-5 text-warning" />
             </div>
           </CardHeader>
           <CardContent>
@@ -179,7 +179,7 @@ export function PropostasComerciais() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-black/70">Em Negociação</CardTitle>
-              <MessageSquare className="h-5 w-5 text-orange-600" />
+              <MessageSquare className="h-5 w-5 text-warning" />
             </div>
           </CardHeader>
           <CardContent>
@@ -196,7 +196,7 @@ export function PropostasComerciais() {
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle className="text-black/70">Aprovadas</CardTitle>
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-success" />
             </div>
           </CardHeader>
           <CardContent>
@@ -211,10 +211,10 @@ export function PropostasComerciais() {
       </div>
 
       {/* Filtros */}
-      <Card className="border-[#D3AF37]/20">
+      <Card className="border-[var(--primary)]/20">
         <CardHeader>
           <CardTitle className="text-black flex items-center gap-2">
-            <Filter className="h-5 w-5 text-[#D3AF37]" />
+            <Filter className="h-5 w-5 text-[var(--primary)]" />
             Filtros
           </CardTitle>
         </CardHeader>
@@ -299,8 +299,8 @@ export function PropostasComerciais() {
           return (
             <Card 
               key={proposta.id} 
-              className={`border-[#D3AF37]/20 hover:border-[#D3AF37]/50 transition-colors ${
-                isExpirada ? 'bg-red-50/50' : isExpirando ? 'bg-yellow-50/50' : ''
+              className={`border-[var(--primary)]/20 hover:border-[var(--primary)]/50 transition-colors ${
+                isExpirada ? 'bg-destructive/5/50' : isExpirando ? 'bg-warning/5/50' : ''
               }`}
             >
               <CardContent className="p-6">
@@ -310,13 +310,13 @@ export function PropostasComerciais() {
                     <div className="flex items-start gap-4 mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <FileText className="h-5 w-5 text-[#D3AF37]" />
+                          <FileText className="h-5 w-5 text-[var(--primary)]" />
                           <h3 className="text-black text-lg">{proposta.osNumero}</h3>
                           <Badge className={`${statusInfo.className} border flex items-center gap-1`}>
                             {statusInfo.icon}
                             {statusInfo.label}
                           </Badge>
-                          <Badge variant="outline" className="border-[#D3AF37] text-black">
+                          <Badge variant="outline" className="border-[var(--primary)] text-black">
                             {getTipoOSLabel(proposta.osTipo)}
                           </Badge>
                         </div>
@@ -337,7 +337,7 @@ export function PropostasComerciais() {
 
                       {/* Valor */}
                       <div className="text-right">
-                        <div className="flex items-center gap-1 text-[#D3AF37] mb-1">
+                        <div className="flex items-center gap-1 text-[var(--primary)] mb-1">
                           <TrendingUp className="h-4 w-4" />
                           <span className="text-sm">Valor da Proposta</span>
                         </div>
@@ -350,7 +350,7 @@ export function PropostasComerciais() {
                     {/* Informações Adicionais */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 py-3 border-y border-black/10">
                       <div className="flex items-center gap-2 text-sm">
-                        <Calendar className="h-4 w-4 text-[#D3AF37]" />
+                        <Calendar className="h-4 w-4 text-[var(--primary)]" />
                         <div>
                           <p className="text-black/60">Enviado em</p>
                           <p className="text-black">{formatDate(proposta.dataEnvio)}</p>
@@ -358,10 +358,10 @@ export function PropostasComerciais() {
                       </div>
 
                       <div className="flex items-center gap-2 text-sm">
-                        <Clock className="h-4 w-4 text-[#D3AF37]" />
+                        <Clock className="h-4 w-4 text-[var(--primary)]" />
                         <div>
                           <p className="text-black/60">Validade</p>
-                          <p className={`${isExpirada ? 'text-red-600' : isExpirando ? 'text-yellow-600' : 'text-black'}`}>
+                          <p className={`${isExpirada ? 'text-destructive' : isExpirando ? 'text-warning' : 'text-black'}`}>
                             {formatDate(proposta.dataValidade)}
                             {!isExpirada && ` (${diasRestantes}d)`}
                             {isExpirada && ' (Expirada)'}
@@ -371,7 +371,7 @@ export function PropostasComerciais() {
 
                       {proposta.prazoExecucao && (
                         <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4 text-[#D3AF37]" />
+                          <Calendar className="h-4 w-4 text-[var(--primary)]" />
                           <div>
                             <p className="text-black/60">Prazo de Execução</p>
                             <p className="text-black">{proposta.prazoExecucao}</p>
@@ -380,7 +380,7 @@ export function PropostasComerciais() {
                       )}
 
                       <div className="flex items-center gap-2 text-sm">
-                        <User className="h-4 w-4 text-[#D3AF37]" />
+                        <User className="h-4 w-4 text-[var(--primary)]" />
                         <div>
                           <p className="text-black/60">Responsável</p>
                           <p className="text-black">{proposta.responsavelNome}</p>
@@ -392,14 +392,14 @@ export function PropostasComerciais() {
                     {proposta.feedbacks.length > 0 && (
                       <div className="mt-4">
                         <p className="text-sm text-black mb-2 flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4 text-[#D3AF37]" />
+                          <MessageSquare className="h-4 w-4 text-[var(--primary)]" />
                           Histórico de Feedbacks:
                         </p>
                         <div className="space-y-2">
                           {proposta.feedbacks.map((feedback, idx) => (
                             <div 
                               key={idx}
-                              className="pl-4 border-l-2 border-[#D3AF37]/30 text-sm text-black/70"
+                              className="pl-4 border-l-2 border-[var(--primary)]/30 text-sm text-black/70"
                             >
                               • {feedback}
                             </div>
@@ -415,7 +415,7 @@ export function PropostasComerciais() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleRegistrarFeedback(proposta.id)}
-                          className="border-[#D3AF37] text-black hover:bg-[#D3AF37]/10"
+                          className="border-[var(--primary)] text-black hover:bg-[var(--primary)]/10"
                         >
                           <MessageSquare className="h-4 w-4 mr-2" />
                           Registrar Feedback
@@ -425,7 +425,7 @@ export function PropostasComerciais() {
                           <Button
                             size="sm"
                             onClick={() => handleGerarContrato(proposta.id)}
-                            className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+                            className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
                           >
                             <FileSignature className="h-4 w-4 mr-2" />
                             Gerar Contrato
@@ -441,7 +441,7 @@ export function PropostasComerciais() {
         })}
 
         {propostasFiltradas.length === 0 && (
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardContent className="p-12 text-center">
               <FileText className="h-12 w-12 text-black/20 mx-auto mb-4" />
               <p className="text-black/60">Nenhuma proposta encontrada com os filtros aplicados.</p>
@@ -471,8 +471,8 @@ export function PropostasComerciais() {
               />
             </div>
 
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-900">
+            <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm text-primary">
                 <strong>Dica:</strong> Registre informações como solicitações de desconto, 
                 ajustes de escopo, prazos de retorno do cliente, etc.
               </p>
@@ -485,7 +485,7 @@ export function PropostasComerciais() {
             </Button>
             <Button 
               onClick={handleSalvarFeedback}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
               disabled={!novoFeedback}
             >
               <MessageSquare className="h-4 w-4 mr-2" />
@@ -500,7 +500,7 @@ export function PropostasComerciais() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-black flex items-center gap-2">
-              <FileSignature className="h-5 w-5 text-[#D3AF37]" />
+              <FileSignature className="h-5 w-5 text-[var(--primary)]" />
               Gerar Contrato
             </DialogTitle>
             <DialogDescription>
@@ -509,18 +509,18 @@ export function PropostasComerciais() {
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 bg-[#D3AF37]/10 rounded-lg border border-[#D3AF37]/30 mb-4">
+            <div className="p-4 bg-[var(--primary)]/10 rounded-lg border border-[var(--primary)]/30 mb-4">
               <p className="text-sm text-black">
                 A proposta será avançada para a etapa de geração de contrato (OS-13). 
                 O lead será automaticamente convertido em cliente se ainda não foi.
               </p>
             </div>
 
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-              <p className="text-sm text-green-900">
+            <div className="p-4 bg-success/5 rounded-lg border border-success/20">
+              <p className="text-sm text-success">
                 <strong>Próximos passos:</strong>
               </p>
-              <ul className="text-sm text-green-800 mt-2 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-success mt-2 space-y-1 list-disc list-inside">
                 <li>Proposta marcada como "Aprovada"</li>
                 <li>Iniciado processo de geração de contrato (OS-13)</li>
                 <li>Lead convertido em cliente automaticamente</li>
@@ -534,7 +534,7 @@ export function PropostasComerciais() {
             </Button>
             <Button 
               onClick={handleConfirmarContrato}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
             >
               <FileSignature className="h-4 w-4 mr-2" />
               Confirmar e Gerar Contrato

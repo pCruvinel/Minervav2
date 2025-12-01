@@ -46,16 +46,15 @@ export function CalendarioPage() {
   }, [refetch, refetchAgendamentos]);
 
   return (
-    <div className="min-h-screen bg-neutral-50 p-6">
+    <div className="min-h-screen bg-background p-6">
       <div className="max-w-[1600px] mx-auto">
         {/* Botão Adicionar Turno */}
         <div className="flex justify-end mb-6">
           <Button
             onClick={() => setModalCriarTurno(true)}
             className="
-              bg-gradient-to-r from-blue-500 to-purple-600
-              hover:from-blue-600 hover:to-purple-700
-              text-white px-6 py-3
+              bg-primary hover:bg-primary/90
+              text-primary-foreground px-6 py-3
               shadow-lg hover:shadow-xl
               rounded-lg
               font-medium
@@ -69,7 +68,7 @@ export function CalendarioPage() {
         </div>
 
         {/* Calendário FullCalendar */}
-        <div className="bg-white rounded-xl shadow-lg border border-neutral-200 overflow-hidden">
+        <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
           <CalendarioSemana
             dataAtual={hoje}
             turnosPorDia={turnosPorDia}

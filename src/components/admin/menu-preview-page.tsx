@@ -89,11 +89,11 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
   const visibleItems = visibilityByRole[selectedRole];
 
   return (
-    <div className="p-8 space-y-8 bg-neutral-50 min-h-screen">
+    <div className="p-8 space-y-8 bg-background min-h-screen">
       {/* Header */}
       <div>
         <h1 className="text-3xl mb-2">Preview de Menu por Perfil</h1>
-        <p className="text-neutral-600">
+        <p className="text-muted-foreground">
           Visualize como o menu lateral aparece para diferentes perfis de usuário no sistema.
         </p>
       </div>
@@ -134,19 +134,19 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
       <div className="grid md:grid-cols-2 gap-8">
         {/* Lista de Itens Visíveis */}
         <Card>
-          <CardHeader className="bg-green-50 border-b border-green-200">
+          <CardHeader className="bg-success/5 border-b border-success/20">
             <div className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-green-600" />
-              <CardTitle className="text-green-900">Itens Visíveis</CardTitle>
+              <Eye className="w-5 h-5 text-success" />
+              <CardTitle className="text-success">Itens Visíveis</CardTitle>
             </div>
-            <CardDescription className="text-green-700">
+            <CardDescription className="text-success">
               Estes itens aparecem no menu lateral para {ROLE_NAMES[selectedRole]}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-3">
               {visibleItems.length === 0 ? (
-                <p className="text-neutral-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   Nenhum item visível para este perfil
                 </p>
               ) : (
@@ -158,12 +158,12 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
                   return (
                     <div
                       key={itemId}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-green-200 bg-green-50"
+                      className="flex items-center gap-3 p-3 rounded-lg border border-success/20 bg-success/5"
                     >
-                      <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      <Icon className="w-5 h-5 text-green-700" />
+                      <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
+                      <Icon className="w-5 h-5 text-success" />
                       <span className="flex-1">{item.label}</span>
-                      <Badge variant="outline" className="bg-white border-green-300 text-green-700">
+                      <Badge variant="outline" className="bg-white border-success/30 text-success">
                         Visível
                       </Badge>
                     </div>
@@ -176,19 +176,19 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
 
         {/* Lista de Itens Ocultos */}
         <Card>
-          <CardHeader className="bg-red-50 border-b border-red-200">
+          <CardHeader className="bg-destructive/5 border-b border-destructive/20">
             <div className="flex items-center gap-2">
-              <EyeOff className="w-5 h-5 text-red-600" />
-              <CardTitle className="text-red-900">Itens Ocultos</CardTitle>
+              <EyeOff className="w-5 h-5 text-destructive" />
+              <CardTitle className="text-destructive">Itens Ocultos</CardTitle>
             </div>
-            <CardDescription className="text-red-700">
+            <CardDescription className="text-destructive">
               Estes itens NÃO aparecem no menu para {ROLE_NAMES[selectedRole]}
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
             <div className="space-y-3">
               {allMenuItems.filter(item => !visibleItems.includes(item.id)).length === 0 ? (
-                <p className="text-neutral-500 text-center py-8">
+                <p className="text-muted-foreground text-center py-8">
                   Todos os itens são visíveis para este perfil
                 </p>
               ) : (
@@ -199,12 +199,12 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
                     return (
                       <div
                         key={item.id}
-                        className="flex items-center gap-3 p-3 rounded-lg border border-red-200 bg-red-50 opacity-60"
+                        className="flex items-center gap-3 p-3 rounded-lg border border-destructive/20 bg-destructive/5 opacity-60"
                       >
-                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                        <Icon className="w-5 h-5 text-red-700" />
+                        <XCircle className="w-5 h-5 text-destructive flex-shrink-0" />
+                        <Icon className="w-5 h-5 text-destructive" />
                         <span className="flex-1 line-through">{item.label}</span>
-                        <Badge variant="outline" className="bg-white border-red-300 text-red-700">
+                        <Badge variant="outline" className="bg-white border-destructive/30 text-destructive">
                           Oculto
                         </Badge>
                       </div>
@@ -226,51 +226,51 @@ export function MenuPreviewPage({ onBack }: MenuPreviewPageProps) {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-neutral-50 rounded-lg border">
+            <div className="text-center p-4 bg-background rounded-lg border">
               <div className="text-3xl mb-2">{allMenuItems.length}</div>
-              <div className="text-sm text-neutral-600">Total de Itens</div>
+              <div className="text-sm text-muted-foreground">Total de Itens</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
-              <div className="text-3xl text-green-700 mb-2">{visibleItems.length}</div>
-              <div className="text-sm text-green-800">Itens Visíveis</div>
+            <div className="text-center p-4 bg-success/5 rounded-lg border border-success/20">
+              <div className="text-3xl text-success mb-2">{visibleItems.length}</div>
+              <div className="text-sm text-success">Itens Visíveis</div>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
-              <div className="text-3xl text-red-700 mb-2">
+            <div className="text-center p-4 bg-destructive/5 rounded-lg border border-destructive/20">
+              <div className="text-3xl text-destructive mb-2">
                 {allMenuItems.length - visibleItems.length}
               </div>
-              <div className="text-sm text-red-800">Itens Ocultos</div>
+              <div className="text-sm text-destructive">Itens Ocultos</div>
             </div>
           </div>
 
           <Separator className="my-6" />
 
           {/* Regras de Visibilidade */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <h3 className="font-semibold text-primary mb-3 flex items-center gap-2">
               <Settings className="w-5 h-5" />
               Regras de Visibilidade
             </h3>
-            <div className="space-y-2 text-sm text-blue-800">
+            <div className="space-y-2 text-sm text-primary">
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
                 <p>
                   <strong>DIRETORIA:</strong> Acesso completo a todos os módulos do sistema
                 </p>
               </div>
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
                 <p>
                   <strong>GESTORES:</strong> Acesso completo aos módulos operacionais e gerenciais
                 </p>
               </div>
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
                 <p>
                   <strong>COLABORADORES:</strong> Acesso limitado - Dashboard, Projetos/OS, Clientes e Calendário
                 </p>
               </div>
               <div className="flex items-start gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-600 mt-2"></div>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary mt-2"></div>
                 <p>
                   <strong>MOBRA:</strong> Acesso mínimo - Apenas Dashboard (se aplicável)
                 </p>

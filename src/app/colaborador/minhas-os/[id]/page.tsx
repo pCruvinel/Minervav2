@@ -51,11 +51,11 @@ export default function DetalhesOSExecucaoPage() {
 
   if (!os) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="p-8 border-gray-200">
-          <p className="text-gray-600">OS não encontrada</p>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 border-border">
+          <p className="text-muted-foreground">OS não encontrada</p>
           <Link href="/colaborador/minhas-os">
-            <Button className="mt-4 bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black">
+            <Button className="mt-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black">
               Voltar para Minhas OS
             </Button>
           </Link>
@@ -84,26 +84,26 @@ export default function DetalhesOSExecucaoPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "atrasado":
-        return "bg-red-100 text-red-800 border-red-200";
+        return "bg-destructive/10 text-destructive border-destructive/20";
       case "em_andamento":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/20";
       case "pendente":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-warning/10 text-warning border-warning/20";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-border">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between mb-4">
             <Link href="/colaborador/minhas-os">
               <Button
                 variant="ghost"
-                className="text-gray-600 hover:text-black"
+                className="text-muted-foreground hover:text-black"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Voltar
@@ -117,7 +117,7 @@ export default function DetalhesOSExecucaoPage() {
           <div className="flex items-start justify-between">
             <div>
               <h1 className="text-black mb-2">{os.codigo}</h1>
-              <div className="flex items-center gap-4 text-gray-600">
+              <div className="flex items-center gap-4 text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   <span>{os.cliente}</span>
@@ -137,16 +137,16 @@ export default function DetalhesOSExecucaoPage() {
           {/* Coluna Principal - Formulário de Execução */}
           <div className="lg:col-span-2 space-y-6">
             {/* Informações da Etapa */}
-            <Card className="p-6 border-gray-200">
+            <Card className="p-6 border-border">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-[#D3AF37]/20 flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-[#D3AF37]" />
+                <div className="w-10 h-10 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-[var(--primary)]" />
                 </div>
                 <div>
                   <h2 className="text-black">
                     {os.etapaAtual.replace(/_/g, " ")}
                   </h2>
-                  <p className="text-gray-600">Formulário de Execução</p>
+                  <p className="text-muted-foreground">Formulário de Execução</p>
                 </div>
               </div>
 
@@ -157,7 +157,7 @@ export default function DetalhesOSExecucaoPage() {
                     <Label className="text-black mb-3 block">
                       Checklist de Vistoria
                     </Label>
-                    <div className="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <div className="space-y-3 bg-background p-4 rounded-lg border border-border">
                       {[
                         {
                           id: "estrutura",
@@ -191,7 +191,7 @@ export default function DetalhesOSExecucaoPage() {
                           />
                           <Label
                             htmlFor={item.id}
-                            className="text-gray-700 cursor-pointer"
+                            className="text-muted-foreground cursor-pointer"
                           >
                             {item.label}
                           </Label>
@@ -213,7 +213,7 @@ export default function DetalhesOSExecucaoPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, medicoes: e.target.value })
                     }
-                    className="min-h-[120px] border-gray-300"
+                    className="min-h-[120px] border-border"
                   />
                 </div>
 
@@ -231,7 +231,7 @@ export default function DetalhesOSExecucaoPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, observacoes: e.target.value })
                     }
-                    className="min-h-[120px] border-gray-300"
+                    className="min-h-[120px] border-border"
                   />
                 </div>
 
@@ -244,9 +244,9 @@ export default function DetalhesOSExecucaoPage() {
                     type="file"
                     multiple
                     accept="image/*"
-                    className="border-gray-300"
+                    className="border-border"
                   />
-                  <p className="text-gray-500 mt-1">
+                  <p className="text-muted-foreground mt-1">
                     Anexe fotos da vistoria/execução (máx. 10 arquivos)
                   </p>
                 </div>
@@ -254,13 +254,13 @@ export default function DetalhesOSExecucaoPage() {
             </Card>
 
             {/* Ações de Execução */}
-            <Card className="p-6 border-gray-200">
+            <Card className="p-6 border-border">
               <div className="flex items-center gap-3">
                 <Button
                   variant="outline"
                   onClick={handleSalvarRascunho}
                   disabled={isSubmitting}
-                  className="flex-1 border-gray-300 text-black hover:bg-gray-100"
+                  className="flex-1 border-border text-black hover:bg-muted"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   Salvar Rascunho
@@ -268,13 +268,13 @@ export default function DetalhesOSExecucaoPage() {
                 <Button
                   onClick={handleSubmeterAprovacao}
                   disabled={isSubmitting}
-                  className="flex-1 bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+                  className="flex-1 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black"
                 >
                   <Send className="w-4 h-4 mr-2" />
                   Submeter para Aprovação
                 </Button>
               </div>
-              <p className="text-gray-500 mt-3 text-center">
+              <p className="text-muted-foreground mt-3 text-center">
                 Após submeter, a OS será bloqueada para edição e enviada ao
                 gestor
               </p>
@@ -283,46 +283,46 @@ export default function DetalhesOSExecucaoPage() {
 
           {/* Sidebar - Informações da OS */}
           <div className="space-y-6">
-            <Card className="p-6 border-gray-200">
+            <Card className="p-6 border-border">
               <h3 className="text-black mb-4">Informações da OS</h3>
               <div className="space-y-4">
                 <div>
-                  <p className="text-gray-600 mb-1">Tipo de OS</p>
+                  <p className="text-muted-foreground mb-1">Tipo de OS</p>
                   <Badge
                     variant="outline"
-                    className="border-[#D3AF37] text-black bg-[#D3AF37]/10"
+                    className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                   >
                     {os.tipo}
                   </Badge>
                 </div>
 
                 <div>
-                  <p className="text-gray-600 mb-1">Cliente</p>
+                  <p className="text-muted-foreground mb-1">Cliente</p>
                   <p className="text-black">{os.cliente}</p>
                 </div>
 
                 <div>
-                  <p className="text-gray-600 mb-1">Endereço</p>
+                  <p className="text-muted-foreground mb-1">Endereço</p>
                   <p className="text-black">{os.endereco}</p>
                 </div>
 
                 <div>
-                  <p className="text-gray-600 mb-1">Telefone</p>
+                  <p className="text-muted-foreground mb-1">Telefone</p>
                   <p className="text-black">{os.telefone}</p>
                 </div>
 
-                <div className="pt-4 border-t border-gray-200">
+                <div className="pt-4 border-t border-border">
                   <div className="flex items-center gap-2 mb-2">
-                    <User className="w-4 h-4 text-gray-500" />
-                    <p className="text-gray-600">Responsável</p>
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Responsável</p>
                   </div>
                   <p className="text-black">{os.responsavel}</p>
                 </div>
 
                 <div>
                   <div className="flex items-center gap-2 mb-2">
-                    <Calendar className="w-4 h-4 text-gray-500" />
-                    <p className="text-gray-600">Prazo</p>
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <p className="text-muted-foreground">Prazo</p>
                   </div>
                   <p className="text-black">
                     {new Date(os.prazo).toLocaleDateString("pt-BR")}
@@ -330,15 +330,15 @@ export default function DetalhesOSExecucaoPage() {
                 </div>
 
                 <div>
-                  <p className="text-gray-600 mb-1">Prioridade</p>
+                  <p className="text-muted-foreground mb-1">Prioridade</p>
                   <Badge
                     variant="outline"
                     className={
                       os.prioridade === "ALTA"
-                        ? "bg-red-50 text-red-700 border-red-300"
+                        ? "bg-destructive/5 text-destructive border-destructive/30"
                         : os.prioridade === "MEDIA"
-                        ? "bg-yellow-50 text-yellow-700 border-yellow-300"
-                        : "bg-green-50 text-green-700 border-green-300"
+                        ? "bg-warning/5 text-warning border-warning/30"
+                        : "bg-success/5 text-success border-success/30"
                     }
                   >
                     {os.prioridade}
@@ -347,9 +347,9 @@ export default function DetalhesOSExecucaoPage() {
               </div>
             </Card>
 
-            <Card className="p-6 border-gray-200">
+            <Card className="p-6 border-border">
               <h3 className="text-black mb-2">Descrição</h3>
-              <p className="text-gray-700">{os.descricao}</p>
+              <p className="text-muted-foreground">{os.descricao}</p>
             </Card>
           </div>
         </div>

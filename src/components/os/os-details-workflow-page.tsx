@@ -1354,10 +1354,10 @@ export function OSDetailsWorkflowPage({
   }, [currentStep, isHistoricalNavigation, stepLeadRef, stepFollowup1Ref, stepMemorialRef]);
 
   return (
-    <div className="h-screen flex flex-col bg-neutral-50">
+    <div className="h-screen flex flex-col bg-background">
       {/* Botão Voltar (opcional) */}
       {onBack && (
-        <div className="border-b border-neutral-200 px-6 py-3 bg-white">
+        <div className="border-b border-border px-6 py-3 bg-white">
           <Button variant="ghost" onClick={onBack} className="gap-2">
             <ChevronLeft className="h-4 w-4" />
             Voltar ao Hub de Criação
@@ -1420,13 +1420,13 @@ export function OSDetailsWorkflowPage({
 
             {/* Banner de Modo de Visualização Histórica */}
             {isHistoricalNavigation && (
-              <div className="mx-6 mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="mx-6 mt-4 bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h4 className="text-blue-900 font-semibold mb-1">
+                  <h4 className="text-primary font-semibold mb-1">
                     Modo de Visualização Histórica
                   </h4>
-                  <p className="text-blue-800 text-sm">
+                  <p className="text-primary text-sm">
                     Você está visualizando dados de uma etapa já concluída.
                     {lastActiveStep && (
                       <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
@@ -1435,7 +1435,7 @@ export function OSDetailsWorkflowPage({
                 </div>
                 <button
                   onClick={handleReturnToActive}
-                  className="text-blue-600 hover:text-blue-800 font-medium text-sm underline whitespace-nowrap"
+                  className="text-primary hover:text-primary font-medium text-sm underline whitespace-nowrap"
                 >
                   Voltar agora
                 </button>
@@ -1509,10 +1509,10 @@ export function OSDetailsWorkflowPage({
                   </div>
 
                   {etapa2Data.tipoOS && (
-                    <Card className="bg-green-50 border-green-200">
+                    <Card className="bg-success/5 border-success/20">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
+                          <Check className="h-5 w-5 text-success" />
                           <div>
                             <p className="text-sm font-medium">Tipo de OS selecionado:</p>
                             <p className="text-sm text-muted-foreground">{etapa2Data.tipoOS}</p>
@@ -1582,10 +1582,10 @@ export function OSDetailsWorkflowPage({
                   </div>
 
                   {etapa5Data.visitaRealizada && (
-                    <Card className="bg-green-50 border-green-200">
+                    <Card className="bg-success/5 border-success/20">
                       <CardContent className="pt-6">
                         <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-green-600" />
+                          <Check className="h-5 w-5 text-success" />
                           <div>
                             <p className="text-sm font-medium">Visita confirmada!</p>
                             <p className="text-sm text-muted-foreground">Data: {new Date().toLocaleDateString('pt-BR')}</p>
@@ -1696,16 +1696,16 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 15: Iniciar Contrato de Obra */}
               {currentStep === 15 && (
                 <div className="space-y-6">
-                  <Alert className="border-green-200 bg-green-50">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <AlertDescription className="text-green-700">
+                  <Alert className="border-success/20 bg-success/5">
+                    <Check className="h-4 w-4 text-success" />
+                    <AlertDescription className="text-success">
                       <strong>Parabéns!</strong> Você chegou à última etapa do fluxo comercial.
                     </AlertDescription>
                   </Alert>
 
                   <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                      <Send className="h-10 w-10 text-green-600" />
+                    <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
+                      <Send className="h-10 w-10 text-success" />
                     </div>
                     <div className="text-center">
                       <h3 className="font-medium mb-2">Concluir OS e Gerar OS-13</h3>

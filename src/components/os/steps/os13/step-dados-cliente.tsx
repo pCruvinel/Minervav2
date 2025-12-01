@@ -92,21 +92,21 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Dados do Cliente e da Edificação</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Preencha todas as informações sobre o cliente e características da obra
         </p>
       </div>
 
       {/* Dados Gerais */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Dados Gerais
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="cliente">
-              Cliente <span className="text-red-500">*</span>
+              Cliente <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.cliente}
@@ -127,7 +127,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="tipoEdificacao">
-              Tipo de Edificação <span className="text-red-500">*</span>
+              Tipo de Edificação <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.tipoEdificacao}
@@ -149,7 +149,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="qtdPavimentos">
-              Quantidade de Pavimentos <span className="text-red-500">*</span>
+              Quantidade de Pavimentos <span className="text-destructive">*</span>
             </Label>
             <Input
               id="qtdPavimentos"
@@ -164,7 +164,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="tipoTelhado">
-              Tipo de Telhado <span className="text-red-500">*</span>
+              Tipo de Telhado <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.tipoTelhado}
@@ -184,7 +184,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
             </Select>
           </div>
 
-          <div className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <Label htmlFor="possuiElevador" className="cursor-pointer">
               Possui Elevador?
             </Label>
@@ -196,7 +196,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
             />
           </div>
 
-          <div className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
+          <div className="flex items-center justify-between p-4 border border-border rounded-lg">
             <Label htmlFor="possuiPiscina" className="cursor-pointer">
               Possui Piscina?
             </Label>
@@ -212,14 +212,14 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
       {/* Dados Complementares */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Dados Complementares
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="cnpj">
-              CNPJ <span className="text-red-500">*</span>
+              CNPJ <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cnpj"
@@ -233,7 +233,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="cep">
-              CEP <span className="text-red-500">*</span>
+              CEP <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cep"
@@ -247,7 +247,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="estado">
-              Estado <span className="text-red-500">*</span>
+              Estado <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.estado}
@@ -269,7 +269,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="cidade">
-              Cidade <span className="text-red-500">*</span>
+              Cidade <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cidade"
@@ -282,7 +282,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="endereco">
-              Endereço <span className="text-red-500">*</span>
+              Endereço <span className="text-destructive">*</span>
             </Label>
             <Input
               id="endereco"
@@ -295,7 +295,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="bairro">
-              Bairro <span className="text-red-500">*</span>
+              Bairro <span className="text-destructive">*</span>
             </Label>
             <Input
               id="bairro"
@@ -310,14 +310,14 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
       {/* Dados do Responsável */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Dados do Responsável
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="responsavel">
-              Responsável <span className="text-red-500">*</span>
+              Responsável <span className="text-destructive">*</span>
             </Label>
             <Input
               id="responsavel"
@@ -330,7 +330,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="cargo">
-              Cargo do Responsável <span className="text-red-500">*</span>
+              Cargo do Responsável <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cargo"
@@ -343,7 +343,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="telefone">
-              Telefone <span className="text-red-500">*</span>
+              Telefone <span className="text-destructive">*</span>
             </Label>
             <Input
               id="telefone"
@@ -357,7 +357,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
 
           <div className="space-y-2">
             <Label htmlFor="email">
-              E-mail <span className="text-red-500">*</span>
+              E-mail <span className="text-destructive">*</span>
             </Label>
             <Input
               id="email"
@@ -374,7 +374,7 @@ export function StepDadosCliente({ data, onDataChange, readOnly }: StepDadosClie
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Todos os campos marcados com <span className="text-red-500">*</span> são obrigatórios.
+          Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
           Certifique-se de preencher todas as informações antes de avançar.
         </AlertDescription>
       </Alert>

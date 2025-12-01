@@ -156,13 +156,13 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
   const getPerfilBadge = (perfil: RoleLevel) => {
     const perms = PERMISSOES_POR_ROLE[perfil];
     const config: Record<RoleLevel, { className: string; icon: typeof Shield }> = {
-      admin: { className: 'bg-purple-100 text-purple-800', icon: Shield },
-      diretoria: { className: 'bg-purple-100 text-purple-800', icon: Shield },
-      gestor_administrativo: { className: 'bg-blue-100 text-blue-800', icon: Shield },
-      gestor_obras: { className: 'bg-green-100 text-green-800', icon: Shield },
+      admin: { className: 'bg-secondary/10 text-secondary', icon: Shield },
+      diretoria: { className: 'bg-secondary/10 text-secondary', icon: Shield },
+      gestor_administrativo: { className: 'bg-primary/10 text-primary', icon: Shield },
+      gestor_obras: { className: 'bg-success/10 text-success', icon: Shield },
       gestor_assessoria: { className: 'bg-teal-100 text-teal-800', icon: Shield },
-      colaborador: { className: 'bg-amber-100 text-amber-800', icon: User },
-      mao_de_obra: { className: 'bg-neutral-100 text-neutral-800', icon: Lock },
+      colaborador: { className: 'bg-warning/10 text-warning', icon: User },
+      mao_de_obra: { className: 'bg-muted text-foreground', icon: Lock },
     };
 
     const { className, icon: Icon } = config[perfil];
@@ -176,9 +176,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
 
   const getStatusBadge = (status: StatusUsuario) => {
     const config: Record<StatusUsuario, { label: string; icon: typeof CheckCircle; className: string }> = {
-      ativo: { label: 'Ativo', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
-      bloqueado: { label: 'Bloqueado', icon: Lock, className: 'bg-red-100 text-red-800' },
-      inativo: { label: 'Inativo', icon: XCircle, className: 'bg-neutral-100 text-neutral-800' },
+      ativo: { label: 'Ativo', icon: CheckCircle, className: 'bg-success/10 text-success' },
+      bloqueado: { label: 'Bloqueado', icon: Lock, className: 'bg-destructive/10 text-destructive' },
+      inativo: { label: 'Inativo', icon: XCircle, className: 'bg-muted text-foreground' },
     };
 
     const { label, icon: Icon, className } = config[status];
@@ -217,7 +217,7 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -260,9 +260,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Usuários Ativos</p>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <h3 className="text-2xl text-green-600">{stats.ativos}</h3>
+            <h3 className="text-2xl text-success">{stats.ativos}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               com acesso liberado
             </p>
@@ -273,9 +273,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Bloqueados</p>
-              <Lock className="h-4 w-4 text-red-600" />
+              <Lock className="h-4 w-4 text-destructive" />
             </div>
-            <h3 className="text-2xl text-red-600">{stats.bloqueados}</h3>
+            <h3 className="text-2xl text-destructive">{stats.bloqueados}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               acesso temporariamente suspenso
             </p>
@@ -286,9 +286,9 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Sem Acesso</p>
-              <XCircle className="h-4 w-4 text-neutral-600" />
+              <XCircle className="h-4 w-4 text-muted-foreground" />
             </div>
-            <h3 className="text-2xl text-neutral-600">{stats.semAcesso}</h3>
+            <h3 className="text-2xl text-muted-foreground">{stats.semAcesso}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               colaboradores de obra
             </p>
@@ -364,7 +364,7 @@ export function UsuariosPermissoesPage({ onBack }: UsuariosPermissoesPageProps) 
                 <TableRow
                   key={usuario.id}
                   className={cn(
-                    "hover:bg-neutral-50",
+                    "hover:bg-background",
                     usuario.perfil === 'mao_de_obra' && "opacity-60"
                   )}
                 >
@@ -493,7 +493,7 @@ function ModalEditarAcesso({ open, onClose, usuario }: ModalEditarAcessoProps) {
 
         <div className="space-y-6">
           {/* Informações do Usuário */}
-          <div className="p-4 bg-neutral-50 rounded-lg">
+          <div className="p-4 bg-background rounded-lg">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
                 <p className="text-muted-foreground">Nome</p>
@@ -549,7 +549,7 @@ function ModalEditarAcesso({ open, onClose, usuario }: ModalEditarAcessoProps) {
           {/* Bloqueio Temporário */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="flex items-center gap-3">
-              <Lock className="h-5 w-5 text-red-600" />
+              <Lock className="h-5 w-5 text-destructive" />
               <div>
                 <p className="font-medium">Bloquear Acesso Temporário</p>
                 <p className="text-sm text-muted-foreground">
@@ -605,11 +605,11 @@ function ModalMatrizPermissoes({ open, onClose }: ModalMatrizPermissoesProps) {
                   <div className="flex items-center gap-3">
                     <div className={cn(
                       "w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold",
-                      matriz.nivel === 10 && "bg-purple-100 text-purple-800",
-                      matriz.nivel === 9 && "bg-purple-100 text-purple-800",
-                      matriz.nivel === 5 && "bg-blue-100 text-blue-800",
-                      matriz.nivel === 1 && "bg-amber-100 text-amber-800",
-                      matriz.nivel === 0 && "bg-neutral-100 text-neutral-800"
+                      matriz.nivel === 10 && "bg-secondary/10 text-secondary",
+                      matriz.nivel === 9 && "bg-secondary/10 text-secondary",
+                      matriz.nivel === 5 && "bg-primary/10 text-primary",
+                      matriz.nivel === 1 && "bg-warning/10 text-warning",
+                      matriz.nivel === 0 && "bg-muted text-foreground"
                     )}>
                       N{matriz.nivel}
                     </div>
@@ -627,61 +627,61 @@ function ModalMatrizPermissoes({ open, onClose }: ModalMatrizPermissoesProps) {
               <CardContent className="space-y-4">
                 <div>
                   <p className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
+                    <CheckCircle className="h-4 w-4 text-success" />
                     Permissões
                   </p>
                   <ul className="space-y-1">
                     {matriz.pode_ver_todas_os && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Visualizar todas as OSs</span>
                       </li>
                     )}
                     {matriz.pode_acessar_financeiro && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Acessar módulo financeiro</span>
                       </li>
                     )}
                     {matriz.pode_delegar && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Delegar tarefas</span>
                       </li>
                     )}
                     {matriz.pode_aprovar && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Aprovar etapas de workflow</span>
                       </li>
                     )}
                     {matriz.pode_gerenciar_usuarios && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Gerenciar usuários e permissões</span>
                       </li>
                     )}
                     {matriz.pode_criar_os && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Criar ordens de serviço</span>
                       </li>
                     )}
                     {matriz.pode_cancelar_os && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Cancelar ordens de serviço</span>
                       </li>
                     )}
                     {matriz.setores_visiveis === 'todos' && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Visualizar todos os setores</span>
                       </li>
                     )}
                     {Array.isArray(matriz.setores_visiveis) && matriz.setores_visiveis.length > 0 && (
                       <li className="text-sm flex items-start gap-2">
-                        <span className="text-green-600 mt-1">✓</span>
+                        <span className="text-success mt-1">✓</span>
                         <span>Visualizar setores: {matriz.setores_visiveis.join(', ')}</span>
                       </li>
                     )}

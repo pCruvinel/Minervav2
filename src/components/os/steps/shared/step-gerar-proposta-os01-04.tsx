@@ -257,16 +257,16 @@ export function StepGerarPropostaOS0104({
           <CardContent className="space-y-4">
             {/* Validação dos dados da Etapa 1 */}
             {validacao.valido ? (
-              <Alert className="bg-green-50 border-green-200">
-                <CheckCircle className="h-4 w-4 text-green-600" />
-                <AlertDescription className="text-green-700">
+              <Alert className="bg-success/5 border-success/20">
+                <CheckCircle className="h-4 w-4 text-success" />
+                <AlertDescription className="text-success">
                   ✅ Todos os dados necessários foram preenchidos
                 </AlertDescription>
               </Alert>
             ) : (
-              <Alert variant="destructive" className="bg-yellow-50 border-yellow-300">
-                <AlertCircle className="h-4 w-4 text-yellow-700" />
-                <AlertDescription className="text-yellow-800">
+              <Alert variant="destructive" className="bg-warning/5 border-warning/30">
+                <AlertCircle className="h-4 w-4 text-warning" />
+                <AlertDescription className="text-warning">
                   <div>
                     <strong>Atenção:</strong> Preencha os dados essenciais do cliente antes de gerar a proposta:
                   </div>
@@ -275,7 +275,7 @@ export function StepGerarPropostaOS0104({
                       <li key={index}>{campo}</li>
                     ))}
                   </ul>
-                  <div className="mt-2 text-xs text-yellow-700">
+                  <div className="mt-2 text-xs text-warning">
                     💡 Os demais dados do endereço podem ser complementados posteriormente.
                   </div>
                 </AlertDescription>
@@ -350,11 +350,11 @@ export function StepGerarPropostaOS0104({
 
       {/* Card de Sucesso */}
       {data.propostaGerada && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-success/5 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-success" />
                 <div>
                   <div className="text-sm font-medium">Proposta gerada com sucesso!</div>
                   <div className="text-xs text-muted-foreground">

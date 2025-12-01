@@ -30,11 +30,11 @@ export function ListaObrasAtivas() {
   const statusCronogramaIcon = (status: string) => {
     switch (status) {
       case 'NO_PRAZO':
-        return <CheckCircle className="h-4 w-4 text-green-600" />;
+        return <CheckCircle className="h-4 w-4 text-success" />;
       case 'ATENCAO':
-        return <Clock className="h-4 w-4 text-yellow-600" />;
+        return <Clock className="h-4 w-4 text-warning" />;
       case 'ATRASADO':
-        return <AlertCircle className="h-4 w-4 text-red-600" />;
+        return <AlertCircle className="h-4 w-4 text-destructive" />;
       default:
         return null;
     }
@@ -44,13 +44,13 @@ export function ListaObrasAtivas() {
     switch (status) {
       case 'NO_PRAZO':
         return (
-          <Badge variant="outline" className="border-green-600 text-green-600">
+          <Badge variant="outline" className="border-success text-success">
             No Prazo
           </Badge>
         );
       case 'ATENCAO':
         return (
-          <Badge variant="outline" className="border-yellow-600 text-yellow-600">
+          <Badge variant="outline" className="border-warning text-warning">
             Atenção
           </Badge>
         );
@@ -106,11 +106,11 @@ export function ListaObrasAtivas() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground">No Prazo</p>
-                <div className="font-mono" style={{ fontSize: '1.5rem' }} className="text-green-600">
+                <div className="font-mono text-success" style={{ fontSize: '1.5rem' }}>
                   {obras.filter(o => o.statusCronograma === 'NO_PRAZO').length}
                 </div>
               </div>
-              <CheckCircle className="h-8 w-8 text-green-600" />
+              <CheckCircle className="h-8 w-8 text-success" />
             </div>
           </CardContent>
         </Card>
@@ -119,11 +119,11 @@ export function ListaObrasAtivas() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-muted-foreground">Atrasadas</p>
-                <div className="font-mono" style={{ fontSize: '1.5rem' }} className="text-red-600">
+                <div className="font-mono text-destructive" style={{ fontSize: '1.5rem' }}>
                   {obras.filter(o => o.statusCronograma === 'ATRASADO').length}
                 </div>
               </div>
-              <AlertCircle className="h-8 w-8 text-red-600" />
+              <AlertCircle className="h-8 w-8 text-destructive" />
             </div>
           </CardContent>
         </Card>
@@ -237,7 +237,7 @@ export function ListaObrasAtivas() {
                       <Button
                         size="sm"
                         onClick={() => handleAbrirModal(obra)}
-                        className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         <TrendingUp className="h-4 w-4 mr-1" />
                         Atualizar Cronograma

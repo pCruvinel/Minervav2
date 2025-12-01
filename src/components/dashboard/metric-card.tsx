@@ -35,9 +35,9 @@ export function MetricCard({
 }: MetricCardProps) {
   const variantStyles = {
     default: {
-      bg: 'bg-neutral-50',
-      iconBg: 'bg-neutral-100',
-      iconColor: 'text-neutral-600',
+      bg: 'bg-background',
+      iconBg: 'bg-muted',
+      iconColor: 'text-muted-foreground',
     },
     primary: {
       bg: 'bg-primary/5',
@@ -45,19 +45,19 @@ export function MetricCard({
       iconColor: 'text-primary',
     },
     success: {
-      bg: 'bg-green-50',
-      iconBg: 'bg-green-100',
-      iconColor: 'text-green-600',
+      bg: 'bg-success/5',
+      iconBg: 'bg-success/10',
+      iconColor: 'text-success',
     },
     warning: {
-      bg: 'bg-amber-50',
-      iconBg: 'bg-amber-100',
-      iconColor: 'text-amber-600',
+      bg: 'bg-warning/5',
+      iconBg: 'bg-warning/10',
+      iconColor: 'text-warning',
     },
     danger: {
-      bg: 'bg-red-50',
-      iconBg: 'bg-red-100',
-      iconColor: 'text-red-600',
+      bg: 'bg-destructive/5',
+      iconBg: 'bg-destructive/10',
+      iconColor: 'text-destructive',
     },
   };
 
@@ -88,7 +88,7 @@ export function MetricCard({
         cardClass: 'p-3 bg-transparent border-none shadow-none',
         iconSize: 'w-6 h-6',
         innerIconSize: 'w-5 h-5',
-        titleSize: 'text-xs text-neutral-500',
+        titleSize: 'text-xs text-muted-foreground',
         valueSize: 'text-lg',
         spacing: 'mb-1'
       }
@@ -115,11 +115,11 @@ export function MetricCard({
     if (!trend) return '';
 
     if (trend.direction === 'up') {
-      return 'text-green-600 bg-green-50 border-green-200';
+      return 'text-success bg-success/5 border-success/20';
     } else if (trend.direction === 'down') {
-      return 'text-red-600 bg-red-50 border-red-200';
+      return 'text-destructive bg-destructive/5 border-destructive/20';
     } else {
-      return 'text-neutral-600 bg-neutral-50 border-neutral-200';
+      return 'text-muted-foreground bg-background border-border';
     }
   };
 
@@ -153,15 +153,15 @@ export function MetricCard({
         </div>
 
         <div>
-          <p className={`${modalStyles?.titleSize || 'text-sm'} text-neutral-600 mb-1`}>{title}</p>
+          <p className={`${modalStyles?.titleSize || 'text-sm'} text-muted-foreground mb-1`}>{title}</p>
           <p className={`${modalStyles?.valueSize || 'text-3xl'} font-semibold mb-2`}>{value}</p>
 
           {description && (
-            <p className="text-xs text-neutral-500">{description}</p>
+            <p className="text-xs text-muted-foreground">{description}</p>
           )}
 
           {trend && modalVariant !== 'minimal' && (
-            <p className="text-xs text-neutral-500 mt-2">
+            <p className="text-xs text-muted-foreground mt-2">
               {trend.label}
             </p>
           )}

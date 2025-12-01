@@ -110,15 +110,15 @@ function HealthCheckPage() {
   if (!isAdmin) {
     return (
       <div className="p-8 max-w-2xl mx-auto">
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-warning/20 bg-warning/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-yellow-900">
+            <CardTitle className="flex items-center gap-2 text-warning">
               <AlertCircle className="w-5 h-5" />
               Acesso Restrito
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-yellow-800">
+            <p className="text-warning">
               Esta página é acessível apenas para administradores do sistema.
             </p>
           </CardContent>
@@ -133,7 +133,7 @@ function HealthCheckPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">System Health Check</h1>
-          <p className="text-neutral-600 mt-1">
+          <p className="text-muted-foreground mt-1">
             Diagnóstico completo do sistema de autenticação
           </p>
         </div>
@@ -149,15 +149,15 @@ function HealthCheckPage() {
 
       {/* Error Display */}
       {error && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-destructive/20 bg-destructive/5">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-red-900">
+            <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertCircle className="w-5 h-5" />
               Erro ao Executar Diagnóstico
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-red-800 font-mono text-sm">{error}</p>
+            <p className="text-destructive font-mono text-sm">{error}</p>
           </CardContent>
         </Card>
       )}
@@ -167,22 +167,22 @@ function HealthCheckPage() {
         <Card
           className={
             healthData.status === 'healthy'
-              ? 'border-green-200 bg-green-50'
+              ? 'border-success/20 bg-success/5'
               : healthData.status === 'degraded'
-              ? 'border-yellow-200 bg-yellow-50'
-              : 'border-red-200 bg-red-50'
+              ? 'border-warning/20 bg-warning/5'
+              : 'border-destructive/20 bg-destructive/5'
           }
         >
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {healthData.status === 'healthy' && (
-                <CheckCircle className="w-6 h-6 text-green-600" />
+                <CheckCircle className="w-6 h-6 text-success" />
               )}
               {healthData.status === 'degraded' && (
-                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                <AlertTriangle className="w-6 h-6 text-warning" />
               )}
               {healthData.status === 'unhealthy' && (
-                <AlertCircle className="w-6 h-6 text-red-600" />
+                <AlertCircle className="w-6 h-6 text-destructive" />
               )}
               <span>
                 Status:{' '}
@@ -194,28 +194,28 @@ function HealthCheckPage() {
             <div className="grid grid-cols-4 gap-4 text-center">
               <div>
                 <p className="text-2xl font-bold">{healthData.summary.total_checks}</p>
-                <p className="text-sm text-neutral-600">Total de Testes</p>
+                <p className="text-sm text-muted-foreground">Total de Testes</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-600">
+                <p className="text-2xl font-bold text-success">
                   {healthData.summary.passed}
                 </p>
-                <p className="text-sm text-neutral-600">Aprovados</p>
+                <p className="text-sm text-muted-foreground">Aprovados</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-yellow-600">
+                <p className="text-2xl font-bold text-warning">
                   {healthData.summary.warnings}
                 </p>
-                <p className="text-sm text-neutral-600">Avisos</p>
+                <p className="text-sm text-muted-foreground">Avisos</p>
               </div>
               <div>
-                <p className="text-2xl font-bold text-red-600">
+                <p className="text-2xl font-bold text-destructive">
                   {healthData.summary.failed}
                 </p>
-                <p className="text-sm text-neutral-600">Falhas</p>
+                <p className="text-sm text-muted-foreground">Falhas</p>
               </div>
             </div>
-            <p className="text-xs text-neutral-500 mt-4">
+            <p className="text-xs text-muted-foreground mt-4">
               Última execução: {new Date(healthData.timestamp).toLocaleString('pt-BR')}
             </p>
           </CardContent>
@@ -236,7 +236,7 @@ function HealthCheckPage() {
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
             <RefreshCw className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
-            <p className="text-neutral-600">Executando diagnóstico...</p>
+            <p className="text-muted-foreground">Executando diagnóstico...</p>
           </div>
         </div>
       )}
@@ -248,19 +248,19 @@ function HealthCheckPage() {
 function CheckCard({ name, check }: { name: string; check: CheckResult }) {
   const statusIcon =
     check.status === 'pass' ? (
-      <CheckCircle className="w-5 h-5 text-green-600" />
+      <CheckCircle className="w-5 h-5 text-success" />
     ) : check.status === 'warn' ? (
-      <AlertTriangle className="w-5 h-5 text-yellow-600" />
+      <AlertTriangle className="w-5 h-5 text-warning" />
     ) : (
-      <AlertCircle className="w-5 h-5 text-red-600" />
+      <AlertCircle className="w-5 h-5 text-destructive" />
     );
 
   const statusColor =
     check.status === 'pass'
-      ? 'border-green-200 bg-green-50'
+      ? 'border-success/20 bg-success/5'
       : check.status === 'warn'
-      ? 'border-yellow-200 bg-yellow-50'
-      : 'border-red-200 bg-red-50';
+      ? 'border-warning/20 bg-warning/5'
+      : 'border-destructive/20 bg-destructive/5';
 
   return (
     <Card className={statusColor}>
@@ -271,7 +271,7 @@ function CheckCard({ name, check }: { name: string; check: CheckResult }) {
             {name.replace(/_/g, ' ').toUpperCase()}
           </span>
           {check.duration_ms !== undefined && (
-            <span className="flex items-center gap-1 text-xs font-normal text-neutral-600">
+            <span className="flex items-center gap-1 text-xs font-normal text-muted-foreground">
               <Clock className="w-3 h-3" />
               {check.duration_ms}ms
             </span>
@@ -282,10 +282,10 @@ function CheckCard({ name, check }: { name: string; check: CheckResult }) {
         <p className="text-sm mb-2">{check.message}</p>
         {check.details && (
           <details className="text-xs">
-            <summary className="cursor-pointer text-neutral-600 hover:text-neutral-900">
+            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               Ver detalhes
             </summary>
-            <pre className="mt-2 p-2 bg-white rounded border border-neutral-200 overflow-x-auto">
+            <pre className="mt-2 p-2 bg-white rounded border border-border overflow-x-auto">
               {JSON.stringify(check.details, null, 2)}
             </pre>
           </details>

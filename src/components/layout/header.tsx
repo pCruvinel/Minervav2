@@ -71,7 +71,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
 
             {/* Notifications */}
             <button className="minerva-header-notification">
-              <Bell className="w-5 h-5 text-neutral-600" />
+              <Bell className="w-5 h-5 text-muted-foreground" />
               <span className="minerva-header-notification-badge"></span>
             </button>
 
@@ -86,7 +86,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
                 </div>
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-medium">{user.nome_completo}</p>
-                  <p className="text-xs text-neutral-600 capitalize">{user.role_nivel}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{user.role_nivel}</p>
                 </div>
               </button>
 
@@ -102,7 +102,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
                     </div>
                     <div className="minerva-dropdown-separator" />
                     <div className="px-3 py-2">
-                      <p className="text-sm text-neutral-600">{user.email}</p>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
                     </div>
                     <div className="minerva-dropdown-separator" />
                     <button

@@ -246,7 +246,7 @@ export function EtapaFilter({
                     'border-2 cursor-pointer hover:opacity-80',
                     isSelected
                       ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-white text-foreground border-gray-300 hover:border-primary'
+                      : 'bg-white text-foreground border-border hover:border-primary'
                   )}
                   title={`Etapa ${etapaNum}`}
                 >
@@ -258,7 +258,7 @@ export function EtapaFilter({
 
           {/* Info de seleção */}
           {internalSelected.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="mt-3 pt-3 border-t border-border">
               <p className="text-sm text-muted-foreground">
                 Mostrando: {internalSelected.length} etapa{internalSelected.length !== 1 ? 's' : ''}
                 {' - '}

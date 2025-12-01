@@ -190,10 +190,10 @@ function TestePDFPage() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-neutral-900 mb-2">
+        <h1 className="text-3xl font-bold text-foreground mb-2">
           🧪 Teste de Geração de PDFs
         </h1>
-        <p className="text-neutral-600">
+        <p className="text-muted-foreground">
           Teste todos os tipos de PDF com dados de exemplo pré-configurados
         </p>
       </div>
@@ -204,8 +204,8 @@ function TestePDFPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <CardTitle>Proposta Comercial</CardTitle>
@@ -213,7 +213,7 @@ function TestePDFPage() {
                 </div>
               </div>
               {generatedUrls.proposta && (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
               )}
             </div>
           </CardHeader>
@@ -235,7 +235,7 @@ function TestePDFPage() {
               />
               <button
                 onClick={() => setPreviewType('proposta')}
-                className="px-3 py-2 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50 flex items-center gap-2"
+                className="px-3 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -259,8 +259,8 @@ function TestePDFPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-purple-600" />
+                <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-secondary" />
                 </div>
                 <div>
                   <CardTitle>Contrato</CardTitle>
@@ -268,7 +268,7 @@ function TestePDFPage() {
                 </div>
               </div>
               {generatedUrls.contrato && (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
               )}
             </div>
           </CardHeader>
@@ -290,7 +290,7 @@ function TestePDFPage() {
               />
               <button
                 onClick={() => setPreviewType('contrato')}
-                className="px-3 py-2 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50 flex items-center gap-2"
+                className="px-3 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -314,8 +314,8 @@ function TestePDFPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-green-600" />
+                <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-success" />
                 </div>
                 <div>
                   <CardTitle>Memorial Descritivo</CardTitle>
@@ -323,7 +323,7 @@ function TestePDFPage() {
                 </div>
               </div>
               {generatedUrls.memorial && (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
               )}
             </div>
           </CardHeader>
@@ -345,7 +345,7 @@ function TestePDFPage() {
               />
               <button
                 onClick={() => setPreviewType('memorial')}
-                className="px-3 py-2 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50 flex items-center gap-2"
+                className="px-3 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
               >
                 <Eye className="w-4 h-4" />
               </button>
@@ -369,8 +369,8 @@ function TestePDFPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                  <FileText className="w-5 h-5 text-red-600" />
+                <div className="w-10 h-10 bg-destructive/10 rounded-lg flex items-center justify-center">
+                  <FileText className="w-5 h-5 text-destructive" />
                 </div>
                 <div>
                   <CardTitle>Documento SST</CardTitle>
@@ -378,7 +378,7 @@ function TestePDFPage() {
                 </div>
               </div>
               {generatedUrls['documento-sst'] && (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-success" />
               )}
             </div>
           </CardHeader>
@@ -400,7 +400,7 @@ function TestePDFPage() {
               />
               <button
                 onClick={() => setPreviewType('documento-sst')}
-                className="px-3 py-2 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50 flex items-center gap-2"
+                className="px-3 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
               >
                 <Eye className="w-4 h-4" />
               </button>

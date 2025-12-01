@@ -31,7 +31,7 @@ export function OSCreationCard({
     <Card className="h-full flex flex-col">
       <CardHeader>
         <div className="flex items-center gap-3 mb-2">
-          <div className={`p-2 rounded-lg bg-neutral-100 ${iconColorClass}`}>
+          <div className={`p-2 rounded-lg bg-muted ${iconColorClass}`}>
             <Icon className="h-6 w-6" />
           </div>
           <CardTitle>{title}</CardTitle>

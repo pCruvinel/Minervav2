@@ -133,7 +133,7 @@ export function OSTable({ ordensServico, currentUser, canViewSetorColumn, onCanc
                   (os.status_geral === 'aguardando_aprovacao' || os.status_geral === 'atrasada');
 
                 return (
-                  <TableRow key={os.id} className={isActionNeeded ? "bg-amber-50/50 hover:bg-amber-50" : ""}>
+                  <TableRow key={os.id} className={isActionNeeded ? "bg-warning/5/50 hover:bg-warning/5" : ""}>
                     <TableCell className="font-medium">
                       <Link
                         to="/os/$osId"
@@ -153,7 +153,7 @@ export function OSTable({ ordensServico, currentUser, canViewSetorColumn, onCanc
                             </span>
                             {os.responsavel_id === currentUser.id &&
                               (os.status_geral === 'aguardando_aprovacao' || os.status_geral === 'atrasada') && (
-                                <div title="Ação Necessária" className="text-amber-600">
+                                <div title="Ação Necessária" className="text-warning">
                                   <AlertTriangle className="h-4 w-4" />
                                 </div>
                               )}

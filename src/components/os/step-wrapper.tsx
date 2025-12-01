@@ -17,9 +17,9 @@ interface StepWrapperProps {
 const statusConfig = {
   completed: {
     icon: Check,
-    iconColor: 'text-green-600',
-    iconBg: 'bg-green-100',
-    badge: { variant: 'default' as const, text: 'Concluído', className: 'bg-green-100 text-green-700' }
+    iconColor: 'text-success',
+    iconBg: 'bg-success/10',
+    badge: { variant: 'default' as const, text: 'Concluído', className: 'bg-success/10 text-success' }
   },
   active: {
     icon: Circle,
@@ -29,9 +29,9 @@ const statusConfig = {
   },
   pending: {
     icon: Lock,
-    iconColor: 'text-neutral-400',
-    iconBg: 'bg-neutral-100',
-    badge: { variant: 'secondary' as const, text: 'Pendente', className: 'bg-neutral-200 text-neutral-600' }
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted',
+    badge: { variant: 'secondary' as const, text: 'Pendente', className: 'bg-muted text-muted-foreground' }
   }
 };
 

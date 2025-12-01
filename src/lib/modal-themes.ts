@@ -1,44 +1,44 @@
 // Sistema de Temas para Modais - Minerva Design System
 export const modalThemes = {
   create: {
-    gradient: 'from-blue-500 to-purple-600',
-    textColor: 'text-blue-50',
-    iconBg: 'bg-blue-500/20',
-    borderColor: 'border-blue-200',
-    bgColor: 'bg-blue-50',
-    accentColor: 'text-blue-600'
+    gradient: 'from-primary to-secondary',
+    textColor: 'text-primary-foreground',
+    iconBg: 'bg-primary/20',
+    borderColor: 'border-primary/20',
+    bgColor: 'bg-primary/5',
+    accentColor: 'text-primary'
   },
   confirm: {
-    gradient: 'from-green-500 to-emerald-600',
-    textColor: 'text-green-50',
-    iconBg: 'bg-green-500/20',
-    borderColor: 'border-green-200',
-    bgColor: 'bg-green-50',
-    accentColor: 'text-green-600'
+    gradient: 'from-success to-success',
+    textColor: 'text-success-foreground',
+    iconBg: 'bg-success/20',
+    borderColor: 'border-success/20',
+    bgColor: 'bg-success/5',
+    accentColor: 'text-success'
   },
   warning: {
-    gradient: 'from-amber-500 to-orange-600',
-    textColor: 'text-amber-50',
-    iconBg: 'bg-amber-500/20',
-    borderColor: 'border-amber-200',
-    bgColor: 'bg-amber-50',
-    accentColor: 'text-amber-600'
+    gradient: 'from-warning to-warning',
+    textColor: 'text-warning-foreground',
+    iconBg: 'bg-warning/20',
+    borderColor: 'border-warning/20',
+    bgColor: 'bg-warning/5',
+    accentColor: 'text-warning'
   },
   error: {
-    gradient: 'from-red-500 to-pink-600',
-    textColor: 'text-red-50',
-    iconBg: 'bg-red-500/20',
-    borderColor: 'border-red-200',
-    bgColor: 'bg-red-50',
-    accentColor: 'text-red-600'
+    gradient: 'from-destructive to-destructive',
+    textColor: 'text-destructive-foreground',
+    iconBg: 'bg-destructive/20',
+    borderColor: 'border-destructive/20',
+    bgColor: 'bg-destructive/5',
+    accentColor: 'text-destructive'
   },
   info: {
-    gradient: 'from-cyan-500 to-blue-600',
-    textColor: 'text-cyan-50',
-    iconBg: 'bg-cyan-500/20',
-    borderColor: 'border-cyan-200',
-    bgColor: 'bg-cyan-50',
-    accentColor: 'text-cyan-600'
+    gradient: 'from-info to-primary',
+    textColor: 'text-info',
+    iconBg: 'bg-info/20',
+    borderColor: 'border-info/20',
+    bgColor: 'bg-info/5',
+    accentColor: 'text-info'
   }
 } as const;
 
@@ -58,11 +58,11 @@ export const getModalIconBg = (theme: ModalTheme) =>
 
 // Gradientes customizados para casos específicos
 export const customGradients = {
-  'blue-purple': 'from-blue-500 to-purple-600',
-  'green-emerald': 'from-green-500 to-emerald-600',
-  'purple-pink': 'from-purple-500 to-pink-600',
-  'orange-red': 'from-orange-500 to-red-600',
-  'teal-cyan': 'from-teal-500 to-cyan-600'
+  'blue-purple': 'from-primary to-secondary',
+  'green-emerald': 'from-success to-success',
+  'purple-pink': 'from-secondary to-secondary',
+  'orange-red': 'from-warning to-destructive',
+  'teal-cyan': 'from-info to-info'
 } as const;
 
 export type CustomGradient = keyof typeof customGradients;

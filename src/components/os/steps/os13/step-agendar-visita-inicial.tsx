@@ -21,7 +21,7 @@ export function StepAgendarVisitaInicial({ osId, data, onDataChange, readOnly }:
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function StepAgendarVisitaInicial({ osId, data, onDataChange, readOnly }:
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Agendar Visita Inicial</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Agende a visita técnica inicial para verificação das condições da obra usando o sistema de calendário
         </p>
       </div>

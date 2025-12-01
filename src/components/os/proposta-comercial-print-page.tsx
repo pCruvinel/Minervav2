@@ -123,7 +123,7 @@ export function PropostaComercialPrintPage() {
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Carregando proposta...</p>
+                    <p className="text-muted-foreground">Carregando proposta...</p>
                 </div>
             </div>
         );
@@ -133,7 +133,7 @@ export function PropostaComercialPrintPage() {
         return (
             <div className="min-h-screen bg-white flex items-center justify-center">
                 <div className="text-center">
-                    <p className="text-red-600 mb-4">Proposta não encontrada</p>
+                    <p className="text-destructive mb-4">Proposta não encontrada</p>
                     <Button onClick={handleBack}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Voltar
@@ -146,7 +146,7 @@ export function PropostaComercialPrintPage() {
     return (
         <div className="min-h-screen bg-white">
             {/* Header - não aparece na impressão */}
-            <div className="print:hidden bg-gray-50 border-b p-4 flex justify-between items-center">
+            <div className="print:hidden bg-background border-b p-4 flex justify-between items-center">
                 <Button variant="outline" onClick={handleBack}>
                     <ArrowLeft className="w-4 h-4 mr-2" />
                     Voltar ao Sistema
@@ -169,8 +169,8 @@ export function PropostaComercialPrintPage() {
                         <CardTitle className="text-3xl font-bold text-primary mb-2">
                             MINERVA ENGENHARIA
                         </CardTitle>
-                        <p className="text-lg text-gray-600">Proposta Comercial</p>
-                        <p className="text-sm text-gray-500 mt-2">
+                        <p className="text-lg text-muted-foreground">Proposta Comercial</p>
+                        <p className="text-sm text-muted-foreground mt-2">
                             Código: {propostaData.codigo} | Data: {propostaData.dataGeracao}
                         </p>
                     </CardHeader>
@@ -181,24 +181,24 @@ export function PropostaComercialPrintPage() {
                             <h2 className="text-xl font-semibold mb-4 text-primary">1. DADOS DO CLIENTE</h2>
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
-                                    <p className="font-medium text-gray-700">Nome/Razão Social:</p>
-                                    <p className="text-gray-900">{propostaData.cliente.nome}</p>
+                                    <p className="font-medium text-muted-foreground">Nome/Razão Social:</p>
+                                    <p className="text-foreground">{propostaData.cliente.nome}</p>
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-700">CPF/CNPJ:</p>
-                                    <p className="text-gray-900">{propostaData.cliente.cpfCnpj}</p>
+                                    <p className="font-medium text-muted-foreground">CPF/CNPJ:</p>
+                                    <p className="text-foreground">{propostaData.cliente.cpfCnpj}</p>
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-700">Endereço:</p>
-                                    <p className="text-gray-900">{propostaData.cliente.endereco}</p>
+                                    <p className="font-medium text-muted-foreground">Endereço:</p>
+                                    <p className="text-foreground">{propostaData.cliente.endereco}</p>
                                 </div>
                                 <div>
-                                    <p className="font-medium text-gray-700">Telefone:</p>
-                                    <p className="text-gray-900">{propostaData.cliente.telefone}</p>
+                                    <p className="font-medium text-muted-foreground">Telefone:</p>
+                                    <p className="text-foreground">{propostaData.cliente.telefone}</p>
                                 </div>
                                 <div className="col-span-2">
-                                    <p className="font-medium text-gray-700">E-mail:</p>
-                                    <p className="text-gray-900">{propostaData.cliente.email}</p>
+                                    <p className="font-medium text-muted-foreground">E-mail:</p>
+                                    <p className="text-foreground">{propostaData.cliente.email}</p>
                                 </div>
                             </div>
                         </div>
@@ -206,8 +206,8 @@ export function PropostaComercialPrintPage() {
                         {/* 2. Tipo de Serviço */}
                         <div className="border-b pb-6">
                             <h2 className="text-xl font-semibold mb-4 text-primary">2. TIPO DE SERVIÇO</h2>
-                            <p className="text-lg font-medium text-gray-900">{propostaData.tipoOS}</p>
-                            <p className="text-gray-700 mt-2">{propostaData.escopo.objetivo}</p>
+                            <p className="text-lg font-medium text-foreground">{propostaData.tipoOS}</p>
+                            <p className="text-muted-foreground mt-2">{propostaData.escopo.objetivo}</p>
                         </div>
 
                         {/* 3. Escopo dos Serviços */}
@@ -218,17 +218,17 @@ export function PropostaComercialPrintPage() {
                             <div className="mb-6">
                                 <h3 className="text-lg font-medium mb-3">Cronograma Previsto:</h3>
                                 <div className="grid grid-cols-3 gap-4 text-sm">
-                                    <div className="bg-gray-50 p-3 rounded">
+                                    <div className="bg-background p-3 rounded">
                                         <p className="font-medium">Planejamento Inicial</p>
-                                        <p className="text-gray-600">{propostaData.escopo.planejamentoInicial} dias úteis</p>
+                                        <p className="text-muted-foreground">{propostaData.escopo.planejamentoInicial} dias úteis</p>
                                     </div>
-                                    <div className="bg-gray-50 p-3 rounded">
+                                    <div className="bg-background p-3 rounded">
                                         <p className="font-medium">Logística e Transporte</p>
-                                        <p className="text-gray-600">{propostaData.escopo.logisticaTransporte} dias úteis</p>
+                                        <p className="text-muted-foreground">{propostaData.escopo.logisticaTransporte} dias úteis</p>
                                     </div>
-                                    <div className="bg-gray-50 p-3 rounded">
+                                    <div className="bg-background p-3 rounded">
                                         <p className="font-medium">Preparação de Área</p>
-                                        <p className="text-gray-600">{propostaData.escopo.preparacaoArea} dias úteis</p>
+                                        <p className="text-muted-foreground">{propostaData.escopo.preparacaoArea} dias úteis</p>
                                     </div>
                                 </div>
                             </div>
@@ -238,23 +238,23 @@ export function PropostaComercialPrintPage() {
                                 <h3 className="text-lg font-medium mb-3">Etapas Principais:</h3>
                                 {propostaData.escopo.etapasPrincipais.map((etapa, index) => (
                                     <div key={index} className="mb-4">
-                                        <h4 className="font-medium text-gray-800 mb-2">{etapa.nome}</h4>
-                                        <table className="w-full border-collapse border border-gray-300 text-sm">
+                                        <h4 className="font-medium text-foreground mb-2">{etapa.nome}</h4>
+                                        <table className="w-full border-collapse border border-border text-sm">
                                             <thead>
-                                                <tr className="bg-gray-50">
-                                                    <th className="border border-gray-300 px-3 py-2 text-left">Subetapa</th>
-                                                    <th className="border border-gray-300 px-3 py-2 text-center">Área (m²)</th>
-                                                    <th className="border border-gray-300 px-3 py-2 text-center">Dias Úteis</th>
-                                                    <th className="border border-gray-300 px-3 py-2 text-right">Valor</th>
+                                                <tr className="bg-background">
+                                                    <th className="border border-border px-3 py-2 text-left">Subetapa</th>
+                                                    <th className="border border-border px-3 py-2 text-center">Área (m²)</th>
+                                                    <th className="border border-border px-3 py-2 text-center">Dias Úteis</th>
+                                                    <th className="border border-border px-3 py-2 text-right">Valor</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {etapa.subetapas.map((sub, subIndex) => (
                                                     <tr key={subIndex}>
-                                                        <td className="border border-gray-300 px-3 py-2">{sub.nome}</td>
-                                                        <td className="border border-gray-300 px-3 py-2 text-center">{sub.m2}</td>
-                                                        <td className="border border-gray-300 px-3 py-2 text-center">{sub.diasUteis}</td>
-                                                        <td className="border border-gray-300 px-3 py-2 text-right">{sub.total}</td>
+                                                        <td className="border border-border px-3 py-2">{sub.nome}</td>
+                                                        <td className="border border-border px-3 py-2 text-center">{sub.m2}</td>
+                                                        <td className="border border-border px-3 py-2 text-center">{sub.diasUteis}</td>
+                                                        <td className="border border-border px-3 py-2 text-right">{sub.total}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
@@ -270,7 +270,7 @@ export function PropostaComercialPrintPage() {
 
                             <div className="bg-primary/5 p-6 rounded-lg mb-6">
                                 <div className="text-center">
-                                    <p className="text-sm text-gray-600 mb-2">Valor Total (Investimento + Impostos)</p>
+                                    <p className="text-sm text-muted-foreground mb-2">Valor Total (Investimento + Impostos)</p>
                                     <p className="text-4xl font-bold text-primary">
                                         {formatCurrency(propostaData.precificacao.valorTotal)}
                                     </p>
@@ -278,25 +278,25 @@ export function PropostaComercialPrintPage() {
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
-                                <div className="bg-green-50 p-4 rounded-lg">
-                                    <h4 className="font-medium text-green-800 mb-2">Entrada</h4>
-                                    <p className="text-2xl font-bold text-green-600">
+                                <div className="bg-success/5 p-4 rounded-lg">
+                                    <h4 className="font-medium text-success mb-2">Entrada</h4>
+                                    <p className="text-2xl font-bold text-success">
                                         {formatCurrency(propostaData.precificacao.valorEntrada)}
                                     </p>
-                                    <p className="text-sm text-green-700">
+                                    <p className="text-sm text-success">
                                         ({propostaData.precificacao.percentualEntrada}% do total)
                                     </p>
-                                    <p className="text-xs text-green-600 mt-1">
+                                    <p className="text-xs text-success mt-1">
                                         Prazo: 7 dias após assinatura do contrato
                                     </p>
                                 </div>
 
-                                <div className="bg-blue-50 p-4 rounded-lg">
-                                    <h4 className="font-medium text-blue-800 mb-2">Parcelas</h4>
-                                    <p className="text-2xl font-bold text-blue-600">
+                                <div className="bg-primary/5 p-4 rounded-lg">
+                                    <h4 className="font-medium text-primary mb-2">Parcelas</h4>
+                                    <p className="text-2xl font-bold text-primary">
                                         {propostaData.precificacao.numeroParcelas}x de {formatCurrency(propostaData.precificacao.valorParcela)}
                                     </p>
-                                    <p className="text-sm text-blue-700">
+                                    <p className="text-sm text-primary">
                                         Total financiado: {formatCurrency(propostaData.precificacao.valorTotal - propostaData.precificacao.valorEntrada)}
                                     </p>
                                 </div>
@@ -329,22 +329,22 @@ export function PropostaComercialPrintPage() {
                         <div>
                             <h2 className="text-xl font-semibold mb-4 text-primary">6. VALIDADE E GARANTIA</h2>
                             <div className="grid grid-cols-2 gap-6">
-                                <div className="bg-yellow-50 p-4 rounded-lg">
-                                    <h4 className="font-medium text-yellow-800 mb-2">Validade da Proposta</h4>
-                                    <p className="text-2xl font-bold text-yellow-600">
+                                <div className="bg-warning/5 p-4 rounded-lg">
+                                    <h4 className="font-medium text-warning mb-2">Validade da Proposta</h4>
+                                    <p className="text-2xl font-bold text-warning">
                                         {propostaData.validadeDias} dias
                                     </p>
-                                    <p className="text-sm text-yellow-700">
+                                    <p className="text-sm text-warning">
                                         A partir da data de emissão
                                     </p>
                                 </div>
 
-                                <div className="bg-purple-50 p-4 rounded-lg">
-                                    <h4 className="font-medium text-purple-800 mb-2">Garantia dos Serviços</h4>
-                                    <p className="text-2xl font-bold text-purple-600">
+                                <div className="bg-secondary/5 p-4 rounded-lg">
+                                    <h4 className="font-medium text-secondary mb-2">Garantia dos Serviços</h4>
+                                    <p className="text-2xl font-bold text-secondary">
                                         {propostaData.garantiaMeses} meses
                                     </p>
-                                    <p className="text-sm text-purple-700">
+                                    <p className="text-sm text-secondary">
                                         Contra defeitos de execução
                                     </p>
                                 </div>
@@ -355,17 +355,17 @@ export function PropostaComercialPrintPage() {
                         <div className="mt-12 pt-8 border-t">
                             <div className="grid grid-cols-2 gap-12">
                                 <div className="text-center">
-                                    <div className="border-b border-gray-400 w-full mb-2"></div>
-                                    <p className="text-sm text-gray-600">Cliente</p>
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <div className="border-b border-border w-full mb-2"></div>
+                                    <p className="text-sm text-muted-foreground">Cliente</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         {propostaData.cliente.nome}
                                     </p>
                                 </div>
 
                                 <div className="text-center">
-                                    <div className="border-b border-gray-400 w-full mb-2"></div>
-                                    <p className="text-sm text-gray-600">Minerva Engenharia</p>
-                                    <p className="text-xs text-gray-500 mt-1">
+                                    <div className="border-b border-border w-full mb-2"></div>
+                                    <p className="text-sm text-muted-foreground">Minerva Engenharia</p>
+                                    <p className="text-xs text-muted-foreground mt-1">
                                         Responsável Técnico
                                     </p>
                                 </div>
@@ -373,9 +373,9 @@ export function PropostaComercialPrintPage() {
                         </div>
 
                         {/* Observações */}
-                        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-                            <h4 className="font-medium text-gray-800 mb-2">Observações Importantes:</h4>
-                            <ul className="text-sm text-gray-600 space-y-1">
+                        <div className="mt-8 p-4 bg-background rounded-lg">
+                            <h4 className="font-medium text-foreground mb-2">Observações Importantes:</h4>
+                            <ul className="text-sm text-muted-foreground space-y-1">
                                 <li>• Esta proposta é válida por {propostaData.validadeDias} dias a partir da data de emissão.</li>
                                 <li>• Os valores apresentados não incluem eventuais taxas ou impostos municipais.</li>
                                 <li>• O cronograma poderá sofrer ajustes devido a condições climáticas ou imprevistos.</li>

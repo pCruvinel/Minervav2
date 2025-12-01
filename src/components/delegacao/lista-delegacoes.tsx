@@ -68,22 +68,22 @@ export function ListaDelegacoes({
     const configs = {
       pendente: {
         label: 'Pendente',
-        className: 'bg-amber-100 text-amber-700 border-amber-200',
+        className: 'bg-warning/10 text-warning border-warning/20',
         icon: Clock,
       },
       aceita: {
         label: 'Em Progresso',
-        className: 'bg-blue-100 text-blue-700 border-blue-200',
+        className: 'bg-primary/10 text-primary border-primary/20',
         icon: AlertCircle,
       },
       concluida: {
         label: 'Concluída',
-        className: 'bg-green-100 text-green-700 border-green-200',
+        className: 'bg-success/10 text-success border-success/20',
         icon: CheckCircle2,
       },
       recusada: {
         label: 'Recusada',
-        className: 'bg-red-100 text-red-700 border-red-200',
+        className: 'bg-destructive/10 text-destructive border-destructive/20',
         icon: XCircle,
       },
     };
@@ -154,7 +154,7 @@ export function ListaDelegacoes({
                     }
                   </p>
                 </div>
-                <p className="text-xs text-neutral-500">
+                <p className="text-xs text-muted-foreground">
                   {formatarData(delegacao.created_at)}
                 </p>
               </div>
@@ -167,7 +167,7 @@ export function ListaDelegacoes({
 
           {/* Descrição da Tarefa */}
           <div className="mb-3">
-            <p className="text-sm text-neutral-700 line-clamp-2">
+            <p className="text-sm text-muted-foreground line-clamp-2">
               {delegacao.descricao_tarefa}
             </p>
           </div>
@@ -175,21 +175,21 @@ export function ListaDelegacoes({
           {/* Prazo */}
           <div className="flex items-center gap-4 mb-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-neutral-400" />
-              <span className="text-sm text-neutral-600">
+              <Calendar className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">
                 Prazo: <span className="font-medium">{delegacao.data_prazo ? formatarData(delegacao.data_prazo) : 'Não definido'}</span>
               </span>
             </div>
 
             {prazoVencido && delegacao.data_prazo && (
-              <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs">
+              <Badge variant="outline" className="bg-destructive/5 text-destructive border-destructive/20 text-xs">
                 <AlertCircle className="w-3 h-3 mr-1" />
                 {calcularDiasAtraso(delegacao.data_prazo)} dias atrasado
               </Badge>
             )}
 
             {prazoProximo && !prazoVencido && (
-              <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+              <Badge variant="outline" className="bg-warning/5 text-warning border-warning/20 text-xs">
                 <Clock className="w-3 h-3 mr-1" />
                 Prazo próximo
               </Badge>
@@ -197,7 +197,7 @@ export function ListaDelegacoes({
           </div>
 
           {/* Botão de Expandir */}
-          <div className="flex items-center justify-between pt-3 border-t border-neutral-200">
+          <div className="flex items-center justify-between pt-3 border-t border-border">
             <Button
               variant="ghost"
               size="sm"
@@ -232,7 +232,7 @@ export function ListaDelegacoes({
               <Button
                 size="sm"
                 onClick={() => onConcluir(delegacao.id)}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-success hover:bg-success"
               >
                 <CheckCircle2 className="w-4 h-4 mr-1" />
                 Concluir
@@ -242,11 +242,11 @@ export function ListaDelegacoes({
 
           {/* Detalhes Expandidos */}
           {isExpanded && (
-            <div className="mt-4 pt-4 border-t border-neutral-200 space-y-3">
+            <div className="mt-4 pt-4 border-t border-border space-y-3">
               {delegacao.observacoes && (
                 <div>
-                  <p className="text-xs font-medium text-neutral-600 mb-1">Observações:</p>
-                  <p className="text-sm text-neutral-700 bg-neutral-50 p-3 rounded border border-neutral-200">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Observações:</p>
+                  <p className="text-sm text-muted-foreground bg-background p-3 rounded border border-border">
                     {delegacao.observacoes}
                   </p>
                 </div>
@@ -254,19 +254,19 @@ export function ListaDelegacoes({
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-neutral-500 mb-1">Delegado por:</p>
+                  <p className="text-muted-foreground mb-1">Delegado por:</p>
                   <p className="font-medium">{delegacao.delegante_nome || 'Desconhecido'}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-500 mb-1">Responsável:</p>
+                  <p className="text-muted-foreground mb-1">Responsável:</p>
                   <p className="font-medium">{delegacao.delegado_nome || 'Desconhecido'}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-500 mb-1">Data de criação:</p>
+                  <p className="text-muted-foreground mb-1">Data de criação:</p>
                   <p className="font-medium">{formatarData(delegacao.created_at)}</p>
                 </div>
                 <div>
-                  <p className="text-neutral-500 mb-1">Última atualização:</p>
+                  <p className="text-muted-foreground mb-1">Última atualização:</p>
                   <p className="font-medium">{formatarData(delegacao.updated_at)}</p>
                 </div>
               </div>
@@ -285,17 +285,17 @@ export function ListaDelegacoes({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold mb-1">Minhas Delegações</h2>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Gerencie tarefas delegadas para você e por você
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Filter className="w-4 h-4 text-neutral-500" />
+          <Filter className="w-4 h-4 text-muted-foreground" />
           <select
             value={filtroStatus}
             onChange={(e) => setFiltroStatus(e.target.value as any)}
-            className="text-sm border border-neutral-300 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary"
+            className="text-sm border border-border rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="todas">Todas</option>
             <option value="pendente">Pendentes</option>
@@ -324,10 +324,10 @@ export function ListaDelegacoes({
             <Card>
               <CardContent className="p-8 text-center">
                 <User className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-                <p className="text-sm font-medium text-neutral-600 mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   Nenhuma delegação recebida
                 </p>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   {filtroStatus === 'todas' 
                     ? 'Você não possui tarefas delegadas no momento.'
                     : `Você não possui tarefas ${filtroStatus.replace('_', ' ')} no momento.`
@@ -345,10 +345,10 @@ export function ListaDelegacoes({
             <Card>
               <CardContent className="p-8 text-center">
                 <FileText className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-                <p className="text-sm font-medium text-neutral-600 mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   Nenhuma delegação enviada
                 </p>
-                <p className="text-sm text-neutral-500">
+                <p className="text-sm text-muted-foreground">
                   {filtroStatus === 'todas' 
                     ? 'Você não delegou tarefas ainda.'
                     : `Você não possui delegações ${filtroStatus.replace('_', ' ')} no momento.`

@@ -20,17 +20,17 @@ export function StepRealizarVisitaFinal({ data, onDataChange, readOnly }: StepRe
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Realizar Visita Final</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Confirme a realização da visita técnica final para validação dos serviços executados
         </p>
       </div>
 
       {/* Status da Visita */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: data.visitaFinalRealizada ? '#10b981' : '#DDC063' }}
+            style={{ backgroundColor: data.visitaFinalRealizada ? 'var(--success)' : 'var(--primary)' }}
           >
             {data.visitaFinalRealizada ? (
               <CheckCircle2 className="w-6 h-6 text-white" />
@@ -43,7 +43,7 @@ export function StepRealizarVisitaFinal({ data, onDataChange, readOnly }: StepRe
             <h3 className="text-base mb-2">
               {data.visitaFinalRealizada ? 'Visita final realizada com sucesso!' : 'Aguardando realização da visita final'}
             </h3>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {data.visitaFinalRealizada 
                 ? 'A visita técnica final foi registrada. Todas as etapas da OS-13 foram concluídas!'
                 : 'Clique no card abaixo para registrar a realização da visita final.'
@@ -63,14 +63,14 @@ export function StepRealizarVisitaFinal({ data, onDataChange, readOnly }: StepRe
             <div className="flex items-center gap-4">
               <div 
                 className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: '#D3AF37' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Flag className="w-8 h-8 text-white" />
               </div>
               
               <div className="flex-1">
                 <h3 className="text-base mb-2">Concluir Visita Final</h3>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-muted-foreground">
                   Clique aqui para registrar que a visita final foi realizada e validar os serviços
                 </p>
               </div>
@@ -87,21 +87,21 @@ export function StepRealizarVisitaFinal({ data, onDataChange, readOnly }: StepRe
 
       {/* Conclusão da OS */}
       {data.visitaFinalRealizada && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-success/20 bg-success/5">
           <CardContent className="p-6">
             <div className="flex items-start gap-4">
               <div 
-                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 bg-green-600"
+                className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 bg-success"
               >
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
               
               <div className="flex-1">
-                <h3 className="text-lg mb-2 text-green-900">🎉 Parabéns! OS-13 Concluída</h3>
-                <p className="text-sm text-green-800 mb-3">
+                <h3 className="text-lg mb-2 text-success">🎉 Parabéns! OS-13 Concluída</h3>
+                <p className="text-sm text-success mb-3">
                   Todas as 17 etapas da OS-13 (Start de Contrato de Obra) foram concluídas com sucesso!
                 </p>
-                <ul className="space-y-1 text-sm text-green-800">
+                <ul className="space-y-1 text-sm text-success">
                   <li className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
                     <span>Dados do cliente e edificação registrados</span>

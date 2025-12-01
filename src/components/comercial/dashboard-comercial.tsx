@@ -38,7 +38,7 @@ export function DashboardComercial() {
   const leadsNegociacao = getLeadsByStatus('NEGOCIACAO').length;
 
   // Cores do Funil (degradê de amarelo para dourado)
-  const coresFunil = ['#F3E9B5', '#E6D78E', '#DDC063', '#D3AF37', '#C49F2F', '#B08F27', '#9C7F1F'];
+  const coresFunil = ['#F3E9B5', '#E6D78E', 'var(--primary)', 'var(--primary)', '#C49F2F', '#B08F27', 'var(--primary)'];
 
   // Dados para gráfico de funil
   const dadosFunil = mockFunilVendas.filter(etapa => 
@@ -56,10 +56,10 @@ export function DashboardComercial() {
       {/* KPIs Principais */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total de Leads (Mês) */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-black/70">Leads no Mês</CardTitle>
-            <Users className="h-5 w-5 text-[#D3AF37]" />
+            <Users className="h-5 w-5 text-[var(--primary)]" />
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
@@ -73,17 +73,17 @@ export function DashboardComercial() {
         </Card>
 
         {/* Taxa de Conversão */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-black/70">Taxa de Conversão</CardTitle>
-            <TrendingUp className="h-5 w-5 text-[#D3AF37]" />
+            <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl text-black">{metricas.taxaConversao}%</span>
               </div>
-              <p className="text-sm text-green-600">
+              <p className="text-sm text-success">
                 ↑ 2.3% vs mês anterior
               </p>
             </div>
@@ -91,10 +91,10 @@ export function DashboardComercial() {
         </Card>
 
         {/* Propostas em Aberto */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-black/70">Propostas em Aberto</CardTitle>
-            <FileText className="h-5 w-5 text-[#D3AF37]" />
+            <FileText className="h-5 w-5 text-[var(--primary)]" />
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
@@ -111,10 +111,10 @@ export function DashboardComercial() {
         </Card>
 
         {/* Contratos Fechados (Mês) */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-black/70">Contratos Fechados</CardTitle>
-            <CheckCircle className="h-5 w-5 text-[#D3AF37]" />
+            <CheckCircle className="h-5 w-5 text-[var(--primary)]" />
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
@@ -131,7 +131,7 @@ export function DashboardComercial() {
       </div>
 
       {/* Gráfico de Funil de Vendas */}
-      <Card className="border-[#D3AF37]/20">
+      <Card className="border-[var(--primary)]/20">
         <CardHeader>
           <CardTitle className="text-black">Funil de Vendas</CardTitle>
           <p className="text-sm text-black/60">
@@ -156,7 +156,7 @@ export function DashboardComercial() {
                 }}
                 contentStyle={{
                   backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  border: '1px solid #D3AF37',
+                  border: '1px solid var(--primary)',
                   borderRadius: '8px'
                 }}
               />
@@ -174,7 +174,7 @@ export function DashboardComercial() {
       {/* Cards de Resumo por Etapa */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Novos */}
-        <Card className="border-l-4 border-l-[#D3AF37]">
+        <Card className="border-l-4 border-l-[var(--primary)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-black/70">Novos</CardTitle>
           </CardHeader>
@@ -185,7 +185,7 @@ export function DashboardComercial() {
         </Card>
 
         {/* Em Contato */}
-        <Card className="border-l-4 border-l-[#DDC063]">
+        <Card className="border-l-4 border-l-[var(--primary)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-black/70">Em Contato</CardTitle>
           </CardHeader>
@@ -196,7 +196,7 @@ export function DashboardComercial() {
         </Card>
 
         {/* Vistoria Agendada */}
-        <Card className="border-l-4 border-l-[#D3AF37]">
+        <Card className="border-l-4 border-l-[var(--primary)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-black/70">Vistoria</CardTitle>
           </CardHeader>
@@ -207,7 +207,7 @@ export function DashboardComercial() {
         </Card>
 
         {/* Proposta Enviada */}
-        <Card className="border-l-4 border-l-[#DDC063]">
+        <Card className="border-l-4 border-l-[var(--primary)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-black/70">Propostas</CardTitle>
           </CardHeader>
@@ -218,7 +218,7 @@ export function DashboardComercial() {
         </Card>
 
         {/* Negociação */}
-        <Card className="border-l-4 border-l-[#D3AF37]">
+        <Card className="border-l-4 border-l-[var(--primary)]">
           <CardHeader className="pb-3">
             <CardTitle className="text-black/70">Negociação</CardTitle>
           </CardHeader>
@@ -232,10 +232,10 @@ export function DashboardComercial() {
       {/* Atividades Recentes e Alertas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Propostas que Expiram em Breve */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-[#D3AF37]" />
+              <Clock className="h-5 w-5 text-[var(--primary)]" />
               <CardTitle className="text-black">Atenção: Propostas Próximas ao Vencimento</CardTitle>
             </div>
           </CardHeader>
@@ -250,13 +250,13 @@ export function DashboardComercial() {
                     (new Date(proposta.dataValidade).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
                   );
                   return (
-                    <div key={proposta.id} className="flex items-start justify-between p-3 bg-[#D3AF37]/5 rounded-lg">
+                    <div key={proposta.id} className="flex items-start justify-between p-3 bg-[var(--primary)]/5 rounded-lg">
                       <div className="flex-1">
                         <p className="text-black">{proposta.leadNome}</p>
                         <p className="text-sm text-black/60">{proposta.tipoServico}</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm ${diasRestantes <= 3 ? 'text-red-600' : 'text-[#D3AF37]'}`}>
+                        <p className={`text-sm ${diasRestantes <= 3 ? 'text-destructive' : 'text-[var(--primary)]'}`}>
                           {diasRestantes > 0 ? `${diasRestantes} dias` : 'Expirada'}
                         </p>
                         <p className="text-xs text-black/60">
@@ -271,10 +271,10 @@ export function DashboardComercial() {
         </Card>
 
         {/* Top Oportunidades */}
-        <Card className="border-[#D3AF37]/20">
+        <Card className="border-[var(--primary)]/20">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-[#D3AF37]" />
+              <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
               <CardTitle className="text-black">Top Oportunidades</CardTitle>
             </div>
           </CardHeader>
@@ -285,13 +285,13 @@ export function DashboardComercial() {
                 .sort((a, b) => (b.valorEstimado || 0) - (a.valorEstimado || 0))
                 .slice(0, 4)
                 .map(lead => (
-                  <div key={lead.id} className="flex items-start justify-between p-3 bg-[#DDC063]/10 rounded-lg">
+                  <div key={lead.id} className="flex items-start justify-between p-3 bg-[var(--primary)]/10 rounded-lg">
                     <div className="flex-1">
                       <p className="text-black">{lead.nome}</p>
                       <p className="text-sm text-black/60">{lead.interesse}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[#D3AF37]">
+                      <p className="text-[var(--primary)]">
                         R$ {((lead.valorEstimado || 0) / 1000).toFixed(0)}k
                       </p>
                       <p className="text-xs text-black/60 capitalize">

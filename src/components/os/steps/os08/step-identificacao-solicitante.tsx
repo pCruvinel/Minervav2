@@ -63,7 +63,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="nomeCompleto">
-                Nome Completo <span className="text-red-500">*</span>
+                Nome Completo <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="nomeCompleto"
@@ -76,7 +76,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
             <div className="space-y-2">
               <Label htmlFor="contatoWhatsApp">
-                Contato WhatsApp <span className="text-red-500">*</span>
+                Contato WhatsApp <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="contatoWhatsApp"
@@ -90,7 +90,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
             <div className="space-y-2">
               <Label htmlFor="condominio">
-                Condomínio <span className="text-red-500">*</span>
+                Condomínio <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="condominio"
@@ -103,7 +103,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
             <div className="space-y-2">
               <Label htmlFor="cargo">
-                Cargo (caso seja colaborador do condomínio) <span className="text-red-500">*</span>
+                Cargo (caso seja colaborador do condomínio) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="cargo"
@@ -116,7 +116,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
             <div className="space-y-2">
               <Label htmlFor="bloco">
-                Bloco (caso seja morador) <span className="text-red-500">*</span>
+                Bloco (caso seja morador) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="bloco"
@@ -129,7 +129,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
             <div className="space-y-2">
               <Label htmlFor="unidadeAutonoma">
-                Unidade Autônoma (caso seja morador) <span className="text-red-500">*</span>
+                Unidade Autônoma (caso seja morador) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="unidadeAutonoma"
@@ -168,7 +168,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
         <StepSection title="Questionário 01">
           <div className="space-y-2">
             <Label htmlFor="unidadesVistoriar">
-              Unidades a serem vistoriadas <span className="text-red-500">*</span>
+              Unidades a serem vistoriadas <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="unidadesVistoriar"
@@ -182,7 +182,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
           <div className="space-y-2">
             <Label htmlFor="contatoUnidades">
-              Contato das unidades envolvidas <span className="text-red-500">*</span>
+              Contato das unidades envolvidas <span className="text-destructive">*</span>
             </Label>
             <Input
               id="contatoUnidades"
@@ -199,7 +199,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
         <StepSection title="Discriminação">
           <div className="space-y-2">
             <Label htmlFor="tipoDocumento">
-              Esta visita técnica é para gerar um parecer técnico ou escopo de intervenção? <span className="text-red-500">*</span>
+              Esta visita técnica é para gerar um parecer técnico ou escopo de intervenção? <span className="text-destructive">*</span>
             </Label>
             <Input
               id="tipoDocumento"
@@ -212,7 +212,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
           <div className="space-y-3">
             <Label>
-              Área a ser vistoriada <span className="text-red-500">*</span>
+              Área a ser vistoriada <span className="text-destructive">*</span>
             </Label>
             <RadioGroup
               value={data.areaVistoriada}
@@ -232,7 +232,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
           <div className="space-y-2">
             <Label htmlFor="detalhesSolicitacao">
-              Detalhe a sua solicitação. O que deve ser vistoriado? <span className="text-red-500">*</span>
+              Detalhe a sua solicitação. O que deve ser vistoriado? <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="detalhesSolicitacao"
@@ -246,7 +246,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
           <div className="space-y-2">
             <Label htmlFor="tempoSituacao">
-              Há quanto tempo esta situação ocorre? <span className="text-red-500">*</span>
+              Há quanto tempo esta situação ocorre? <span className="text-destructive">*</span>
             </Label>
             <Input
               id="tempoSituacao"
@@ -259,7 +259,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
 
           <div className="space-y-2">
             <Label htmlFor="primeiraVisita">
-              É a primeira visita técnica solicitada? <span className="text-red-500">*</span>
+              É a primeira visita técnica solicitada? <span className="text-destructive">*</span>
             </Label>
             <Input
               id="primeiraVisita"
@@ -288,7 +288,7 @@ export function StepIdentificacaoSolicitante({ data, onDataChange, readOnly, osI
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Todos os campos marcados com <span className="text-red-500">*</span> são obrigatórios.
+            Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
             Certifique-se de preencher todas as informações antes de avançar.
           </AlertDescription>
         </Alert>

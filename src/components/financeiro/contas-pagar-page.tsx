@@ -182,7 +182,7 @@ export function ContasPagarPage() {
     switch (status) {
       case 'pago':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/10 text-success hover:bg-success/10">
             <CheckCircle className="h-3 w-3 mr-1" />
             Pago
           </Badge>
@@ -206,9 +206,9 @@ export function ContasPagarPage() {
 
   const getTipoBadge = (tipo: ContaPagarTipo) => {
     const config = {
-      salario: { label: 'Salário', className: 'bg-blue-100 text-blue-800' },
-      conta_fixa: { label: 'Conta Fixa', className: 'bg-purple-100 text-purple-800' },
-      despesa_variavel: { label: 'Despesa Variável', className: 'bg-amber-100 text-amber-800' },
+      salario: { label: 'Salário', className: 'bg-primary/10 text-primary' },
+      conta_fixa: { label: 'Conta Fixa', className: 'bg-secondary/10 text-secondary' },
+      despesa_variavel: { label: 'Despesa Variável', className: 'bg-warning/10 text-warning' },
     };
 
     const { label, className } = config[tipo];
@@ -221,10 +221,10 @@ export function ContasPagarPage() {
 
   const getRowClassName = (conta: ContaPagar) => {
     if (isAtrasado(conta)) {
-      return 'bg-red-50 border-l-4 border-l-red-500';
+      return 'bg-destructive/5 border-l-4 border-l-red-500';
     }
     if (conta.status === 'pago') {
-      return 'bg-green-50/50';
+      return 'bg-success/5/50';
     }
     return '';
   };
@@ -282,7 +282,7 @@ export function ContasPagarPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -304,7 +304,7 @@ export function ContasPagarPage() {
           <AlertDescription>
             <strong>Atenção:</strong> Existem {contasFiltradas.filter(c => isAtrasado(c)).length} conta(s) atrasada(s)
             totalizando {formatCurrency(totais.atrasado)}.
-            As linhas atrasadas estão destacadas em <strong className="text-red-600">VERMELHO</strong>.
+            As linhas atrasadas estão destacadas em <strong className="text-destructive">VERMELHO</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -328,9 +328,9 @@ export function ContasPagarPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Pago</p>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <h3 className="text-2xl text-green-600">{formatCurrency(totais.pago)}</h3>
+            <h3 className="text-2xl text-success">{formatCurrency(totais.pago)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {contasFiltradas.filter(c => c.status === 'pago').length} conciliada(s)
             </p>
@@ -341,9 +341,9 @@ export function ContasPagarPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Em Aberto</p>
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-2xl text-blue-600">{formatCurrency(totais.emAberto)}</h3>
+            <h3 className="text-2xl text-primary">{formatCurrency(totais.emAberto)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {contasFiltradas.filter(c => c.status === 'em_aberto' && !isAtrasado(c)).length} conta(s)
             </p>
@@ -354,9 +354,9 @@ export function ContasPagarPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Atrasado</p>
-              <XCircle className="h-4 w-4 text-red-600" />
+              <XCircle className="h-4 w-4 text-destructive" />
             </div>
-            <h3 className="text-2xl text-red-600">{formatCurrency(totais.atrasado)}</h3>
+            <h3 className="text-2xl text-destructive">{formatCurrency(totais.atrasado)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {contasFiltradas.filter(c => isAtrasado(c)).length} atrasada(s)
             </p>
@@ -459,7 +459,7 @@ export function ContasPagarPage() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       {formatDate(conta.vencimento)}
                       {isAtrasado(conta) && (
-                        <AlertTriangle className="h-4 w-4 text-red-600 ml-1" />
+                        <AlertTriangle className="h-4 w-4 text-destructive ml-1" />
                       )}
                     </div>
                   </TableCell>
@@ -468,7 +468,7 @@ export function ContasPagarPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {conta.valorPago ? (
-                      <span className="text-green-600 font-medium">
+                      <span className="text-success font-medium">
                         {formatCurrency(conta.valorPago)}
                       </span>
                     ) : (
@@ -512,15 +512,15 @@ export function ContasPagarPage() {
               <p className="text-sm font-medium mb-2">Status de Pagamento:</p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <CheckCircle className="h-4 w-4 text-success" />
                   <span><strong>Pago:</strong> Despesa já conciliada no módulo de Conciliação Bancária</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-blue-600" />
+                  <Clock className="h-4 w-4 text-primary" />
                   <span><strong>Em Aberto:</strong> Conta ainda não vencida</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <XCircle className="h-4 w-4 text-red-600" />
+                  <XCircle className="h-4 w-4 text-destructive" />
                   <span><strong>Atrasado:</strong> Conta vencida e não paga (linha destacada em VERMELHO)</span>
                 </div>
               </div>

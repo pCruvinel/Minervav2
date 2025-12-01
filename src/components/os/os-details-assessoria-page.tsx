@@ -262,10 +262,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
   };
 
   return (
-    <div className="h-screen flex flex-col bg-neutral-50">
+    <div className="h-screen flex flex-col bg-background">
       {/* Botão Voltar */}
       {onBack && (
-        <div className="border-b border-neutral-200 px-6 py-3 bg-white">
+        <div className="border-b border-border px-6 py-3 bg-white">
           <Button variant="ghost" onClick={onBack} className="gap-2">
             <ChevronLeft className="h-4 w-4" />
             Voltar ao Hub de Criação
@@ -288,7 +288,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
           <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
             <button
               onClick={handleReturnToActive}
-              className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
+              className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
               title="Voltar para a etapa em que estava trabalhando"
             >
               <ChevronLeft className="w-4 h-4 rotate-180" />
@@ -317,13 +317,13 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
 
               {/* Banner de Modo Histórico */}
               {isHistoricalNavigation && (
-                <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg flex items-start gap-3">
-                  <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg flex items-start gap-3">
+                  <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-blue-900 text-sm">
+                    <h4 className="font-semibold text-primary text-sm">
                       Modo de Visualização Histórica
                     </h4>
-                    <p className="text-blue-800 text-sm">
+                    <p className="text-primary text-sm">
                       Você está visualizando dados de uma etapa já concluída.
                       {lastActiveStep && (
                         <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>

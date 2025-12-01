@@ -128,47 +128,47 @@ export default function LeadsComercialPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "NOVO":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/20";
       case "EM_CONTATO":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return "bg-warning/10 text-warning border-warning/20";
       case "QUALIFICADO":
-        return "bg-green-100 text-green-800 border-green-200";
+        return "bg-success/10 text-success border-success/20";
       case "NAO_QUALIFICADO":
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
       case "CONVERTIDO":
-        return "bg-purple-100 text-purple-800 border-purple-200";
+        return "bg-secondary/10 text-secondary border-secondary/20";
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
+        return "bg-muted text-foreground border-border";
     }
   };
 
   const getPotencialColor = (potencial: string) => {
     switch (potencial) {
       case "ALTO":
-        return "bg-red-50 text-red-700 border-red-300";
+        return "bg-destructive/5 text-destructive border-destructive/30";
       case "MEDIO":
-        return "bg-yellow-50 text-yellow-700 border-yellow-300";
+        return "bg-warning/5 text-warning border-warning/30";
       case "BAIXO":
-        return "bg-green-50 text-green-700 border-green-300";
+        return "bg-success/5 text-success border-success/30";
       default:
-        return "bg-gray-50 text-gray-700 border-gray-300";
+        return "bg-background text-muted-foreground border-border";
     }
   };
 
   // Verificar se o usuário é do setor administrativo
   if (mockUser.setor !== "ADMINISTRATIVO") {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <Card className="p-8 border-gray-200 max-w-md">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="p-8 border-border max-w-md">
           <div className="text-center">
-            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-black mb-2">Acesso Restrito</h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-muted-foreground mb-4">
               Esta área é exclusiva para colaboradores do setor administrativo.
             </p>
             <Button
               onClick={() => window.history.back()}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+              className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black"
             >
               Voltar
             </Button>
@@ -179,20 +179,20 @@ export default function LeadsComercialPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-border">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-black mb-1">Gestão de Leads</h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Gerencie oportunidades de vendas e novos clientes
               </p>
             </div>
             <Button
               onClick={handleNovoLead}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+              className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black"
             >
               <Plus className="w-4 h-4 mr-2" />
               Novo Lead
@@ -204,24 +204,24 @@ export default function LeadsComercialPage() {
       <div className="p-8">
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card className="p-6 border-gray-200">
-            <p className="text-gray-600 mb-2">Total de Leads</p>
+          <Card className="p-6 border-border">
+            <p className="text-muted-foreground mb-2">Total de Leads</p>
             <p className="text-black">{leads.length}</p>
           </Card>
-          <Card className="p-6 border-gray-200">
-            <p className="text-gray-600 mb-2">Novos</p>
+          <Card className="p-6 border-border">
+            <p className="text-muted-foreground mb-2">Novos</p>
             <p className="text-black">
               {leads.filter((l) => l.status === "NOVO").length}
             </p>
           </Card>
-          <Card className="p-6 border-gray-200">
-            <p className="text-gray-600 mb-2">Em Contato</p>
+          <Card className="p-6 border-border">
+            <p className="text-muted-foreground mb-2">Em Contato</p>
             <p className="text-black">
               {leads.filter((l) => l.status === "EM_CONTATO").length}
             </p>
           </Card>
-          <Card className="p-6 border-gray-200">
-            <p className="text-gray-600 mb-2">Qualificados</p>
+          <Card className="p-6 border-border">
+            <p className="text-muted-foreground mb-2">Qualificados</p>
             <p className="text-black">
               {leads.filter((l) => l.status === "QUALIFICADO").length}
             </p>
@@ -229,24 +229,24 @@ export default function LeadsComercialPage() {
         </div>
 
         {/* Filtros */}
-        <Card className="p-6 border-gray-200 mb-6">
+        <Card className="p-6 border-border mb-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por nome, contato ou e-mail..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-300"
+                  className="pl-10 border-border"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Filter className="w-4 h-4 text-gray-500" />
+              <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[200px] border-gray-300">
+                <SelectTrigger className="w-[200px] border-border">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -266,8 +266,8 @@ export default function LeadsComercialPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {leadsFiltrados.length === 0 ? (
             <div className="col-span-2">
-              <Card className="p-12 border-gray-200">
-                <p className="text-center text-gray-500">
+              <Card className="p-12 border-border">
+                <p className="text-center text-muted-foreground">
                   Nenhum lead encontrado
                 </p>
               </Card>
@@ -276,16 +276,16 @@ export default function LeadsComercialPage() {
             leadsFiltrados.map((lead) => (
               <Card
                 key={lead.id}
-                className="p-6 border-gray-200 hover:border-[#D3AF37] transition-colors"
+                className="p-6 border-border hover:border-[var(--primary)] transition-colors"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="w-12 h-12 rounded-lg bg-[#D3AF37]/20 flex items-center justify-center flex-shrink-0">
-                      <TrendingUp className="w-6 h-6 text-[#D3AF37]" />
+                    <div className="w-12 h-12 rounded-lg bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
+                      <TrendingUp className="w-6 h-6 text-[var(--primary)]" />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-black mb-1">{lead.nome}</h3>
-                      <p className="text-gray-600">Contato: {lead.contato}</p>
+                      <p className="text-muted-foreground">Contato: {lead.contato}</p>
                     </div>
                   </div>
                   <Button
@@ -298,20 +298,20 @@ export default function LeadsComercialPage() {
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Phone className="w-4 h-4 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
                     <a
                       href={`tel:${lead.telefone}`}
-                      className="hover:text-[#D3AF37] transition-colors"
+                      className="hover:text-[var(--primary)] transition-colors"
                     >
                       {lead.telefone}
                     </a>
                   </div>
-                  <div className="flex items-center gap-2 text-gray-700">
-                    <Mail className="w-4 h-4 text-gray-500" />
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Mail className="w-4 h-4 text-muted-foreground" />
                     <a
                       href={`mailto:${lead.email}`}
-                      className="hover:text-[#D3AF37] transition-colors truncate"
+                      className="hover:text-[var(--primary)] transition-colors truncate"
                     >
                       {lead.email}
                     </a>
@@ -319,8 +319,8 @@ export default function LeadsComercialPage() {
                 </div>
 
                 {lead.observacoes && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-gray-700">{lead.observacoes}</p>
+                  <div className="mb-4 p-3 bg-background rounded-lg border border-border">
+                    <p className="text-muted-foreground">{lead.observacoes}</p>
                   </div>
                 )}
 
@@ -333,13 +333,13 @@ export default function LeadsComercialPage() {
                   </Badge>
                   <Badge
                     variant="outline"
-                    className="border-gray-300 text-gray-700"
+                    className="border-border text-muted-foreground"
                   >
                     {lead.origem}
                   </Badge>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-gray-200 text-gray-500">
+                <div className="mt-4 pt-4 border-t border-border text-muted-foreground">
                   Criado em {new Date(lead.criadoEm).toLocaleDateString("pt-BR")}
                 </div>
               </Card>
@@ -369,7 +369,7 @@ export default function LeadsComercialPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, nome: e.target.value })
                   }
-                  className="border-gray-300"
+                  className="border-border"
                   placeholder="Ex: Empresa ABC Ltda"
                 />
               </div>
@@ -383,7 +383,7 @@ export default function LeadsComercialPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, contato: e.target.value })
                   }
-                  className="border-gray-300"
+                  className="border-border"
                   placeholder="Ex: João Silva"
                 />
               </div>
@@ -400,7 +400,7 @@ export default function LeadsComercialPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, telefone: e.target.value })
                   }
-                  className="border-gray-300"
+                  className="border-border"
                   placeholder="(11) 99999-9999"
                 />
               </div>
@@ -415,7 +415,7 @@ export default function LeadsComercialPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
-                  className="border-gray-300"
+                  className="border-border"
                   placeholder="contato@empresa.com.br"
                 />
               </div>
@@ -432,7 +432,7 @@ export default function LeadsComercialPage() {
                     setFormData({ ...formData, origem: value })
                   }
                 >
-                  <SelectTrigger className="border-gray-300">
+                  <SelectTrigger className="border-border">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -455,7 +455,7 @@ export default function LeadsComercialPage() {
                     setFormData({ ...formData, status: value })
                   }
                 >
-                  <SelectTrigger className="border-gray-300">
+                  <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -478,7 +478,7 @@ export default function LeadsComercialPage() {
                     setFormData({ ...formData, potencial: value })
                   }
                 >
-                  <SelectTrigger className="border-gray-300">
+                  <SelectTrigger className="border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -500,7 +500,7 @@ export default function LeadsComercialPage() {
                 onChange={(e) =>
                   setFormData({ ...formData, observacoes: e.target.value })
                 }
-                className="border-gray-300 min-h-[100px]"
+                className="border-border min-h-[100px]"
                 placeholder="Informações adicionais sobre o lead..."
               />
             </div>
@@ -510,13 +510,13 @@ export default function LeadsComercialPage() {
             <Button
               variant="outline"
               onClick={() => setIsDialogOpen(false)}
-              className="border-gray-300"
+              className="border-border"
             >
               Cancelar
             </Button>
             <Button
               onClick={handleSalvarLead}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+              className="bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black"
             >
               {editingLead ? "Salvar Alterações" : "Criar Lead"}
             </Button>

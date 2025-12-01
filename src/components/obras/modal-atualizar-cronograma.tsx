@@ -108,12 +108,12 @@ export function ModalAtualizarCronograma({
                   <Label>Status Atual</Label>
                   <div>
                     {obra.statusCronograma === 'NO_PRAZO' && (
-                      <Badge variant="outline" className="border-green-600 text-green-600">
+                      <Badge variant="outline" className="border-green-600 text-success">
                         No Prazo
                       </Badge>
                     )}
                     {obra.statusCronograma === 'ATENCAO' && (
-                      <Badge variant="outline" className="border-yellow-600 text-yellow-600">
+                      <Badge variant="outline" className="border-yellow-600 text-warning">
                         Atenção
                       </Badge>
                     )}
@@ -185,7 +185,7 @@ export function ModalAtualizarCronograma({
                   className="max-w-xs"
                 />
                 {arquivoMedicao && (
-                  <div className="flex items-center gap-2 text-green-600">
+                  <div className="flex items-center gap-2 text-success">
                     <CheckCircle className="h-4 w-4" />
                     <span>{arquivoMedicao.name}</span>
                   </div>
@@ -219,7 +219,7 @@ export function ModalAtualizarCronograma({
                 </div>
                 <div className="flex items-center justify-between">
                   <span>Novo percentual:</span>
-                  <span className="font-mono text-[#D3AF37]">
+                  <span className="font-mono text-[var(--primary)]">
                     {parseFloat(novoPercentual) || 0}%
                   </span>
                 </div>
@@ -240,7 +240,7 @@ export function ModalAtualizarCronograma({
           </Button>
           <Button
             onClick={handleSalvar}
-            className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+            className="bg-[var(--primary)] hover:bg-[var(--primary)]/90"
           >
             <CheckCircle className="h-4 w-4 mr-1" />
             Salvar Atualização

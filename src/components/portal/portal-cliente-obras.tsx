@@ -97,11 +97,11 @@ export function PortalClienteObras() {
   const getClimaIcon = (clima: RelatorioDiario['clima']) => {
     switch (clima) {
       case 'SOL':
-        return <Sun className="h-5 w-5 text-amber-500" />;
+        return <Sun className="h-5 w-5 text-warning" />;
       case 'NUBLADO':
-        return <CloudRain className="h-5 w-5 text-neutral-500" />;
+        return <CloudRain className="h-5 w-5 text-muted-foreground" />;
       case 'CHUVA':
-        return <CloudRain className="h-5 w-5 text-blue-500" />;
+        return <CloudRain className="h-5 w-5 text-primary" />;
     }
   };
 
@@ -114,7 +114,7 @@ export function PortalClienteObras() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       {/* Header com Logos */}
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-6 py-4">
@@ -131,7 +131,7 @@ export function PortalClienteObras() {
               <Separator orientation="vertical" className="h-12" />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Parceria com</p>
-                <p className="text-lg font-bold" style={{ color: '#D3AF37' }}>Minerva Engenharia</p>
+                <p className="text-lg font-bold" style={{ color: 'var(--primary)' }}>Minerva Engenharia</p>
               </div>
             </div>
           </div>
@@ -242,7 +242,7 @@ export function PortalClienteObras() {
                 {mockDocumentos.map((doc) => (
                   <div
                     key={doc.id}
-                    className="flex items-start justify-between gap-2 p-3 border rounded-lg hover:bg-neutral-50 transition-colors"
+                    className="flex items-start justify-between gap-2 p-3 border rounded-lg hover:bg-background transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{doc.nome}</p>
@@ -279,7 +279,7 @@ export function PortalClienteObras() {
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">Parcela {parcela.numero}/13</span>
                       {parcela.status === 'pago' ? (
-                        <Badge className="bg-green-100 text-green-800">Pago</Badge>
+                        <Badge className="bg-success/10 text-success">Pago</Badge>
                       ) : (
                         <Badge variant="outline">Em Aberto</Badge>
                       )}
@@ -296,16 +296,16 @@ export function PortalClienteObras() {
             </Card>
 
             {/* Contato */}
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-success/5 border-success/20">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <MessageCircle className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                  <MessageCircle className="h-10 w-10 text-success mx-auto mb-3" />
                   <h4 className="font-medium mb-2">Precisa de Ajuda?</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     Entre em contato conosco pelo WhatsApp
                   </p>
                   <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-success hover:bg-success"
                     onClick={handleContatoWhatsApp}
                   >
                     <Phone className="mr-2 h-4 w-4" />
@@ -321,7 +321,7 @@ export function PortalClienteObras() {
       {/* Botão Flutuante WhatsApp */}
       <button
         onClick={handleContatoWhatsApp}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
+        className="fixed bottom-6 right-6 bg-success hover:bg-success text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
         title="Contato WhatsApp"
       >
         <MessageCircle className="h-6 w-6" />

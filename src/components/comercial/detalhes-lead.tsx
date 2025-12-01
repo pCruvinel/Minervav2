@@ -89,14 +89,14 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
 
   const getStatusBadge = (status: StatusLead) => {
     const statusMap: Record<StatusLead, { label: string; color: string }> = {
-      'NOVO': { label: 'Novo', color: 'bg-[#D3AF37] text-black' },
-      'EM_CONTATO': { label: 'Em Contato', color: 'bg-[#DDC063] text-black' },
-      'VISTORIA_AGENDADA': { label: 'Vistoria Agendada', color: 'bg-blue-100 text-blue-800' },
-      'PROPOSTA_ENVIADA': { label: 'Proposta Enviada', color: 'bg-purple-100 text-purple-800' },
-      'NEGOCIACAO': { label: 'Negociação', color: 'bg-orange-100 text-orange-800' },
-      'CONVERTIDO_GANHO': { label: 'Convertido', color: 'bg-green-100 text-green-800' },
-      'PERDIDO': { label: 'Perdido', color: 'bg-red-100 text-red-800' },
-      'CANCELADO': { label: 'Cancelado', color: 'bg-gray-100 text-gray-800' }
+      'NOVO': { label: 'Novo', color: 'bg-[var(--primary)] text-black' },
+      'EM_CONTATO': { label: 'Em Contato', color: 'bg-[var(--primary)] text-black' },
+      'VISTORIA_AGENDADA': { label: 'Vistoria Agendada', color: 'bg-primary/10 text-primary' },
+      'PROPOSTA_ENVIADA': { label: 'Proposta Enviada', color: 'bg-secondary/10 text-secondary' },
+      'NEGOCIACAO': { label: 'Negociação', color: 'bg-warning/10 text-warning' },
+      'CONVERTIDO_GANHO': { label: 'Convertido', color: 'bg-success/10 text-success' },
+      'PERDIDO': { label: 'Perdido', color: 'bg-destructive/10 text-destructive' },
+      'CANCELADO': { label: 'Cancelado', color: 'bg-muted text-foreground' }
     };
     return statusMap[status];
   };
@@ -188,7 +188,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
           <Button
             variant="outline"
             onClick={() => setDialogInteracao(true)}
-            className="border-[#D3AF37] text-black hover:bg-[#D3AF37]/10"
+            className="border-[var(--primary)] text-black hover:bg-[var(--primary)]/10"
           >
             <Plus className="h-4 w-4 mr-2" />
             Registrar Interação
@@ -196,7 +196,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
           {lead.status !== 'CONVERTIDO_GANHO' && lead.status !== 'PERDIDO' && lead.status !== 'CANCELADO' && (
             <Button
               onClick={() => setDialogConversao(true)}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
             >
               <UserCheck className="h-4 w-4 mr-2" />
               Converter em Cliente
@@ -209,13 +209,13 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
         {/* Coluna Esquerda: Dados do Lead */}
         <div className="lg:col-span-1 space-y-6">
           {/* Informações de Contato */}
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardHeader>
               <CardTitle className="text-black">Informações de Contato</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <Phone className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <Phone className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">Telefone</p>
                   <p className="text-black">{lead.telefone}</p>
@@ -223,7 +223,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
               </div>
 
               <div className="flex items-start gap-3">
-                <Mail className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <Mail className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">E-mail</p>
                   <p className="text-black">{lead.email}</p>
@@ -232,7 +232,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
 
               {lead.cidade && (
                 <div className="flex items-start gap-3">
-                  <MapPin className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                  <MapPin className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                   <div>
                     <p className="text-sm text-black/60">Localização</p>
                     <p className="text-black">{lead.cidade}</p>
@@ -241,7 +241,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
               )}
 
               <div className="flex items-start gap-3">
-                <Globe className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <Globe className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">Origem</p>
                   <p className="text-black capitalize">{lead.origem.toLowerCase().replace(/_/g, ' ')}</p>
@@ -249,7 +249,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
               </div>
 
               <div className="flex items-start gap-3">
-                <User className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <User className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">Responsável</p>
                   <p className="text-black">{lead.responsavelNome}</p>
@@ -259,13 +259,13 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
           </Card>
 
           {/* Datas Importantes */}
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardHeader>
               <CardTitle className="text-black">Datas</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <Calendar className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">Data de Cadastro</p>
                   <p className="text-black">{formatDateTime(lead.dataCadastro)}</p>
@@ -273,7 +273,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
               </div>
 
               <div className="flex items-start gap-3">
-                <Calendar className="h-5 w-5 text-[#D3AF37] mt-0.5" />
+                <Calendar className="h-5 w-5 text-[var(--primary)] mt-0.5" />
                 <div>
                   <p className="text-sm text-black/60">Última Interação</p>
                   <p className="text-black">{formatDateTime(lead.ultimaInteracao)}</p>
@@ -284,10 +284,10 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
 
           {/* Valor Estimado */}
           {lead.valorEstimado && (
-            <Card className="border-[#D3AF37]/20 bg-[#D3AF37]/5">
+            <Card className="border-[var(--primary)]/20 bg-[var(--primary)]/5">
               <CardHeader>
                 <CardTitle className="text-black flex items-center gap-2">
-                  <TrendingUp className="h-5 w-5 text-[#D3AF37]" />
+                  <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
                   Valor Estimado
                 </CardTitle>
               </CardHeader>
@@ -301,7 +301,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
 
           {/* Observações */}
           {lead.observacoes && (
-            <Card className="border-[#D3AF37]/20">
+            <Card className="border-[var(--primary)]/20">
               <CardHeader>
                 <CardTitle className="text-black">Observações</CardTitle>
               </CardHeader>
@@ -315,7 +315,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
         {/* Coluna Direita: Timeline e Propostas */}
         <div className="lg:col-span-2 space-y-6">
           {/* Histórico de Interações */}
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardHeader>
               <CardTitle className="text-black">Histórico de Interações</CardTitle>
               <p className="text-sm text-black/60">
@@ -329,11 +329,11 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
                     <div key={interacao.id}>
                       <div className="flex gap-4">
                         <div className="flex flex-col items-center">
-                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[#D3AF37]/20 text-[#D3AF37]">
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-[var(--primary)]/20 text-[var(--primary)]">
                             {getTipoInteracaoIcon(interacao.tipo)}
                           </div>
                           {index < interacoes.length - 1 && (
-                            <div className="w-0.5 h-full bg-[#D3AF37]/20 my-2 min-h-[40px]" />
+                            <div className="w-0.5 h-full bg-[var(--primary)]/20 my-2 min-h-[40px]" />
                           )}
                         </div>
 
@@ -354,7 +354,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
                           </p>
 
                           {interacao.proximo_passo && (
-                            <div className="mt-2 p-3 bg-[#DDC063]/10 rounded-lg border-l-4 border-[#D3AF37]">
+                            <div className="mt-2 p-3 bg-[var(--primary)]/10 rounded-lg border-l-4 border-[var(--primary)]">
                               <p className="text-sm text-black/70">
                                 <span className="text-black">Próximo passo:</span> {interacao.proximo_passo}
                               </p>
@@ -374,7 +374,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
           </Card>
 
           {/* Propostas Relacionadas */}
-          <Card className="border-[#D3AF37]/20">
+          <Card className="border-[var(--primary)]/20">
             <CardHeader>
               <CardTitle className="text-black">Propostas Comerciais</CardTitle>
               <p className="text-sm text-black/60">
@@ -387,16 +387,16 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
                   {propostas.map(proposta => (
                     <div 
                       key={proposta.id}
-                      className="p-4 border border-[#D3AF37]/20 rounded-lg hover:border-[#D3AF37]/50 transition-colors"
+                      className="p-4 border border-[var(--primary)]/20 rounded-lg hover:border-[var(--primary)]/50 transition-colors"
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-[#D3AF37]" />
+                            <FileText className="h-4 w-4 text-[var(--primary)]" />
                             <span className="text-black">{proposta.osNumero}</span>
                             <Badge 
                               variant="outline"
-                              className="border-[#D3AF37] text-black"
+                              className="border-[var(--primary)] text-black"
                             >
                               {proposta.tipoServico}
                             </Badge>
@@ -404,7 +404,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
                           <p className="text-sm text-black/70">{proposta.descricaoServico}</p>
                         </div>
                         <div className="text-right ml-4">
-                          <p className="text-lg text-[#D3AF37]">
+                          <p className="text-lg text-[var(--primary)]">
                             R$ {(proposta.valorProposta / 1000).toFixed(0)}k
                           </p>
                           <p className="text-xs text-black/60 capitalize">
@@ -421,7 +421,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
                       {proposta.feedbacks.length > 0 && (
                         <div className="mt-3 space-y-1">
                           {proposta.feedbacks.map((feedback, idx) => (
-                            <p key={idx} className="text-sm text-black/70 pl-4 border-l-2 border-[#D3AF37]/30">
+                            <p key={idx} className="text-sm text-black/70 pl-4 border-l-2 border-[var(--primary)]/30">
                               {feedback}
                             </p>
                           ))}
@@ -499,7 +499,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
             </Button>
             <Button 
               onClick={handleRegistrarInteracao}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
               disabled={!novaInteracao.descricao}
             >
               Registrar
@@ -513,7 +513,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-black flex items-center gap-2">
-              <CheckCircle className="h-5 w-5 text-[#D3AF37]" />
+              <CheckCircle className="h-5 w-5 text-[var(--primary)]" />
               Converter Lead em Cliente
             </DialogTitle>
             <DialogDescription>
@@ -522,7 +522,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 bg-[#D3AF37]/10 rounded-lg border border-[#D3AF37]/30">
+            <div className="p-4 bg-[var(--primary)]/10 rounded-lg border border-[var(--primary)]/30">
               <p className="text-black mb-2">
                 <strong>Lead:</strong> {lead.nome}
               </p>
@@ -536,11 +536,11 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
               )}
             </div>
 
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-900">
+            <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-sm text-primary">
                 <strong>Próximos passos:</strong>
               </p>
-              <ul className="text-sm text-blue-800 mt-2 space-y-1 list-disc list-inside">
+              <ul className="text-sm text-primary mt-2 space-y-1 list-disc list-inside">
                 <li>Lead será marcado como "Convertido/Ganho"</li>
                 <li>Dados migrados para a base de Clientes</li>
                 <li>Você poderá iniciar OS de Contrato (OS-13) ou OS de Serviço</li>
@@ -554,7 +554,7 @@ export function DetalhesLead({ leadId, onBack }: DetalhesLeadProps) {
             </Button>
             <Button 
               onClick={handleConverterCliente}
-              className="bg-[#D3AF37] hover:bg-[#C49F2F] text-black"
+              className="bg-[var(--primary)] hover:bg-[#C49F2F] text-black"
             >
               <UserCheck className="h-4 w-4 mr-2" />
               Confirmar Conversão

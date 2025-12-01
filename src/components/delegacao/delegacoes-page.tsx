@@ -134,9 +134,9 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-neutral-200">
+      <div className="bg-white border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -158,7 +158,7 @@ export function DelegacoesPage({ onBack }: DelegacoesPageProps) {
                 </div>
                 <div>
                   <h1 className="text-2xl font-semibold">Delegações</h1>
-                  <p className="text-sm text-neutral-600">
+                  <p className="text-sm text-muted-foreground">
                     Gerencie suas tarefas delegadas
                   </p>
                 </div>

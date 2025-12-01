@@ -107,7 +107,7 @@ export const wcagCompliantColors = {
 
   // Text on dark
   lightText: {
-    white: '#FFFFFF',   // 21:1 contrast with black
+    white: 'var(--background)',   // 21:1 contrast with black
     light: '#EEEEEE',   // 19.6:1 contrast with black
     pale: '#CCCCCC',    // 12.6:1 contrast with black
   },

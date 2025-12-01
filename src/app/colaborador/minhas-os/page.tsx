@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { Search, Eye, Filter } from "lucide-react";
 import Link from "next/link";
+import { StatusBadge, PriorityBadge } from "@/components/design-system";
+import { getStatusColor, getPrioridadeColor } from "@/lib/color-utils";
 import {
   mockUserColaborador,
   mockOrdensServico,
@@ -49,48 +51,23 @@ export default function MinhasOSPage() {
     return matchSearch && matchStatus && matchPrioridade;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "em_andamento":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "em_triagem":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "concluido":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "cancelado":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getPrioridadeColor = (prioridade: string) => {
-    switch (prioridade) {
-      case "ALTA":
-        return "bg-red-50 text-red-700 border-red-300";
-      case "MEDIA":
-        return "bg-yellow-50 text-yellow-700 border-yellow-300";
-      case "BAIXA":
-        return "bg-green-50 text-green-700 border-green-300";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-300";
-    }
-  };
+  // Funções de cores migradas para usar design system
+  // @deprecated Use StatusBadge e PriorityBadge components
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-black mb-1">Minhas Ordens de Serviço</h1>
-              <p className="text-gray-600">
+              <h1 className="text-foreground mb-1">Minhas Ordens de Serviço</h1>
+              <p className="text-muted-foreground">
                 Visualize e execute suas OS delegadas
               </p>
             </div>
-            <div className="flex items-center gap-2 text-gray-600">
-              <span className="text-black">{osFiltradas.length}</span>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="text-foreground">{osFiltradas.length}</span>
               <span>OS encontradas</span>
             </div>
           </div>
@@ -99,24 +76,24 @@ export default function MinhasOSPage() {
 
       <div className="p-8">
         {/* Filtros */}
-        <Card className="p-6 border-gray-200 mb-6">
+        <Card className="p-6 border-border mb-6">
           <div className="flex items-center gap-4 flex-wrap">
             <div className="flex-1 min-w-[300px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar por código, cliente ou endereço..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 border-gray-300"
+                  className="pl-10 border-input"
                 />
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              <Filter className="w-4 h-4 text-gray-500" />
+              <Filter className="w-4 h-4 text-muted-foreground" />
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[180px] border-gray-300">
+                <SelectTrigger className="w-[180px] border-input">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -132,7 +109,7 @@ export default function MinhasOSPage() {
                 value={filterPrioridade}
                 onValueChange={setFilterPrioridade}
               >
-                <SelectTrigger className="w-[180px] border-gray-300">
+                <SelectTrigger className="w-[180px] border-input">
                   <SelectValue placeholder="Prioridade" />
                 </SelectTrigger>
                 <SelectContent>
@@ -147,35 +124,35 @@ export default function MinhasOSPage() {
         </Card>
 
         {/* Tabela de OS */}
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Código OS
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Tipo</th>
-                  <th className="px-6 py-3 text-left text-gray-700">Cliente</th>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">Tipo</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">Cliente</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Endereço
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Etapa Atual
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Status</th>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">Status</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Prioridade
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Prazo</th>
-                  <th className="px-6 py-3 text-left text-gray-700">Ações</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">Prazo</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {osFiltradas.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-6 py-12 text-center">
-                      <p className="text-gray-500">
+                      <p className="text-muted-foreground">
                         Nenhuma OS encontrada com os filtros aplicados
                       </p>
                     </td>
@@ -184,50 +161,44 @@ export default function MinhasOSPage() {
                   osFiltradas.map((os) => (
                     <tr
                       key={os.id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-muted transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <p className="text-black">{os.codigo}</p>
+                        <p className="text-foreground">{os.codigo}</p>
                       </td>
                       <td className="px-6 py-4">
                         <Badge
                           variant="outline"
-                          className="border-[#D3AF37] text-black bg-[#D3AF37]/10"
+                          className="border-primary text-primary-foreground bg-primary/10"
                         >
                           {os.tipo}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-black">{os.cliente}</p>
+                        <p className="text-foreground">{os.cliente}</p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-gray-700 max-w-xs truncate">
+                        <p className="text-muted-foreground max-w-xs truncate">
                           {os.endereco}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-gray-700">
+                        <p className="text-muted-foreground">
                           {os.etapaAtual.replace(/_/g, " ")}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge
-                          variant="outline"
-                          className={getStatusColor(os.status)}
-                        >
+                        <StatusBadge status={os.status as any}>
                           {os.status.replace(/_/g, " ")}
-                        </Badge>
+                        </StatusBadge>
                       </td>
                       <td className="px-6 py-4">
-                        <Badge
-                          variant="outline"
-                          className={getPrioridadeColor(os.prioridade)}
-                        >
+                        <PriorityBadge priority={os.prioridade as any}>
                           {os.prioridade}
-                        </Badge>
+                        </PriorityBadge>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-black">
+                        <p className="text-foreground">
                           {new Date(os.prazo).toLocaleDateString("pt-BR")}
                         </p>
                       </td>
@@ -235,7 +206,7 @@ export default function MinhasOSPage() {
                         <Link href={`/colaborador/minhas-os/${os.id}`}>
                           <Button
                             size="sm"
-                            className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
                           >
                             <Eye className="w-4 h-4 mr-1" />
                             Executar

@@ -83,7 +83,7 @@ export function BadgeAprovacoesPendentes({
 
       <PopoverContent className="w-96 p-0" align="end">
         {/* Header */}
-        <div className="p-4 border-b border-neutral-200">
+        <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-primary" />
@@ -93,7 +93,7 @@ export function BadgeAprovacoesPendentes({
               {aprovacoesPendentes.length}
             </Badge>
           </div>
-          <p className="text-xs text-neutral-600 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Tarefas concluídas aguardando sua aprovação
           </p>
         </div>
@@ -103,7 +103,7 @@ export function BadgeAprovacoesPendentes({
           {aprovacoesPendentes.map((delegacao) => (
             <div
               key={delegacao.id}
-              className="p-4 border-b border-neutral-100 hover:bg-neutral-50 transition-colors"
+              className="p-4 border-b border-neutral-100 hover:bg-background transition-colors"
             >
               <div className="flex items-start gap-3">
                 <Avatar className="w-10 h-10 flex-shrink-0">
@@ -118,19 +118,19 @@ export function BadgeAprovacoesPendentes({
                       <p className="text-sm font-medium truncate">
                         {delegacao.delegado_nome || 'Desconhecido'}
                       </p>
-                      <p className="text-xs text-neutral-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatarDataRelativa(delegacao.updated_at)}
                       </p>
                     </div>
                     <Badge
                       variant="outline"
-                      className="bg-green-50 text-green-700 border-green-200 text-xs flex-shrink-0"
+                      className="bg-success/5 text-success border-success/20 text-xs flex-shrink-0"
                     >
                       Concluída
                     </Badge>
                   </div>
 
-                  <p className="text-sm text-neutral-700 line-clamp-2 mb-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                     {delegacao.descricao_tarefa}
                   </p>
 
@@ -149,7 +149,7 @@ export function BadgeAprovacoesPendentes({
                     </Button>
                     <Button
                       size="sm"
-                      className="flex-1 h-8 text-xs bg-green-600 hover:bg-green-700"
+                      className="flex-1 h-8 text-xs bg-success hover:bg-success"
                       onClick={() => {
                         if (onAprovar) {
                           onAprovar(delegacao.id);
@@ -168,7 +168,7 @@ export function BadgeAprovacoesPendentes({
 
         {/* Footer */}
         {onVerTodas && (
-          <div className="p-3 border-t border-neutral-200">
+          <div className="p-3 border-t border-border">
             <Button
               variant="ghost"
               className="w-full text-sm"

@@ -32,7 +32,7 @@ export function StepDiarioObra({ data, onDataChange, readOnly, osId }: StepDiari
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Cronograma de Obra (Diário de Obra)</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe o arquivo do diário de obra para acompanhamento das atividades diárias
         </p>
       </div>
@@ -47,11 +47,11 @@ export function StepDiarioObra({ data, onDataChange, readOnly, osId }: StepDiari
         acceptedTypes={['application/pdf', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']}
       />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 text-blue-600 mt-0.5">ℹ️</div>
+          <div className="w-5 h-5 text-primary mt-0.5">ℹ️</div>
           <div>
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-primary">
               <strong>Importante:</strong> O diário de obra deve ser atualizado regularmente com o registro das atividades executadas, mão de obra presente, condições climáticas e ocorrências relevantes.
             </p>
           </div>

@@ -51,11 +51,11 @@ const roleLabels: Record<string, string> = {
 };
 
 const roleColors: Record<string, string> = {
-  diretoria: 'bg-purple-100 text-purple-800 border-purple-200',
-  gestor_administrativo: 'bg-blue-100 text-blue-800 border-blue-200',
-  gestor_obras: 'bg-green-100 text-green-800 border-green-200',
-  gestor_assessoria: 'bg-green-100 text-green-800 border-green-200',
-  colaborador: 'bg-gray-100 text-gray-800 border-gray-200',
+  diretoria: 'bg-secondary/10 text-secondary border-secondary/20',
+  gestor_administrativo: 'bg-primary/10 text-primary border-primary/20',
+  gestor_obras: 'bg-success/10 text-success border-success/20',
+  gestor_assessoria: 'bg-success/10 text-success border-success/20',
+  colaborador: 'bg-muted text-foreground border-border',
 };
 
 export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
@@ -129,13 +129,13 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-8">
+    <div className="min-h-screen bg-muted p-8">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="mb-2">Seed de Usuários</h1>
-            <p className="text-neutral-600">
+            <p className="text-muted-foreground">
               Crie usuários de teste com diferentes níveis de acesso
             </p>
           </div>
@@ -162,7 +162,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               {/* Diretoria */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                  <Shield className="h-5 w-5 text-secondary" />
                   <Badge className={roleColors.DIRETORIA}>
                     Diretoria
                   </Badge>
@@ -171,14 +171,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                   <p><strong>Nome:</strong> Carlos Diretor</p>
                   <p><strong>Email:</strong> diretoria@minerva.com</p>
                   <p><strong>Senha:</strong> diretoria123</p>
-                  <p className="text-xs text-neutral-500">Setor: ADM</p>
+                  <p className="text-xs text-muted-foreground">Setor: ADM</p>
                 </div>
               </div>
 
               {/* Gestor ADM */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-blue-600" />
+                  <UserCog className="h-5 w-5 text-primary" />
                   <Badge className={roleColors.GESTOR_ADM}>
                     Gestor ADM
                   </Badge>
@@ -187,14 +187,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                   <p><strong>Nome:</strong> Maria Gestora ADM</p>
                   <p><strong>Email:</strong> gestor.adm@minerva.com</p>
                   <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-neutral-500">Setor: ADM</p>
+                  <p className="text-xs text-muted-foreground">Setor: ADM</p>
                 </div>
               </div>
 
               {/* Gestor de Obras */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-green-600" />
+                  <UserCog className="h-5 w-5 text-success" />
                   <Badge className={roleColors.GESTOR_SETOR}>
                     Gestor de Setor
                   </Badge>
@@ -203,14 +203,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                   <p><strong>Nome:</strong> João Gestor de Obras</p>
                   <p><strong>Email:</strong> gestor.obras@minerva.com</p>
                   <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-neutral-500">Setor: Obras</p>
+                  <p className="text-xs text-muted-foreground">Setor: Obras</p>
                 </div>
               </div>
 
               {/* Gestor de Assessoria */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-green-600" />
+                  <UserCog className="h-5 w-5 text-success" />
                   <Badge className={roleColors.GESTOR_SETOR}>
                     Gestor de Setor
                   </Badge>
@@ -219,14 +219,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                   <p><strong>Nome:</strong> Paula Gestora de Assessoria</p>
                   <p><strong>Email:</strong> gestor.assessoria@minerva.com</p>
                   <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-neutral-500">Setor: Assessoria</p>
+                  <p className="text-xs text-muted-foreground">Setor: Assessoria</p>
                 </div>
               </div>
 
               {/* Colaborador */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-gray-600" />
+                  <User className="h-5 w-5 text-muted-foreground" />
                   <Badge className={roleColors.COLABORADOR}>
                     Colaborador
                   </Badge>
@@ -235,7 +235,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                   <p><strong>Nome:</strong> Ana Colaboradora</p>
                   <p><strong>Email:</strong> colaborador@minerva.com</p>
                   <p><strong>Senha:</strong> colaborador123</p>
-                  <p className="text-xs text-neutral-500">Setor: Obras</p>
+                  <p className="text-xs text-muted-foreground">Setor: Obras</p>
                 </div>
               </div>
             </div>
@@ -272,13 +272,13 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
 
         {/* Resultado */}
         {resultado && (
-          <Card className="border-green-200 bg-green-50">
+          <Card className="border-success/20 bg-success/5">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-green-900">
+              <CardTitle className="flex items-center gap-2 text-success">
                 <CheckCircle2 className="h-5 w-5" />
                 Seed Executado com Sucesso
               </CardTitle>
-              <CardDescription className="text-green-700">
+              <CardDescription className="text-success">
                 {resultado.message}
               </CardDescription>
             </CardHeader>
@@ -286,34 +286,34 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               {/* Resumo */}
               <div className="grid grid-cols-4 gap-4">
                 <div className="text-center p-3 bg-white rounded-lg border">
-                  <div className="text-2xl font-bold text-neutral-900">
+                  <div className="text-2xl font-bold text-foreground">
                     {resultado.summary.total}
                   </div>
-                  <div className="text-xs text-neutral-600 mt-1">Total</div>
+                  <div className="text-xs text-muted-foreground mt-1">Total</div>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-green-200">
-                  <div className="text-2xl font-bold text-green-600">
+                <div className="text-center p-3 bg-white rounded-lg border border-success/20">
+                  <div className="text-2xl font-bold text-success">
                     {resultado.summary.criados}
                   </div>
-                  <div className="text-xs text-neutral-600 mt-1">Criados</div>
+                  <div className="text-xs text-muted-foreground mt-1">Criados</div>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
-                  <div className="text-2xl font-bold text-blue-600">
+                <div className="text-center p-3 bg-white rounded-lg border border-primary/20">
+                  <div className="text-2xl font-bold text-primary">
                     {resultado.summary.existentes}
                   </div>
-                  <div className="text-xs text-neutral-600 mt-1">Existentes</div>
+                  <div className="text-xs text-muted-foreground mt-1">Existentes</div>
                 </div>
-                <div className="text-center p-3 bg-white rounded-lg border border-red-200">
-                  <div className="text-2xl font-bold text-red-600">
+                <div className="text-center p-3 bg-white rounded-lg border border-destructive/20">
+                  <div className="text-2xl font-bold text-destructive">
                     {resultado.summary.erros}
                   </div>
-                  <div className="text-xs text-neutral-600 mt-1">Erros</div>
+                  <div className="text-xs text-muted-foreground mt-1">Erros</div>
                 </div>
               </div>
 
               {/* Lista de Resultados */}
               <div className="space-y-2">
-                <h4 className="text-sm font-medium text-green-900">Detalhes:</h4>
+                <h4 className="text-sm font-medium text-success">Detalhes:</h4>
                 {resultado.resultados.map((res, index) => {
                   const Icon = res.role ? roleIcons[res.role] : User;
                   return (
@@ -322,10 +322,10 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                       className="flex items-center justify-between p-3 bg-white rounded-lg border"
                     >
                       <div className="flex items-center gap-3">
-                        <Icon className="h-4 w-4 text-neutral-600" />
+                        <Icon className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <p className="text-sm font-medium">{res.nome || res.email}</p>
-                          <p className="text-xs text-neutral-500">{res.email}</p>
+                          <p className="text-xs text-muted-foreground">{res.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -335,11 +335,11 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                           </Badge>
                         )}
                         {res.status === 'created' ? (
-                          <Badge className="bg-green-100 text-green-800 border-green-200">
+                          <Badge className="bg-success/10 text-success border-success/20">
                             Criado
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                          <Badge variant="outline" className="bg-primary/5 text-primary">
                             Já Existia
                           </Badge>
                         )}
@@ -352,7 +352,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               {/* Erros (se houver) */}
               {resultado.erros && resultado.erros.length > 0 && (
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-red-900">Erros:</h4>
+                  <h4 className="text-sm font-medium text-destructive">Erros:</h4>
                   {resultado.erros.map((erro, index) => (
                     <Alert key={index} variant="destructive">
                       <AlertCircle className="h-4 w-4" />

@@ -94,11 +94,11 @@ export function PortalClienteAssessoria() {
 
   const getStatusBadge = (status: Solicitacao['status']) => {
     const config = {
-      PENDENTE: { label: 'Pendente', icon: Clock, className: 'bg-amber-100 text-amber-800' },
-      EM_ANALISE: { label: 'Em Análise', icon: Eye, className: 'bg-blue-100 text-blue-800' },
-      APROVADO: { label: 'Aprovado', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
-      REPROVADO: { label: 'Reprovado', icon: AlertCircle, className: 'bg-red-100 text-red-800' },
-      CONCLUIDO: { label: 'Concluído', icon: CheckCircle, className: 'bg-green-100 text-green-800' },
+      PENDENTE: { label: 'Pendente', icon: Clock, className: 'bg-warning/10 text-warning' },
+      EM_ANALISE: { label: 'Em Análise', icon: Eye, className: 'bg-primary/10 text-primary' },
+      APROVADO: { label: 'Aprovado', icon: CheckCircle, className: 'bg-success/10 text-success' },
+      REPROVADO: { label: 'Reprovado', icon: AlertCircle, className: 'bg-destructive/10 text-destructive' },
+      CONCLUIDO: { label: 'Concluído', icon: CheckCircle, className: 'bg-success/10 text-success' },
     };
 
     const { label, icon: Icon, className } = config[status];
@@ -141,7 +141,7 @@ export function PortalClienteAssessoria() {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       {/* Header com Logos */}
       <header className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-6 py-4">
@@ -158,7 +158,7 @@ export function PortalClienteAssessoria() {
               <Separator orientation="vertical" className="h-12" />
               <div className="text-right">
                 <p className="text-xs text-muted-foreground">Parceria com</p>
-                <p className="text-lg font-bold" style={{ color: '#D3AF37' }}>Minerva Engenharia</p>
+                <p className="text-lg font-bold" style={{ color: 'var(--primary)' }}>Minerva Engenharia</p>
               </div>
             </div>
           </div>
@@ -278,7 +278,7 @@ export function PortalClienteAssessoria() {
                 {relatorios.map((rel) => (
                   <div
                     key={rel.id}
-                    className="flex items-start justify-between gap-2 p-3 border rounded-lg hover:bg-neutral-50 transition-colors"
+                    className="flex items-start justify-between gap-2 p-3 border rounded-lg hover:bg-background transition-colors"
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium">{rel.mes}</p>
@@ -316,22 +316,22 @@ export function PortalClienteAssessoria() {
                 <Separator />
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Aprovadas</span>
-                  <span className="text-lg font-medium text-green-600">1</span>
+                  <span className="text-lg font-medium text-success">1</span>
                 </div>
               </CardContent>
             </Card>
 
             {/* Contato */}
-            <Card className="bg-green-50 border-green-200">
+            <Card className="bg-success/5 border-success/20">
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <MessageCircle className="h-10 w-10 text-green-600 mx-auto mb-3" />
+                  <MessageCircle className="h-10 w-10 text-success mx-auto mb-3" />
                   <h4 className="font-medium mb-2">Precisa de Ajuda?</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     Entre em contato conosco pelo WhatsApp
                   </p>
                   <Button
-                    className="w-full bg-green-600 hover:bg-green-700"
+                    className="w-full bg-success hover:bg-success"
                     onClick={handleContatoWhatsApp}
                   >
                     <Phone className="mr-2 h-4 w-4" />
@@ -347,7 +347,7 @@ export function PortalClienteAssessoria() {
       {/* Botão Flutuante WhatsApp */}
       <button
         onClick={handleContatoWhatsApp}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
+        className="fixed bottom-6 right-6 bg-success hover:bg-success text-white rounded-full p-4 shadow-lg transition-all hover:scale-110"
         title="Contato WhatsApp"
       >
         <MessageCircle className="h-6 w-6" />

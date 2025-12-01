@@ -315,12 +315,12 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                 </PopoverContent>
               </Popover>
             ) : (
-              <Card className="bg-blue-50 border-blue-200">
+              <Card className="bg-primary/5 border-primary/20">
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">
                       <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-blue-500 text-white">
+                        <AvatarFallback className="bg-primary text-white">
                           {selectedLead?.nome_razao_social?.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -347,7 +347,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
               </Card>
             )}
             {errors.clienteId && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
                 {errors.clienteId}
               </p>
@@ -372,7 +372,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                       className={cn(
                         'w-full justify-start text-left font-normal',
                         !dataContratacao && 'text-muted-foreground',
-                        errors.dataContratacao && 'border-red-500'
+                        errors.dataContratacao && 'border-destructive'
                       )}
                       disabled={readOnly}
                     >
@@ -393,7 +393,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                   </PopoverContent>
                 </Popover>
                 {errors.dataContratacao && (
-                  <p className="text-sm text-red-500">{errors.dataContratacao}</p>
+                  <p className="text-sm text-destructive">{errors.dataContratacao}</p>
                 )}
               </div>
 
@@ -407,7 +407,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                       className={cn(
                         'w-full justify-start text-left font-normal',
                         !aniversarioGestor && 'text-muted-foreground',
-                        errors.aniversarioGestor && 'border-red-500'
+                        errors.aniversarioGestor && 'border-destructive'
                       )}
                       disabled={readOnly}
                     >
@@ -428,7 +428,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                   </PopoverContent>
                 </Popover>
                 {errors.aniversarioGestor && (
-                  <p className="text-sm text-red-500">{errors.aniversarioGestor}</p>
+                  <p className="text-sm text-destructive">{errors.aniversarioGestor}</p>
                 )}
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
@@ -450,7 +450,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                       onChange={(e) => onDataChange({ ...data, senhaAcesso: e.target.value })}
                       placeholder="Mínimo 8 caracteres, letras maiúsculas e números"
                       disabled={readOnly}
-                      className={errors.senhaAcesso ? 'border-red-500' : ''}
+                      className={errors.senhaAcesso ? 'border-destructive' : ''}
                     />
                     <Button
                       type="button"
@@ -473,7 +473,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                   </Button>
                 </div>
                 {errors.senhaAcesso && (
-                  <p className="text-sm text-red-500">{errors.senhaAcesso}</p>
+                  <p className="text-sm text-destructive">{errors.senhaAcesso}</p>
                 )}
               </div>
 
@@ -481,9 +481,9 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
               {data.centroCusto && (
                 <div className="space-y-2">
                   <Label>Centro de Custo</Label>
-                  <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                    <div className="font-semibold text-green-700">{data.centroCusto.nome}</div>
-                    <div className="text-sm text-green-600">Gerado automaticamente</div>
+                  <div className="p-3 bg-success/5 border border-success/20 rounded-md">
+                    <div className="font-semibold text-success">{data.centroCusto.nome}</div>
+                    <div className="text-sm text-success">Gerado automaticamente</div>
                   </div>
                 </div>
               )}
@@ -517,7 +517,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     acceptedTypes={['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']}
                   />
                   {errors.documentosFoto && (
-                    <p className="text-sm text-red-500">{errors.documentosFoto}</p>
+                    <p className="text-sm text-destructive">{errors.documentosFoto}</p>
                   )}
 
                   <FileUploadUnificado
@@ -531,7 +531,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     acceptedTypes={['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']}
                   />
                   {errors.comprovantesResidencia && (
-                    <p className="text-sm text-red-500">{errors.comprovantesResidencia}</p>
+                    <p className="text-sm text-destructive">{errors.comprovantesResidencia}</p>
                   )}
 
                   <FileUploadUnificado
@@ -545,7 +545,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     acceptedTypes={['application/pdf']}
                   />
                   {errors.contratoSocial && (
-                    <p className="text-sm text-red-500">{errors.contratoSocial}</p>
+                    <p className="text-sm text-destructive">{errors.contratoSocial}</p>
                   )}
 
                   <FileUploadUnificado
@@ -573,7 +573,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     acceptedTypes={['application/pdf']}
                   />
                   {errors.contratoAssinado && (
-                    <p className="text-sm text-red-500">{errors.contratoAssinado}</p>
+                    <p className="text-sm text-destructive">{errors.contratoAssinado}</p>
                   )}
                 </TabsContent>
               </Tabs>

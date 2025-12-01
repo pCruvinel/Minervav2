@@ -32,7 +32,7 @@ export function StepRelatorioFotografico({ data, onDataChange, readOnly, osId }:
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Anexar Relatório Fotográfico Pré-Obra</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe o relatório fotográfico da vistoria cautelar realizada antes do início da obra
         </p>
       </div>
@@ -47,11 +47,11 @@ export function StepRelatorioFotografico({ data, onDataChange, readOnly, osId }:
         acceptedTypes={['application/pdf']}
       />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 text-blue-600 mt-0.5">ℹ️</div>
+          <div className="w-5 h-5 text-primary mt-0.5">ℹ️</div>
           <div>
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-primary">
               <strong>Importante:</strong> O relatório fotográfico pré-obra é essencial para documentar o estado inicial da edificação e áreas adjacentes.
             </p>
           </div>

@@ -49,7 +49,7 @@ export function WorkflowFooter({
   const shouldDisableNext = disableNext || isLoading || isFormInvalid;
 
   return (
-    <div className="flex-shrink-0 border-t border-neutral-200 px-6 py-4 bg-neutral-50">
+    <div className="flex-shrink-0 border-t border-border px-6 py-4 bg-background">
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
@@ -67,14 +67,13 @@ export function WorkflowFooter({
         <div className="flex gap-2 items-center">
           {readOnlyMode ? (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-500 italic">
+              <span className="text-sm text-muted-foreground italic">
                 Visualizando dados salvos
               </span>
               {onReturnToActive && (
                 <Button
                   onClick={onReturnToActive}
-                  style={{ backgroundColor: '#f97316', color: 'white' }}
-                  className="hover:opacity-90"
+                  className="bg-warning text-white hover:bg-warning/90"
                 >
                   <ChevronRight className="h-4 w-4 mr-2" />
                   Voltar para onde estava
@@ -112,7 +111,7 @@ export function WorkflowFooter({
                       </span>
                     </TooltipTrigger>
                     {isFormInvalid && (
-                      <TooltipContent side="top" className="bg-red-600 text-white border-red-700">
+                      <TooltipContent side="top" className="bg-destructive text-white border-destructive">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4" />
                           <span>{invalidFormMessage}</span>
@@ -145,7 +144,7 @@ export function WorkflowFooter({
                       </span>
                     </TooltipTrigger>
                     {isFormInvalid && (
-                      <TooltipContent side="top" className="bg-red-600 text-white border-red-700">
+                      <TooltipContent side="top" className="bg-destructive text-white border-red-700">
                         <div className="flex items-center gap-2">
                           <AlertCircle className="h-4 w-4" />
                           <span>{invalidFormMessage}</span>

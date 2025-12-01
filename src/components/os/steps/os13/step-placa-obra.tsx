@@ -32,7 +32,7 @@ export function StepPlacaObra({ data, onDataChange, readOnly, osId }: StepPlacaO
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Gerar Placa de Obra</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe o arquivo da placa de obra que será instalada no local
         </p>
       </div>
@@ -47,11 +47,11 @@ export function StepPlacaObra({ data, onDataChange, readOnly, osId }: StepPlacaO
         acceptedTypes={['application/pdf', 'image/png', 'image/jpg', 'image/jpeg']}
       />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 text-blue-600 mt-0.5">ℹ️</div>
+          <div className="w-5 h-5 text-primary mt-0.5">ℹ️</div>
           <div>
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-primary">
               <strong>Importante:</strong> A placa de obra deve conter informações sobre a empresa responsável, engenheiro, ART e demais dados obrigatórios conforme legislação.
             </p>
           </div>

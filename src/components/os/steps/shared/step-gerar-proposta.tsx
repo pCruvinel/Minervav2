@@ -77,7 +77,7 @@ export function StepGerarProposta({ data, onDataChange, readOnly = false }: Step
 
           <button
             onClick={() => setShowPreview(true)}
-            className="px-4 py-2 text-sm border border-neutral-300 rounded-md hover:bg-neutral-50 flex items-center gap-2"
+            className="px-4 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
             disabled={readOnly}
           >
             <Eye className="w-4 h-4" />
@@ -87,11 +87,11 @@ export function StepGerarProposta({ data, onDataChange, readOnly = false }: Step
       </div>
 
       {data.propostaGerada && data.pdfUrl && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-success/5 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="h-5 w-5 text-success" />
                 <div>
                   <div className="text-sm">Proposta gerada com sucesso!</div>
                   <div className="text-xs text-muted-foreground">

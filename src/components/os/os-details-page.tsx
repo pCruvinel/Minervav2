@@ -30,10 +30,10 @@ interface OSDetailsPageProps {
 
 const getStatusBadge = (status: string) => {
   const badges = {
-    'triagem': <Badge variant="secondary" className="bg-gray-200 text-gray-800 font-medium">Triagem</Badge>,
+    'triagem': <Badge variant="secondary" className="bg-muted text-foreground font-medium">Triagem</Badge>,
     'em-andamento': <Badge className="bg-primary/20 text-primary font-medium">Em Andamento</Badge>,
     'em-validacao': <Badge className="bg-secondary/20 text-secondary font-medium">Em Validação</Badge>,
-    'concluida': <Badge className="bg-green-100 text-green-700 font-medium">Concluída</Badge>,
+    'concluida': <Badge className="bg-success/10 text-success font-medium">Concluída</Badge>,
     'rejeitada': <Badge className="bg-destructive/20 text-destructive font-medium">Rejeitada</Badge>,
   };
   return badges[status as keyof typeof badges];
@@ -108,7 +108,7 @@ export function OSDetailsPage({
         </Button>
         <div>
           <h1 className="text-3xl font-bold">{ordemServico.codigo_os}</h1>
-          <p className="text-neutral-600 font-normal">{ordemServico.cliente_nome}</p>
+          <p className="text-muted-foreground font-normal">{ordemServico.cliente_nome}</p>
         </div>
       </div>
 
@@ -127,7 +127,7 @@ export function OSDetailsPage({
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                     <User className="w-4 h-4" />
                     <span>Cliente</span>
                   </div>
@@ -161,7 +161,7 @@ export function OSDetailsPage({
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                     <FileText className="w-4 h-4" />
                     <span>Tipo de Serviço</span>
                   </div>
@@ -169,7 +169,7 @@ export function OSDetailsPage({
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                     <Calendar className="w-4 h-4" />
                     <span>Data de Início</span>
                   </div>
@@ -177,7 +177,7 @@ export function OSDetailsPage({
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                     <Clock className="w-4 h-4" />
                     <span>Prazo de Entrega</span>
                   </div>
@@ -186,7 +186,7 @@ export function OSDetailsPage({
               </div>
 
               <div>
-                <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                   <User className="w-4 h-4" />
                   <span>Responsável</span>
                 </div>
@@ -203,11 +203,11 @@ export function OSDetailsPage({
               </div>
 
               <div>
-                <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                   <FileText className="w-4 h-4" />
                   <span>Descrição</span>
                 </div>
-                <p className="text-neutral-700 font-normal">{ordemServico.descricao}</p>
+                <p className="text-muted-foreground font-normal">{ordemServico.descricao}</p>
               </div>
             </CardContent>
           </Card>
@@ -305,7 +305,7 @@ export function OSDetailsPage({
                 </div>
 
                 {documentos.length === 0 ? (
-                  <div className="text-center py-4 text-neutral-400 text-sm">
+                  <div className="text-center py-4 text-muted-foreground text-sm">
                     <p>Nenhum anexo adicional</p>
                   </div>
                 ) : (
@@ -313,13 +313,13 @@ export function OSDetailsPage({
                     {documentos.map(doc => (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between p-2 bg-neutral-50 rounded-md hover:bg-neutral-100 transition-colors border border-border"
+                        className="flex items-center justify-between p-2 bg-background rounded-md hover:bg-muted transition-colors border border-border"
                       >
                         <div className="flex items-center gap-3 overflow-hidden">
                           <FileText className="w-4 h-4 text-secondary flex-shrink-0" />
                           <div className="truncate">
                             <p className="text-sm font-medium truncate">{doc.nome}</p>
-                            <p className="text-[10px] text-neutral-500">
+                            <p className="text-[10px] text-muted-foreground">
                               {doc.uploadedBy} • {formatDate(doc.uploadedAt)}
                             </p>
                           </div>
@@ -367,9 +367,9 @@ export function OSDetailsPage({
                             <Badge
                               variant="outline"
                               className={`
-                                ${etapa.status === 'concluida' ? 'bg-green-50 text-green-700 border-green-200' : ''}
-                                ${etapa.status === 'em_andamento' ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}
-                                ${etapa.status === 'pendente' ? 'bg-gray-50 text-gray-600 border-gray-200' : ''}
+                                ${etapa.status === 'concluida' ? 'bg-success/5 text-success border-success/20' : ''}
+                                ${etapa.status === 'em_andamento' ? 'bg-primary/5 text-primary border-primary/20' : ''}
+                                ${etapa.status === 'pendente' ? 'bg-background text-muted-foreground border-border' : ''}
                               `}
                             >
                               {etapa.status === 'concluida' ? 'Concluída' :
@@ -413,11 +413,11 @@ export function OSDetailsPage({
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <div className="bg-neutral-50 rounded-md p-3 border border-neutral-200">
-                        <p className="text-xs text-neutral-800 mb-1 font-medium">{comentario.userName}</p>
-                        <p className="text-sm text-neutral-700 font-normal">{comentario.texto}</p>
+                      <div className="bg-background rounded-md p-3 border border-border">
+                        <p className="text-xs text-foreground mb-1 font-medium">{comentario.userName}</p>
+                        <p className="text-sm text-muted-foreground font-normal">{comentario.texto}</p>
                       </div>
-                      <p className="text-xs text-neutral-400 mt-1 font-normal">
+                      <p className="text-xs text-muted-foreground mt-1 font-normal">
                         {formatDateTime(comentario.createdAt)}
                       </p>
                     </div>
@@ -426,13 +426,13 @@ export function OSDetailsPage({
               </div>
 
               {/* Add Comment */}
-              <div className="space-y-2 pt-2 border-t border-neutral-200">
+              <div className="space-y-2 pt-2 border-t border-border">
                 <Textarea
                   placeholder="Adicionar um comentário..."
                   value={novoComentario}
                   onChange={(e) => setNovoComentario(e.target.value)}
                   rows={3}
-                  className="border-neutral-300 rounded-md"
+                  className="border-border rounded-md"
                 />
                 <Button
                   size="sm"
@@ -446,7 +446,7 @@ export function OSDetailsPage({
           </Card>
 
           {/* History Timeline */}
-          <Card className="border-neutral-200 rounded-lg shadow-sm">
+          <Card className="border-border rounded-lg shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl font-semibold">Histórico e Atividades</CardTitle>
             </CardHeader>
@@ -455,16 +455,16 @@ export function OSDetailsPage({
                 {historico.map((item, index) => (
                   <div key={item.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="w-8 h-8 rounded-full bg-neutral-100 border border-neutral-200 flex items-center justify-center text-sm">
+                      <div className="w-8 h-8 rounded-full bg-muted border border-border flex items-center justify-center text-sm">
                         {getHistoricoIcon(item.tipo)}
                       </div>
                       {index < historico.length - 1 && (
-                        <div className="w-0.5 h-full bg-neutral-200 my-1"></div>
+                        <div className="w-0.5 h-full bg-muted my-1"></div>
                       )}
                     </div>
                     <div className="flex-1 pb-4">
-                      <p className="text-sm text-neutral-800 font-normal">{item.descricao}</p>
-                      <p className="text-xs text-neutral-500 mt-1 font-normal">
+                      <p className="text-sm text-foreground font-normal">{item.descricao}</p>
+                      <p className="text-xs text-muted-foreground mt-1 font-normal">
                         {item.userName} • {formatDateTime(item.createdAt)}
                       </p>
                     </div>

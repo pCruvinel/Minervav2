@@ -12,13 +12,13 @@ export function FrontendModeBanner() {
   if (!isFrontendMode) return null;
   
   return (
-    <Alert className="border-blue-200 bg-blue-50 mb-4">
-      <Info className="h-4 w-4 text-blue-600" />
-      <AlertDescription className="text-blue-800 text-sm">
+    <Alert className="border-primary/20 bg-primary/5 mb-4">
+      <Info className="h-4 w-4 text-primary" />
+      <AlertDescription className="text-primary text-sm">
         <strong>Modo Frontend:</strong> Sistema funcionando sem backend. 
         Todas as operações são simuladas localmente. 
         {' '}
-        <span className="text-blue-600">Nenhum dado é persistido entre sessões.</span>
+        <span className="text-primary">Nenhum dado é persistido entre sessões.</span>
       </AlertDescription>
     </Alert>
   );

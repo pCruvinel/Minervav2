@@ -143,7 +143,7 @@ export function FileUploadWithDescription({
 
             {/* Área de Upload */}
             {!showDescriptionInput && !readOnly && (
-                <div className="border-2 border-dashed border-neutral-300 rounded-lg p-8 text-center hover:border-neutral-400 transition-colors">
+                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-border transition-colors">
                     <input
                         ref={fileInputRef}
                         type="file"
@@ -158,15 +158,15 @@ export function FileUploadWithDescription({
                         {isUploading ? (
                             <>
                                 <Loader2 className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
-                                <p className="text-sm text-neutral-600 mb-2">Enviando arquivo...</p>
+                                <p className="text-sm text-muted-foreground mb-2">Enviando arquivo...</p>
                             </>
                         ) : (
                             <>
-                                <Upload className="w-12 h-12 mx-auto mb-4 text-neutral-400" />
-                                <p className="text-sm text-neutral-600 mb-2">
+                                <Upload className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground mb-2">
                                     Clique para selecionar ou arraste o arquivo
                                 </p>
-                                <p className="text-xs text-neutral-500">
+                                <p className="text-xs text-muted-foreground">
                                     Tipos aceitos: {acceptedFileTypes.replace(/\./g, '').toUpperCase()} • Máx: {maxFileSizeMB}MB
                                 </p>
                             </>
@@ -177,7 +177,7 @@ export function FileUploadWithDescription({
 
             {/* Input de Descrição */}
             {showDescriptionInput && pendingFile && (
-                <div className="border border-neutral-200 rounded-lg p-4 space-y-4 bg-neutral-50">
+                <div className="border border-border rounded-lg p-4 space-y-4 bg-background">
                     <div className="flex items-start gap-3">
                         <FileText className="w-5 h-5 text-primary mt-0.5" />
                         <div className="flex-1">
@@ -230,7 +230,7 @@ export function FileUploadWithDescription({
                     {documentos.map((doc) => (
                         <div
                             key={doc.id}
-                            className="flex items-start gap-3 p-3 bg-white border border-neutral-200 rounded-lg"
+                            className="flex items-start gap-3 p-3 bg-white border border-border rounded-lg"
                         >
                             <FileText className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                             <div className="flex-1 min-w-0">
@@ -239,7 +239,7 @@ export function FileUploadWithDescription({
                                     {formatFileSize(doc.tamanho_bytes)}
                                 </p>
                                 {doc.metadados?.descricao && (
-                                    <p className="text-xs text-neutral-600 mt-1 italic">
+                                    <p className="text-xs text-muted-foreground mt-1 italic">
                                         "{doc.metadados.descricao as string}"
                                     </p>
                                 )}
@@ -249,7 +249,7 @@ export function FileUploadWithDescription({
                                     variant="ghost"
                                     size="icon-sm"
                                     onClick={() => handleRemove(doc)}
-                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/5"
                                 >
                                     <X className="w-4 h-4" />
                                 </Button>

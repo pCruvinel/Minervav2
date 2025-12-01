@@ -32,7 +32,7 @@ export function StepCronogramaObra({ data, onDataChange, readOnly, osId }: StepC
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Anexar Cronograma de Obra</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe o cronograma detalhado da obra em formato MS Project ou PDF
         </p>
       </div>
@@ -47,11 +47,11 @@ export function StepCronogramaObra({ data, onDataChange, readOnly, osId }: StepC
         acceptedTypes={['application/pdf', 'application/vnd.ms-project', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']}
       />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 text-blue-600 mt-0.5">ℹ️</div>
+          <div className="w-5 h-5 text-primary mt-0.5">ℹ️</div>
           <div>
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-primary">
               <strong>Importante:</strong> O cronograma deve conter todas as etapas da obra com datas previstas de início e término, incluindo marcos importantes e dependências entre atividades.
             </p>
           </div>

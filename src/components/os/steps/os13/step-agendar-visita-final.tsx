@@ -21,7 +21,7 @@ export function StepAgendarVisitaFinal({ osId, data, onDataChange, readOnly }: S
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -30,7 +30,7 @@ export function StepAgendarVisitaFinal({ osId, data, onDataChange, readOnly }: S
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Agendar Visita Final</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Agende a visita final para verificação do andamento e conclusão das atividades usando o sistema de calendário
         </p>
       </div>

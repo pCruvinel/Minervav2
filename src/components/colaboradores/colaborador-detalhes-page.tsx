@@ -278,16 +278,16 @@ export function ColaboradorDetalhesPage() {
             {/* Header */}
             <div className="flex items-start justify-between">
                 <div className="flex items-center gap-6">
-                    <div className="w-24 h-24 rounded-full bg-neutral-100 flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
+                    <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center border-2 border-white shadow-sm overflow-hidden">
                         {colaborador.avatar_url ? (
                             <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
                         ) : (
-                            <User className="h-10 w-10 text-neutral-400" />
+                            <User className="h-10 w-10 text-muted-foreground" />
                         )}
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-neutral-900">{colaborador.nome_completo || colaborador.nome}</h1>
-                        <div className="flex items-center gap-3 mt-2 text-neutral-500">
+                        <h1 className="text-3xl font-bold text-foreground">{colaborador.nome_completo || colaborador.nome}</h1>
+                        <div className="flex items-center gap-3 mt-2 text-muted-foreground">
                             <Badge variant="secondary" className="text-sm capitalize">
                                 {colaborador.funcao?.replace('_', ' ') || 'Sem Função'}
                             </Badge>
@@ -297,7 +297,7 @@ export function ColaboradorDetalhesPage() {
                                 {colaborador.setor}
                             </span>
                             <span>•</span>
-                            <Badge className={colaborador.ativo ? "bg-green-100 text-green-700 hover:bg-green-100" : "bg-red-100 text-red-700"}>
+                            <Badge className={colaborador.ativo ? "bg-success/10 text-success hover:bg-success/10" : "bg-destructive/10 text-destructive"}>
                                 {colaborador.ativo ? 'Ativo' : 'Inativo'}
                             </Badge>
                         </div>
@@ -400,7 +400,7 @@ export function ColaboradorDetalhesPage() {
                             <div className="space-y-1 col-span-2">
                                 <Label className="text-muted-foreground">Contato de Emergência</Label>
                                 <div className="flex items-center gap-2">
-                                    <AlertTriangle className="h-4 w-4 text-amber-500" />
+                                    <AlertTriangle className="h-4 w-4 text-warning" />
                                     <p className="font-medium">
                                         {colaborador.contato_emergencia_nome}
                                         {colaborador.contato_emergencia_telefone && ` - ${colaborador.contato_emergencia_telefone}`}
@@ -488,7 +488,7 @@ export function ColaboradorDetalhesPage() {
                                 <Label className="text-muted-foreground">
                                     {colaborador.tipo_contratacao === 'CLT' ? 'Salário Base' : 'Custo Dia'}
                                 </Label>
-                                <div className="flex items-center gap-2 text-green-600 font-medium">
+                                <div className="flex items-center gap-2 text-success font-medium">
                                     <DollarSign className="h-4 w-4" />
                                     {colaborador.tipo_contratacao === 'CLT'
                                         ? `R$ ${colaborador.salario_base?.toLocaleString('pt-BR') || '0,00'}`
@@ -499,7 +499,7 @@ export function ColaboradorDetalhesPage() {
                             {colaborador.tipo_contratacao === 'PJ' && (
                                 <div className="space-y-1">
                                     <Label className="text-muted-foreground">Remuneração Contratual</Label>
-                                    <div className="flex items-center gap-2 text-green-600 font-medium">
+                                    <div className="flex items-center gap-2 text-success font-medium">
                                         <DollarSign className="h-4 w-4" />
                                         {`R$ ${colaborador.remuneracao_contratual?.toLocaleString('pt-BR') || '0,00'}`}
                                     </div>
@@ -536,7 +536,7 @@ export function ColaboradorDetalhesPage() {
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Faltas Injustificadas</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-red-600">
+                                <div className="text-2xl font-bold text-destructive">
                                     {registros.filter(r => r.status === 'FALTA' && !r.justificativa).length}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
@@ -547,7 +547,7 @@ export function ColaboradorDetalhesPage() {
                                 <CardTitle className="text-sm font-medium text-muted-foreground">Atrasos</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-amber-600">
+                                <div className="text-2xl font-bold text-warning">
                                     {registros.filter(r => r.status === 'ATRASADO').length}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
@@ -572,7 +572,7 @@ export function ColaboradorDetalhesPage() {
                                         <Tooltip
                                             formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Custo']}
                                         />
-                                        <Bar dataKey="custo" fill="#0f172a" radius={[4, 4, 0, 0]} />
+                                        <Bar dataKey="custo" fill="var(--foreground)" radius={[4, 4, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
@@ -599,16 +599,16 @@ export function ColaboradorDetalhesPage() {
                                                     <TableCell>{format(parseISO(reg.data), 'dd/MM/yy')}</TableCell>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            {reg.status === 'OK' && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                                            {reg.status === 'FALTA' && <XCircle className="h-4 w-4 text-red-500" />}
-                                                            {reg.status === 'ATRASADO' && <Clock className="h-4 w-4 text-amber-500" />}
+                                                            {reg.status === 'OK' && <CheckCircle className="h-4 w-4 text-success" />}
+                                                            {reg.status === 'FALTA' && <XCircle className="h-4 w-4 text-destructive" />}
+                                                            {reg.status === 'ATRASADO' && <Clock className="h-4 w-4 text-warning" />}
                                                             <span className="text-sm font-medium">{reg.status}</span>
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
                                                         <Badge variant="outline" className={
-                                                            reg.performance === 'OTIMA' ? 'bg-green-50 text-green-700' :
-                                                                reg.performance === 'RUIM' ? 'bg-red-50 text-red-700' : ''
+                                                            reg.performance === 'OTIMA' ? 'bg-success/5 text-success' :
+                                                                reg.performance === 'RUIM' ? 'bg-destructive/5 text-destructive' : ''
                                                         }>
                                                             {reg.performance}
                                                         </Badge>
@@ -665,7 +665,7 @@ export function ColaboradorDetalhesPage() {
                                             <TableRow key={doc.id}>
                                                 <TableCell className="font-medium">
                                                     <div className="flex items-center gap-2">
-                                                        <FileText className="h-4 w-4 text-blue-500" />
+                                                        <FileText className="h-4 w-4 text-primary" />
                                                         {doc.nome}
                                                     </div>
                                                 </TableCell>
@@ -681,7 +681,7 @@ export function ColaboradorDetalhesPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
-                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                                            className="text-destructive hover:text-destructive hover:bg-destructive/5"
                                                             onClick={() => handleDeleteDocumento(doc.id, doc.url)}
                                                         >
                                                             <Trash2 className="h-4 w-4" />

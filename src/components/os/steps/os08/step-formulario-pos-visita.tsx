@@ -185,21 +185,21 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
       <div className="space-y-6">
         <div>
           <h2 className="text-xl mb-1">Formulário Pós-Visita</h2>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             Preencha as informações coletadas durante a visita técnica
           </p>
         </div>
 
         {/* Questionário Inicial */}
         <div className="space-y-4">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+          <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
             Questionário
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pontuacaoEngenheiro">
-                Você foi pontual no horário da visita? <span className="text-red-500">*</span>
+                Você foi pontual no horário da visita? <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={data.pontuacaoEngenheiro}
@@ -218,7 +218,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             <div className="space-y-2">
               <Label htmlFor="pontuacaoMorador">
-                O morador foi pontual no horário da visita? <span className="text-red-500">*</span>
+                O morador foi pontual no horário da visita? <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={data.pontuacaoMorador}
@@ -237,7 +237,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="tipoDocumento">
-                Esta visita técnica é para gerar um parecer técnico ou um escopo de intervenção? <span className="text-red-500">*</span>
+                Esta visita técnica é para gerar um parecer técnico ou um escopo de intervenção? <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={data.tipoDocumento}
@@ -258,13 +258,13 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
         {/* Área Vistoriada */}
         <div className="space-y-4">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+          <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
             Área Vistoriada
           </h3>
 
           <div className="space-y-3">
             <Label>
-              Selecione a área vistoriada <span className="text-red-500">*</span>
+              Selecione a área vistoriada <span className="text-destructive">*</span>
             </Label>
             <RadioGroup
               value={data.areaVistoriada}
@@ -285,14 +285,14 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
         {/* Informações Técnicas */}
         <div className="space-y-4">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+          <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
             Informações Técnicas
           </h3>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="manifestacaoPatologica">
-                Manifestação patológica encontrada <span className="text-red-500">*</span>
+                Manifestação patológica encontrada <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="manifestacaoPatologica"
@@ -306,7 +306,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             <div className="space-y-2">
               <Label htmlFor="recomendacoesPrevias">
-                Recomendações prévias <span className="text-red-500">*</span>
+                Recomendações prévias <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="recomendacoesPrevias"
@@ -321,7 +321,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="gravidade">
-                  Gravidade <span className="text-red-500">*</span>
+                  Gravidade <span className="text-destructive">*</span>
                 </Label>
                 <Select
                   value={data.gravidade}
@@ -342,7 +342,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
               <div className="space-y-2">
                 <Label htmlFor="origemNBR">
-                  Origem NBR <span className="text-red-500">*</span>
+                  Origem NBR <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="origemNBR"
@@ -356,7 +356,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             <div className="space-y-2">
               <Label htmlFor="observacoesGerais">
-                Observações gerais da visita <span className="text-red-500">*</span>
+                Observações gerais da visita <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="observacoesGerais"
@@ -372,17 +372,17 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
         {/* Upload de Fotos */}
         <div className="space-y-4">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+          <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
             Fotos do Local Vistoriado
           </h3>
 
           <div className="space-y-2">
             <Label>
-              Anexe fotos do local <span className="text-red-500">*</span>
+              Anexe fotos do local <span className="text-destructive">*</span>
             </Label>
 
             {!readOnly && (
-              <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-neutral-400 transition-colors">
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-border transition-colors">
                 <input
                   type="file"
                   id="file-upload-pos"
@@ -393,11 +393,11 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
                   disabled={uploadingFiles}
                 />
                 <label htmlFor="file-upload-pos" className="cursor-pointer">
-                  <Upload className="w-10 h-10 mx-auto mb-3 text-neutral-400" />
-                  <p className="text-sm text-neutral-600 mb-1">
+                  <Upload className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+                  <p className="text-sm text-muted-foreground mb-1">
                     Clique para selecionar ou arraste arquivos
                   </p>
-                  <p className="text-xs text-neutral-500">
+                  <p className="text-xs text-muted-foreground">
                     PNG, JPG, JPEG até 10MB
                   </p>
                 </label>
@@ -406,13 +406,13 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             {data.fotosLocal.length > 0 && (
               <div className="space-y-2 mt-4">
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-muted-foreground">
                   {data.fotosLocal.length} arquivo(s) anexado(s)
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {data.fotosLocal.map((file, index) => (
                     <div key={index} className="relative group">
-                      <div className="aspect-square rounded-lg overflow-hidden bg-neutral-100 border border-neutral-200">
+                      <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
                         <img
                           src={file}
                           alt={`Foto ${index + 1}`}
@@ -422,7 +422,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
                       {!readOnly && (
                         <button
                           onClick={() => handleRemoveFile(index)}
-                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="absolute top-1 right-1 bg-destructive text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4" />
                         </button>
@@ -437,14 +437,14 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
         {/* Resultado da Visita */}
         <div className="space-y-4">
-          <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+          <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
             Resultado da Visita
           </h3>
 
           <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="resultadoVisita">
-                Qual o resultado da visita técnica? <span className="text-red-500">*</span>
+                Qual o resultado da visita técnica? <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="resultadoVisita"
@@ -458,7 +458,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
             <div className="space-y-2">
               <Label htmlFor="justificativa">
-                Justifique <span className="text-red-500">*</span>
+                Justifique <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="justificativa"
@@ -475,7 +475,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Todos os campos marcados com <span className="text-red-500">*</span> são obrigatórios.
+            Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
             Revise todas as informações antes de avançar para a geração do documento.
           </AlertDescription>
         </Alert>

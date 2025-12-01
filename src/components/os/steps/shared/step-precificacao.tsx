@@ -113,7 +113,7 @@ export function StepPrecificacao({
           type="text"
           value={`R$ ${calcularCustoBase().toFixed(2).replace('.', ',')}`}
           disabled
-          className="bg-neutral-100 text-lg"
+          className="bg-muted text-lg"
         />
         <p className="text-xs text-muted-foreground">
           Soma automática de todos os valores das sub-etapas do memorial
@@ -177,7 +177,7 @@ export function StepPrecificacao({
               type="text"
               value={`R$ ${calcularValorAtual().toFixed(2).replace('.', ',')}`}
               disabled
-              className="bg-green-50 border-green-200 text-lg font-medium"
+              className="bg-success/5 border-success/20 text-lg font-medium"
             />
           </div>
         </div>
@@ -225,7 +225,7 @@ export function StepPrecificacao({
               type="text"
               value={`R$ ${calcularValorEntrada().toFixed(2).replace('.', ',')}`}
               disabled
-              className="bg-neutral-100"
+              className="bg-muted"
             />
           </div>
 
@@ -236,7 +236,7 @@ export function StepPrecificacao({
               type="text"
               value={`R$ ${calcularValorParcela().toFixed(2).replace('.', ',')}`}
               disabled
-              className="bg-neutral-100"
+              className="bg-muted"
             />
           </div>
         </div>

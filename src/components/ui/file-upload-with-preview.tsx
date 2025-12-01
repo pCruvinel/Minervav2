@@ -180,9 +180,9 @@ export function FileUploadWithPreview({
 
     const getFileIcon = (fileType: string) => {
         if (fileType.startsWith('image/')) {
-            return <ImageIcon className="h-8 w-8 text-blue-500" />;
+            return <ImageIcon className="h-8 w-8 text-primary" />;
         }
-        return <FileText className="h-8 w-8 text-gray-500" />;
+        return <FileText className="h-8 w-8 text-muted-foreground" />;
     };
 
     const getFilePreview = (file: FileWithComment) => {
@@ -199,7 +199,7 @@ export function FileUploadWithPreview({
 
         return (
             <div
-                className="w-full h-32 bg-gray-100 rounded flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
+                className="w-full h-32 bg-muted rounded flex items-center justify-center cursor-pointer hover:bg-muted transition-colors"
                 onClick={() => handleDownload(file)}
             >
                 {getFileIcon(file.type)}
@@ -225,7 +225,7 @@ export function FileUploadWithPreview({
             </div>
 
             {/* Upload Area */}
-            <Card className={`border-2 border-dashed transition-colors ${disabled ? 'border-gray-200 bg-gray-50' : 'border-gray-300 hover:border-primary'}`}>
+            <Card className={`border-2 border-dashed transition-colors ${disabled ? 'border-border bg-background' : 'border-border hover:border-primary'}`}>
                 <CardContent className="pt-6">
                     <div className="text-center">
                         <input
@@ -258,7 +258,7 @@ export function FileUploadWithPreview({
                             )}
                         </Button>
 
-                        <div className="text-sm text-gray-600 space-y-1">
+                        <div className="text-sm text-muted-foreground space-y-1">
                             <p>Formatos aceitos: PDF, PNG, JPG, DOC, DOCX</p>
                             <p>Tamanho máximo: {maxFileSize}MB por arquivo</p>
                             <p>Máximo de {maxFiles} arquivos</p>
@@ -285,7 +285,7 @@ export function FileUploadWithPreview({
                                             <p className="text-sm font-medium truncate" title={file.name}>
                                                 {file.name}
                                             </p>
-                                            <p className="text-xs text-gray-500">
+                                            <p className="text-xs text-muted-foreground">
                                                 {formatFileSize(file.size)}
                                             </p>
                                         </div>
@@ -304,7 +304,7 @@ export function FileUploadWithPreview({
                                                     size="sm"
                                                     onClick={() => handleDelete(file)}
                                                     title="Remover"
-                                                    className="text-red-500 hover:text-red-700"
+                                                    className="text-destructive hover:text-destructive"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
                                                 </Button>
@@ -345,7 +345,7 @@ export function FileUploadWithPreview({
                                             </div>
                                         ) : (
                                             <div className="flex items-start gap-2">
-                                                <p className="text-xs text-gray-600 flex-1 min-h-[2rem] bg-gray-50 p-2 rounded">
+                                                <p className="text-xs text-muted-foreground flex-1 min-h-[2rem] bg-background p-2 rounded">
                                                     {file.comment || 'Sem comentário'}
                                                 </p>
                                                 {!disabled && (
@@ -370,8 +370,8 @@ export function FileUploadWithPreview({
             )}
 
             {files.length === 0 && (
-                <Card className="bg-gray-50 border-dashed">
-                    <CardContent className="pt-6 text-center text-sm text-gray-500">
+                <Card className="bg-background border-dashed">
+                    <CardContent className="pt-6 text-center text-sm text-muted-foreground">
                         Nenhum arquivo enviado ainda
                     </CardContent>
                 </Card>

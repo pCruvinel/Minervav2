@@ -36,10 +36,10 @@ export function StepRealizarApresentacao({ data, onDataChange, readOnly = false 
       </div>
 
       {data.apresentacaoRealizada && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-success/5 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-600" />
+              <CheckCircle className="h-5 w-5 text-success" />
               <div>
                 <div className="text-sm">Apresentação confirmada!</div>
               </div>

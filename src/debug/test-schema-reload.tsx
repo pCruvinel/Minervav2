@@ -126,7 +126,7 @@ export function TestSchemaReload() {
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
               <strong>Quando usar:</strong> Se você está recebendo erros como{' '}
-              <code className="text-sm bg-neutral-100 px-1 py-0.5 rounded">
+              <code className="text-sm bg-muted px-1 py-0.5 rounded">
                 "Could not find the 'titulo' column..."
               </code>
             </AlertDescription>
@@ -155,11 +155,11 @@ export function TestSchemaReload() {
           </div>
 
           {success && (
-            <Alert className="border-green-200 bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-700">
+            <Alert className="border-success/20 bg-success/5">
+              <CheckCircle2 className="h-4 w-4 text-success" />
+              <AlertDescription className="text-success">
                 <strong>Sucesso!</strong>
-                <pre className="mt-2 text-xs bg-white p-2 rounded border border-green-200 overflow-auto">
+                <pre className="mt-2 text-xs bg-white p-2 rounded border border-success/20 overflow-auto">
                   {JSON.stringify(success, null, 2)}
                 </pre>
               </AlertDescription>
@@ -167,20 +167,20 @@ export function TestSchemaReload() {
           )}
 
           {error && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700">
+            <Alert className="border-destructive/20 bg-destructive/5">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">
                 <strong>Erro:</strong> {error}
               </AlertDescription>
             </Alert>
           )}
 
           {tableData && (
-            <Alert className="border-blue-200 bg-blue-50">
-              <Database className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-700">
+            <Alert className="border-primary/20 bg-primary/5">
+              <Database className="h-4 w-4 text-primary" />
+              <AlertDescription className="text-primary">
                 <strong>Estrutura da Tabela:</strong>
-                <pre className="mt-2 text-xs bg-white p-2 rounded border border-blue-200 overflow-auto">
+                <pre className="mt-2 text-xs bg-white p-2 rounded border border-primary/20 overflow-auto">
                   {JSON.stringify(tableData, null, 2)}
                 </pre>
               </AlertDescription>
@@ -188,9 +188,9 @@ export function TestSchemaReload() {
           )}
 
           {errorTable && (
-            <Alert className="border-red-200 bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-700">
+            <Alert className="border-destructive/20 bg-destructive/5">
+              <AlertCircle className="h-4 w-4 text-destructive" />
+              <AlertDescription className="text-destructive">
                 <strong>Erro ao verificar estrutura:</strong> {errorTable}
               </AlertDescription>
             </Alert>
@@ -220,11 +220,11 @@ export function TestSchemaReload() {
         <CardContent className="space-y-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Supabase URL:</span>
-            <code className="bg-neutral-100 px-2 py-1 rounded text-xs">{SUPABASE_URL}</code>
+            <code className="bg-muted px-2 py-1 rounded text-xs">{SUPABASE_URL}</code>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">API URL:</span>
-            <code className="bg-neutral-100 px-2 py-1 rounded text-xs">
+            <code className="bg-muted px-2 py-1 rounded text-xs">
               {SUPABASE_URL}/functions/v1/
             </code>
           </div>

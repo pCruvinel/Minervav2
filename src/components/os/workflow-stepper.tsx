@@ -56,15 +56,15 @@ export interface WorkflowStepperProps {
  * />
  * ```
  */
-export function WorkflowStepper({ 
-  steps, 
-  currentStep, 
+export function WorkflowStepper({
+  steps,
+  currentStep,
   onStepClick,
   className,
   completedSteps = [], // Valor padrão para evitar erro
   lastActiveStep
 }: WorkflowStepperProps) {
-  
+
   const handleStepClick = (stepId: number, isAccessible: boolean) => {
     if (isAccessible && onStepClick) {
       onStepClick(stepId);
@@ -72,7 +72,7 @@ export function WorkflowStepper({
   };
 
   return (
-    <div className={cn("border-b border-neutral-200 px-6 py-2", className)}>
+    <div className={cn("border-b border-border px-6 py-2", className)}>
       <div className="w-full flex items-center">
         {steps.map((step, index) => {
           // Lógica de estado baseada na etapa atual
@@ -81,7 +81,7 @@ export function WorkflowStepper({
           const isLastActive = lastActiveStep === step.id && currentStep !== step.id;
           // Permite acessar: etapas concluídas, etapa atual, OU qualquer etapa anterior à atual
           const isAccessible = isCompleted || isCurrent || step.id < currentStep;
-          
+
           return (
             <React.Fragment key={step.id}>
               {/* Step Button */}
@@ -101,30 +101,30 @@ export function WorkflowStepper({
                 <div className="relative">
                   <div className={cn(
                     "w-6 h-6 rounded-full flex items-center justify-center transition-all flex-shrink-0",
-                    isLastActive && "bg-orange-500 border-2 border-orange-300 animate-pulse",
-                    !isLastActive && isCompleted && "bg-green-100",
+                    isLastActive && "bg-warning border-2 border-warning/30 animate-pulse",
+                    !isLastActive && isCompleted && "bg-success/10",
                     !isLastActive && isCurrent && !isCompleted && "bg-primary/20",
-                    !isLastActive && !isCompleted && !isCurrent && "bg-neutral-100"
+                    !isLastActive && !isCompleted && !isCurrent && "bg-muted"
                   )}>
                     {isLastActive ? (
                       <ArrowLeft className="h-3 w-3 text-white" />
                     ) : isCompleted ? (
-                      <Check className="h-3.5 w-3.5 text-green-600" />
+                      <Check className="h-3.5 w-3.5 text-success" />
                     ) : isCurrent ? (
                       <div className="w-2 h-2 rounded-full bg-primary" />
                     ) : (
-                      <Lock className="h-3 w-3 text-neutral-400" />
+                      <Lock className="h-3 w-3 text-muted-foreground" />
                     )}
                   </div>
-                  
+
                   {/* Indicador "Você estava aqui" */}
                   {isLastActive && (
-                    <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[7px] text-orange-600 font-semibold whitespace-nowrap">
+                    <span className="absolute -bottom-4 left-1/2 -translate-x-1/2 text-[7px] text-warning font-semibold whitespace-nowrap">
                       Estava aqui
                     </span>
                   )}
                 </div>
-                
+
                 {/* Step info */}
                 <div className={cn(
                   "text-center",
@@ -143,7 +143,7 @@ export function WorkflowStepper({
               {index < steps.length - 1 && (
                 <div className={cn(
                   "h-0.5 flex-1 min-w-[8px] transition-colors",
-                  isCompleted ? "bg-green-400" : "bg-neutral-200"
+                  isCompleted ? "bg-success" : "bg-muted"
                 )} />
               )}
             </React.Fragment>

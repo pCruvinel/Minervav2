@@ -147,7 +147,7 @@ export function ContasReceberPage() {
     switch (status) {
       case 'conciliado':
         return (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+          <Badge className="bg-success/10 text-success hover:bg-success/10">
             <CheckCircle className="h-3 w-3 mr-1" />
             Conciliado
           </Badge>
@@ -171,10 +171,10 @@ export function ContasReceberPage() {
 
   const getRowClassName = (parcela: ContaReceber) => {
     if (isInadimplente(parcela)) {
-      return 'bg-red-50 border-l-4 border-l-red-500';
+      return 'bg-destructive/5 border-l-4 border-l-red-500';
     }
     if (parcela.status === 'conciliado') {
-      return 'bg-green-50/50';
+      return 'bg-success/5/50';
     }
     return '';
   };
@@ -213,7 +213,7 @@ export function ContasReceberPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -231,7 +231,7 @@ export function ContasReceberPage() {
           <AlertDescription>
             <strong>Atenção:</strong> Existem {parcelasFiltradas.filter(p => isInadimplente(p)).length} parcela(s) inadimplente(s)
             totalizando {formatCurrency(totais.inadimplente)}.
-            As linhas inadimplentes estão destacadas em <strong className="text-red-600">VERMELHO</strong>.
+            As linhas inadimplentes estão destacadas em <strong className="text-destructive">VERMELHO</strong>.
           </AlertDescription>
         </Alert>
       )}
@@ -255,9 +255,9 @@ export function ContasReceberPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Recebido</p>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <h3 className="text-2xl text-green-600">{formatCurrency(totais.recebido)}</h3>
+            <h3 className="text-2xl text-success">{formatCurrency(totais.recebido)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {parcelasFiltradas.filter(p => p.status === 'conciliado').length} conciliada(s)
             </p>
@@ -268,9 +268,9 @@ export function ContasReceberPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Em Aberto</p>
-              <Clock className="h-4 w-4 text-blue-600" />
+              <Clock className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-2xl text-blue-600">{formatCurrency(totais.emAberto)}</h3>
+            <h3 className="text-2xl text-primary">{formatCurrency(totais.emAberto)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {parcelasFiltradas.filter(p => p.status === 'em_aberto' && !isInadimplente(p)).length} parcela(s)
             </p>
@@ -281,9 +281,9 @@ export function ContasReceberPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Inadimplente</p>
-              <XCircle className="h-4 w-4 text-red-600" />
+              <XCircle className="h-4 w-4 text-destructive" />
             </div>
-            <h3 className="text-2xl text-red-600">{formatCurrency(totais.inadimplente)}</h3>
+            <h3 className="text-2xl text-destructive">{formatCurrency(totais.inadimplente)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {parcelasFiltradas.filter(p => isInadimplente(p)).length} atrasada(s)
             </p>
@@ -361,7 +361,7 @@ export function ContasReceberPage() {
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       {formatDate(parcela.vencimento)}
                       {isInadimplente(parcela) && (
-                        <AlertTriangle className="h-4 w-4 text-red-600 ml-1" />
+                        <AlertTriangle className="h-4 w-4 text-destructive ml-1" />
                       )}
                     </div>
                   </TableCell>
@@ -370,7 +370,7 @@ export function ContasReceberPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     {parcela.valorRecebido ? (
-                      <span className="text-green-600 font-medium">
+                      <span className="text-success font-medium">
                         {formatCurrency(parcela.valorRecebido)}
                       </span>
                     ) : (
@@ -411,7 +411,7 @@ export function ContasReceberPage() {
           <h4 className="font-medium mb-3">Legenda de Status</h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="flex items-start gap-3 p-3 border rounded-lg">
-              <CheckCircle className="h-5 w-5 text-green-600 mt-0.5" />
+              <CheckCircle className="h-5 w-5 text-success mt-0.5" />
               <div>
                 <p className="font-medium text-sm">Conciliado</p>
                 <p className="text-xs text-muted-foreground">
@@ -421,7 +421,7 @@ export function ContasReceberPage() {
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 border rounded-lg">
-              <Clock className="h-5 w-5 text-blue-600 mt-0.5" />
+              <Clock className="h-5 w-5 text-primary mt-0.5" />
               <div>
                 <p className="font-medium text-sm">Em Aberto</p>
                 <p className="text-xs text-muted-foreground">
@@ -429,8 +429,8 @@ export function ContasReceberPage() {
                 </p>
               </div>
             </div>
-            <div className="flex items-start gap-3 p-3 border rounded-lg bg-red-50">
-              <XCircle className="h-5 w-5 text-red-600 mt-0.5" />
+            <div className="flex items-start gap-3 p-3 border rounded-lg bg-destructive/5">
+              <XCircle className="h-5 w-5 text-destructive mt-0.5" />
               <div>
                 <p className="font-medium text-sm">Inadimplente</p>
                 <p className="text-xs text-muted-foreground">

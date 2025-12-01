@@ -101,10 +101,10 @@ export function ClienteHistoricoCompleto({
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center">
-                                <Calendar className="h-4 w-4 text-green-600" />
+                                <Calendar className="h-4 w-4 text-success" />
                                 <div className="ml-2">
                                     <p className="text-sm font-medium text-muted-foreground">OS Ativas</p>
-                                    <p className="text-2xl font-bold text-green-600">{resumo.osAtivas}</p>
+                                    <p className="text-2xl font-bold text-success">{resumo.osAtivas}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -113,10 +113,10 @@ export function ClienteHistoricoCompleto({
                     <Card>
                         <CardContent className="p-6">
                             <div className="flex items-center">
-                                <DollarSign className="h-4 w-4 text-blue-600" />
+                                <DollarSign className="h-4 w-4 text-primary" />
                                 <div className="ml-2">
                                     <p className="text-sm font-medium text-muted-foreground">Valor Contratos</p>
-                                    <p className="text-2xl font-bold text-blue-600">
+                                    <p className="text-2xl font-bold text-primary">
                                         R$ {resumo.valorTotalContratos.toLocaleString('pt-BR')}
                                     </p>
                                 </div>
@@ -150,7 +150,7 @@ export function ClienteHistoricoCompleto({
                         <div className="space-y-4">
                             {timeline.map((item) => (
                                 <div key={item.id} className="flex items-start space-x-4">
-                                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between">
                                             <h4 className="font-medium">{item.titulo}</h4>

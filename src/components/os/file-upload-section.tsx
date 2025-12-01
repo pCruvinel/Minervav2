@@ -192,7 +192,7 @@ export function FileUploadSection({
 
       {/* Área de Upload */}
       <div
-        className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
+        className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer"
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => !disabled && fileInputRef.current?.click()}
@@ -218,21 +218,21 @@ export function FileUploadSection({
       {/* Lista de Arquivos Pendentes (Ainda não enviados) */}
       {pendingFiles.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-medium text-amber-600 mb-2">Arquivos aguardando envio:</p>
+          <p className="text-xs font-medium text-warning mb-2">Arquivos aguardando envio:</p>
           {pendingFiles.map((file, index) => (
-            <div key={`pending-${index}`} className="border border-amber-200 bg-amber-50 rounded-lg p-3">
+            <div key={`pending-${index}`} className="border border-warning/20 bg-warning/5 rounded-lg p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <File className="h-4 w-4 text-amber-500" />
-                  <span className="text-sm text-amber-900">{file.name}</span>
-                  <span className="text-xs text-amber-600">({(file.size / 1024).toFixed(1)} KB)</span>
+                  <File className="h-4 w-4 text-warning" />
+                  <span className="text-sm text-warning">{file.name}</span>
+                  <span className="text-xs text-warning">({(file.size / 1024).toFixed(1)} KB)</span>
                 </div>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => handleRemovePendingFile(index)}
                   disabled={disabled}
-                  className="text-amber-700 hover:text-amber-900 hover:bg-amber-100"
+                  className="text-warning hover:text-warning hover:bg-warning/10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>
@@ -245,9 +245,9 @@ export function FileUploadSection({
       {/* Lista de Arquivos Já Enviados */}
       {files.length > 0 && (
         <div className="mt-4 space-y-2">
-          <p className="text-xs font-medium text-neutral-500 mb-2">Arquivos anexados:</p>
+          <p className="text-xs font-medium text-muted-foreground mb-2">Arquivos anexados:</p>
           {files.map((item, index) => (
-            <div key={index} className="border border-neutral-200 rounded-lg p-3">
+            <div key={index} className="border border-border rounded-lg p-3">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <File className="h-4 w-4 text-primary" />

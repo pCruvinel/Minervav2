@@ -19,17 +19,17 @@ export function StepDocumentosSST({ data, onDataChange, readOnly, osId }: StepDo
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Gerar Documentos SST</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe os documentos de Segurança e Saúde do Trabalho (PGR e PCMSO)
         </p>
       </div>
 
       {/* Status */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: isComplete ? '#10b981' : '#DDC063' }}
+            style={{ backgroundColor: isComplete ? 'var(--success)' : 'var(--primary)' }}
           >
             {isComplete ? (
               <CheckCircle2 className="w-6 h-6 text-white" />
@@ -42,7 +42,7 @@ export function StepDocumentosSST({ data, onDataChange, readOnly, osId }: StepDo
             <h3 className="text-base mb-2">
               {isComplete ? 'Documentos SST anexados!' : 'Aguardando documentos SST'}
             </h3>
-            <p className="text-sm text-neutral-600">
+            <p className="text-sm text-muted-foreground">
               {arquivos.length} de 2 documentos anexados (PGR e PCMSO)
             </p>
           </div>
@@ -60,9 +60,9 @@ export function StepDocumentosSST({ data, onDataChange, readOnly, osId }: StepDo
       />
 
       {isComplete ? (
-        <Alert className="bg-green-50 border-green-200">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertDescription className="text-green-800">
+        <Alert className="bg-success/5 border-success/20">
+          <CheckCircle2 className="h-4 w-4 text-success" />
+          <AlertDescription className="text-success">
             Documentos SST completos! PGR e PCMSO anexados com sucesso.
           </AlertDescription>
         </Alert>

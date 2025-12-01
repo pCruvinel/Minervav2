@@ -69,6 +69,7 @@
             "zod": "^3.23.8"
       },
       "devDependencies": {
+            "@eslint/js": "^9.39.1",
             "@playwright/test": "^1.57.0",
             "@tanstack/router-plugin": "^1.139.0",
             "@testing-library/jest-dom": "^6.9.1",
@@ -77,10 +78,18 @@
             "@types/react": "^18.3.27",
             "@types/react-dom": "^18.3.7",
             "@types/react-input-mask": "^3.0.6",
+            "@typescript-eslint/eslint-plugin": "^8.48.0",
+            "@typescript-eslint/parser": "^8.48.0",
             "@vitejs/plugin-react-swc": "^3.10.2",
             "@vitest/coverage-v8": "^4.0.14",
             "@vitest/ui": "^4.0.12",
             "autoprefixer": "^10.4.22",
+            "eslint": "^9.39.1",
+            "eslint-plugin-import": "^2.32.0",
+            "eslint-plugin-jsx-a11y": "^6.10.2",
+            "eslint-plugin-react": "^7.37.5",
+            "eslint-plugin-react-hooks": "^7.0.1",
+            "glob": "^13.0.0",
             "happy-dom": "^20.0.10",
             "postcss": "^8.5.6",
             "supabase": "^2.58.5",
@@ -94,6 +103,9 @@
             "test:ui": "vitest --ui",
             "test:run": "vitest run",
             "test:coverage": "vitest run --coverage",
+            "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+            "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+            "validate-colors": "node scripts/validate-colors.js",
             "update-types": "npx supabase gen types typescript --project-id aghusqwfowsxwhwxajpb > src/types/supabase.ts",
             "update-types:local": "npx supabase gen types typescript --local > src/types/supabase.ts"
       }

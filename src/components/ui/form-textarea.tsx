@@ -81,8 +81,8 @@ export function FormTextarea({
           maxLength={maxLength}
           className={cn(
             className,
-            hasError && "border-red-500 focus-visible:ring-red-500",
-            hasSuccess && "border-green-500 focus-visible:ring-green-500"
+            hasError && "border-destructive focus-visible:ring-red-500",
+            hasSuccess && "border-success focus-visible:ring-green-500"
           )}
           aria-invalid={hasError}
           aria-describedby={
@@ -93,14 +93,14 @@ export function FormTextarea({
 
         {(hasError || hasSuccess) && (
           <div className="absolute right-3 top-3 pointer-events-none">
-            {hasError && <AlertCircle className="h-4 w-4 text-red-500" />}
-            {hasSuccess && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+            {hasError && <AlertCircle className="h-4 w-4 text-destructive" />}
+            {hasSuccess && <CheckCircle2 className="h-4 w-4 text-success" />}
           </div>
         )}
       </div>
 
       {error && (
-        <p id={`${id}-error`} className="text-sm text-red-600 flex items-center gap-1">
+        <p id={`${id}-error`} className="text-sm text-destructive flex items-center gap-1">
           <AlertCircle className="h-3 w-3 flex-shrink-0" />
           <span>{error}</span>
         </p>

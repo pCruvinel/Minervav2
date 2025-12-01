@@ -196,7 +196,7 @@ export function PrestacaoContasPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -268,13 +268,13 @@ export function PrestacaoContasPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Receitas Totais</p>
-            <h3 className="text-2xl text-green-600">{formatCurrency(totais.receitas)}</h3>
+            <h3 className="text-2xl text-success">{formatCurrency(totais.receitas)}</h3>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Custos Totais</p>
-            <h3 className="text-2xl text-red-600">{formatCurrency(totais.custos)}</h3>
+            <h3 className="text-2xl text-destructive">{formatCurrency(totais.custos)}</h3>
           </CardContent>
         </Card>
         <Card>
@@ -317,7 +317,7 @@ export function PrestacaoContasPage() {
                   <CardContent className="p-0">
                     {/* Header do Projeto */}
                     <div
-                      className="p-4 cursor-pointer hover:bg-neutral-50 transition-colors"
+                      className="p-4 cursor-pointer hover:bg-background transition-colors"
                       onClick={() => toggleExpandir(projeto.id)}
                     >
                       <div className="flex items-start justify-between">
@@ -347,7 +347,7 @@ export function PrestacaoContasPage() {
                             <>
                               <p className="text-sm text-muted-foreground mb-1">Lucro Realizado</p>
                               <p
-                                className={`text-xl font-medium ${lucro >= 0 ? 'text-green-600' : 'text-red-600'
+                                className={`text-xl font-medium ${lucro >= 0 ? 'text-success' : 'text-destructive'
                                   }`}
                               >
                                 {formatCurrency(lucro)}
@@ -359,7 +359,7 @@ export function PrestacaoContasPage() {
                               )}
                             </>
                           ) : (
-                            <div className="flex items-center gap-2 text-amber-600">
+                            <div className="flex items-center gap-2 text-warning">
                               <AlertCircle className="h-4 w-4" />
                               <p className="text-sm">
                                 Lucro exibido após<br />encerramento
@@ -372,7 +372,7 @@ export function PrestacaoContasPage() {
 
                     {/* Detalhamento (expandido) */}
                     {isExpandido && (
-                      <div className="border-t bg-neutral-50 p-4 space-y-4">
+                      <div className="border-t bg-background p-4 space-y-4">
                         {/* Resumo Financeiro */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div>
@@ -381,7 +381,7 @@ export function PrestacaoContasPage() {
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">Receita Realizada</p>
-                            <p className="font-medium text-green-600">
+                            <p className="font-medium text-success">
                               {formatCurrency(projeto.receitas.realizado)}
                             </p>
                           </div>
@@ -391,7 +391,7 @@ export function PrestacaoContasPage() {
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground mb-1">Custo Realizado</p>
-                            <p className="font-medium text-red-600">
+                            <p className="font-medium text-destructive">
                               {formatCurrency(projeto.custos.realizado)}
                             </p>
                           </div>
@@ -426,13 +426,13 @@ export function PrestacaoContasPage() {
                                       <TableCell className="text-right">
                                         {formatCurrency(custo.previsto)}
                                       </TableCell>
-                                      <TableCell className="text-right text-red-600">
+                                      <TableCell className="text-right text-destructive">
                                         {formatCurrency(custo.realizado)}
                                       </TableCell>
                                       <TableCell className="text-right">
                                         <span
                                           className={
-                                            variacao <= 0 ? 'text-green-600' : 'text-red-600'
+                                            variacao <= 0 ? 'text-success' : 'text-destructive'
                                           }
                                         >
                                           {variacao > 0 ? '+' : ''}

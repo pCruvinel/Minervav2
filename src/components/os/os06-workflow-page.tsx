@@ -27,7 +27,7 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                     </div>
                     <div>
                         <CardTitle>Identificação da OS 06</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Componente básico para OS 06 - Implementação pendente
                         </p>
                     </div>
@@ -41,7 +41,7 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                     </AlertDescription>
                 </Alert>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                     {onBack && (
                         <Button variant="outline" onClick={onBack}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -61,28 +61,28 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-                        <span className="text-lg font-semibold text-purple-600">2</span>
+                    <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
+                        <span className="text-lg font-semibold text-secondary">2</span>
                     </div>
                     <div>
                         <CardTitle>Análise da OS 06</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Etapa de análise - Funcionalidade básica
                         </p>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                    <p className="text-sm text-purple-900 font-medium mb-1">
+                <div className="bg-secondary/5 border border-secondary/20 rounded-lg p-4">
+                    <p className="text-sm text-secondary font-medium mb-1">
                         Análise em andamento
                     </p>
-                    <p className="text-sm text-purple-700">
+                    <p className="text-sm text-secondary">
                         Esta é uma implementação básica. A análise real será implementada futuramente.
                     </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-between pt-4 border-t border-border">
                     <Button variant="outline" onClick={() => setEtapaAtual('identificacao')}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Voltar
@@ -101,33 +101,33 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6 text-success" />
                     </div>
                     <div>
                         <CardTitle>OS 06 Concluída</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Processo básico finalizado com sucesso
                         </p>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-success/5 border border-success/20 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-green-900 mb-1">
+                            <p className="text-sm font-medium text-success mb-1">
                                 OS 06 Finalizada com Sucesso
                             </p>
-                            <p className="text-sm text-green-700">
+                            <p className="text-sm text-success">
                                 Implementação básica concluída. Funcionalidades completas serão desenvolvidas em sprint futuro.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-end pt-4 border-t border-border">
                     {onBack && (
                         <PrimaryButton onClick={onBack}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -156,9 +156,9 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                                 <div
                                     className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                    ${etapa.status === 'concluida' ? 'bg-green-500 text-white' : ''}
+                    ${etapa.status === 'concluida' ? 'bg-success text-white' : ''}
                     ${etapa.status === 'atual' ? 'bg-primary text-white ring-4 ring-primary/20' : ''}
-                    ${etapa.status === 'pendente' ? 'bg-neutral-200 text-neutral-500' : ''}
+                    ${etapa.status === 'pendente' ? 'bg-muted text-muted-foreground' : ''}
                   `}
                                 >
                                     {etapa.status === 'concluida' ? (
@@ -171,8 +171,8 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                                     className={`
                     text-xs text-center max-w-[80px]
                     ${etapa.status === 'atual' ? 'font-semibold text-primary' : ''}
-                    ${etapa.status === 'concluida' ? 'text-green-600' : ''}
-                    ${etapa.status === 'pendente' ? 'text-neutral-500' : ''}
+                    ${etapa.status === 'concluida' ? 'text-success' : ''}
+                    ${etapa.status === 'pendente' ? 'text-muted-foreground' : ''}
                   `}
                                 >
                                     {etapa.titulo}
@@ -183,7 +183,7 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                                 <div
                                     className={`
                     flex-1 h-0.5 mx-2
-                    ${etapa.status === 'concluida' ? 'bg-green-500' : 'bg-neutral-200'}
+                    ${etapa.status === 'concluida' ? 'bg-success' : 'bg-muted'}
                   `}
                                 />
                             )}
@@ -195,7 +195,7 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50">
+        <div className="min-h-screen bg-background">
             <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">
@@ -205,7 +205,7 @@ export function OS06WorkflowPage({ onBack }: OS06WorkflowPageProps) {
                         </div>
                         <div>
                             <h1 className="text-3xl font-semibold">OS 06: [Nome da OS 06]</h1>
-                            <p className="text-neutral-600 mt-1">
+                            <p className="text-muted-foreground mt-1">
                                 Implementação básica - Funcionalidades completas em desenvolvimento
                             </p>
                         </div>

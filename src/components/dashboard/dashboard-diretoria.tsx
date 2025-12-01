@@ -99,7 +99,7 @@ export function DashboardDiretoria({
       {/* Header */}
       <div>
         <h1 className="text-3xl font-semibold mb-2">Dashboard Executivo</h1>
-        <p className="text-neutral-600">
+        <p className="text-muted-foreground">
           Visão geral completa do sistema • Atualizado em tempo real
         </p>
       </div>
@@ -199,19 +199,19 @@ export function DashboardDiretoria({
 
         {/* Aprovações Pendentes */}
         {metrics.delegacoesPendentes > 0 && (
-          <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-6">
+          <div className="bg-warning/5 border-2 border-warning/20 rounded-lg p-6">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <AlertTriangle className="w-6 h-6 text-warning" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-amber-900 mb-1">
+                <h3 className="font-semibold text-warning mb-1">
                   {metrics.delegacoesPendentes} {metrics.delegacoesPendentes === 1 ? 'Aprovação Pendente' : 'Aprovações Pendentes'}
                 </h3>
-                <p className="text-sm text-amber-700 mb-4">
+                <p className="text-sm text-warning mb-4">
                   Tarefas delegadas foram concluídas e aguardam sua aprovação.
                 </p>
-                <button className="text-sm font-medium text-amber-900 hover:text-amber-700 underline">
+                <button className="text-sm font-medium text-warning hover:text-warning underline">
                   Ver delegações →
                 </button>
               </div>
@@ -224,14 +224,14 @@ export function DashboardDiretoria({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* OS Atrasadas */}
         {metrics.atrasadas > 0 && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-red-900 mb-1">
+                <h3 className="font-semibold text-destructive mb-1">
                   Atenção: OS Atrasadas
                 </h3>
-                <p className="text-sm text-red-700">
+                <p className="text-sm text-destructive">
                   Existem {metrics.atrasadas} ordens de serviço pendentes há mais de 7 dias.
                   Revise e tome ações necessárias.
                 </p>
@@ -241,14 +241,14 @@ export function DashboardDiretoria({
         )}
 
         {/* Performance do Mês */}
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+        <div className="bg-success/5 border border-success/20 rounded-lg p-6">
           <div className="flex items-start gap-3">
-            <TrendingUp className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <TrendingUp className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
             <div>
-              <h3 className="font-semibold text-green-900 mb-1">
+              <h3 className="font-semibold text-success mb-1">
                 Performance do Mês
               </h3>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-success">
                 Taxa de conclusão de {metrics.taxaConclusao}% nos últimos 30 dias.
                 {metrics.taxaConclusao >= 80 ? ' Excelente desempenho!' : ' Continue melhorando!'}
               </p>

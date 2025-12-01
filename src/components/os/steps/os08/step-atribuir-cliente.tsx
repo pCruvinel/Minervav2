@@ -30,7 +30,7 @@ export function StepAtribuirCliente({ data, onDataChange, readOnly }: StepAtribu
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Atribuir Cliente</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Selecione o cliente responsável por esta ordem de serviço
         </p>
       </div>
@@ -38,7 +38,7 @@ export function StepAtribuirCliente({ data, onDataChange, readOnly }: StepAtribu
       <div className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="clienteId">
-            Cliente <span className="text-red-500">*</span>
+            Cliente <span className="text-destructive">*</span>
           </Label>
           <Select
             value={data.clienteId}
@@ -59,9 +59,9 @@ export function StepAtribuirCliente({ data, onDataChange, readOnly }: StepAtribu
         </div>
 
         {data.clienteId && (
-          <div className="p-4 bg-neutral-50 rounded-lg border border-neutral-200">
+          <div className="p-4 bg-background rounded-lg border border-border">
             <h3 className="text-sm mb-2">Cliente Selecionado</h3>
-            <p className="text-neutral-700">
+            <p className="text-muted-foreground">
               {CLIENTES_MOCK.find((c) => c.id === data.clienteId)?.nome}
             </p>
           </div>

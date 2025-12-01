@@ -382,7 +382,7 @@ export function ControlePresencaTabelaPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-neutral-50">
+    <div className="flex flex-col h-screen bg-background">
       {/* Barra Superior */}
       <div className="bg-white border-b px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between gap-4">
@@ -395,25 +395,25 @@ export function ControlePresencaTabelaPage() {
 
           <div className="flex items-center gap-3">
             {/* Resumo */}
-            <div className="flex items-center gap-4 px-4 py-2 bg-neutral-50 rounded-lg border">
+            <div className="flex items-center gap-4 px-4 py-2 bg-muted rounded-lg border">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
                   <strong>Total:</strong> {colaboradores.length}
                 </span>
               </div>
-              <div className="h-4 w-px bg-neutral-300" />
+              <div className="h-4 w-px bg-border" />
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-green-600" />
+                <CheckCircle className="h-4 w-4 text-success" />
                 <span className="text-sm">
                   <strong>Presentes:</strong> {stats.presentes}
                 </span>
               </div>
               {stats.ausentes > 0 && (
                 <>
-                  <div className="h-4 w-px bg-neutral-300" />
+                  <div className="h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-red-600" />
+                    <XCircle className="h-4 w-4 text-destructive" />
                     <span className="text-sm">
                       <strong>Ausentes:</strong> {stats.ausentes}
                     </span>
@@ -422,9 +422,9 @@ export function ControlePresencaTabelaPage() {
               )}
               {stats.atrasados > 0 && (
                 <>
-                  <div className="h-4 w-px bg-neutral-300" />
+                  <div className="h-4 w-px bg-border" />
                   <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-amber-600" />
+                    <Clock className="h-4 w-4 text-warning" />
                     <span className="text-sm">
                       <strong>Atrasados:</strong> {stats.atrasados}
                     </span>
@@ -465,7 +465,7 @@ export function ControlePresencaTabelaPage() {
           <CardContent className="p-0">
             <Table>
               <TableHeader>
-                <TableRow className="bg-neutral-50">
+                <TableRow className="bg-muted">
                   <TableHead className="w-12">
                     <Checkbox
                       checked={todosSelecionados}
@@ -488,9 +488,9 @@ export function ControlePresencaTabelaPage() {
                     <TableRow
                       key={colaborador.id}
                       className={cn(
-                        "hover:bg-neutral-50",
-                        registro.status === 'FALTA' && "bg-red-50/50",
-                        registro.status === 'ATRASADO' && "bg-amber-50/50"
+                        "hover:bg-muted",
+                        registro.status === 'FALTA' && "bg-destructive/5",
+                        registro.status === 'ATRASADO' && "bg-warning/5"
                       )}
                     >
                       <TableCell>
@@ -565,7 +565,7 @@ export function ControlePresencaTabelaPage() {
                                     <Badge
                                       key={ccId}
                                       variant="secondary"
-                                      className="text-xs bg-blue-100 text-blue-800"
+                                      className="text-xs bg-info/10 text-info"
                                     >
                                       {getCentroCustoNome(ccId)}
                                     </Badge>
@@ -592,7 +592,7 @@ export function ControlePresencaTabelaPage() {
                                       "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all border",
                                       registro.centrosCusto?.includes(cc.id)
                                         ? "border-primary bg-primary/5"
-                                        : "border-transparent hover:bg-neutral-50"
+                                        : "border-transparent hover:bg-muted"
                                     )}
                                   >
                                     <Checkbox
@@ -661,14 +661,14 @@ export function ControlePresencaTabelaPage() {
               </div>
             </div>
 
-            <div className="h-12 w-px bg-neutral-300" />
+            <div className="h-12 w-px bg-border" />
 
             <div className="text-sm space-y-1">
               <p className="text-muted-foreground">
                 📊 <strong>{stats.presentes}</strong> presentes •
                 <strong className="ml-2">{stats.ausentes}</strong> ausentes
                 {stats.atrasados > 0 && (
-                  <> • <strong className="text-amber-600">{stats.atrasados}</strong> atrasados</>
+                  <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
                 )}
               </p>
               <p className="text-xs text-muted-foreground">

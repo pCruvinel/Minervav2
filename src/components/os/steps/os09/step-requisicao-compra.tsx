@@ -88,21 +88,21 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Requisição de Compra</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Preencha os dados da requisição de compra de material ou serviço
         </p>
       </div>
 
       {/* Informações Básicas */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Informações Básicas
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="cnpj">
-              CNPJ <span className="text-red-500">*</span>
+              CNPJ <span className="text-destructive">*</span>
             </Label>
             <Input
               id="cnpj"
@@ -116,7 +116,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
           <div className="space-y-2">
             <Label htmlFor="centroCusto">
-              Centro de Custo da Requisição <span className="text-red-500">*</span>
+              Centro de Custo da Requisição <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.centroCusto}
@@ -138,7 +138,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="tipo">
-              Tipo <span className="text-red-500">*</span>
+              Tipo <span className="text-destructive">*</span>
             </Label>
             <Select
               value={data.tipo}
@@ -162,14 +162,14 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
       {/* Detalhes do Material/Serviço */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Detalhes do Material/Serviço
         </h3>
 
         <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="descricaoMaterial">
-              Descrição do Material <span className="text-red-500">*</span>
+              Descrição do Material <span className="text-destructive">*</span>
             </Label>
             <Textarea
               id="descricaoMaterial"
@@ -184,7 +184,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantidade">
-                Quantidade (Especifique a unidade de medida) <span className="text-red-500">*</span>
+                Quantidade (Especifique a unidade de medida) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="quantidade"
@@ -197,7 +197,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
             <div className="space-y-2">
               <Label htmlFor="parametroPreco">
-                Parâmetro de Preço Unitário <span className="text-red-500">*</span>
+                Parâmetro de Preço Unitário <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="parametroPreco"
@@ -210,7 +210,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
             <div className="space-y-2 md:col-span-2">
               <Label htmlFor="linkProduto">
-                Anexe Link de Produto Parâmetro <span className="text-red-500">*</span>
+                Anexe Link de Produto Parâmetro <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="linkProduto"
@@ -227,14 +227,14 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
       {/* Entrega */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Informações de Entrega
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label htmlFor="localEntrega">
-              Local de Entrega <span className="text-red-500">*</span>
+              Local de Entrega <span className="text-destructive">*</span>
             </Label>
             <Input
               id="localEntrega"
@@ -247,7 +247,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
           <div className="space-y-2">
             <Label htmlFor="prazoEntrega">
-              Prazo de Entrega <span className="text-red-500">*</span>
+              Prazo de Entrega <span className="text-destructive">*</span>
             </Label>
             <Input
               id="prazoEntrega"
@@ -274,7 +274,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
       {/* Produtos Adicionados */}
       <div className="space-y-4">
-        <h3 className="text-base border-b border-neutral-200 pb-2" style={{ color: '#D3AF37' }}>
+        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
           Produtos Adicionados
         </h3>
 
@@ -282,7 +282,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="sistema">
-                Sistema <span className="text-red-500">*</span>
+                Sistema <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="sistema"
@@ -295,7 +295,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
             <div className="space-y-2">
               <Label htmlFor="item">
-                Item (o que será feito) <span className="text-red-500">*</span>
+                Item (o que será feito) <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="item"
@@ -308,7 +308,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
             <div className="space-y-2">
               <Label htmlFor="geraRuido">
-                Gera Ruído? <span className="text-red-500">*</span>
+                Gera Ruído? <span className="text-destructive">*</span>
               </Label>
               <Select
                 value={data.geraRuido}
@@ -330,7 +330,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>
-                Data Prevista Início <span className="text-red-500">*</span>
+                Data Prevista Início <span className="text-destructive">*</span>
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -361,7 +361,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
 
             <div className="space-y-2">
               <Label>
-                Data Prevista Fim <span className="text-red-500">*</span>
+                Data Prevista Fim <span className="text-destructive">*</span>
               </Label>
               <Popover>
                 <PopoverTrigger asChild>
@@ -396,7 +396,7 @@ export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequi
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          Todos os campos marcados com <span className="text-red-500">*</span> são obrigatórios.
+          Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
           Certifique-se de preencher todas as informações antes de avançar.
         </AlertDescription>
       </Alert>

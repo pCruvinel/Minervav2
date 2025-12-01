@@ -92,7 +92,7 @@ export function StepFollowUp2({
 
       {/* MOMENTO 1: Perguntas Durante a Visita - Respostas do Cliente */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 1: Perguntas Durante a Visita - Respostas do Cliente</h3>
         </div>
 
@@ -157,7 +157,7 @@ export function StepFollowUp2({
           <Label>5. Anexar fotos do sistema de ancoragem</Label>
           <div className="space-y-3">
             {/* Área de Upload */}
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
               <input
                 type="file"
                 accept="image/*"
@@ -177,7 +177,7 @@ export function StepFollowUp2({
             {data.fotosAncoragem.length > 0 && (
               <div className="space-y-2">
                 {data.fotosAncoragem.map((foto, index) => (
-                  <Card key={index} className="bg-green-50 border-green-200">
+                  <Card key={index} className="bg-success/5 border-success/20">
                     <CardContent className="pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
@@ -211,7 +211,7 @@ export function StepFollowUp2({
 
       {/* MOMENTO 2: Avaliação Geral da Visita */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 2: Avaliação Geral da Visita</h3>
         </div>
 
@@ -265,7 +265,7 @@ export function StepFollowUp2({
 
       {/* MOMENTO 3: Respostas do Engenheiro */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 3: Respostas do Engenheiro</h3>
         </div>
 
@@ -302,7 +302,7 @@ export function StepFollowUp2({
           <Label>10. Anexar Arquivos (Fotos gerais, croquis, medições, etc)</Label>
           <div className="space-y-3">
             {/* Área de Upload */}
-            <div className="border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
               <input
                 type="file"
                 accept="image/*,.pdf,.dwg"
@@ -322,7 +322,7 @@ export function StepFollowUp2({
             {data.arquivosGerais.length > 0 && (
               <div className="space-y-2">
                 {data.arquivosGerais.map((arquivo, index) => (
-                  <Card key={index} className="bg-green-50 border-green-200">
+                  <Card key={index} className="bg-success/5 border-success/20">
                     <CardContent className="pt-4">
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">

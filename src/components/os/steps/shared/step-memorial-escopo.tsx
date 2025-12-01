@@ -201,7 +201,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
           </div>
 
           {safeData.etapasPrincipais.length === 0 && (
-            <Card className="bg-neutral-50 border-dashed">
+            <Card className="bg-background border-dashed">
               <CardContent className="pt-6 text-center text-sm text-muted-foreground">
                 <p>Nenhuma etapa adicionada.</p>
                 <p className="mt-1">Clique em "Adicionar Etapa Principal" para começar.</p>
@@ -342,7 +342,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                     validateField('planejamentoInicial', safeData.planejamentoInicial);
                   }
                 }}
-                className={touched.planejamentoInicial && errors.planejamentoInicial ? 'border-red-500' : ''}
+                className={touched.planejamentoInicial && errors.planejamentoInicial ? 'border-destructive' : ''}
                 placeholder="0"
                 disabled={readOnly}
               />
@@ -350,7 +350,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                 Dias úteis para planejamento e mobilização
               </p>
               {touched.planejamentoInicial && errors.planejamentoInicial && (
-                <p className="text-xs text-red-600">❌ {errors.planejamentoInicial}</p>
+                <p className="text-xs text-destructive">❌ {errors.planejamentoInicial}</p>
               )}
             </div>
 
@@ -375,7 +375,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                     validateField('logisticaTransporte', safeData.logisticaTransporte);
                   }
                 }}
-                className={touched.logisticaTransporte && errors.logisticaTransporte ? 'border-red-500' : ''}
+                className={touched.logisticaTransporte && errors.logisticaTransporte ? 'border-destructive' : ''}
                 placeholder="0"
                 disabled={readOnly}
               />
@@ -383,7 +383,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                 Dias úteis para transporte e logística
               </p>
               {touched.logisticaTransporte && errors.logisticaTransporte && (
-                <p className="text-xs text-red-600">❌ {errors.logisticaTransporte}</p>
+                <p className="text-xs text-destructive">❌ {errors.logisticaTransporte}</p>
               )}
             </div>
 
@@ -408,7 +408,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                     validateField('preparacaoArea', safeData.preparacaoArea);
                   }
                 }}
-                className={touched.preparacaoArea && errors.preparacaoArea ? 'border-red-500' : ''}
+                className={touched.preparacaoArea && errors.preparacaoArea ? 'border-destructive' : ''}
                 placeholder="0"
                 disabled={readOnly}
               />
@@ -416,7 +416,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                 Dias úteis para montagem de estruturas e preparação
               </p>
               {touched.preparacaoArea && errors.preparacaoArea && (
-                <p className="text-xs text-red-600">❌ {errors.preparacaoArea}</p>
+                <p className="text-xs text-destructive">❌ {errors.preparacaoArea}</p>
               )}
             </div>
 
@@ -428,7 +428,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                 type="number"
                 value={calcularExecucaoTotal()}
                 disabled
-                className="bg-neutral-100"
+                className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
                 Soma automática dos dias úteis de todas as sub-etapas

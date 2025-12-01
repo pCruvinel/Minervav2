@@ -52,7 +52,7 @@ export function DashboardGestorObras() {
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="font-mono" style={{ fontSize: '2rem' }}>{kpis.medicoesPendentes}</div>
-              <Badge variant="default" className="bg-[#D3AF37] hover:bg-[#D3AF37]/90">
+              <Badge variant="default" className="bg-primary hover:bg-primary/90">
                 Ação requerida
               </Badge>
             </div>
@@ -122,14 +122,14 @@ export function DashboardGestorObras() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle>Valor Total Medido</CardTitle>
-            <DollarSign className="h-4 w-4 text-green-600" />
+            <DollarSign className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="font-mono" style={{ fontSize: '1.5rem' }}>
                 R$ {(kpis.valorTotalMedido / 1000000).toFixed(2)}M
               </div>
-              <Badge variant="outline" className="border-green-600 text-green-600">
+              <Badge variant="outline" className="border-success text-success">
                 Executado
               </Badge>
             </div>
@@ -159,7 +159,7 @@ export function DashboardGestorObras() {
               <Line
                 type="monotone"
                 dataKey="planejado"
-                stroke="#D3AF37"
+                stroke="hsl(var(--primary))"
                 strokeWidth={2}
                 name="Planejado"
                 dot={{ r: 4 }}
@@ -167,7 +167,7 @@ export function DashboardGestorObras() {
               <Line
                 type="monotone"
                 dataKey="executado"
-                stroke="#10b981"
+                stroke="hsl(var(--success))"
                 strokeWidth={2}
                 name="Executado"
                 dot={{ r: 4 }}
@@ -198,7 +198,7 @@ export function DashboardGestorObras() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Obras Atrasadas</span>
-                <span className="font-mono text-red-600">{kpis.atrasosNoCronograma}</span>
+                <span className="font-mono text-destructive">{kpis.atrasosNoCronograma}</span>
               </div>
             </div>
             <div className="space-y-2">
@@ -214,7 +214,7 @@ export function DashboardGestorObras() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Medições Aguardando</span>
-                <span className="font-mono text-[#D3AF37]">{kpis.medicoesPendentes}</span>
+                <span className="font-mono text-primary">{kpis.medicoesPendentes}</span>
               </div>
             </div>
           </div>

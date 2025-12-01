@@ -42,7 +42,7 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Realizar Visita Técnica</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Confirme a realização da visita técnica
         </p>
       </div>
@@ -50,32 +50,32 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
       {!data.visitaRealizada ? (
         <div className="space-y-4">
           {/* Card de Informações */}
-          <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
-            <h3 className="text-base mb-4" style={{ color: '#D3AF37' }}>
+          <div className="border border-border rounded-lg p-6 bg-background">
+            <h3 className="text-base mb-4" style={{ color: 'var(--primary)' }}>
               Informações da Visita
             </h3>
             
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <Calendar className="w-5 h-5 text-neutral-600 mt-0.5" />
+                <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm text-neutral-600">Data Agendada</p>
+                  <p className="text-sm text-muted-foreground">Data Agendada</p>
                   <p>--/--/----</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-neutral-600 mt-0.5" />
+                <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm text-neutral-600">Horário</p>
+                  <p className="text-sm text-muted-foreground">Horário</p>
                   <p>--:--</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-neutral-600 mt-0.5" />
+                <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
-                  <p className="text-sm text-neutral-600">Local</p>
+                  <p className="text-sm text-muted-foreground">Local</p>
                   <p>Informações do cliente na Etapa 1</p>
                 </div>
               </div>
@@ -84,13 +84,13 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
 
           {/* Botão de Ação */}
           <div className="flex flex-col items-center gap-4 py-8">
-            <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D3AF37' }}>
+            <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary)' }}>
               <MapPin className="w-10 h-10 text-white" />
             </div>
             
             <div className="text-center">
               <h3 className="text-lg mb-2">Pronto para iniciar a visita?</h3>
-              <p className="text-sm text-neutral-600 mb-4">
+              <p className="text-sm text-muted-foreground mb-4">
                 Ao clicar no botão abaixo, você confirmará o início da visita técnica
               </p>
               
@@ -116,15 +116,15 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
       ) : (
         <div className="space-y-4">
           {/* Confirmação de Visita Realizada */}
-          <div className="border border-green-200 rounded-lg p-6 bg-green-50">
+          <div className="border border-success/20 rounded-lg p-6 bg-success/5">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+              <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
               
               <div className="flex-1">
-                <h3 className="text-lg mb-1 text-green-900">Visita Realizada</h3>
-                <p className="text-sm text-green-700 mb-4">
+                <h3 className="text-lg mb-1 text-success">Visita Realizada</h3>
+                <p className="text-sm text-success mb-4">
                   A visita foi confirmada em{' '}
                   {data.dataRealizacao &&
                     format(new Date(data.dataRealizacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
@@ -133,7 +133,7 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
                 <Button
                   variant="outline"
                   onClick={handleCancelar}
-                  className="border-green-600 text-green-700 hover:bg-green-100"
+                  className="border-green-600 text-success hover:bg-success/10"
                   disabled={readOnly}
                 >
                   Cancelar Confirmação

@@ -133,7 +133,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -147,12 +147,12 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-500/10 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-purple-600" />
+            <div className="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6 text-secondary" />
             </div>
             <div>
               <h1 className="text-3xl font-semibold">Análise e Parecer Técnico</h1>
-              <p className="text-neutral-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Revise os dados enviados e emita seu parecer
               </p>
             </div>
@@ -167,7 +167,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Informações da Solicitação</CardTitle>
-                  <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200">
+                  <Badge variant="outline" className="bg-info/5 text-info border-info/20">
                     {osId}
                   </Badge>
                 </div>
@@ -175,30 +175,30 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-neutral-600 mb-1">Data de Envio</p>
+                    <p className="text-muted-foreground mb-1">Data de Envio</p>
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-neutral-400" />
+                      <Calendar className="w-4 h-4 text-muted-foreground" />
                       <p className="font-medium">
                         {new Date(dadosFormulario.dataEnvio).toLocaleDateString('pt-BR')}
                       </p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-neutral-600 mb-1">Condomínio</p>
+                    <p className="text-muted-foreground mb-1">Condomínio</p>
                     <div className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-neutral-400" />
+                      <Building2 className="w-4 h-4 text-muted-foreground" />
                       <p className="font-medium">{dadosFormulario.condominio}</p>
                     </div>
                   </div>
                   <div>
-                    <p className="text-neutral-600 mb-1">Unidade</p>
+                    <p className="text-muted-foreground mb-1">Unidade</p>
                     <p className="font-medium">
                       {dadosFormulario.bloco} - {dadosFormulario.unidade}
                     </p>
                   </div>
                   <div>
-                    <p className="text-neutral-600 mb-1">Requer ART</p>
-                    <Badge variant="outline" className={dadosFormulario.precisaART ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'}>
+                    <p className="text-muted-foreground mb-1">Requer ART</p>
+                    <Badge variant="outline" className={dadosFormulario.precisaART ? 'bg-warning/5 text-warning border-warning/20' : 'bg-success/5 text-success border-success/20'}>
                       {dadosFormulario.precisaART ? 'Sim' : 'Não'}
                     </Badge>
                   </div>
@@ -217,15 +217,15 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-neutral-600 mb-1">Nome</p>
+                    <p className="text-muted-foreground mb-1">Nome</p>
                     <p className="font-medium">{dadosFormulario.nomeSolicitante}</p>
                   </div>
                   <div>
-                    <p className="text-neutral-600 mb-1">Contato</p>
+                    <p className="text-muted-foreground mb-1">Contato</p>
                     <p className="font-medium">{dadosFormulario.contato}</p>
                   </div>
                   <div className="md:col-span-2">
-                    <p className="text-neutral-600 mb-1">Email</p>
+                    <p className="text-muted-foreground mb-1">Email</p>
                     <p className="font-medium">{dadosFormulario.email}</p>
                   </div>
                 </div>
@@ -240,29 +240,29 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
               <CardContent>
                 <div className="space-y-4">
                   {dadosFormulario.alteracoes.map((alt, index) => (
-                    <div key={index} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50">
+                    <div key={index} className="border border-border rounded-lg p-4 bg-background">
                       <div className="flex items-start justify-between mb-3">
                         <p className="text-sm font-medium">Alteração {index + 1}</p>
-                        <Badge variant="outline" className={alt.geraRuido === 'Sim' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-green-50 text-green-700 border-green-200'}>
+                        <Badge variant="outline" className={alt.geraRuido === 'Sim' ? 'bg-warning/5 text-warning border-warning/20' : 'bg-success/5 text-success border-success/20'}>
                           {alt.geraRuido === 'Sim' ? '🔊 Gera Ruído' : '🔇 Sem Ruído'}
                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                         <div>
-                          <p className="text-neutral-600 mb-1">Sistema</p>
+                          <p className="text-muted-foreground mb-1">Sistema</p>
                           <p className="font-medium">{alt.sistema}</p>
                         </div>
                         <div>
-                          <p className="text-neutral-600 mb-1">Item</p>
+                          <p className="text-muted-foreground mb-1">Item</p>
                           <p className="font-medium">{alt.item}</p>
                         </div>
                         <div>
-                          <p className="text-neutral-600 mb-1">Início Previsto</p>
+                          <p className="text-muted-foreground mb-1">Início Previsto</p>
                           <p className="font-medium">{new Date(alt.dataInicio).toLocaleDateString('pt-BR')}</p>
                         </div>
                         <div>
-                          <p className="text-neutral-600 mb-1">Fim Previsto</p>
+                          <p className="text-muted-foreground mb-1">Fim Previsto</p>
                           <p className="font-medium">{new Date(alt.dataFim).toLocaleDateString('pt-BR')}</p>
                         </div>
                       </div>
@@ -280,13 +280,13 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
               <CardContent>
                 <div className="space-y-3">
                   {dadosFormulario.executores.map((exec, index) => (
-                    <div key={index} className="flex items-center gap-4 p-3 border border-neutral-200 rounded-lg bg-neutral-50">
+                    <div key={index} className="flex items-center gap-4 p-3 border border-border rounded-lg bg-background">
                       <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                         <User className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1">
                         <p className="text-sm font-medium">{exec.nome}</p>
-                        <p className="text-xs text-neutral-600">CPF: {exec.cpf}</p>
+                        <p className="text-xs text-muted-foreground">CPF: {exec.cpf}</p>
                       </div>
                     </div>
                   ))}
@@ -300,7 +300,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                 <CardTitle>Plano de Descarte</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-neutral-700 bg-neutral-50 border border-neutral-200 rounded p-4">
+                <p className="text-sm text-muted-foreground bg-background border border-border rounded p-4">
                   {dadosFormulario.planoDescarte}
                 </p>
               </CardContent>
@@ -315,7 +315,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                 <div className="space-y-2">
                   {dadosFormulario.tiposObra.map((tipo, index) => (
                     <div key={index} className="flex items-center gap-2 text-sm">
-                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <CheckCircle2 className="w-4 h-4 text-success" />
                       <span>{tipo}</span>
                     </div>
                   ))}
@@ -335,12 +335,12 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                 {/* Switch Aprovar */}
                 <div className="space-y-3">
                   <Label>Decisão</Label>
-                  <div className="flex items-center justify-between p-4 border-2 border-neutral-200 rounded-lg">
+                  <div className="flex items-center justify-between p-4 border-2 border-border rounded-lg">
                     <div>
                       <p className="text-sm font-medium">
                         {aprovarReforma ? 'Aprovar Reforma' : 'Reprovar Reforma'}
                       </p>
-                      <p className="text-xs text-neutral-600 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         {aprovarReforma 
                           ? 'A reforma está de acordo com as normas'
                           : 'A reforma não atende aos requisitos'
@@ -358,7 +358,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                 <div className="space-y-2">
                   <Label htmlFor="comentario">
                     Comentário da Engenharia 
-                    {!aprovarReforma && <span className="text-red-500"> *</span>}
+                    {!aprovarReforma && <span className="text-destructive"> *</span>}
                   </Label>
                   <Textarea
                     id="comentario"
@@ -372,7 +372,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                     rows={6}
                   />
                   {!aprovarReforma && (
-                    <p className="text-xs text-amber-600">
+                    <p className="text-xs text-warning">
                       <AlertCircle className="w-3 h-3 inline mr-1" />
                       Obrigatório informar o motivo da reprovação
                     </p>
@@ -385,7 +385,7 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                   disabled={isSubmitting || generatingPDF || (!aprovarReforma && !comentarioEngenharia.trim())}
                   isLoading={isSubmitting || generatingPDF}
                   loadingText={generatingPDF ? 'Gerando PDF...' : 'Salvando...'}
-                  className={aprovarReforma ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+                  className={aprovarReforma ? 'bg-success hover:bg-success' : 'bg-destructive hover:bg-destructive'}
                 >
                   {!isSubmitting && !generatingPDF && (
                     <>
@@ -399,8 +399,8 @@ export function OS07AnalisePage({ osId, onBack }: OS07AnalisePageProps) {
                   Gerar e Enviar Parecer
                 </PrimaryButton>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <p className="text-xs text-blue-900">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-3">
+                  <p className="text-xs text-primary">
                     <FileDown className="w-3 h-3 inline mr-1" />
                     O parecer será gerado em PDF e enviado automaticamente para o email do solicitante.
                   </p>

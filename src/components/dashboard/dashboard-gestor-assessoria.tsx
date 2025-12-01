@@ -67,7 +67,7 @@ export function DashboardGestorAssessoria() {
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="font-mono" style={{ fontSize: '2rem' }}>{kpis.os07PendentesAnalise}</div>
-              <Badge variant="default" className="bg-[#D3AF37] hover:bg-[#D3AF37]/90">
+              <Badge variant="default" className="bg-primary hover:bg-primary/90">
                 Pendente
               </Badge>
             </div>
@@ -98,12 +98,12 @@ export function DashboardGestorAssessoria() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle>Reformas Aprovadas</CardTitle>
-            <ClipboardCheck className="h-4 w-4 text-green-600" />
+            <ClipboardCheck className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="font-mono" style={{ fontSize: '2rem' }}>{kpis.totalReformasAprovadas}</div>
-              <Badge variant="outline" className="border-green-600 text-green-600">
+              <Badge variant="outline" className="border-success text-success">
                 Total
               </Badge>
             </div>
@@ -117,12 +117,12 @@ export function DashboardGestorAssessoria() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle>Reformas Rejeitadas</CardTitle>
-            <AlertCircle className="h-4 w-4 text-red-600" />
+            <AlertCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
             <div className="flex items-baseline gap-2">
               <div className="font-mono" style={{ fontSize: '2rem' }}>{kpis.totalReformasRejeitadas}</div>
-              <Badge variant="outline" className="border-red-600 text-red-600">
+              <Badge variant="outline" className="border-destructive text-destructive">
                 Total
               </Badge>
             </div>

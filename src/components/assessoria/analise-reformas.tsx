@@ -366,7 +366,7 @@ export function AnaliseReformas() {
                       <Button
                         size="sm"
                         onClick={() => handleAbrirAnalisar(reforma)}
-                        className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+                        className="bg-primary hover:bg-primary/90"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Analisar
@@ -446,7 +446,7 @@ export function AnaliseReformas() {
                     {reformaSelecionada.documentos?.art && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-green-600" />
+                          <FileText className="h-4 w-4 text-success" />
                           <span>ART: {reformaSelecionada.documentos.art}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -457,7 +457,7 @@ export function AnaliseReformas() {
                     {reformaSelecionada.documentos?.rrt && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-green-600" />
+                          <FileText className="h-4 w-4 text-success" />
                           <span>RRT: {reformaSelecionada.documentos.rrt}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -468,7 +468,7 @@ export function AnaliseReformas() {
                     {reformaSelecionada.documentos?.projeto && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-info" />
                           <span>Projeto: {reformaSelecionada.documentos.projeto}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -479,7 +479,7 @@ export function AnaliseReformas() {
                     {reformaSelecionada.documentos?.memorial && (
                       <div className="flex items-center justify-between p-2 border rounded">
                         <div className="flex items-center gap-2">
-                          <FileText className="h-4 w-4 text-blue-600" />
+                          <FileText className="h-4 w-4 text-info" />
                           <span>Memorial: {reformaSelecionada.documentos.memorial}</span>
                         </div>
                         <Button size="sm" variant="outline">
@@ -536,7 +536,7 @@ export function AnaliseReformas() {
             </Button>
             <Button
               onClick={handleSalvarAnalise}
-              className="bg-[#D3AF37] hover:bg-[#D3AF37]/90"
+              className="bg-primary hover:bg-primary/90"
               disabled={salvando}
             >
               {salvando ? (

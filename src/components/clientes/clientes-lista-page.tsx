@@ -76,7 +76,7 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
   const getStatusBadge = (status: Cliente['status']) => {
     if (status === 'ATIVO') {
       return (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+        <Badge className="bg-success/10 text-success hover:bg-success/10">
           <CheckCircle className="h-3 w-3 mr-1" />
           Ativo
         </Badge>
@@ -93,13 +93,13 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
   const getTipoContratoBadge = (tipo: Cliente['tipoContrato']) => {
     if (tipo === 'OBRAS') {
       return (
-        <Badge className="bg-blue-100 text-blue-800">
+        <Badge className="bg-primary/10 text-primary">
           Obras
         </Badge>
       );
     }
     return (
-      <Badge className="bg-purple-100 text-purple-800">
+      <Badge className="bg-secondary/10 text-secondary">
         Assessoria
       </Badge>
     );
@@ -144,7 +144,7 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -178,9 +178,9 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Contratos Ativos</p>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-success" />
             </div>
-            <h3 className="text-2xl text-green-600">{stats.ativos}</h3>
+            <h3 className="text-2xl text-success">{stats.ativos}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               em operação
             </p>
@@ -191,9 +191,9 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Obras</p>
-              <FileText className="h-4 w-4 text-blue-600" />
+              <FileText className="h-4 w-4 text-primary" />
             </div>
-            <h3 className="text-2xl text-blue-600">{stats.obras}</h3>
+            <h3 className="text-2xl text-primary">{stats.obras}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               contratos de obra
             </p>
@@ -204,9 +204,9 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Assessoria</p>
-              <FileText className="h-4 w-4 text-purple-600" />
+              <FileText className="h-4 w-4 text-secondary" />
             </div>
-            <h3 className="text-2xl text-purple-600">{stats.assessoria}</h3>
+            <h3 className="text-2xl text-secondary">{stats.assessoria}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               contratos de assessoria
             </p>
@@ -293,7 +293,7 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
                 <TableRow
                   key={cliente.id}
                   className={cn(
-                    "hover:bg-neutral-50 cursor-pointer",
+                    "hover:bg-background cursor-pointer",
                     cliente.status === 'INATIVO' && "opacity-60"
                   )}
                   onClick={() => handleClienteClick(cliente.id)}

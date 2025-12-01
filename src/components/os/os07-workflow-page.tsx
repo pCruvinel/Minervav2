@@ -216,7 +216,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
           </div>
           <div>
             <CardTitle>Identificação do Cliente/Lead</CardTitle>
-            <p className="text-sm text-neutral-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Selecione o condomínio ou cliente que solicitará a reforma
             </p>
           </div>
@@ -236,7 +236,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
           onSaveNewLead={handleSaveNewLead}
         />
 
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
           {onBack && (
             <Button variant="outline" onClick={onBack}>
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -265,12 +265,12 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-            <span className="text-lg font-semibold text-cyan-600">2</span>
+          <div className="w-10 h-10 bg-info/10 rounded-lg flex items-center justify-center">
+            <span className="text-lg font-semibold text-info">2</span>
           </div>
           <div>
             <CardTitle>Coletar Dados do Cliente</CardTitle>
-            <p className="text-sm text-neutral-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Envie o link do formulário ao cliente
             </p>
           </div>
@@ -278,21 +278,21 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
       </CardHeader>
       <CardContent className="space-y-6">
         {/* Informações da OS */}
-        <div className="bg-neutral-50 border border-neutral-200 rounded-lg p-4">
+        <div className="bg-background border border-border rounded-lg p-4">
           <div className="flex items-start justify-between gap-4 mb-3">
             <div>
               <p className="text-sm font-medium mb-1">Ordem de Serviço Criada</p>
-              <p className="text-xs text-neutral-600">
+              <p className="text-xs text-muted-foreground">
                 Código: <span className="font-mono font-semibold">{osId}</span>
               </p>
             </div>
-            <Badge variant="outline" className="bg-cyan-50 text-cyan-700 border-cyan-200">
+            <Badge variant="outline" className="bg-info/5 text-info border-info/20">
               <Clock className="w-3 h-3 mr-1" />
               Aguardando Cliente
             </Badge>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-neutral-600">
+            <p className="text-xs text-muted-foreground">
               Condomínio: <span className="font-medium">{formData.nome}</span>
             </p>
           </div>
@@ -302,16 +302,16 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
         <div className="space-y-3">
           <Label>Link do Formulário Público</Label>
 
-          <div className="bg-white border-2 border-cyan-200 rounded-lg p-4">
+          <div className="bg-white border-2 border-info/20 rounded-lg p-4">
             <div className="flex items-center gap-3 mb-3">
-              <LinkIcon className="w-5 h-5 text-cyan-600" />
-              <p className="text-sm font-medium text-cyan-900">
+              <LinkIcon className="w-5 h-5 text-info" />
+              <p className="text-sm font-medium text-info">
                 Formulário de Comunicação de Reforma
               </p>
             </div>
 
-            <div className="bg-neutral-50 border border-neutral-200 rounded p-3 mb-4">
-              <p className="text-sm font-mono text-neutral-700 break-all">
+            <div className="bg-background border border-border rounded p-3 mb-4">
+              <p className="text-sm font-mono text-muted-foreground break-all">
                 {linkFormulario}
               </p>
             </div>
@@ -319,7 +319,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
             <div className="flex flex-wrap gap-3">
               <Button
                 onClick={handleCopiarLink}
-                className="bg-cyan-500 hover:bg-cyan-600 text-white"
+                className="bg-info hover:bg-info text-white"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Copiar Link
@@ -335,11 +335,11 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-900 font-medium mb-2">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <p className="text-sm text-primary font-medium mb-2">
               📋 Instruções:
             </p>
-            <ol className="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
+            <ol className="text-sm text-primary space-y-1 ml-4 list-decimal">
               <li>Copie o link do formulário usando o botão acima</li>
               <li>Envie o link ao cliente/solicitante por WhatsApp ou Email</li>
               <li>Aguarde o preenchimento e envio do formulário</li>
@@ -349,7 +349,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
         </div>
 
         {/* Ações */}
-        <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           <Button variant="outline" onClick={() => setEtapaAtual('identificacao')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
@@ -359,7 +359,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
             <Button
               variant="outline"
               onClick={handleSimularRecebimento}
-              className="text-green-600 border-green-600 hover:bg-green-50"
+              className="text-success border-green-600 hover:bg-success/5"
             >
               <CheckCircle2 className="w-4 h-4 mr-2" />
               Simular Recebimento (Demo)
@@ -374,26 +374,26 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-purple-500/10 rounded-lg flex items-center justify-center">
-            <span className="text-lg font-semibold text-purple-600">3</span>
+          <div className="w-10 h-10 bg-secondary/10 rounded-lg flex items-center justify-center">
+            <span className="text-lg font-semibold text-secondary">3</span>
           </div>
           <div>
             <CardTitle>Análise e Parecer</CardTitle>
-            <p className="text-sm text-neutral-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Formulário recebido! Prossiga para análise técnica.
             </p>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+        <div className="bg-success/5 border border-success/20 rounded-lg p-4">
           <div className="flex items-start gap-3">
-            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-medium text-green-900 mb-1">
+              <p className="text-sm font-medium text-success mb-1">
                 Formulário Recebido com Sucesso
               </p>
-              <p className="text-sm text-green-700">
+              <p className="text-sm text-success">
                 O cliente preencheu e enviou todos os dados necessários.
                 Prossiga para a análise técnica.
               </p>
@@ -401,7 +401,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           <Button variant="outline" onClick={() => setEtapaAtual('aguardando_cliente')}>
             <ArrowLeft className="w-4 h-4 mr-2" />
             Voltar
@@ -435,9 +435,9 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
                 <div
                   className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                    ${etapa.status === 'concluida' ? 'bg-green-500 text-white' : ''}
+                    ${etapa.status === 'concluida' ? 'bg-success text-white' : ''}
                     ${etapa.status === 'atual' ? 'bg-primary text-white ring-4 ring-primary/20' : ''}
-                    ${etapa.status === 'pendente' ? 'bg-neutral-200 text-neutral-500' : ''}
+                    ${etapa.status === 'pendente' ? 'bg-muted text-muted-foreground' : ''}
                   `}
                 >
                   {etapa.status === 'concluida' ? (
@@ -450,8 +450,8 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
                   className={`
                     text-xs text-center max-w-[80px]
                     ${etapa.status === 'atual' ? 'font-semibold text-primary' : ''}
-                    ${etapa.status === 'concluida' ? 'text-green-600' : ''}
-                    ${etapa.status === 'pendente' ? 'text-neutral-500' : ''}
+                    ${etapa.status === 'concluida' ? 'text-success' : ''}
+                    ${etapa.status === 'pendente' ? 'text-muted-foreground' : ''}
                   `}
                 >
                   {etapa.titulo}
@@ -462,7 +462,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
                 <div
                   className={`
                     flex-1 h-0.5 mx-2
-                    ${etapa.status === 'concluida' ? 'bg-green-500' : 'bg-neutral-200'}
+                    ${etapa.status === 'concluida' ? 'bg-success' : 'bg-muted'}
                   `}
                 />
               )}
@@ -474,17 +474,17 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-              <LinkIcon className="w-6 h-6 text-cyan-600" />
+            <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center">
+              <LinkIcon className="w-6 h-6 text-info" />
             </div>
             <div>
               <h1 className="text-3xl font-semibold">OS 07: Termo de Comunicação de Reforma</h1>
-              <p className="text-neutral-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Fluxo de análise e aprovação de reformas em unidades
               </p>
             </div>

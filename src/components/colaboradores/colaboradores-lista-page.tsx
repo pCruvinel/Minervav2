@@ -142,7 +142,7 @@ export function ColaboradoresListaPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -162,7 +162,7 @@ export function ColaboradoresListaPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total Ativos</p>
-            <h3 className="text-2xl text-green-600">
+            <h3 className="text-2xl text-success">
               {colaboradores.filter((c) => c.ativo).length}
             </h3>
           </CardContent>
@@ -170,7 +170,7 @@ export function ColaboradoresListaPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total Inativos</p>
-            <h3 className="text-2xl text-red-600">
+            <h3 className="text-2xl text-destructive">
               {colaboradores.filter((c) => !c.ativo).length}
             </h3>
           </CardContent>

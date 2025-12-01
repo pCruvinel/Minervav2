@@ -32,14 +32,14 @@ export function FormError({ message, className, visible = true }: FormErrorProps
   return (
     <div
       className={cn(
-        'flex items-center gap-2 mt-1 px-3 py-2 bg-red-50 border border-red-200 rounded-md',
+        'flex items-center gap-2 mt-1 px-3 py-2 bg-destructive/5 border border-destructive/20 rounded-md',
         className
       )}
       role="alert"
       aria-live="polite"
     >
-      <AlertCircle className="h-4 w-4 text-red-600 flex-shrink-0" />
-      <span className="text-sm text-red-700 font-medium">{message}</span>
+      <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />
+      <span className="text-sm text-destructive font-medium">{message}</span>
     </div>
   );
 }
@@ -81,7 +81,7 @@ export function FormFieldError({
         React.cloneElement(children as React.ReactElement, {
           className: cn(
             (children as React.ReactElement).props.className,
-            hasError && 'border-red-500 focus:border-red-500 focus:ring-red-500'
+            hasError && 'border-destructive focus:border-destructive focus:ring-destructive'
           ),
         })}
       <FormError message={message} visible={visible && hasError} />

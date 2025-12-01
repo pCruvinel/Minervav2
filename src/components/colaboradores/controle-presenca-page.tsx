@@ -482,7 +482,7 @@ export function ControlePresencaPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Presentes Hoje</CardTitle>
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                <CheckCircle2 className="h-4 w-4 text-success" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{resumoDia.totalPresentes}/{colaboradores.length}</div>
@@ -495,7 +495,7 @@ export function ControlePresencaPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Atrasos</CardTitle>
-                <Clock className="h-4 w-4 text-yellow-500" />
+                <Clock className="h-4 w-4 text-warning" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{resumoDia.totalAtrasos}</div>
@@ -508,7 +508,7 @@ export function ControlePresencaPage() {
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Faltas</CardTitle>
-                <XCircle className="h-4 w-4 text-red-500" />
+                <XCircle className="h-4 w-4 text-destructive" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{resumoDia.totalFaltas}</div>
@@ -565,9 +565,9 @@ export function ControlePresencaPage() {
               const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
 
               return (
-                <Card key={colaborador.id} className={`transition-colors ${registro.status === 'FALTA' ? 'bg-red-50 border-red-200' :
-                  registro.status === 'FALTA_JUSTIFICADA' ? 'bg-orange-50 border-orange-200' :
-                    registro.status === 'ATRASADO' ? 'bg-yellow-50 border-yellow-200' : ''
+                <Card key={colaborador.id} className={`transition-colors ${registro.status === 'FALTA' ? 'bg-destructive/5 border-destructive/20' :
+                  registro.status === 'FALTA_JUSTIFICADA' ? 'bg-warning/5 border-warning/20' :
+                    registro.status === 'ATRASADO' ? 'bg-warning/5 border-warning/20' : ''
                   }`}>
                   <CardContent className="p-6">
                     <div className="flex flex-col md:flex-row gap-6">
@@ -609,9 +609,9 @@ export function ControlePresencaPage() {
                               }}
                             >
                               <SelectTrigger className={
-                                registro.status === 'OK' ? 'text-green-600 font-medium' :
-                                  registro.status === 'FALTA' ? 'text-red-600 font-medium' :
-                                    registro.status === 'ATRASADO' ? 'text-yellow-600 font-medium' : ''
+                                registro.status === 'OK' ? 'text-success font-medium' :
+                                  registro.status === 'FALTA' ? 'text-destructive font-medium' :
+                                    registro.status === 'ATRASADO' ? 'text-warning font-medium' : ''
                               }>
                                 <SelectValue />
                               </SelectTrigger>
@@ -830,8 +830,8 @@ export function ControlePresencaPage() {
                       <TableHead>Colaborador</TableHead>
                       <TableHead className="text-center">Dias Úteis</TableHead>
                       <TableHead className="text-center">Presenças</TableHead>
-                      <TableHead className="text-center text-yellow-600">Atrasos</TableHead>
-                      <TableHead className="text-center text-red-600">Faltas</TableHead>
+                      <TableHead className="text-center text-warning">Atrasos</TableHead>
+                      <TableHead className="text-center text-destructive">Faltas</TableHead>
                       <TableHead className="text-center">Performance</TableHead>
                       <TableHead className="text-right">Custo Total</TableHead>
                     </TableRow>
@@ -842,8 +842,8 @@ export function ControlePresencaPage() {
                         <TableCell className="font-medium">{item.nome}</TableCell>
                         <TableCell className="text-center">{item.diasUteis}</TableCell>
                         <TableCell className="text-center">{item.presencas}</TableCell>
-                        <TableCell className="text-center text-yellow-600 font-medium">{item.atrasos}</TableCell>
-                        <TableCell className="text-center text-red-600 font-medium">{item.faltas + item.faltasJustificadas}</TableCell>
+                        <TableCell className="text-center text-warning font-medium">{item.atrasos}</TableCell>
+                        <TableCell className="text-center text-destructive font-medium">{item.faltas + item.faltasJustificadas}</TableCell>
                         <TableCell className="text-center">
                           <div className="flex items-center justify-center gap-1">
                             <span className="font-bold">{item.performanceMedia.toFixed(1)}</span>

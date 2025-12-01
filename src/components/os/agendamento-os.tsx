@@ -153,18 +153,18 @@ export function AgendamentoOS({
 
   if (!agendamentoId && dataLegacy) {
     return (
-      <Card className="border-amber-200 bg-amber-50">
+      <Card className="border-warning/20 bg-warning/5">
         <CardContent className="pt-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <AlertCircle className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <h4 className="text-sm font-medium text-amber-800 mb-1">
+              <h4 className="text-sm font-medium text-warning mb-1">
                 Agendamento em Modo Legado
               </h4>
-              <p className="text-sm text-amber-700 mb-2">
+              <p className="text-sm text-warning mb-2">
                 Este agendamento foi criado no sistema antigo.
               </p>
-              <div className="flex items-center gap-2 text-sm text-amber-800">
+              <div className="flex items-center gap-2 text-sm text-warning">
                 <Calendar className="h-4 w-4" />
                 <span className="font-medium">
                   {new Date(dataLegacy).toLocaleString('pt-BR')}
@@ -175,7 +175,7 @@ export function AgendamentoOS({
                   size="sm"
                   variant="outline"
                   onClick={handleAbrirCalendario}
-                  className="mt-4 border-amber-300 text-amber-700 hover:bg-amber-100"
+                  className="mt-4 border-warning/30 text-warning hover:bg-warning/10"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Criar Agendamento no Sistema Novo
@@ -194,10 +194,10 @@ export function AgendamentoOS({
 
   if (loadingAgendamento) {
     return (
-      <Card className="border-neutral-200">
+      <Card className="border-border">
         <CardContent className="pt-6">
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-neutral-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         </CardContent>
       </Card>
@@ -215,12 +215,12 @@ export function AgendamentoOS({
     return (
       <div className="space-y-6">
         {/* Card de Status do Agendamento */}
-        <Card className={isCancelado ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}>
+        <Card className={isCancelado ? 'border-destructive/20 bg-destructive/5' : 'border-success/20 bg-success/5'}>
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ backgroundColor: isCancelado ? '#ef4444' : '#10b981' }}
+                style={{ backgroundColor: isCancelado ? 'var(--destructive)' : 'var(--success)' }}
               >
                 {isCancelado ? (
                   <CalendarX className="w-6 h-6 text-white" />
@@ -237,14 +237,14 @@ export function AgendamentoOS({
                 <div className="space-y-2">
                   {/* Data e Horário */}
                   <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-neutral-600" />
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">
                       {format(dataAgendamento, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                     </span>
                   </div>
 
                   <div className="flex items-center gap-2 text-sm">
-                    <Clock className="h-4 w-4 text-neutral-600" />
+                    <Clock className="h-4 w-4 text-muted-foreground" />
                     <span>
                       {agendamento.horarioInicio} - {agendamento.horarioFim} ({agendamento.duracaoHoras}h)
                     </span>
@@ -252,15 +252,15 @@ export function AgendamentoOS({
 
                   {/* Categoria e Setor */}
                   <div className="flex items-center gap-2 text-sm">
-                    <MapPin className="h-4 w-4 text-neutral-600" />
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
                     <span>{agendamento.categoria} - {agendamento.setor}</span>
                   </div>
 
                   {/* Motivo de Cancelamento */}
                   {isCancelado && agendamento.canceladoMotivo && (
-                    <Alert className="mt-3 bg-red-100 border-red-200">
-                      <AlertCircle className="h-4 w-4 text-red-600" />
-                      <AlertDescription className="text-sm text-red-800">
+                    <Alert className="mt-3 bg-destructive/10 border-destructive/20">
+                      <AlertCircle className="h-4 w-4 text-destructive" />
+                      <AlertDescription className="text-sm text-destructive">
                         <strong>Motivo:</strong> {agendamento.canceladoMotivo}
                       </AlertDescription>
                     </Alert>
@@ -274,7 +274,7 @@ export function AgendamentoOS({
                         variant="outline"
                         onClick={handleCancelarAgendamento}
                         disabled={cancelando}
-                        className="border-red-300 text-red-700 hover:bg-red-100"
+                        className="border-destructive/30 text-destructive hover:bg-destructive/10"
                       >
                         {cancelando ? (
                           <>
@@ -298,7 +298,7 @@ export function AgendamentoOS({
 
         {/* Calendário para Visualização e Novos Agendamentos */}
         {!isCancelado && (
-          <Card className="border-neutral-200">
+          <Card className="border-border">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h4 className="text-lg font-medium">Calendário de Agendamentos</h4>
@@ -307,7 +307,7 @@ export function AgendamentoOS({
                   variant="outline"
                   size="sm"
                   disabled={loading}
-                  className="border-neutral-300"
+                  className="border-border"
                 >
                   {loading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -351,7 +351,7 @@ export function AgendamentoOS({
   return (
     <div className="space-y-6">
       {/* Card de Status */}
-      <Card className="border-blue-200 bg-blue-50">
+      <Card className="border-primary/20 bg-primary/5">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -363,7 +363,7 @@ export function AgendamentoOS({
               </div>
               <div>
                 <h3 className="text-lg font-medium">Agendamento Pendente</h3>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-muted-foreground">
                   Selecione um turno disponível no calendário abaixo para criar o agendamento.
                 </p>
               </div>
@@ -375,7 +375,7 @@ export function AgendamentoOS({
                 variant="outline"
                 size="sm"
                 disabled={loading}
-                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+                className="border-primary/30 text-primary hover:bg-primary/10"
               >
                 {loading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -389,7 +389,7 @@ export function AgendamentoOS({
       </Card>
 
       {/* Calendário Integrado */}
-      <Card className="border-neutral-200">
+      <Card className="border-border">
         <CardContent className="p-6">
           <CalendarioSemana
             dataAtual={hoje}

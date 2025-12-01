@@ -32,19 +32,19 @@ interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles = {
   primary: {
-    base: 'bg-[#D3AF37] text-black hover:bg-[#C29F2F] active:bg-[#B18F27]',
-    disabled: 'disabled:bg-[#D3AF37] disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'bg-[var(--primary)] text-black hover:bg-[var(--primary)] active:bg-[var(--primary)]',
+    disabled: 'disabled:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed',
   },
   secondary: {
-    base: 'bg-[#DDC063] text-black hover:bg-[#D0B354] active:bg-[#C4A645]',
-    disabled: 'disabled:bg-[#DDC063] disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'bg-[var(--primary)] text-black hover:bg-[var(--primary)]/80 active:bg-[var(--primary)]/90',
+    disabled: 'disabled:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed',
   },
   danger: {
-    base: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800',
-    disabled: 'disabled:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'bg-destructive text-white hover:bg-destructive/90 active:bg-destructive',
+    disabled: 'disabled:bg-destructive disabled:opacity-50 disabled:cursor-not-allowed',
   },
   ghost: {
-    base: 'bg-transparent text-black border border-neutral-300 hover:bg-neutral-100 active:bg-neutral-200',
+    base: 'bg-transparent text-black border border-border hover:bg-muted active:bg-muted',
     disabled: 'disabled:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed',
   },
 };

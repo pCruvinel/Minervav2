@@ -271,7 +271,7 @@ export function ConciliacaoBancariaPage() {
   const saldo = totais.entradas - totais.saidas;
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-3xl mb-2">Conciliação Bancária</h1>
@@ -412,19 +412,19 @@ export function ConciliacaoBancariaPage() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total de Entradas</p>
-            <h3 className="text-2xl text-green-600">{formatCurrency(totais.entradas)}</h3>
+            <h3 className="text-2xl text-success">{formatCurrency(totais.entradas)}</h3>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Total de Saídas</p>
-            <h3 className="text-2xl text-red-600">{formatCurrency(totais.saidas)}</h3>
+            <h3 className="text-2xl text-destructive">{formatCurrency(totais.saidas)}</h3>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-sm text-muted-foreground mb-1">Saldo do Período</p>
-            <h3 className={`text-2xl ${saldo >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <h3 className={`text-2xl ${saldo >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(saldo)}
             </h3>
           </CardContent>
@@ -467,14 +467,14 @@ export function ConciliacaoBancariaPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {lancamento.entrada ? (
-                          <span className="text-green-600 font-medium">
+                          <span className="text-success font-medium">
                             {formatCurrency(lancamento.entrada)}
                           </span>
                         ) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         {lancamento.saida ? (
-                          <span className="text-red-600 font-medium">
+                          <span className="text-destructive font-medium">
                             {formatCurrency(lancamento.saida)}
                           </span>
                         ) : '-'}
@@ -574,7 +574,7 @@ export function ConciliacaoBancariaPage() {
                               className="h-8 w-8 p-0"
                               onClick={() => handleCancelarEdicao()}
                             >
-                              <Check className="h-4 w-4 text-green-600" />
+                              <Check className="h-4 w-4 text-success" />
                             </Button>
                             <Button
                               size="sm"
@@ -582,7 +582,7 @@ export function ConciliacaoBancariaPage() {
                               className="h-8 w-8 p-0"
                               onClick={handleCancelarEdicao}
                             >
-                              <X className="h-4 w-4 text-red-600" />
+                              <X className="h-4 w-4 text-destructive" />
                             </Button>
                           </div>
                         ) : lancamento.status === 'PENDENTE' ? (

@@ -381,25 +381,25 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
   // Success State
   if (submitSuccess) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
         <Card className="max-w-2xl w-full">
           <CardContent className="p-12 text-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle2 className="w-8 h-8 text-success" />
             </div>
             <h2 className="text-2xl font-semibold mb-2">Termo Enviado com Sucesso!</h2>
-            <p className="text-neutral-600 mb-6">
+            <p className="text-muted-foreground mb-6">
               Seu termo de comunicação de reforma foi recebido e será analisado pela nossa equipe de engenharia.
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-sm text-blue-900 font-medium mb-2">📧 Próximos passos:</p>
-              <ul className="text-sm text-blue-800 space-y-1 text-left">
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mb-6">
+              <p className="text-sm text-primary font-medium mb-2">📧 Próximos passos:</p>
+              <ul className="text-sm text-primary space-y-1 text-left">
                 <li>• Você receberá um email de confirmação em breve</li>
                 <li>• A análise técnica será realizada em até 5 dias úteis</li>
                 <li>• O parecer será enviado por email</li>
               </ul>
             </div>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-muted-foreground">
               Protocolo: <span className="font-mono font-semibold">{osId}</span>
             </p>
           </CardContent>
@@ -409,28 +409,28 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 bg-cyan-500/10 rounded-lg flex items-center justify-center">
-              <FileText className="w-6 h-6 text-cyan-600" />
+            <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center">
+              <FileText className="w-6 h-6 text-info" />
             </div>
             <div>
               <h1 className="text-3xl font-semibold">Termo de Comunicação de Reforma</h1>
-              <p className="text-neutral-600 mt-1">
+              <p className="text-muted-foreground mt-1">
                 Preencha os dados abaixo para solicitar aprovação da reforma
               </p>
             </div>
           </div>
 
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-blue-900 mb-1">Importante</p>
-                <p className="text-sm text-blue-700">
+                <p className="text-sm font-medium text-primary mb-1">Importante</p>
+                <p className="text-sm text-primary">
                   Preencha todos os campos obrigatórios marcados com *. 
                   Após o envio, você receberá um email de confirmação e o parecer técnico em até 5 dias úteis.
                 </p>
@@ -449,7 +449,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2">
                   <Label htmlFor="nome">
-                    Nome Solicitante <span className="text-red-500">*</span>
+                    Nome Solicitante <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="nome"
@@ -461,7 +461,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
 
                 <div>
                   <Label htmlFor="contato">
-                    Contato (Telefone/WhatsApp) <span className="text-red-500">*</span>
+                    Contato (Telefone/WhatsApp) <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="contato"
@@ -473,7 +473,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
 
                 <div>
                   <Label htmlFor="email">
-                    Email <span className="text-red-500">*</span>
+                    Email <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="email"
@@ -507,7 +507,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
 
                 <div className="md:col-span-2">
                   <Label htmlFor="unidade">
-                    Unidade Autônoma <span className="text-red-500">*</span>
+                    Unidade Autônoma <span className="text-destructive">*</span>
                   </Label>
                   <Input
                     id="unidade"
@@ -524,15 +524,15 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
           <Card>
             <CardHeader>
               <CardTitle>Discriminação das Alterações Propostas</CardTitle>
-              <p className="text-sm text-neutral-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Adicione todas as alterações que serão realizadas na unidade
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {alteracoes.length === 0 ? (
-                <div className="text-center py-8 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-lg">
-                  <Building2 className="w-12 h-12 text-neutral-400 mx-auto mb-3" />
-                  <p className="text-sm text-neutral-600 mb-4">
+                <div className="text-center py-8 bg-background border-2 border-dashed border-border rounded-lg">
+                  <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                  <p className="text-sm text-muted-foreground mb-4">
                     Nenhuma alteração adicionada ainda
                   </p>
                   <Button type="button" onClick={handleAdicionarAlteracao}>
@@ -543,7 +543,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               ) : (
                 <div className="space-y-4">
                   {alteracoes.map((alt, index) => (
-                    <div key={alt.id} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50">
+                    <div key={alt.id} className="border border-border rounded-lg p-4 bg-background">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium">Alteração {index + 1}</p>
                         <Button
@@ -551,7 +551,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoverAlteracao(alt.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/5"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -563,7 +563,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                           <select
                             value={alt.sistema}
                             onChange={(e) => handleAtualizarAlteracao(alt.id, 'sistema', e.target.value)}
-                            className="w-full h-9 px-3 rounded-md border border-neutral-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full h-9 px-3 rounded-md border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           >
                             <option value="">Selecione...</option>
                             {sistemasOpcoes.map((sistema) => (
@@ -589,7 +589,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                           <select
                             value={alt.geraRuido}
                             onChange={(e) => handleAtualizarAlteracao(alt.id, 'geraRuido', e.target.value)}
-                            className="w-full h-9 px-3 rounded-md border border-neutral-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full h-9 px-3 rounded-md border border-border text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                           >
                             <option value="">Selecione...</option>
                             <option value="Sim">Sim</option>
@@ -633,14 +633,14 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
           <Card>
             <CardHeader>
               <CardTitle>Identificação dos Executores</CardTitle>
-              <p className="text-sm text-neutral-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Informe os dados dos profissionais que executarão a reforma
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
               {executores.length === 0 ? (
-                <div className="text-center py-8 bg-neutral-50 border-2 border-dashed border-neutral-200 rounded-lg">
-                  <p className="text-sm text-neutral-600 mb-4">
+                <div className="text-center py-8 bg-background border-2 border-dashed border-border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Nenhum executor adicionado ainda
                   </p>
                   <Button type="button" onClick={handleAdicionarExecutor}>
@@ -651,7 +651,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               ) : (
                 <div className="space-y-3">
                   {executores.map((exec, index) => (
-                    <div key={exec.id} className="border border-neutral-200 rounded-lg p-4 bg-neutral-50">
+                    <div key={exec.id} className="border border-border rounded-lg p-4 bg-background">
                       <div className="flex items-center justify-between mb-3">
                         <p className="text-sm font-medium">Executor {index + 1}</p>
                         <Button
@@ -659,7 +659,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoverExecutor(exec.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/5"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -705,7 +705,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
             </CardHeader>
             <CardContent>
               <Label htmlFor="descarte">
-                Plano de descarte de resíduos gerados <span className="text-red-500">*</span>
+                Plano de descarte de resíduos gerados <span className="text-destructive">*</span>
               </Label>
               <Textarea
                 id="descarte"
@@ -722,15 +722,15 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
           <Card>
             <CardHeader>
               <CardTitle>Tipo de Obra</CardTitle>
-              <p className="text-sm text-neutral-600 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Marque todas as opções que descrevem sua obra
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Obras que exigem ART */}
               <div>
-                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-3">
-                  <p className="text-sm font-medium text-amber-900">
+                <div className="bg-warning/5 border border-warning/20 rounded-lg p-3 mb-3">
+                  <p className="text-sm font-medium text-warning">
                     ⚠️ Obras que exigem ART/RRT (documentação obrigatória)
                   </p>
                 </div>
@@ -752,8 +752,8 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
 
               {/* Obras simples */}
               <div>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                  <p className="text-sm font-medium text-green-900">
+                <div className="bg-success/5 border border-success/20 rounded-lg p-3 mb-3">
+                  <p className="text-sm font-medium text-success">
                     ✓ Obras Simples (não exigem ART/RRT)
                   </p>
                 </div>
@@ -785,9 +785,9 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               {precisaART && (
                 <div>
                   <Label htmlFor="art">
-                    ART ou RRT <span className="text-red-500">*</span>
+                    ART ou RRT <span className="text-destructive">*</span>
                   </Label>
-                  <div className="mt-2 border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                  <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
                     <input
                       id="art"
                       type="file"
@@ -796,16 +796,16 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                       className="hidden"
                     />
                     <label htmlFor="art" className="cursor-pointer">
-                      <Upload className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-neutral-700">
+                      <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm font-medium text-muted-foreground">
                         {arquivoART ? arquivoART.name : 'Clique para fazer upload da ART/RRT'}
                       </p>
-                      <p className="text-xs text-neutral-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         PDF, JPG ou PNG (máx. 10MB)
                       </p>
                     </label>
                   </div>
-                  <p className="text-xs text-amber-600 mt-2">
+                  <p className="text-xs text-warning mt-2">
                     ⚠️ Obrigatório para os tipos de obra selecionados
                   </p>
                 </div>
@@ -814,9 +814,9 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               {/* Projeto (Obrigatório) */}
               <div>
                 <Label htmlFor="projeto">
-                  Projeto da Alteração <span className="text-red-500">*</span>
+                  Projeto da Alteração <span className="text-destructive">*</span>
                 </Label>
-                <div className="mt-2 border-2 border-dashed border-neutral-300 rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                <div className="mt-2 border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
                   <input
                     id="projeto"
                     type="file"
@@ -825,11 +825,11 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                     className="hidden"
                   />
                   <label htmlFor="projeto" className="cursor-pointer">
-                    <Upload className="w-8 h-8 text-neutral-400 mx-auto mb-2" />
-                    <p className="text-sm font-medium text-neutral-700">
+                    <Upload className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm font-medium text-muted-foreground">
                       {arquivoProjeto ? arquivoProjeto.name : 'Clique para fazer upload do projeto'}
                     </p>
-                    <p className="text-xs text-neutral-500 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       PDF, JPG, PNG ou DWG (máx. 20MB)
                     </p>
                   </label>
@@ -845,7 +845,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
               disabled={isSubmitting}
               isLoading={isSubmitting}
               loadingText="Enviando..."
-              className="bg-cyan-600 hover:bg-cyan-700"
+              className="bg-info hover:bg-info"
             >
               {!isSubmitting && <CheckCircle2 className="w-4 h-4 mr-2" />}
               Enviar Termo para Análise

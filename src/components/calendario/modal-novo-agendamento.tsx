@@ -19,7 +19,7 @@ import { Calendar, Clock, Loader2, AlertCircle, Shield, Tag, Briefcase } from 'l
 import { logger } from '../../lib/utils/logger';
 import { useCreateAgendamento, useVerificarDisponibilidade } from '../../lib/hooks/use-agendamentos';
 import { useSetores } from '../../lib/hooks/use-setores';
-import { categoryColors } from '@/lib/design-tokens';
+
 
 interface ModalNovoAgendamentoProps {
   open: boolean;
@@ -36,8 +36,6 @@ const categorias = [
   'Visita Semanal',
   'Vistoria Final'
 ];
-
-
 
 interface ValidationErrors {
   categoria?: string;
@@ -200,8 +198,6 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
     return duracoes;
   };
 
-
-
   const handleConfirmar = async () => {
     // Validar formulário completo
     if (!validarFormulario()) {
@@ -281,34 +277,34 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
         <div className="space-y-6 p-6">
           {/* Confirmação do Turno */}
-          <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 space-y-2 border border-blue-100 shadow-sm">
+          <div className="bg-muted/50 rounded-xl p-4 space-y-2 border border-border shadow-sm">
             <div className="flex items-center gap-2 text-sm">
-              <Calendar className="h-4 w-4 text-neutral-600" />
+              <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>
                 Data: {formatarData(dia)}
               </span>
             </div>
             <div className="flex items-center gap-2 text-sm">
-              <Clock className="h-4 w-4 text-neutral-600" />
+              <Clock className="h-4 w-4 text-muted-foreground" />
               <span>
                 Turno Selecionado: {turno.horaInicio} - {turno.horaFim}
               </span>
             </div>
-            <div className="text-sm text-neutral-600">
+            <div className="text-sm text-muted-foreground">
               Vagas disponíveis: {turno.vagasTotal - turno.vagasOcupadas} de {turno.vagasTotal}
             </div>
           </div>
 
           {/* Mensagem de restrição de setores */}
           {turno.setores && turno.setores.length < 10 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="bg-warning/5 border border-warning/20 rounded-lg p-4">
               <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <Shield className="h-5 w-5 text-warning mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="text-sm font-medium text-amber-800 mb-1">
+                  <h4 className="text-sm font-medium text-warning mb-1">
                     Este horário é exclusivo
                   </h4>
-                  <p className="text-sm text-amber-700">
+                  <p className="text-sm text-warning">
                     Setores permitidos: <strong>{turno.setores.join(', ')}</strong>
                   </p>
                 </div>
@@ -318,10 +314,10 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
           <div className="grid grid-cols-2 gap-4">
             {/* Categoria */}
-            <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-red-50 border border-red-200' : ''}`}>
+            <div className={`space-y-2 p-3 rounded-lg ${errors.categoria ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
               <div className="flex items-center gap-2">
-                <Tag className={`h-4 w-4 ${errors.categoria ? 'text-red-600' : 'text-blue-500'}`} />
-                <Label htmlFor="categoria" className={errors.categoria ? 'text-red-700' : 'font-medium'}>
+                <Tag className={`h-4 w-4 ${errors.categoria ? 'text-destructive' : 'text-primary'}`} />
+                <Label htmlFor="categoria" className={errors.categoria ? 'text-destructive' : 'font-medium'}>
                   Categoria *
                 </Label>
               </div>
@@ -333,7 +329,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                   return novo;
                 });
               }}>
-                <SelectTrigger id="categoria" className={errors.categoria ? 'border-red-500' : ''}>
+                <SelectTrigger id="categoria" className={errors.categoria ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Selecione a categoria" />
                 </SelectTrigger>
                 <SelectContent>
@@ -345,7 +341,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 </SelectContent>
               </Select>
               {errors.categoria && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.categoria}
                 </p>
@@ -353,10 +349,10 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
             </div>
 
             {/* Setor */}
-            <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-red-50 border border-red-200' : ''}`}>
+            <div className={`space-y-2 p-3 rounded-lg ${errors.setor ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
               <div className="flex items-center gap-2">
-                <Briefcase className={`h-4 w-4 ${errors.setor ? 'text-red-600' : 'text-purple-500'}`} />
-                <Label htmlFor="setor" className={errors.setor ? 'text-red-700' : 'font-medium'}>
+                <Briefcase className={`h-4 w-4 ${errors.setor ? 'text-destructive' : 'text-primary'}`} />
+                <Label htmlFor="setor" className={errors.setor ? 'text-destructive' : 'font-medium'}>
                   Setor *
                 </Label>
               </div>
@@ -368,7 +364,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                   return novo;
                 });
               }} disabled={loadingSetores}>
-                <SelectTrigger id="setor" className={errors.setor ? 'border-red-500' : ''}>
+                <SelectTrigger id="setor" className={errors.setor ? 'border-destructive' : ''}>
                   <SelectValue placeholder={loadingSetores ? "Carregando..." : "Selecione o setor"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,11 +377,8 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                     ))}
                 </SelectContent>
               </Select>
-              {/* <p className="text-xs text-neutral-600">
-                Setores permitidos: {turno.setores.join(', ')}
-              </p> */}
               {errors.setor && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.setor}
                 </p>
@@ -393,8 +386,8 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
             </div>
 
             {/* Horário de Início */}
-            <div className={`space-y-2 p-3 rounded-lg ${errors.horarioInicio ? 'bg-red-50 border border-red-200' : ''}`}>
-              <Label htmlFor="horarioInicio" className={errors.horarioInicio ? 'text-red-700' : ''}>
+            <div className={`space-y-2 p-3 rounded-lg ${errors.horarioInicio ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+              <Label htmlFor="horarioInicio" className={errors.horarioInicio ? 'text-destructive' : ''}>
                 Horário de Início *
               </Label>
               <Select value={horarioInicio} onValueChange={(value: string) => {
@@ -405,7 +398,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                   return novo;
                 });
               }}>
-                <SelectTrigger id="horarioInicio" className={errors.horarioInicio ? 'border-red-500' : ''}>
+                <SelectTrigger id="horarioInicio" className={errors.horarioInicio ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Selecione o horário" />
                 </SelectTrigger>
                 <SelectContent>
@@ -417,7 +410,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 </SelectContent>
               </Select>
               {errors.horarioInicio && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.horarioInicio}
                 </p>
@@ -425,8 +418,8 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
             </div>
 
             {/* Duração */}
-            <div className={`space-y-2 p-3 rounded-lg ${errors.duracao ? 'bg-red-50 border border-red-200' : ''}`}>
-              <Label htmlFor="duracao" className={errors.duracao ? 'text-red-700' : ''}>
+            <div className={`space-y-2 p-3 rounded-lg ${errors.duracao ? 'bg-destructive/5 border border-destructive/20' : ''}`}>
+              <Label htmlFor="duracao" className={errors.duracao ? 'text-destructive' : ''}>
                 Duração (horas) *
               </Label>
               <Select value={duracao} onValueChange={(value: string) => {
@@ -437,7 +430,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                   return novo;
                 });
               }}>
-                <SelectTrigger id="duracao" className={errors.duracao ? 'border-red-500' : ''}>
+                <SelectTrigger id="duracao" className={errors.duracao ? 'border-destructive' : ''}>
                   <SelectValue placeholder="Selecione a duração" />
                 </SelectTrigger>
                 <SelectContent>
@@ -449,7 +442,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
                 </SelectContent>
               </Select>
               {errors.duracao && (
-                <p className="text-sm text-red-600 flex items-center gap-1">
+                <p className="text-sm text-destructive flex items-center gap-1">
                   <AlertCircle className="h-4 w-4" />
                   {errors.duracao}
                 </p>
@@ -458,45 +451,43 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           </div>
 
           {/* Preview do Horário Calculado */}
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl p-4 mt-4 shadow-lg">
-            <div className="flex items-center justify-between text-white">
+          <div className="bg-primary rounded-xl p-4 mt-4 shadow-lg">
+            <div className="flex items-center justify-between text-primary-foreground">
               <div className="flex items-center gap-3">
                 <div className="bg-white/20 rounded-lg p-2">
                   <Clock className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-xs text-blue-100">Horário do agendamento</p>
+                  <p className="text-xs text-primary-foreground/80">Horário do agendamento</p>
                   <p className="font-semibold text-lg">
                     {horarioInicio ? `${horarioInicio} - ${calcularHorarioFim()}` : '--:--'}
                   </p>
                 </div>
               </div>
               <div className="text-right bg-white/20 rounded-lg px-4 py-2">
-                <p className="text-xs text-blue-100">Duração</p>
+                <p className="text-xs text-primary-foreground/80">Duração</p>
                 <p className="font-semibold text-lg">{duracao}h</p>
               </div>
             </div>
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-neutral-50 border-t">
+        <DialogFooter className="p-6 bg-muted/50 border-t">
           <Button
             variant="outline"
             onClick={handleFechar}
             disabled={criando}
-            className="px-6 hover:bg-neutral-100"
+            className="px-6 hover:bg-muted"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmar}
             className="
-              bg-gradient-to-r from-green-500 to-emerald-600
-              hover:from-green-600 hover:to-emerald-700
-              text-white px-8
+              bg-primary hover:bg-primary/90
+              text-primary-foreground px-8
               shadow-lg hover:shadow-xl
               disabled:opacity-50 disabled:cursor-not-allowed
-              disabled:from-neutral-300 disabled:to-neutral-400
               transition-all duration-200
             "
             disabled={criando || !isFormValid}

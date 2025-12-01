@@ -85,19 +85,19 @@ export function AutoSaveStatus({
   if (hasError) {
     icon = <AlertCircle className="h-4 w-4" />;
     text = errorMessage;
-    colorClass = 'text-red-600 bg-red-50 border-red-200';
+    colorClass = 'text-destructive bg-destructive/5 border-destructive/20';
   } else if (isSaving) {
     icon = <Loader2 className="h-4 w-4 animate-spin" />;
     text = savingMessage;
-    colorClass = 'text-blue-600 bg-blue-50 border-blue-200';
+    colorClass = 'text-primary bg-primary/5 border-primary/20';
   } else if (isSaved) {
     icon = <Check className="h-4 w-4" />;
     text = savedMessage;
-    colorClass = 'text-green-600 bg-green-50 border-green-200';
+    colorClass = 'text-success bg-success/5 border-success/20';
   } else if (lastSaveTime) {
     icon = <Clock className="h-4 w-4" />;
     text = `Salvo às ${lastSaveTime.toLocaleTimeString('pt-BR')}`;
-    colorClass = 'text-gray-600 bg-gray-50 border-gray-200';
+    colorClass = 'text-muted-foreground bg-muted border-border';
   }
 
   const positionClass =
@@ -142,15 +142,15 @@ export function AutoSaveStatusCompact({
 
   if (hasError) {
     icon = <AlertCircle className="h-4 w-4" />;
-    colorClass = 'text-red-600';
+    colorClass = 'text-destructive';
     title = 'Erro ao salvar';
   } else if (isSaving) {
     icon = <Loader2 className="h-4 w-4 animate-spin" />;
-    colorClass = 'text-blue-600';
+    colorClass = 'text-primary';
     title = 'Salvando...';
   } else if (isSaved) {
     icon = <Check className="h-4 w-4" />;
-    colorClass = 'text-green-600';
+    colorClass = 'text-success';
     title = 'Salvo com sucesso';
   }
 
@@ -179,10 +179,10 @@ export function AutoSaveProgressBar({
   className?: string;
 }) {
   return (
-    <div className={cn('h-1 w-full bg-gray-200 overflow-hidden', className)}>
+    <div className={cn('h-1 w-full bg-muted overflow-hidden', className)}>
       {isSaving && (
         <div
-          className="h-full bg-gradient-to-r from-blue-400 to-blue-600 animate-pulse"
+          className="h-full bg-gradient-to-r from-primary/60 to-primary animate-pulse"
           style={{
             width: '100%',
             animation: 'slideInOut 2s infinite',

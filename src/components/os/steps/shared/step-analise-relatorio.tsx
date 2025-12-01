@@ -41,7 +41,7 @@ export function StepAnaliseRelatorio({
 
       {/* Momento 1: Apresentação */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 1: Sobre a Apresentação</h3>
         </div>
 
@@ -92,7 +92,7 @@ export function StepAnaliseRelatorio({
 
       {/* Momento 2: Contrato e Dores */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 2: Contrato e Dores do Cliente</h3>
         </div>
 
@@ -151,7 +151,7 @@ export function StepAnaliseRelatorio({
 
       {/* Momento 3: Satisfação */}
       <div className="space-y-4">
-        <div className="bg-neutral-100 px-4 py-2 rounded-md">
+        <div className="bg-muted px-4 py-2 rounded-md">
           <h3 className="text-sm font-medium">Momento 3: Satisfação do Cliente</h3>
         </div>
 

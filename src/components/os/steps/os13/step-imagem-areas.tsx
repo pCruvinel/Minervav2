@@ -32,7 +32,7 @@ export function StepImagemAreas({ data, onDataChange, readOnly, osId }: StepImag
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Anexar Imagem de Referência de Áreas</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Anexe a imagem de referência das áreas vinculada ao cronograma da obra
         </p>
       </div>
@@ -47,11 +47,11 @@ export function StepImagemAreas({ data, onDataChange, readOnly, osId }: StepImag
         acceptedTypes={['application/pdf', 'image/png', 'image/jpg', 'image/jpeg']}
       />
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
-          <div className="w-5 h-5 text-blue-600 mt-0.5">ℹ️</div>
+          <div className="w-5 h-5 text-primary mt-0.5">ℹ️</div>
           <div>
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-primary">
               <strong>Importante:</strong> Esta imagem deve conter a identificação clara das áreas que serão trabalhadas, servindo como referência para o cronograma.
             </p>
           </div>

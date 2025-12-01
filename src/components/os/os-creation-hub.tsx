@@ -8,7 +8,7 @@ interface OSCreationHubProps {
 
 export function OSCreationHub({ onNavigate }: OSCreationHubProps) {
   return (
-    <div className="min-h-screen bg-neutral-100 p-6">
+    <div className="min-h-screen bg-muted p-6">
       <div className="max-w-[1600px] mx-auto space-y-6">
         {/* Cabeçalho */}
         <div className="space-y-2">

@@ -98,10 +98,10 @@ interface Document {
 
 const getStatusBadge = (status: string) => {
     const badges = {
-        'em_triagem': <Badge variant="secondary" className="bg-gray-200 text-gray-800 font-medium">Triagem</Badge>,
+        'em_triagem': <Badge variant="secondary" className="bg-muted text-foreground font-medium">Triagem</Badge>,
         'em_andamento': <Badge className="bg-primary/20 text-primary font-medium">Em Andamento</Badge>,
         'aguardando_aprovacao': <Badge className="bg-secondary/20 text-secondary font-medium">Aguardando Aprovação</Badge>,
-        'concluida': <Badge className="bg-green-100 text-green-700 font-medium">Concluída</Badge>,
+        'concluida': <Badge className="bg-success/10 text-success font-medium">Concluída</Badge>,
         'cancelada': <Badge className="bg-destructive/20 text-destructive font-medium">Cancelada</Badge>,
     };
     return badges[status as keyof typeof badges] || badges.em_triagem;
@@ -109,11 +109,11 @@ const getStatusBadge = (status: string) => {
 
 const getStepStatusIcon = (status: string) => {
     switch (status) {
-        case 'concluida': return <CheckCircle className="w-5 h-5 text-green-600" />;
-        case 'em_andamento': return <Play className="w-5 h-5 text-blue-600" />;
-        case 'bloqueada': return <Lock className="w-5 h-5 text-red-600" />;
-        case 'cancelada': return <X className="w-5 h-5 text-red-600" />;
-        default: return <AlertCircle className="w-5 h-5 text-gray-600" />;
+        case 'concluida': return <CheckCircle className="w-5 h-5 text-success" />;
+        case 'em_andamento': return <Play className="w-5 h-5 text-primary" />;
+        case 'bloqueada': return <Lock className="w-5 h-5 text-destructive" />;
+        case 'cancelada': return <X className="w-5 h-5 text-destructive" />;
+        default: return <AlertCircle className="w-5 h-5 text-muted-foreground" />;
     }
 };
 
@@ -200,11 +200,11 @@ const validateWorkflowAccess = (
 
 const getStepStatusColor = (status: string) => {
     switch (status) {
-        case 'concluida': return 'bg-green-50 border-green-200 text-green-800';
-        case 'em_andamento': return 'bg-blue-50 border-blue-200 text-blue-800';
-        case 'bloqueada': return 'bg-red-50 border-red-200 text-red-800';
-        case 'cancelada': return 'bg-red-50 border-red-200 text-red-800';
-        default: return 'bg-gray-50 border-gray-200 text-gray-800';
+        case 'concluida': return 'bg-success/5 border-success/20 text-success';
+        case 'em_andamento': return 'bg-primary/5 border-primary/20 text-primary';
+        case 'bloqueada': return 'bg-destructive/5 border-destructive/20 text-destructive';
+        case 'cancelada': return 'bg-destructive/5 border-destructive/20 text-destructive';
+        default: return 'bg-background border-border text-foreground';
     }
 };
 
@@ -227,14 +227,14 @@ const WorkflowNavigationButton = ({
             case WorkflowAccessRule.COMPLETED_READ_ONLY:
                 return {
                     variant: 'outline' as const,
-                    className: 'border-green-200 text-green-700 hover:bg-green-50',
+                    className: 'border-success/20 text-success hover:bg-success/5',
                     disabled: false,
                     text: 'Ver'
                 };
             case WorkflowAccessRule.CURRENT_EDITABLE:
                 return {
                     variant: 'default' as const,
-                    className: 'bg-blue-600 hover:bg-blue-700',
+                    className: 'bg-primary hover:bg-primary',
                     disabled: false,
                     text: 'Continuar'
                 };
@@ -248,14 +248,14 @@ const WorkflowNavigationButton = ({
             case WorkflowAccessRule.FUTURE_BLOCKED:
                 return {
                     variant: 'outline' as const,
-                    className: 'border-red-200 text-red-600 cursor-not-allowed',
+                    className: 'border-destructive/20 text-destructive cursor-not-allowed',
                     disabled: true,
                     text: 'Bloqueado'
                 };
             default:
                 return {
                     variant: 'outline' as const,
-                    className: 'border-gray-200 text-gray-600 cursor-not-allowed',
+                    className: 'border-border text-muted-foreground cursor-not-allowed',
                     disabled: true,
                     text: 'Indisponível'
                 };
@@ -824,57 +824,57 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
 
     if (loading) {
         return (
-            <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-gray-50 text-gray-900'}`}>
+            <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-gray-900 text-white' : 'bg-background text-foreground'}`}>
                 {/* Header Skeleton */}
-                <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+                <div className="bg-white border-b border-border sticky top-0 z-10">
                     <div className="px-8 py-6">
                         <div className="flex items-center justify-between">
-                            <div className="w-24 h-10 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="w-24 h-10 bg-muted rounded animate-pulse"></div>
                             <div className="text-center">
-                                <div className="w-48 h-8 bg-gray-200 rounded animate-pulse mx-auto mb-2"></div>
-                                <div className="w-32 h-4 bg-gray-200 rounded animate-pulse mx-auto"></div>
+                                <div className="w-48 h-8 bg-muted rounded animate-pulse mx-auto mb-2"></div>
+                                <div className="w-32 h-4 bg-muted rounded animate-pulse mx-auto"></div>
                             </div>
-                            <div className="w-20 h-8 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="w-20 h-8 bg-muted rounded animate-pulse"></div>
                         </div>
                     </div>
                 </div>
 
                 <div className="px-8 py-6">
                     {/* Tabs Skeleton */}
-                    <div className="w-full h-12 bg-gray-200 rounded-xl animate-pulse mb-6"></div>
+                    <div className="w-full h-12 bg-muted rounded-xl animate-pulse mb-6"></div>
 
                     {/* Progress Card Skeleton */}
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
-                        <div className="w-32 h-6 bg-gray-200 rounded animate-pulse mb-4"></div>
+                    <div className="bg-white border border-border rounded-lg shadow-sm p-6 mb-6">
+                        <div className="w-32 h-6 bg-muted rounded animate-pulse mb-4"></div>
                         <div className="space-y-4">
-                            <div className="w-full h-4 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="w-full h-4 bg-muted rounded animate-pulse"></div>
                             <div className="flex justify-between">
-                                <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="w-20 h-4 bg-muted rounded animate-pulse"></div>
+                                <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
                             </div>
                         </div>
                     </div>
 
                     {/* Info Card Skeleton */}
-                    <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
-                        <div className="w-48 h-7 bg-gray-200 rounded animate-pulse mb-6"></div>
+                    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+                        <div className="w-48 h-7 bg-muted rounded animate-pulse mb-6"></div>
                         <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="space-y-2">
-                                <div className="w-16 h-4 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="w-32 h-5 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="w-16 h-4 bg-muted rounded animate-pulse"></div>
+                                <div className="w-32 h-5 bg-muted rounded animate-pulse"></div>
                             </div>
                             <div className="space-y-2">
-                                <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
-                                <div className="w-28 h-5 bg-gray-200 rounded animate-pulse"></div>
+                                <div className="w-20 h-4 bg-muted rounded animate-pulse"></div>
+                                <div className="w-28 h-5 bg-muted rounded animate-pulse"></div>
                             </div>
                         </div>
-                        <div className="w-full h-16 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="w-full h-16 bg-muted rounded animate-pulse"></div>
                     </div>
 
                     {/* Loading Message */}
                     <div className="text-center mt-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-600">Carregando detalhes da OS...</p>
+                        <p className="text-muted-foreground">Carregando detalhes da OS...</p>
                     </div>
                 </div>
             </div>
@@ -883,11 +883,11 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
 
     if (!osDetails) {
         return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <Card className="p-8 border-gray-200">
-                    <p className="text-gray-600">OS não encontrada</p>
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Card className="p-8 border-border">
+                    <p className="text-muted-foreground">OS não encontrada</p>
                     <Link to="/os">
-                        <Button className="mt-4 bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black">
+                        <Button className="mt-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black">
                             Voltar para OS
                         </Button>
                     </Link>
@@ -897,9 +897,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
             {/* Header */}
-            <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+            <div className="bg-white border-b border-border sticky top-0 z-10">
                 <div className="px-8 py-6">
                     <div className="flex items-center justify-between">
                         <Link to="/os">
@@ -914,18 +914,18 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         </Link>
                         <div className="text-center">
                             <h1 className="text-3xl font-bold">{osDetails.codigo_os}</h1>
-                            <p className="text-neutral-600 font-normal">{osDetails.cliente_nome}</p>
+                            <p className="text-muted-foreground font-normal">{osDetails.cliente_nome}</p>
                         </div>
                         <div className="flex items-center gap-2">
                             {getStatusBadge(osDetails.status_geral)}
                             {isAutoUpdating && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 animate-pulse">
+                                <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 animate-pulse">
                                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                     Atualizando...
                                 </Badge>
                             )}
                             {!isAutoUpdating && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-xs">
                                     Atualizado {formatDateTime(lastUpdate.toISOString())}
                                 </Badge>
                             )}
@@ -1010,7 +1010,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                             <User className="w-4 h-4" />
                                             <span>Cliente</span>
                                         </div>
@@ -1024,7 +1024,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                     </div>
 
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                             <FileText className="w-4 h-4" />
                                             <span>Tipo de Serviço</span>
                                         </div>
@@ -1032,7 +1032,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                     </div>
 
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                             <Calendar className="w-4 h-4" />
                                             <span>Data de Abertura</span>
                                         </div>
@@ -1040,7 +1040,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                     </div>
 
                                     <div>
-                                        <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                             <Clock className="w-4 h-4" />
                                             <span>Prazo</span>
                                         </div>
@@ -1049,7 +1049,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                 </div>
 
                                 <div>
-                                    <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                         <User className="w-4 h-4" />
                                         <span>Responsável Atual</span>
                                     </div>
@@ -1067,11 +1067,11 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                 </div>
 
                                 <div>
-                                    <div className="flex items-center gap-2 text-sm text-neutral-600 mb-1 font-medium">
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
                                         <FileText className="w-4 h-4" />
                                         <span>Descrição</span>
                                     </div>
-                                    <p className="text-neutral-700 font-normal">{osDetails.descricao}</p>
+                                    <p className="text-muted-foreground font-normal">{osDetails.descricao}</p>
                                 </div>
                             </CardContent>
                         </Card>
@@ -1091,9 +1091,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                     {workflowSteps.map((step, index) => (
                                         <div
                                             key={step.id}
-                                            className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md ${step.status === 'em_andamento' ? 'bg-blue-50 border-blue-200' :
-                                                step.status === 'concluida' ? 'bg-green-50 border-green-200' :
-                                                    'bg-white border-gray-200'
+                                            className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md ${step.status === 'em_andamento' ? 'bg-primary/5 border-primary/20' :
+                                                step.status === 'concluida' ? 'bg-success/5 border-success/20' :
+                                                    'bg-white border-border'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-4">
@@ -1190,7 +1190,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                         {documents.map(doc => (
                                             <div
                                                 key={doc.id}
-                                                className="flex items-center justify-between p-3 bg-gray-50 rounded-md hover:bg-gray-100 transition-colors border border-border"
+                                                className="flex items-center justify-between p-3 bg-background rounded-md hover:bg-muted transition-colors border border-border"
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <FileText className="w-5 h-5 text-primary flex-shrink-0" />
@@ -1277,7 +1277,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div className="flex-1">
-                                                                <div className="bg-gray-50 rounded-md p-3 border border-gray-200 hover:bg-gray-100 transition-colors">
+                                                                <div className="bg-background rounded-md p-3 border border-border hover:bg-muted transition-colors">
                                                                     <div className="flex items-center gap-2 mb-1">
                                                                         <p className="text-xs font-medium">{comment.usuario_nome}</p>
                                                                         {comment.etapa_nome && (
@@ -1292,7 +1292,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                                             {comment.tipo}
                                                                         </Badge>
                                                                     </div>
-                                                                    <p className="text-sm text-gray-700">{comment.comentario}</p>
+                                                                    <p className="text-sm text-muted-foreground">{comment.comentario}</p>
                                                                 </div>
                                                                 <p className="text-xs text-muted-foreground mt-1">
                                                                     {formatDateTime(comment.criado_em)}
@@ -1344,7 +1344,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             value={newComment}
                                             onChange={(e) => setNewComment(e.target.value)}
                                             rows={4}
-                                            className="border-gray-300 rounded-md"
+                                            className="border-border rounded-md"
                                         />
                                         <Button
                                             onClick={handleAddComment}

@@ -6,7 +6,7 @@ import interactionPlugin from '@fullcalendar/interaction';
 import tippy from 'tippy.js';
 import { toast } from 'sonner';
 import type { EventClickArg, EventDropArg, EventMountArg, DateSelectArg } from '@fullcalendar/core';
-import type { DateClickArg } from '@fullcalendar/interaction';
+import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction';
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { supabase } from '@/lib/supabase-client';
 import { categoryColors } from '@/lib/design-tokens';
@@ -92,9 +92,9 @@ function CalendarioSemanaComponent({
 
             // Obter cores da categoria ou usar azul padrão
             const colors = categoryColors[agendamento.categoria as keyof typeof categoryColors] || {
-                bg: '#DBEAFE',
-                border: '#93C5FD',
-                text: '#1E40AF'
+                bg: 'hsl(var(--primary) / 0.2)',
+                border: 'hsl(var(--primary))',
+                text: 'hsl(var(--primary))'
             };
 
             events.push({
@@ -217,7 +217,7 @@ function CalendarioSemanaComponent({
     };
 
     // Handler para resize de evento
-    const handleEventResize = async (info: EventDropArg) => {
+    const handleEventResize = async (info: EventResizeDoneArg) => {
         const { event } = info;
         const { agendamento } = event.extendedProps;
 
@@ -262,15 +262,16 @@ function CalendarioSemanaComponent({
             tippy(info.el, {
                 content: `
                     <div style="
-                        background: white;
+                        background: hsl(var(--popover));
                         padding: 0.75rem;
                         border-radius: 0.5rem;
                         box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
                         min-width: 200px;
+                        border: 1px solid hsl(var(--border));
                     ">
                         <div style="
                             font-weight: 600;
-                            color: #111827;
+                            color: hsl(var(--popover-foreground));
                             margin-bottom: 0.5rem;
                             font-size: 0.875rem;
                         ">${agendamento.categoria}</div>
@@ -278,7 +279,7 @@ function CalendarioSemanaComponent({
                             display: flex;
                             align-items: center;
                             gap: 0.5rem;
-                            color: #6B7280;
+                            color: hsl(var(--muted-foreground));
                             font-size: 0.75rem;
                             margin-bottom: 0.25rem;
                         ">
@@ -292,7 +293,7 @@ function CalendarioSemanaComponent({
                                 display: flex;
                                 align-items: center;
                                 gap: 0.5rem;
-                                color: #6B7280;
+                                color: hsl(var(--muted-foreground));
                                 font-size: 0.75rem;
                             ">
                                 <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
@@ -317,11 +318,11 @@ function CalendarioSemanaComponent({
     if (loading) {
         return (
             <div className="p-6">
-                <div className="border border-neutral-200 rounded-lg overflow-hidden p-6 animate-pulse">
-                    <div className="h-8 bg-neutral-200 rounded mb-4"></div>
+                <div className="border border-border rounded-lg overflow-hidden p-6 animate-pulse">
+                    <div className="h-8 bg-muted rounded mb-4"></div>
                     <div className="grid grid-cols-7 gap-4">
                         {Array.from({ length: 35 }).map((_, i) => (
-                            <div key={i} className="h-20 bg-neutral-100 rounded"></div>
+                            <div key={i} className="h-20 bg-muted/50 rounded"></div>
                         ))}
                     </div>
                 </div>
@@ -333,12 +334,12 @@ function CalendarioSemanaComponent({
     if (error) {
         return (
             <div className="p-6">
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg text-destructive">
                     <p className="font-medium">Erro ao carregar turnos</p>
                     <p className="text-sm mt-1">{error.message}</p>
                     <button
                         onClick={onRefresh}
-                        className="mt-2 px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-sm"
+                        className="mt-2 px-3 py-1 bg-destructive/20 hover:bg-destructive/30 rounded text-sm transition-colors"
                     >
                         Tentar novamente
                     </button>
@@ -349,7 +350,7 @@ function CalendarioSemanaComponent({
 
     return (
         <div className="p-6">
-            <div className="border border-neutral-200 rounded-lg overflow-hidden bg-white">
+            <div className="border border-border rounded-lg overflow-hidden bg-card">
                 <FullCalendar
                     ref={calendarRef}
                     plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}

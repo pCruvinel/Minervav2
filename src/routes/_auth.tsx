@@ -72,7 +72,7 @@ function AuthLayoutContent() {
   if (!currentUser) return null
 
   return (
-    <div className="flex min-h-screen bg-neutral-100">
+    <div className="flex min-h-screen bg-muted">
       <Sidebar />
 
       {/* Main Content */}
@@ -83,7 +83,7 @@ function AuthLayoutContent() {
         }}
       >
         {/* Header */}
-        <header className="h-16 bg-white border-b border-neutral-200 px-6 flex items-center shrink-0">
+        <header className="h-16 bg-white border-b border-border px-6 flex items-center shrink-0">
           <Header
             user={currentUser}
             breadcrumbs={getBreadcrumbs()}

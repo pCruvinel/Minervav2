@@ -186,7 +186,7 @@ export function ModalClassificarLancamento({
 
         <div className="space-y-6">
           {/* Informações do Lançamento */}
-          <div className="bg-neutral-50 p-4 rounded-lg space-y-2">
+          <div className="bg-background p-4 rounded-lg space-y-2">
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Descrição</p>
@@ -194,7 +194,7 @@ export function ModalClassificarLancamento({
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Valor</p>
-                <p className={`text-xl font-medium ${lancamento.tipo === 'ENTRADA' ? 'text-green-600' : 'text-red-600'}`}>
+                <p className={`text-xl font-medium ${lancamento.tipo === 'ENTRADA' ? 'text-success' : 'text-destructive'}`}>
                   {formatCurrency(lancamento.valor)}
                 </p>
               </div>
@@ -285,7 +285,7 @@ export function ModalClassificarLancamento({
 
               <div className="space-y-3">
                 {rateios.map((rateio) => (
-                  <div key={rateio.id} className="flex gap-2 items-start p-3 bg-neutral-50 rounded-lg">
+                  <div key={rateio.id} className="flex gap-2 items-start p-3 bg-background rounded-lg">
                     <div className="flex-1 grid grid-cols-3 gap-2">
                       <div className="col-span-1 space-y-1">
                         <Label className="text-xs">Centro de Custo</Label>
@@ -325,7 +325,7 @@ export function ModalClassificarLancamento({
                         onClick={() => handleRemoverRateio(rateio.id)}
                         className="mt-6"
                       >
-                        <Trash2 className="h-4 w-4 text-red-600" />
+                        <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     )}
                   </div>
@@ -344,20 +344,20 @@ export function ModalClassificarLancamento({
               </Button>
 
               {/* Totalizadores */}
-              <div className="bg-neutral-100 p-3 rounded-lg">
+              <div className="bg-muted p-3 rounded-lg">
                 <div className="flex justify-between items-center">
                   <span className="text-sm">Total Rateado:</span>
                   <div className="flex gap-4">
                     <Badge variant={isRateioValido ? 'default' : 'destructive'}>
                       {totalPercentual.toFixed(2)}%
                     </Badge>
-                    <span className={`font-medium ${isRateioValido ? 'text-green-600' : 'text-red-600'}`}>
+                    <span className={`font-medium ${isRateioValido ? 'text-success' : 'text-destructive'}`}>
                       {formatCurrency(totalValor)}
                     </span>
                   </div>
                 </div>
                 {!isRateioValido && (
-                  <p className="text-xs text-red-600 mt-2">
+                  <p className="text-xs text-destructive mt-2">
                     A soma deve ser exatamente 100% ({formatCurrency(lancamento.valor)})
                   </p>
                 )}

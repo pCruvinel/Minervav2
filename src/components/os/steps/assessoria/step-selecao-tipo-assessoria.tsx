@@ -29,7 +29,7 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
           onValueChange={(value) => onDataChange({ tipoOS: value })}
           className="space-y-3"
         >
-          <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-neutral-50 transition-colors">
+          <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-background transition-colors">
             <RadioGroupItem value="OS-05" id="os-05" />
             <Label htmlFor="os-05" className="flex-1 cursor-pointer">
               <div>
@@ -41,7 +41,7 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
             </Label>
           </div>
 
-          <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-neutral-50 transition-colors">
+          <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-background transition-colors">
             <RadioGroupItem value="OS-06" id="os-06" />
             <Label htmlFor="os-06" className="flex-1 cursor-pointer">
               <div>
@@ -56,10 +56,10 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
       </div>
 
       {data.tipoOS && (
-        <Card className="bg-green-50 border-green-200">
+        <Card className="bg-success/5 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <Check className="h-5 w-5 text-green-600" />
+              <Check className="h-5 w-5 text-success" />
               <div>
                 <div className="text-sm">Tipo selecionado:</div>
                 <div className="text-base">

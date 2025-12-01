@@ -22,17 +22,17 @@ export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequ
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Requisição de Mão de Obra</h2>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Crie uma OS-10 para solicitar a contratação de mão de obra necessária para a obra
         </p>
       </div>
 
       {/* Status */}
-      <div className="border border-neutral-200 rounded-lg p-6 bg-neutral-50">
+      <div className="border border-border rounded-lg p-6 bg-background">
         <div className="flex items-start gap-4">
           <div 
             className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
-            style={{ backgroundColor: data.os10Criada ? '#10b981' : '#f59e0b' }}
+            style={{ backgroundColor: data.os10Criada ? 'var(--success)' : 'var(--warning)' }}
           >
             {data.os10Criada ? (
               <CheckCircle2 className="w-6 h-6 text-white" />
@@ -46,12 +46,12 @@ export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequ
               {data.os10Criada ? 'Requisição de mão de obra criada!' : 'Aguardando finalização'}
             </h3>
             {data.os10Criada ? (
-              <p className="text-sm text-neutral-600">
+              <p className="text-sm text-muted-foreground">
                 OS-10 criada: <strong>{data.os10Id}</strong>
               </p>
             ) : (
-              <p className="text-sm text-neutral-600">
-                Status: <strong className="text-orange-600">Aguardando finalização</strong>
+              <p className="text-sm text-muted-foreground">
+                Status: <strong className="text-warning">Aguardando finalização</strong>
               </p>
             )}
           </div>
@@ -65,14 +65,14 @@ export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequ
             <div className="text-center space-y-4">
               <div 
                 className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                style={{ backgroundColor: '#DDC063' }}
+                style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Plus className="w-8 h-8 text-white" />
               </div>
               
               <div>
                 <h3 className="text-base mb-2">Criar Nova Requisição de Mão de Obra</h3>
-                <p className="text-sm text-neutral-600">
+                <p className="text-sm text-muted-foreground">
                   Ao clicar no botão abaixo, uma nova OS-10 será criada para solicitar contratação de mão de obra
                 </p>
               </div>
@@ -80,7 +80,7 @@ export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequ
               <Button
                 onClick={handleCriarOS10}
                 className="bg-primary hover:bg-primary/90"
-                style={{ backgroundColor: '#D3AF37' }}
+                style={{ backgroundColor: 'var(--primary)' }}
                 disabled={readOnly}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -96,13 +96,13 @@ export function StepRequisicaoMaoObra({ data, onDataChange, readOnly }: StepRequ
               <div className="flex items-center gap-4">
                 <div 
                   className="w-12 h-12 rounded-lg flex items-center justify-center"
-                  style={{ backgroundColor: '#10b981' }}
+                  style={{ backgroundColor: 'var(--success)' }}
                 >
                   <CheckCircle2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
                   <p className="text-sm mb-1">OS-10: Requisição de Mão de Obra</p>
-                  <p className="text-xs text-neutral-600">{data.os10Id}</p>
+                  <p className="text-xs text-muted-foreground">{data.os10Id}</p>
                 </div>
               </div>
               

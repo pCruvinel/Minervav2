@@ -109,15 +109,15 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-neutral-200">
+      <div className="bg-white border-b border-border">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             {onBack && (
               <button
                 onClick={onBack}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-neutral-100 transition-colors"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
               >
                 <ChevronLeft className="w-5 h-5" />
                 <span>Voltar</span>
@@ -125,7 +125,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
             )}
             <div>
               <h1 className="text-2xl">OS-09: Requisição de Compras</h1>
-              {osId && <p className="text-neutral-600">OS #{osId}</p>}
+              {osId && <p className="text-muted-foreground">OS #{osId}</p>}
             </div>
           </div>
         </div>
@@ -145,7 +145,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
             <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
               <button
                 onClick={handleReturnToActive}
-                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
+                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
                 title="Voltar para a etapa em que estava trabalhando"
               >
                 <ChevronLeft className="w-4 h-4 rotate-180" />
@@ -158,13 +158,13 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
 
       {/* Banner de navegação histórica */}
       {isHistoricalNavigation && (
-        <div className="mt-4 bg-blue-50 border-l-4 border-blue-500 p-4 mx-6 rounded-r-lg flex items-start gap-3">
-          <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+        <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 mx-6 rounded-r-lg flex items-start gap-3">
+          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <h4 className="font-semibold text-blue-900 text-sm">
+            <h4 className="font-semibold text-primary text-sm">
               Modo de Visualização Histórica
             </h4>
-            <p className="text-blue-800 text-sm">
+            <p className="text-primary text-sm">
               Você está visualizando dados de uma etapa já concluída.
               {lastActiveStep && (
                 <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>

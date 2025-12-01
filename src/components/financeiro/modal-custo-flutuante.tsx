@@ -121,7 +121,7 @@ export function ModalCustoFlutuante({
 
         <div className="space-y-6">
           {/* Informações do Lançamento */}
-          <div className="bg-neutral-50 p-4 rounded-lg space-y-2">
+          <div className="bg-background p-4 rounded-lg space-y-2">
             <div className="flex justify-between items-start">
               <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Descrição do Lançamento</p>
@@ -129,7 +129,7 @@ export function ModalCustoFlutuante({
               </div>
               <div className="text-right">
                 <p className="text-sm text-muted-foreground">Valor Total</p>
-                <p className="text-xl font-medium text-red-600">
+                <p className="text-xl font-medium text-destructive">
                   {formatCurrency(lancamento.valor)}
                 </p>
               </div>
@@ -223,7 +223,7 @@ export function ModalCustoFlutuante({
                 </div>
                 <div className="text-center p-3 bg-white rounded-lg border">
                   <p className="text-xs text-muted-foreground mb-1">Incremento</p>
-                  <p className="text-lg font-medium text-orange-600">+{formatCurrency(diferencaCustoDia)}</p>
+                  <p className="text-lg font-medium text-warning">+{formatCurrency(diferencaCustoDia)}</p>
                 </div>
                 <div className="text-center p-3 bg-primary/10 rounded-lg border border-primary">
                   <p className="text-xs text-muted-foreground mb-1">Novo Custo-Dia</p>

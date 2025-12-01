@@ -27,7 +27,7 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
                     </div>
                     <div>
                         <CardTitle>Identificação da OS 05</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Componente básico para OS 05 - Implementação pendente
                         </p>
                     </div>
@@ -41,7 +41,7 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
                     </AlertDescription>
                 </Alert>
 
-                <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
                     {onBack && (
                         <Button variant="outline" onClick={onBack}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -61,28 +61,28 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                        <span className="text-lg font-semibold text-blue-600">2</span>
+                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                        <span className="text-lg font-semibold text-primary">2</span>
                     </div>
                     <div>
                         <CardTitle>Processamento da OS 05</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Etapa de processamento - Funcionalidade básica
                         </p>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <p className="text-sm text-blue-900 font-medium mb-1">
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+                    <p className="text-sm text-primary font-medium mb-1">
                         Processamento em andamento
                     </p>
-                    <p className="text-sm text-blue-700">
+                    <p className="text-sm text-primary">
                         Esta é uma implementação básica. O processamento real será implementado futuramente.
                     </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-between pt-4 border-t border-border">
                     <Button variant="outline" onClick={() => setEtapaAtual('identificacao')}>
                         <ArrowLeft className="w-4 h-4 mr-2" />
                         Voltar
@@ -101,33 +101,33 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
         <Card>
             <CardHeader>
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                        <CheckCircle2 className="w-6 h-6 text-green-600" />
+                    <div className="w-10 h-10 bg-success/10 rounded-lg flex items-center justify-center">
+                        <CheckCircle2 className="w-6 h-6 text-success" />
                     </div>
                     <div>
                         <CardTitle>OS 05 Concluída</CardTitle>
-                        <p className="text-sm text-neutral-600 mt-1">
+                        <p className="text-sm text-muted-foreground mt-1">
                             Processo básico finalizado com sucesso
                         </p>
                     </div>
                 </div>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-success/5 border border-success/20 rounded-lg p-4">
                     <div className="flex items-start gap-3">
-                        <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="text-sm font-medium text-green-900 mb-1">
+                            <p className="text-sm font-medium text-success mb-1">
                                 OS 05 Finalizada com Sucesso
                             </p>
-                            <p className="text-sm text-green-700">
+                            <p className="text-sm text-success">
                                 Implementação básica concluída. Funcionalidades completas serão desenvolvidas em sprint futuro.
                             </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center justify-end pt-4 border-t border-neutral-200">
+                <div className="flex items-center justify-end pt-4 border-t border-border">
                     {onBack && (
                         <PrimaryButton onClick={onBack}>
                             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -156,9 +156,9 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
                                 <div
                                     className={`
                     w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
-                    ${etapa.status === 'concluida' ? 'bg-green-500 text-white' : ''}
+                    ${etapa.status === 'concluida' ? 'bg-success text-white' : ''}
                     ${etapa.status === 'atual' ? 'bg-primary text-white ring-4 ring-primary/20' : ''}
-                    ${etapa.status === 'pendente' ? 'bg-neutral-200 text-neutral-500' : ''}
+                    ${etapa.status === 'pendente' ? 'bg-muted text-muted-foreground' : ''}
                   `}
                                 >
                                     {etapa.status === 'concluida' ? (
@@ -171,8 +171,8 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
                                     className={`
                     text-xs text-center max-w-[80px]
                     ${etapa.status === 'atual' ? 'font-semibold text-primary' : ''}
-                    ${etapa.status === 'concluida' ? 'text-green-600' : ''}
-                    ${etapa.status === 'pendente' ? 'text-neutral-500' : ''}
+                    ${etapa.status === 'concluida' ? 'text-success' : ''}
+                    ${etapa.status === 'pendente' ? 'text-muted-foreground' : ''}
                   `}
                                 >
                                     {etapa.titulo}
@@ -183,7 +183,7 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
                                 <div
                                     className={`
                     flex-1 h-0.5 mx-2
-                    ${etapa.status === 'concluida' ? 'bg-green-500' : 'bg-neutral-200'}
+                    ${etapa.status === 'concluida' ? 'bg-success' : 'bg-muted'}
                   `}
                                 />
                             )}
@@ -195,22 +195,22 @@ export function OS05WorkflowPage({ onBack }: OS05WorkflowPageProps) {
     };
 
     return (
-        <div className="min-h-screen bg-neutral-50">
+        <div className="min-h-screen bg-background">
             <div className="max-w-4xl mx-auto px-6 py-8">
                 {/* Header */}
                 <div className="mb-8">
                     <div className="flex items-center gap-3 mb-2">
-                        <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                            <span className="text-2xl font-bold text-orange-600">05</span>
+                        <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+                            <span className="text-2xl font-bold text-warning">05</span>
                         </div>
                         <div>
                             <h1 className="text-3xl font-semibold">OS 05: [Nome da OS 05]</h1>
-                            <p className="text-neutral-600 mt-1">
+                            <p className="text-muted-foreground mt-1">
                                 Implementação básica - Funcionalidades completas em desenvolvimento
                             </p>
                         </div>
                     </div>
-                    <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+                    <Badge variant="outline" className="bg-warning/5 text-warning border-warning/20">
                         Status: Implementação Básica
                     </Badge>
                 </div>

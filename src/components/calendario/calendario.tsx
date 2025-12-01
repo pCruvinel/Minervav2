@@ -14,11 +14,11 @@ function CalendarioComponent(_props: CalendarioProps) {
   // Componente removido - FullCalendar foi completamente removido do projeto
   return (
     <div className="p-6">
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
-        <h3 className="text-lg font-medium text-yellow-800 mb-2">
+      <div className="bg-warning/5 border border-warning/20 rounded-lg p-6 text-center">
+        <h3 className="text-lg font-medium text-warning mb-2">
           Calendário Indisponível
         </h3>
-        <p className="text-yellow-700">
+        <p className="text-warning-foreground">
           O componente FullCalendar foi removido do projeto.
           Use a visualização por semana ou dia para gerenciar turnos e agendamentos.
         </p>

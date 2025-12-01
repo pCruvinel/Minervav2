@@ -74,7 +74,7 @@ function getTextColor(backgroundColor: string): string {
     return designTokens.colors.text.primary;
   }
 
-  return '#FFFFFF';
+  return 'var(--background)';
 }
 
 export function AvatarGroup({ users, max = 3, size = 'md' }: AvatarGroupProps) {

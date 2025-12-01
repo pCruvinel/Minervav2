@@ -71,7 +71,7 @@ const renderStatusBadge = (status: ClienteDetalhe['status']) => {
   switch (status) {
     case 'ativo':
       return (
-        <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-0">
+        <Badge className="bg-success/10 text-success hover:bg-success/10 border-0">
           <CheckCircle className="h-3 w-3 mr-1" />
           Ativo
         </Badge>
@@ -203,7 +203,7 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
   };
 
   return (
-    <div className="p-6 space-y-6 bg-neutral-50 min-h-screen">
+    <div className="p-6 space-y-6 bg-background min-h-screen">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
@@ -259,9 +259,9 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Valor Mensal</p>
-              <DollarSign className="h-4 w-4 text-green-600" />
+              <DollarSign className="h-4 w-4 text-success" />
             </div>
-            <h3 className="text-xl text-green-600">{formatCurrency(cliente.contrato.valorMensal || 0)}</h3>
+            <h3 className="text-xl text-success">{formatCurrency(cliente.contrato.valorMensal || 0)}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {cliente.contrato.parcelasRestantes || 0} parcela(s) restante(s)
             </p>
@@ -285,7 +285,7 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-muted-foreground">Próxima Fatura</p>
-              <Calendar className="h-4 w-4 text-amber-600" />
+              <Calendar className="h-4 w-4 text-warning" />
             </div>
             <h3 className="text-xl">{cliente.financeiro.proximaFatura ? formatDate(cliente.financeiro.proximaFatura) : '-'}</h3>
             <p className="text-xs text-muted-foreground mt-1">
@@ -396,21 +396,21 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-background rounded-lg">
                   <span className="text-sm text-muted-foreground">Valor Total do Contrato</span>
                   <span className="font-medium text-lg">{formatCurrency(cliente.contrato.valorTotal || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-background rounded-lg">
                   <span className="text-sm text-muted-foreground">Valor Mensal</span>
-                  <span className="font-medium text-lg text-green-600">{formatCurrency(cliente.contrato.valorMensal || 0)}</span>
+                  <span className="font-medium text-lg text-success">{formatCurrency(cliente.contrato.valorMensal || 0)}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-background rounded-lg">
                   <span className="text-sm text-muted-foreground">Prazo (meses)</span>
                   <span className="font-medium text-lg">{cliente.contrato.prazoMeses || 0}</span>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-neutral-50 rounded-lg">
+                <div className="flex justify-between items-center p-3 bg-background rounded-lg">
                   <span className="text-sm text-muted-foreground">Parcelas Restantes</span>
-                  <span className="font-medium text-lg text-amber-600">{cliente.contrato.parcelasRestantes || 0}</span>
+                  <span className="font-medium text-lg text-warning">{cliente.contrato.parcelasRestantes || 0}</span>
                 </div>
               </CardContent>
             </Card>
@@ -510,7 +510,7 @@ export function ClienteDetalhesPage({ clienteId: _clienteId, onBack, onVisualiza
       <Dialog open={modalInativarOpen} onOpenChange={setModalInativarOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-red-600">
+            <DialogTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangle className="h-5 w-5" />
               Inativar Contrato
             </DialogTitle>

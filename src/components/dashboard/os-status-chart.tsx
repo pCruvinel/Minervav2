@@ -38,14 +38,14 @@ export function OSStatusChart({
       em_triagem: '#60a5fa', // blue
       em_andamento: '#3b82f6', // blue-600
       concluido: '#22c55e', // green-500
-      cancelado: '#ef4444', // red
+      cancelado: 'var(--destructive)', // red
     };
 
     return Object.entries(counts)
       .map(([status, count]) => ({
         name: statusLabels[status] || status,
         value: count,
-        color: statusColors[status] || '#D3AF37',
+        color: statusColors[status] || 'var(--primary)',
       }))
       .sort((a, b) => b.value - a.value);
   }, [ordensServico]);
@@ -58,9 +58,9 @@ export function OSStatusChart({
       const percentage = ((data.value / totalOS) * 100).toFixed(1);
 
       return (
-        <div className="bg-white p-3 rounded-lg shadow-lg border border-neutral-200">
+        <div className="bg-white p-3 rounded-lg shadow-lg border border-border">
           <p className="text-sm font-medium mb-1">{data.payload.name}</p>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-muted-foreground">
             {data.value} OS ({percentage}%)
           </p>
         </div>
@@ -76,7 +76,7 @@ export function OSStatusChart({
           <CardTitle className="text-lg">{title}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-center h-64 text-neutral-500">
+          <div className="flex items-center justify-center h-64 text-muted-foreground">
             <p className="text-sm">Nenhuma ordem de serviço disponível</p>
           </div>
         </CardContent>
@@ -88,7 +88,7 @@ export function OSStatusChart({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">{title}</CardTitle>
-        <p className="text-sm text-neutral-600">
+        <p className="text-sm text-muted-foreground">
           Total: {totalOS} {totalOS === 1 ? 'ordem' : 'ordens'}
         </p>
       </CardHeader>

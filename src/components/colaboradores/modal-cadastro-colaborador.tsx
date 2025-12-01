@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -448,7 +448,7 @@ export function ModalCadastroColaborador({
 
             {/* Preenchimento Automático */}
             {funcaoData && (
-              <div className="bg-neutral-50 p-4 rounded-lg space-y-3">
+              <div className="bg-muted p-4 rounded-lg space-y-3">
                 <h4 className="font-medium">Preenchimento Automático</h4>
 
                 <div className="grid grid-cols-2 gap-4">

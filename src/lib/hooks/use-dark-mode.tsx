@@ -261,7 +261,7 @@ export const darkModeCSS = `
     --color-bg: #ffffff;
     --color-bg-secondary: #f9fafb;
     --color-bg-tertiary: #f3f4f6;
-    --color-text: #111827;
+    --color-text: var(--foreground);
     --color-text-secondary: #6b7280;
     --color-text-tertiary: #9ca3af;
     --color-border: #e5e7eb;
@@ -278,7 +278,7 @@ export const darkModeCSS = `
 
   /* Dark mode */
   :root.dark {
-    --color-bg: #111827;
+    --color-bg: var(--foreground);
     --color-bg-secondary: #1f2937;
     --color-bg-tertiary: #374151;
     --color-text: #f9fafb;
@@ -289,9 +289,9 @@ export const darkModeCSS = `
 
     --color-primary: #3b82f6;
     --color-primary-hover: #2563eb;
-    --color-success: #10b981;
-    --color-warning: #f59e0b;
-    --color-danger: #ef4444;
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-danger: var(--destructive);
 
     color-scheme: dark;
   }
@@ -314,15 +314,15 @@ export const darkModeCSS = `
  * Usar em componentes assim: <div className="bg-white dark:bg-gray-900">
  */
 export const darkModeClasses = {
-  bg: 'bg-white dark:bg-gray-950',
-  bgSecondary: 'bg-gray-50 dark:bg-gray-900',
-  bgTertiary: 'bg-gray-100 dark:bg-gray-800',
-  text: 'text-gray-900 dark:text-white',
-  textSecondary: 'text-gray-600 dark:text-gray-400',
-  textTertiary: 'text-gray-500 dark:text-gray-500',
-  border: 'border-gray-200 dark:border-gray-700',
-  borderLight: 'border-gray-100 dark:border-gray-800',
-  shadow: 'shadow-sm dark:shadow-xl',
+  bg: 'bg-background',
+  bgSecondary: 'bg-muted',
+  bgTertiary: 'bg-muted/50',
+  text: 'text-foreground',
+  textSecondary: 'text-muted-foreground',
+  textTertiary: 'text-muted-foreground/80',
+  border: 'border-border',
+  borderLight: 'border-border/50',
+  shadow: 'shadow-sm',
 } as const;
 
 // =====================================================

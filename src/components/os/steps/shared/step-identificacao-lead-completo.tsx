@@ -572,35 +572,35 @@ export const StepIdentificacaoLeadCompleto = forwardRef<StepIdentificacaoLeadCom
           {/* Formulário de Dados da Edificação - Aparece após seleção/cadastro do cliente */}
           {selectedLead && (
             <div className="space-y-6">
-              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
                 <div className="flex items-start gap-3">
-                  <Check className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <Check className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
                   <div className="space-y-2 flex-1">
                     <div>
-                      <p className="text-sm font-medium text-blue-900">
+                      <p className="text-sm font-medium text-primary">
                         {selectedLeadId === selectedLead.id ? 'Cliente selecionado' : 'Cliente criado'} com sucesso!
                       </p>
-                      <p className="text-xs text-blue-700">
+                      <p className="text-xs text-primary">
                         Agora preencha os dados da edificação para continuar.
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                       <div>
-                        <span className="text-blue-700">Nome:</span>{' '}
-                        <span className="font-medium text-blue-900">{formData.nome || '-'}</span>
+                        <span className="text-primary">Nome:</span>{' '}
+                        <span className="font-medium text-primary">{formData.nome || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-blue-700">CPF/CNPJ:</span>{' '}
-                        <span className="font-medium text-blue-900">{formData.cpfCnpj || '-'}</span>
+                        <span className="text-primary">CPF/CNPJ:</span>{' '}
+                        <span className="font-medium text-primary">{formData.cpfCnpj || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-blue-700">Telefone:</span>{' '}
-                        <span className="font-medium text-blue-900">{formData.telefone || '-'}</span>
+                        <span className="text-primary">Telefone:</span>{' '}
+                        <span className="font-medium text-primary">{formData.telefone || '-'}</span>
                       </div>
                       <div>
-                        <span className="text-blue-700">Email:</span>{' '}
-                        <span className="font-medium text-blue-900">{formData.email || '-'}</span>
+                        <span className="text-primary">Email:</span>{' '}
+                        <span className="font-medium text-primary">{formData.email || '-'}</span>
                       </div>
                     </div>
                   </div>

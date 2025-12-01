@@ -26,12 +26,12 @@ interface ModalCriarTurnoProps {
 }
 
 const coresTurno = [
-  { nome: 'Azul', valor: '#93C5FD' },
-  { nome: 'Verde', valor: '#86EFAC' },
-  { nome: 'Amarelo', valor: '#FDE047' },
-  { nome: 'Rosa', valor: '#F9A8D4' },
-  { nome: 'Roxo', valor: '#C4B5FD' },
-  { nome: 'Dourado', valor: '#D3AF37' }
+  { nome: 'Azul', valor: 'var(--primary)' },
+  { nome: 'Verde', valor: 'var(--success)' },
+  { nome: 'Amarelo', valor: 'var(--warning)' },
+  { nome: 'Rosa', valor: 'var(--secondary)' },
+  { nome: 'Roxo', valor: 'var(--secondary)' },
+  { nome: 'Dourado', valor: 'var(--primary)' }
 ];
 
 interface ValidationErrors {
@@ -283,8 +283,8 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
         <div className="space-y-6 p-6">
           {/* Horários */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-              <Clock className="h-5 w-5 text-blue-500" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Clock className="h-5 w-5 text-primary" />
               <span>Horários</span>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -302,10 +302,10 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                       return novo;
                     });
                   }}
-                  className={errors.horaInicio ? 'border-red-500 focus:border-red-500' : ''}
+                  className={errors.horaInicio ? 'border-destructive focus:border-destructive' : ''}
                 />
                 {errors.horaInicio && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
                     {errors.horaInicio}
                   </p>
@@ -325,10 +325,10 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                       return novo;
                     });
                   }}
-                  className={errors.horaFim ? 'border-red-500 focus:border-red-500' : ''}
+                  className={errors.horaFim ? 'border-destructive focus:border-destructive' : ''}
                 />
                 {errors.horaFim && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
+                  <p className="text-sm text-destructive flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
                     {errors.horaFim}
                   </p>
@@ -339,8 +339,8 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
 
           {/* Recorrência */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-              <Calendar className="h-5 w-5 text-purple-500" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Calendar className="h-5 w-5 text-primary" />
               <span>Recorrência</span>
             </div>
             <div className="space-y-3">
@@ -393,10 +393,10 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                         return novo;
                       });
                     }}
-                    className={errors.dataInicio ? 'border-red-500 focus:border-red-500' : ''}
+                    className={errors.dataInicio ? 'border-destructive focus:border-destructive' : ''}
                   />
                   {errors.dataInicio && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
                       {errors.dataInicio}
                     </p>
@@ -416,10 +416,10 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                         return novo;
                       });
                     }}
-                    className={errors.dataFim ? 'border-red-500 focus:border-red-500' : ''}
+                    className={errors.dataFim ? 'border-destructive focus:border-destructive' : ''}
                   />
                   {errors.dataFim && (
-                    <p className="text-sm text-red-500 flex items-center gap-1">
+                    <p className="text-sm text-destructive flex items-center gap-1">
                       <AlertCircle className="h-4 w-4" />
                       {errors.dataFim}
                     </p>
@@ -464,7 +464,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   ))}
                 </div>
                 {recorrencia === 'custom' && diasSemana.length === 0 && (
-                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                  <p className="text-sm text-warning flex items-center gap-1">
                     <AlertCircle className="h-4 w-4" />
                     Selecione ao menos um dia da semana
                   </p>
@@ -476,11 +476,11 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           {/* Número de Vagas */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-                <Users className="h-5 w-5 text-green-500" />
+              <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+                <Users className="h-5 w-5 text-primary" />
                 <span>Número de Vagas</span>
               </div>
-              <span className="text-lg font-semibold text-blue-600">{numeroVagas[0]}</span>
+              <span className="text-lg font-semibold text-primary">{numeroVagas[0]}</span>
             </div>
             <Slider
               value={numeroVagas}
@@ -495,14 +495,14 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
               min={1}
               max={10}
               step={1}
-              className={errors.numeroVagas ? 'border-red-500' : ''}
+              className={errors.numeroVagas ? 'border-destructive' : ''}
             />
-            <div className="flex justify-between text-xs text-neutral-500">
+            <div className="flex justify-between text-xs text-muted-foreground">
               <span>1</span>
               <span>10</span>
             </div>
             {errors.numeroVagas && (
-              <p className="text-sm text-red-500 flex items-center gap-1">
+              <p className="text-sm text-destructive flex items-center gap-1">
                 <AlertCircle className="h-4 w-4" />
                 {errors.numeroVagas}
               </p>
@@ -511,8 +511,8 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
 
           {/* Cor do Turno */}
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-              <Palette className="h-5 w-5 text-pink-500" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Palette className="h-5 w-5 text-primary" />
               <span>Cor do Turno</span>
             </div>
             <div className="flex gap-3 flex-wrap">
@@ -524,7 +524,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   className={`
                     relative w-12 h-12 rounded-full transition-all
                     hover:scale-110 shadow-sm border-2
-                    ${corSelecionada === cor.valor ? 'ring-2 ring-offset-2 ring-blue-500 scale-110 border-transparent' : 'border-neutral-200'}
+                    ${corSelecionada === cor.valor ? 'ring-2 ring-offset-2 ring-primary scale-110 border-transparent' : 'border-border'}
                   `}
                   style={{ backgroundColor: cor.valor }}
                   title={cor.nome}
@@ -532,7 +532,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   {corSelecionada === cor.valor && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm">
-                        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                         </svg>
                       </div>
@@ -544,10 +544,10 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
 
           {/* Limitar Setores */}
-          <div className={`space-y-4 p-5 rounded-xl ${errors.setores ? 'bg-red-50 border-2 border-red-200' : 'bg-gradient-to-br from-neutral-50 to-neutral-100 border border-neutral-200'}`}>
-            <div className="flex items-center gap-2 text-sm font-semibold text-neutral-700">
-              <Briefcase className={`h-5 w-5 ${errors.setores ? 'text-red-500' : 'text-orange-500'}`} />
-              <span className={errors.setores ? 'text-red-700' : ''}>Setores</span>
+          <div className={`space-y-4 p-5 rounded-xl ${errors.setores ? 'bg-destructive/10 border-2 border-destructive/20' : 'bg-muted border border-border'}`}>
+            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
+              <Briefcase className={`h-5 w-5 ${errors.setores ? 'text-destructive' : 'text-primary'}`} />
+              <span className={errors.setores ? 'text-destructive' : ''}>Setores</span>
             </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -568,7 +568,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                 />
               </div>
               {loadingSetores ? (
-                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Carregando setores...
                 </div>
@@ -595,7 +595,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
               )}
             </div>
             {errors.setores && (
-              <p className="text-sm text-red-600 flex items-center gap-1 mt-2">
+              <p className="text-sm text-destructive flex items-center gap-1 mt-2">
                 <AlertCircle className="h-4 w-4" />
                 {errors.setores}
               </p>
@@ -603,24 +603,22 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
           </div>
         </div>
 
-        <DialogFooter className="p-6 bg-neutral-50 border-t">
+        <DialogFooter className="p-6 bg-muted/50 border-t">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={criando}
-            className="px-6 hover:bg-neutral-100"
+            className="px-6 hover:bg-muted"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSalvar}
             className="
-              bg-gradient-to-r from-blue-500 to-purple-600
-              hover:from-blue-600 hover:to-purple-700
-              text-white px-8
+              bg-primary hover:bg-primary/90
+              text-primary-foreground px-8
               shadow-lg hover:shadow-xl
               disabled:opacity-50 disabled:cursor-not-allowed
-              disabled:from-neutral-300 disabled:to-neutral-400
               transition-all duration-200
             "
             disabled={criando || !isFormValid}

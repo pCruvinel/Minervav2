@@ -1,12 +1,8 @@
 import React, { forwardRef, useImperativeHandle } from 'react';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FormInput } from '@/components/ui/form-input';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { AlertCircle, Upload } from 'lucide-react';
-import { FormInput } from '@/components/ui/form-input';
+import { AlertCircle } from 'lucide-react';
 import { FormTextarea } from '@/components/ui/form-textarea';
 import { FormSelect } from '@/components/ui/form-select';
 import { FormMaskedInput, validarTelefone } from '@/components/ui/form-masked-input';
@@ -80,8 +76,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
 
     // Função para realizar upload dos arquivos pendentes (mantida para compatibilidade)
     const uploadPendingFiles = async (): Promise<ArquivoComComentario[]> => {
-      // O novo componente já faz upload automático, então retorna os arquivos atuais
-      return data.anexos || [];
+      // O novo componente já faz upload automático, então retorna array vazio para evitar duplicação
+      return [];
     };
 
     /**
@@ -150,9 +146,9 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
         </Alert>
 
         {/* Aviso: Requisitos flexibilizados para avanço rápido */}
-        <Alert className="border-blue-200 bg-blue-50">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-700">
+        <Alert className="border-primary/20 bg-primary/5">
+          <AlertCircle className="h-4 w-4 text-primary" />
+          <AlertDescription className="text-primary">
             <strong>Requisitos flexibilizados:</strong> Os campos obrigatórios têm requisitos mínimos reduzidos
             para permitir avanço mais rápido quando necessário. Complete o máximo possível de informações
             para melhor qualidade do atendimento.
@@ -420,6 +416,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 url: file.url,
                 nome: file.name || file.nome,  // Handle both formats
                 tamanho: file.size || file.tamanho,  // Handle both formats
+                comentario: file.comment // Ensure comment is passed
               }));
               onDataChange({ ...safeData, anexos: filesForSchema });
             }}

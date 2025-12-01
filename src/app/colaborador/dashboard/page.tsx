@@ -12,6 +12,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
+import { StatusBadge, PriorityBadge } from "@/components/design-system";
+import { getStatusColor, getPrioridadeColor } from "@/lib/color-utils";
 import {
   mockUserColaborador,
   mockOrdensServico,
@@ -22,7 +24,7 @@ export default function ColaboradorDashboardPage() {
   const mockUser = mockUserColaborador;
 
   // Filtrar apenas as OS do colaborador logado e ordenar por prazo
-  const minhasOS = useMemo(() => 
+  const minhasOS = useMemo(() =>
     mockOrdensServico
       .filter((os) => os.responsavel === mockUser.nome)
       .sort((a, b) => new Date(a.prazo).getTime() - new Date(b.prazo).getTime()),
@@ -46,33 +48,8 @@ export default function ColaboradorDashboardPage() {
 
   const [tarefas] = useState(mockTarefasPrioritarias);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "em_andamento":
-        return "bg-blue-100 text-blue-800 border-blue-200";
-      case "em_triagem":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
-      case "concluido":
-        return "bg-green-100 text-green-800 border-green-200";
-      case "cancelado":
-        return "bg-red-100 text-red-800 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getPrioridadeColor = (prioridade: string) => {
-    switch (prioridade) {
-      case "ALTA":
-        return "bg-red-50 text-red-700 border-red-300";
-      case "MEDIA":
-        return "bg-yellow-50 text-yellow-700 border-yellow-300";
-      case "BAIXA":
-        return "bg-green-50 text-green-700 border-green-300";
-      default:
-        return "bg-gray-50 text-gray-700 border-gray-300";
-    }
-  };
+  // Funções de cores migradas para usar design system
+  // @deprecated Use StatusBadge e PriorityBadge components
 
   const isPrazoVencido = (prazo: string) => {
     const hoje = new Date();
@@ -81,14 +58,14 @@ export default function ColaboradorDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="px-8 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-black mb-1">Dashboard Operacional</h1>
-              <p className="text-gray-600">
+              <h1 className="text-foreground mb-1">Dashboard Operacional</h1>
+              <p className="text-muted-foreground">
                 Bem-vindo, {mockUser.nome} • Setor {mockUser.setor}
               </p>
             </div>
@@ -96,14 +73,14 @@ export default function ColaboradorDashboardPage() {
               <Link href="/colaborador/minhas-os">
                 <Button
                   variant="outline"
-                  className="border-[#D3AF37] text-black hover:bg-[#D3AF37]/10"
+                  className="border-primary text-foreground hover:bg-primary/10"
                 >
                   <ClipboardList className="w-4 h-4 mr-2" />
                   Ver Todas as OS
                 </Button>
               </Link>
               <Link href="/colaborador/agenda">
-                <Button className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black">
+                <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
                   <Calendar className="w-4 h-4 mr-2" />
                   Minha Agenda
                 </Button>
@@ -116,50 +93,50 @@ export default function ColaboradorDashboardPage() {
       <div className="p-8">
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <Card className="p-6 border-gray-200">
+          <Card className="p-6 border-border">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 mb-2">Minhas OS em Aberto</p>
-                <p className="text-black">{mockKPIs.osEmAberto}</p>
+                <p className="text-muted-foreground mb-2">Minhas OS em Aberto</p>
+                <p className="text-foreground">{mockKPIs.osEmAberto}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center">
-                <ClipboardList className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 rounded-lg bg-info/10 flex items-center justify-center">
+                <ClipboardList className="w-6 h-6 text-info" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 border-gray-200">
+          <Card className="p-6 border-border">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 mb-2">Tarefas para Hoje</p>
-                <p className="text-black">{mockKPIs.tarefasHoje}</p>
+                <p className="text-muted-foreground mb-2">Tarefas para Hoje</p>
+                <p className="text-foreground">{mockKPIs.tarefasHoje}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-success" />
               </div>
             </div>
           </Card>
 
-          <Card className="p-6 border-gray-200">
+          <Card className="p-6 border-border">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-gray-600 mb-2">Prazos Vencidos</p>
-                <p className="text-black">{mockKPIs.prazosVencidos}</p>
+                <p className="text-muted-foreground mb-2">Prazos Vencidos</p>
+                <p className="text-foreground">{mockKPIs.prazosVencidos}</p>
               </div>
-              <div className="w-12 h-12 rounded-lg bg-red-100 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-red-600" />
+              <div className="w-12 h-12 rounded-lg bg-destructive/10 flex items-center justify-center">
+                <AlertCircle className="w-6 h-6 text-destructive" />
               </div>
             </div>
           </Card>
         </div>
 
         {/* Tarefas Prioritárias */}
-        <Card className="border-gray-200">
-          <div className="p-6 border-b border-gray-200">
+        <Card className="border-border">
+          <div className="p-6 border-b border-border">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-black mb-1">Minhas Tarefas Prioritárias</h2>
-                <p className="text-gray-600">
+                <h2 className="text-foreground mb-1">Minhas Tarefas Prioritárias</h2>
+                <p className="text-muted-foreground">
                   Ordens de Serviço delegadas a você, ordenadas por prazo
                 </p>
               </div>
@@ -168,75 +145,68 @@ export default function ColaboradorDashboardPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-muted border-b border-border">
                 <tr>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Código OS
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Cliente</th>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">Cliente</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Etapa Atual
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Prazo</th>
-                  <th className="px-6 py-3 text-left text-gray-700">Status</th>
-                  <th className="px-6 py-3 text-left text-gray-700">
+                  <th className="px-6 py-3 text-left text-muted-foreground">Prazo</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">Status</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">
                     Prioridade
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700">Ação</th>
+                  <th className="px-6 py-3 text-left text-muted-foreground">Ação</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-200">
+              <tbody className="divide-y divide-border">
                 {tarefas.map((tarefa) => (
                   <tr
                     key={tarefa.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-muted transition-colors"
                   >
                     <td className="px-6 py-4">
-                      <p className="text-black">{tarefa.codigo}</p>
+                      <p className="text-foreground">{tarefa.codigo}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-black">{tarefa.cliente}</p>
+                      <p className="text-foreground">{tarefa.cliente}</p>
                     </td>
                     <td className="px-6 py-4">
-                      <p className="text-gray-700">
+                      <p className="text-muted-foreground">
                         {tarefa.etapaAtual.replace(/_/g, " ")}
                       </p>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <p
-                          className={`text-black ${
-                            isPrazoVencido(tarefa.prazo) ? "text-red-600" : ""
-                          }`}
+                          className={`text-foreground ${isPrazoVencido(tarefa.prazo) ? "text-destructive" : ""
+                            }`}
                         >
                           {new Date(tarefa.prazo).toLocaleDateString("pt-BR")}
                         </p>
                         {isPrazoVencido(tarefa.prazo) && (
-                          <AlertCircle className="w-4 h-4 text-red-600" />
+                          <AlertCircle className="w-4 h-4 text-destructive" />
                         )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge
-                        variant="outline"
-                        className={getStatusColor(tarefa.status)}
-                      >
+                      <StatusBadge status={tarefa.status as any}>
                         {tarefa.status.replace(/_/g, " ")}
-                      </Badge>
+                      </StatusBadge>
                     </td>
                     <td className="px-6 py-4">
-                      <Badge
-                        variant="outline"
-                        className={getPrioridadeColor(tarefa.prioridade)}
-                      >
+                      <PriorityBadge priority={tarefa.prioridade as any}>
                         {tarefa.prioridade}
-                      </Badge>
+                      </PriorityBadge>
                     </td>
                     <td className="px-6 py-4">
                       <Link href={`/colaborador/minhas-os/${tarefa.id}`}>
                         <Button
                           size="sm"
-                          className="bg-[#D3AF37] hover:bg-[#D3AF37]/90 text-black"
+                          className="bg-primary hover:bg-primary/90 text-primary-foreground"
                         >
                           <span className="mr-1">Executar</span>
                           <ArrowRight className="w-4 h-4" />

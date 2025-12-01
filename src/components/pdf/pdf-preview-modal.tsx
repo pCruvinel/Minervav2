@@ -102,8 +102,8 @@ export function PDFPreviewModal({
         <div className="flex-1 min-h-[500px]">
           {!pdfUrl ? (
             // Preview dos dados antes de gerar
-            <div className="space-y-4 p-4 bg-neutral-50 rounded-lg">
-              <h3 className="font-semibold text-neutral-800">
+            <div className="space-y-4 p-4 bg-background rounded-lg">
+              <h3 className="font-semibold text-foreground">
                 Dados do Documento:
               </h3>
               <div className="grid grid-cols-2 gap-3">
@@ -111,10 +111,10 @@ export function PDFPreviewModal({
                   if (typeof value === 'object') return null;
                   return (
                     <div key={key} className="text-sm">
-                      <span className="font-medium text-neutral-600">
+                      <span className="font-medium text-muted-foreground">
                         {key}:
                       </span>{' '}
-                      <span className="text-neutral-900">{String(value)}</span>
+                      <span className="text-foreground">{String(value)}</span>
                     </div>
                   );
                 })}
@@ -124,7 +124,7 @@ export function PDFPreviewModal({
             // Preview do PDF gerado
             <iframe
               src={pdfUrl}
-              className="w-full h-[500px] rounded-lg border border-neutral-200"
+              className="w-full h-[500px] rounded-lg border border-border"
               title="PDF Preview"
             />
           ) : null}
