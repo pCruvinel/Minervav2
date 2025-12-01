@@ -1,5 +1,5 @@
 import { logger } from '@/lib/utils/logger';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -18,26 +18,20 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle,
   MessageSquare,
   Copy,
   Users,
   DollarSign,
   ChevronDown,
+  Loader2
 } from 'lucide-react';
 import { cn } from '../ui/utils';
-import { format } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
-
-interface Colaborador {
-  id: string;
-  nome: string;
-  funcao: string;
-  setor: string;
-  custoDia: number;
-  avatar?: string;
-}
+import { supabase } from '@/lib/supabase-client';
+import { Colaborador } from '@/types/colaborador';
+import { CentroCusto } from '@/lib/hooks/use-centro-custo';
 
 interface RegistroPresenca {
   colaboradorId: string;
@@ -47,45 +41,104 @@ interface RegistroPresenca {
   justificativaStatus?: string;
   justificativaPerformance?: string;
   minutosAtraso?: number;
+  anexoUrl?: string;
 }
-
-// Mock de colaboradores
-const mockColaboradores: Colaborador[] = [
-  { id: 'col-1', nome: 'João Silva', funcao: 'Pedreiro', setor: 'obras', custoDia: 180.00 },
-  { id: 'col-2', nome: 'Maria Santos', funcao: 'Engenheira Civil', setor: 'assessoria', custoDia: 450.00 },
-  { id: 'col-3', nome: 'Pedro Oliveira', funcao: 'Auxiliar de Obras', setor: 'obras', custoDia: 120.00 },
-  { id: 'col-4', nome: 'Ana Costa', funcao: 'Administrativa', setor: 'administrativo', custoDia: 280.00 },
-  { id: 'col-5', nome: 'Carlos Mendes', funcao: 'Servente', setor: 'obras', custoDia: 110.00 },
-  { id: 'col-6', nome: 'Beatriz Lima', funcao: 'Arquiteta', setor: 'assessoria', custoDia: 420.00 },
-  { id: 'col-7', nome: 'Ricardo Souza', funcao: 'Eletricista', setor: 'obras', custoDia: 160.00 },
-  { id: 'col-8', nome: 'Juliana Alves', funcao: 'Pintora', setor: 'obras', custoDia: 140.00 },
-];
-
-// Mock de centros de custo
-const mockCentrosCusto = [
-  { id: 'cc-1', nome: 'Obra Residencial - Jardim das Flores', cor: 'bg-blue-100 text-blue-800' },
-  { id: 'cc-2', nome: 'Reforma Comercial - Shopping Norte', cor: 'bg-purple-100 text-purple-800' },
-  { id: 'cc-3', nome: 'Laudo Estrutural - Edifício Central', cor: 'bg-amber-100 text-amber-800' },
-  { id: 'cc-4', nome: 'Obra Industrial - Fábrica XYZ', cor: 'bg-green-100 text-green-800' },
-];
 
 export function ControlePresencaTabelaPage() {
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
-  const [registros, setRegistros] = useState<Record<string, RegistroPresenca>>(
-    mockColaboradores.reduce((acc, col) => ({
-      ...acc,
-      [col.id]: {
-        colaboradorId: col.id,
-        status: 'OK',
-        performance: 'BOA',
-        centrosCusto: [],
-      }
-    }), {})
-  );
+  const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
+  const [registros, setRegistros] = useState<Record<string, RegistroPresenca>>({});
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [modalJustificativaOpen, setModalJustificativaOpen] = useState(false);
   const [colaboradorAtual, setColaboradorAtual] = useState<string | null>(null);
   const [tipoJustificativa, setTipoJustificativa] = useState<'STATUS' | 'PERFORMANCE'>('STATUS');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // Carregar dados iniciais (Colaboradores e Centros de Custo)
+  useEffect(() => {
+    const fetchDadosIniciais = async () => {
+      try {
+        setLoading(true);
+        const [colsRes, ccRes] = await Promise.all([
+          supabase.from('colaboradores').select('*').eq('ativo', true).order('nome_completo'),
+          supabase.from('centros_custo').select('id, nome').eq('ativo', true).order('nome')
+        ]);
+
+        if (colsRes.error) throw colsRes.error;
+        if (ccRes.error) throw ccRes.error;
+
+        setColaboradores(colsRes.data || []);
+        setCentrosCusto(ccRes.data || []);
+      } catch (error) {
+        console.error('Erro ao carregar dados iniciais:', error);
+        toast.error('Erro ao carregar colaboradores e centros de custo.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDadosIniciais();
+  }, []);
+
+  // Carregar registros do dia selecionado
+  useEffect(() => {
+    if (colaboradores.length > 0) {
+      fetchRegistrosDoDia(dataSelecionada);
+    }
+  }, [dataSelecionada, colaboradores]);
+
+  const fetchRegistrosDoDia = async (date: Date) => {
+    try {
+      setLoading(true);
+      const dateStr = format(date, 'yyyy-MM-dd');
+
+      const { data, error } = await supabase
+        .from('registros_presenca')
+        .select('*')
+        .eq('data', dateStr);
+
+      if (error) throw error;
+
+      const novosRegistros: Record<string, RegistroPresenca> = {};
+
+      // Inicializar todos com padrão
+      colaboradores.forEach(col => {
+        novosRegistros[col.id] = {
+          colaboradorId: col.id,
+          status: 'OK',
+          performance: 'BOA',
+          centrosCusto: [],
+        };
+      });
+
+      // Sobrescrever com dados do banco se existirem
+      if (data && data.length > 0) {
+        data.forEach(reg => {
+          if (novosRegistros[reg.colaborador_id]) {
+            novosRegistros[reg.colaborador_id] = {
+              colaboradorId: reg.colaborador_id,
+              status: reg.status as any,
+              performance: reg.performance as any,
+              centrosCusto: reg.centros_custo || [],
+              justificativaStatus: reg.justificativa,
+              justificativaPerformance: reg.performance_justificativa,
+              minutosAtraso: reg.minutos_atraso,
+              anexoUrl: reg.anexo_url
+            };
+          }
+        });
+      }
+
+      setRegistros(novosRegistros);
+    } catch (error) {
+      console.error('Erro ao buscar registros:', error);
+      toast.error('Erro ao carregar registros do dia.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -96,7 +149,7 @@ export function ControlePresencaTabelaPage() {
 
   const handleSelecionarTodos = (checked: boolean) => {
     if (checked) {
-      setSelecionados(new Set(mockColaboradores.map(c => c.id)));
+      setSelecionados(new Set(colaboradores.map(c => c.id)));
     } else {
       setSelecionados(new Set());
     }
@@ -112,35 +165,44 @@ export function ControlePresencaTabelaPage() {
     setSelecionados(novos);
   };
 
-  const handleRepetirAlocacaoOntem = () => {
-    // Simular dados de ontem
-    const alocacaoOntem: Record<string, string[]> = {
-      'col-1': ['cc-1', 'cc-2'],
-      'col-2': ['cc-3'],
-      'col-3': ['cc-1'],
-      'col-5': ['cc-2', 'cc-4'],
-      'col-7': ['cc-1', 'cc-4'],
-      'col-8': ['cc-2'],
-    };
+  const handleRepetirAlocacaoOntem = async () => {
+    try {
+      const ontem = subDays(dataSelecionada, 1);
+      const dateStr = format(ontem, 'yyyy-MM-dd');
 
-    setRegistros(prev => {
-      const novos = { ...prev };
-      Object.keys(alocacaoOntem).forEach(colId => {
-        if (novos[colId]) {
-          novos[colId] = {
-            ...novos[colId],
-            centrosCusto: alocacaoOntem[colId],
-          };
-        }
+      const { data, error } = await supabase
+        .from('registros_presenca')
+        .select('colaborador_id, centros_custo')
+        .eq('data', dateStr);
+
+      if (error) throw error;
+
+      if (!data || data.length === 0) {
+        toast.info('Nenhum registro encontrado no dia anterior.');
+        return;
+      }
+
+      setRegistros(prev => {
+        const novos = { ...prev };
+        data.forEach(reg => {
+          if (novos[reg.colaborador_id]) {
+            novos[reg.colaborador_id] = {
+              ...novos[reg.colaborador_id],
+              centrosCusto: reg.centros_custo || [],
+            };
+          }
+        });
+        return novos;
       });
-      return novos;
-    });
 
-    toast.success('Alocação de ontem replicada com sucesso!');
+      toast.success(`Alocação de ${format(ontem, 'dd/MM')} replicada!`);
+    } catch (error) {
+      console.error('Erro ao replicar alocação:', error);
+      toast.error('Erro ao buscar dados do dia anterior.');
+    }
   };
 
   const handleStatusChange = (colaboradorId: string, status: RegistroPresenca['status']) => {
-    // Se mudar para FALTA ou ATRASADO, abrir modal de justificativa
     if (status === 'FALTA' || status === 'ATRASADO') {
       setColaboradorAtual(colaboradorId);
       setTipoJustificativa('STATUS');
@@ -159,7 +221,6 @@ export function ControlePresencaTabelaPage() {
   };
 
   const handlePerformanceChange = (colaboradorId: string, performance: RegistroPresenca['performance']) => {
-    // Se mudar para RUIM, exigir justificativa
     if (performance === 'RUIM') {
       setColaboradorAtual(colaboradorId);
       setTipoJustificativa('PERFORMANCE');
@@ -211,43 +272,47 @@ export function ControlePresencaTabelaPage() {
     setColaboradorAtual(null);
   };
 
-  const calcularCustoTotalDia = () => {
-    return mockColaboradores.reduce((total, col) => {
-      const registro = registros[col.id];
-      if (registro.status === 'FALTA') return total; // Falta não gera custo
+  const calcularCustoDia = (colaborador: Colaborador) => {
+    if (colaborador.tipo_contratacao === 'CLT') {
+      return (colaborador.salario_base || 0) * 1.46 / 22;
+    }
+    return colaborador.custo_dia || 0;
+  };
 
-      const numCCs = registro.centrosCusto.length || 1;
-      return total + col.custoDia;
+  const calcularCustoTotalDia = () => {
+    return colaboradores.reduce((total, col) => {
+      const registro = registros[col.id];
+      if (!registro || registro.status === 'FALTA') return total;
+      return total + calcularCustoDia(col);
     }, 0);
   };
 
   const calcularEstatisticas = () => {
-    const presentes = mockColaboradores.filter(col => registros[col.id].status !== 'FALTA').length;
-    const ausentes = mockColaboradores.length - presentes;
-    const atrasados = mockColaboradores.filter(col => registros[col.id].status === 'ATRASADO').length;
+    const presentes = colaboradores.filter(col => registros[col.id]?.status !== 'FALTA').length;
+    const ausentes = colaboradores.length - presentes;
+    const atrasados = colaboradores.filter(col => registros[col.id]?.status === 'ATRASADO').length;
 
     return { presentes, ausentes, atrasados };
   };
 
-  const handleConfirmarRegistros = () => {
-    // Validar se todos têm pelo menos 1 centro de custo (exceto ADM)
+  const handleConfirmarRegistros = async () => {
     const erros: string[] = [];
+    const dateStr = format(dataSelecionada, 'yyyy-MM-dd');
 
-    mockColaboradores.forEach(col => {
+    // Validação
+    colaboradores.forEach(col => {
       const registro = registros[col.id];
+      if (!registro) return;
 
       if (col.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0) {
         erros.push(`${col.nome} precisa ter pelo menos 1 Centro de Custo`);
       }
-
       if ((registro.status === 'FALTA' || registro.status === 'ATRASADO') && !registro.justificativaStatus) {
         erros.push(`${col.nome} precisa ter justificativa de ${registro.status === 'FALTA' ? 'falta' : 'atraso'}`);
       }
-
       if (registro.performance === 'RUIM' && !registro.justificativaPerformance) {
         erros.push(`${col.nome} precisa ter justificativa de performance ruim`);
       }
-
       if (registro.status === 'ATRASADO' && !registro.minutosAtraso) {
         erros.push(`${col.nome} precisa informar os minutos de atraso`);
       }
@@ -258,51 +323,67 @@ export function ControlePresencaTabelaPage() {
       return;
     }
 
-    logger.log('Registros confirmados:', registros);
-    toast.success(`✅ Presença registrada para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
-  };
+    try {
+      setSaving(true);
 
-  const getStatusBadge = (status: RegistroPresenca['status']) => {
-    const config = {
-      OK: { icon: CheckCircle, label: 'OK', className: 'text-green-600' },
-      ATRASADO: { icon: Clock, label: 'Atrasado', className: 'text-amber-600' },
-      FALTA: { icon: XCircle, label: 'Falta', className: 'text-red-600' },
-    };
-    const { icon: Icon, label, className } = config[status];
-    return (
-      <div className="flex items-center gap-1">
-        <Icon className={cn('h-4 w-4', className)} />
-        <span>{label}</span>
-      </div>
-    );
-  };
+      const upsertData = colaboradores.map(col => {
+        const reg = registros[col.id];
+        return {
+          colaborador_id: col.id,
+          data: dateStr,
+          status: reg.status,
+          minutos_atraso: reg.minutosAtraso || null,
+          justificativa: reg.justificativaStatus || null,
+          performance: reg.performance,
+          performance_justificativa: reg.justificativaPerformance || null,
+          centros_custo: reg.centrosCusto,
+          anexo_url: reg.anexoUrl || null,
+          updated_at: new Date().toISOString()
+        };
+      });
 
-  const getPerformanceBadge = (performance: RegistroPresenca['performance']) => {
-    const config = {
-      OTIMA: { label: 'Ótima', className: 'bg-green-100 text-green-800' },
-      BOA: { label: 'Boa', className: 'bg-blue-100 text-blue-800' },
-      REGULAR: { label: 'Regular', className: 'bg-amber-100 text-amber-800' },
-      RUIM: { label: 'Ruim', className: 'bg-red-100 text-red-800' },
-    };
-    const { label, className } = config[performance];
-    return <Badge className={className}>{label}</Badge>;
+      const { error } = await supabase
+        .from('registros_presenca')
+        .upsert(upsertData, {
+          onConflict: 'colaborador_id,data',
+          ignoreDuplicates: false
+        });
+
+      if (error) throw error;
+
+      toast.success(`✅ Presença registrada para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
+
+      // Recarregar para garantir sincronia
+      fetchRegistrosDoDia(dataSelecionada);
+
+    } catch (error: any) {
+      console.error('Erro ao salvar:', error);
+      toast.error(error.message || 'Erro ao salvar registros.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const getCentroCustoNome = (id: string) => {
-    return mockCentrosCusto.find(cc => cc.id === id)?.nome.split(' - ')[1] || id;
-  };
-
-  const getCentroCustoCor = (id: string) => {
-    return mockCentrosCusto.find(cc => cc.id === id)?.cor || 'bg-neutral-100 text-neutral-800';
+    return centrosCusto.find(cc => cc.id === id)?.nome || id;
   };
 
   const stats = calcularEstatisticas();
   const custoTotalDia = calcularCustoTotalDia();
-  const todosSelecionados = selecionados.size === mockColaboradores.length;
+  const todosSelecionados = selecionados.size === colaboradores.length;
+
+  if (loading && colaboradores.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-neutral-50">
-      {/* Barra Superior de Ações em Massa */}
+      {/* Barra Superior */}
       <div className="bg-white border-b px-6 py-4 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -318,7 +399,7 @@ export function ControlePresencaTabelaPage() {
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm">
-                  <strong>Total:</strong> {mockColaboradores.length}
+                  <strong>Total:</strong> {colaboradores.length}
                 </span>
               </div>
               <div className="h-4 w-px bg-neutral-300" />
@@ -352,13 +433,11 @@ export function ControlePresencaTabelaPage() {
               )}
             </div>
 
-            {/* Botão Repetir Alocação */}
-            <Button variant="outline" onClick={handleRepetirAlocacaoOntem}>
+            <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading}>
               <Copy className="mr-2 h-4 w-4" />
               Repetir Alocação de Ontem
             </Button>
 
-            {/* Seletor de Data */}
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-64">
@@ -380,7 +459,7 @@ export function ControlePresencaTabelaPage() {
         </div>
       </div>
 
-      {/* Tabela Grid de Lançamento */}
+      {/* Tabela Grid */}
       <div className="flex-1 overflow-auto px-6 py-4">
         <Card>
           <CardContent className="p-0">
@@ -401,8 +480,8 @@ export function ControlePresencaTabelaPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockColaboradores.map((colaborador) => {
-                  const registro = registros[colaborador.id];
+                {colaboradores.map((colaborador) => {
+                  const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
                   const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
 
                   return (
@@ -414,7 +493,6 @@ export function ControlePresencaTabelaPage() {
                         registro.status === 'ATRASADO' && "bg-amber-50/50"
                       )}
                     >
-                      {/* Checkbox */}
                       <TableCell>
                         <Checkbox
                           checked={selecionados.has(colaborador.id)}
@@ -422,23 +500,25 @@ export function ControlePresencaTabelaPage() {
                         />
                       </TableCell>
 
-                      {/* Colaborador */}
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-5 w-5 text-primary" />
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                            {colaborador.avatar_url ? (
+                              <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="h-5 w-5 text-primary" />
+                            )}
                           </div>
                           <div>
-                            <p className="font-medium">{colaborador.nome}</p>
+                            <p className="font-medium">{colaborador.nome_completo || colaborador.nome}</p>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span>{colaborador.funcao}</span>
+                              <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
                               <Badge variant="secondary" className="text-xs">{colaborador.setor}</Badge>
                             </div>
                           </div>
                         </div>
                       </TableCell>
 
-                      {/* Status */}
                       <TableCell>
                         <Select
                           value={registro.status}
@@ -455,7 +535,6 @@ export function ControlePresencaTabelaPage() {
                         </Select>
                       </TableCell>
 
-                      {/* Performance */}
                       <TableCell>
                         <Select
                           value={registro.performance}
@@ -473,7 +552,6 @@ export function ControlePresencaTabelaPage() {
                         </Select>
                       </TableCell>
 
-                      {/* Centro de Custo (Multiselect) */}
                       <TableCell>
                         <Popover>
                           <PopoverTrigger asChild>
@@ -482,12 +560,12 @@ export function ControlePresencaTabelaPage() {
                               className="w-full justify-between h-auto min-h-10 py-2"
                             >
                               <div className="flex flex-wrap gap-1">
-                                {registro.centrosCusto.length > 0 ? (
+                                {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
                                   registro.centrosCusto.map(ccId => (
                                     <Badge
                                       key={ccId}
                                       variant="secondary"
-                                      className={cn('text-xs', getCentroCustoCor(ccId))}
+                                      className="text-xs bg-blue-100 text-blue-800"
                                     >
                                       {getCentroCustoNome(ccId)}
                                     </Badge>
@@ -506,19 +584,19 @@ export function ControlePresencaTabelaPage() {
                               <Label className="text-sm font-medium">
                                 Centros de Custo (Multiselect)
                               </Label>
-                              <div className="space-y-2">
-                                {mockCentrosCusto.map(cc => (
+                              <div className="space-y-2 max-h-60 overflow-y-auto">
+                                {centrosCusto.map(cc => (
                                   <label
                                     key={cc.id}
                                     className={cn(
                                       "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all border",
-                                      registro.centrosCusto.includes(cc.id)
+                                      registro.centrosCusto?.includes(cc.id)
                                         ? "border-primary bg-primary/5"
                                         : "border-transparent hover:bg-neutral-50"
                                     )}
                                   >
                                     <Checkbox
-                                      checked={registro.centrosCusto.includes(cc.id)}
+                                      checked={registro.centrosCusto?.includes(cc.id)}
                                       onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
                                     />
                                     <span className="text-sm flex-1">{cc.nome}</span>
@@ -530,7 +608,6 @@ export function ControlePresencaTabelaPage() {
                         </Popover>
                       </TableCell>
 
-                      {/* Justificativa (Ícone) */}
                       <TableCell className="text-center">
                         {temJustificativa && (
                           <Popover>
@@ -572,7 +649,7 @@ export function ControlePresencaTabelaPage() {
         </Card>
       </div>
 
-      {/* Rodapé Fixo com Resumo e Ação */}
+      {/* Rodapé Fixo */}
       <div className="bg-white border-t px-6 py-4 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -595,13 +672,13 @@ export function ControlePresencaTabelaPage() {
                 )}
               </p>
               <p className="text-xs text-muted-foreground">
-                {mockColaboradores.filter(c => registros[c.id].centrosCusto.length > 0).length} colaboradores com CC alocado
+                {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} colaboradores com CC alocado
               </p>
             </div>
           </div>
 
-          <Button size="lg" onClick={handleConfirmarRegistros} className="px-8">
-            <CheckCircle className="mr-2 h-5 w-5" />
+          <Button size="lg" onClick={handleConfirmarRegistros} className="px-8" disabled={saving}>
+            {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
             Confirmar e Registrar Presenças
           </Button>
         </div>
@@ -616,8 +693,8 @@ export function ControlePresencaTabelaPage() {
         }}
         onSalvar={handleSalvarJustificativa}
         tipo={tipoJustificativa}
-        colaboradorNome={mockColaboradores.find(c => c.id === colaboradorAtual)?.nome || ''}
-        status={colaboradorAtual ? registros[colaboradorAtual].status : 'OK'}
+        colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome || ''}
+        status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
       />
     </div>
   );

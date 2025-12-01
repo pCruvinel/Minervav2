@@ -27,6 +27,23 @@ export interface Usuario {
   custo_dia?: number;
   funcao?: string;
   avatar_url?: string;
+
+  // Campos adicionais (Migration 20251130_add_colaborador_fields)
+  data_nascimento?: string;
+  endereco?: string;
+  email_pessoal?: string;
+  email_profissional?: string;
+  telefone_pessoal?: string;
+  telefone_profissional?: string;
+  contato_emergencia_nome?: string;
+  contato_emergencia_telefone?: string;
+  disponibilidade_dias?: string[];
+  turno?: string[];
+  qualificacao?: string;
+  gestor?: string;
+  remuneracao_contratual?: number;
+  rateio_fixo?: string;
+  bloqueado_sistema?: boolean;
 }
 
 export type Colaborador = Usuario;

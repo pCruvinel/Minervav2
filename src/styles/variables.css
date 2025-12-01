@@ -7,10 +7,10 @@
   /* ==========================================
    * CORES PRIMÁRIAS - MINERVA
    * ========================================== */
-  
+
   /* Primary - Dourado #D3AF37 */
-  --color-primary: #D3AF37;
-  --color-primary-rgb: 211, 175, 55;
+  --color-primary: #D3AF37 !important;
+  --color-primary-rgb: 211, 175, 55 !important;
   --color-primary-50: #fcf9f1;
   --color-primary-100: #f7f0dc;
   --color-primary-200: #efe4ba;
@@ -23,8 +23,8 @@
   --color-primary-900: #544616;
   
   /* Secondary - Dourado Claro #DDC063 */
-  --color-secondary: #DDC063;
-  --color-secondary-rgb: 221, 192, 99;
+  --color-secondary: #DDC063 !important;
+  --color-secondary-rgb: 221, 192, 99 !important;
   --color-secondary-50: #fdfaf3;
   --color-secondary-100: #f9f3e3;
   --color-secondary-200: #f3e4ba;
@@ -39,19 +39,19 @@
   /* ==========================================
    * CORES NEUTRAS
    * ========================================== */
-  --color-neutral-50: #fafafa;
-  --color-neutral-100: #f4f4f5;
-  --color-neutral-200: #e4e4e7;
-  --color-neutral-300: #d4d4d8;
-  --color-neutral-400: #a1a1aa;
-  --color-neutral-500: #71717a;
-  --color-neutral-600: #52525b;
-  --color-neutral-700: #3f3f46;
-  --color-neutral-800: #27272a;
-  --color-neutral-900: #18181b;
-  
-  --color-white: #ffffff;
-  --color-black: #000000;
+   --color-neutral-50: #fafafa !important;
+   --color-neutral-100: #f4f4f5 !important;
+   --color-neutral-200: #e4e4e7 !important;
+   --color-neutral-300: #d4d4d8 !important;
+   --color-neutral-400: #a1a1aa !important;
+   --color-neutral-500: #71717a !important;
+   --color-neutral-600: #52525b !important;
+   --color-neutral-700: #3f3f46 !important;
+   --color-neutral-800: #27272a !important;
+   --color-neutral-900: #18181b !important;
+
+   --color-white: #ffffff !important;
+   --color-black: #000000 !important;
   
   /* ==========================================
    * CORES SEMÂNTICAS
@@ -75,27 +75,27 @@
   /* ==========================================
    * CORES DO SISTEMA
    * ========================================== */
-  --color-background: var(--color-neutral-100);
-  --color-foreground: var(--color-neutral-900);
-  --color-border: var(--color-neutral-300);
-  --color-border-light: var(--color-neutral-200);
-  --color-input: var(--color-neutral-200);
-  --color-input-background: var(--color-white);
-  --color-ring: var(--color-primary);
-  
-  /* Cores para componentes */
-  --color-accent: var(--color-primary-50);
-  --color-accent-foreground: var(--color-primary-900);
-  --color-muted: var(--color-neutral-100);
-  --color-muted-foreground: var(--color-neutral-600);
-  
-  --color-secondary-foreground: var(--color-black);
-  
-  --color-card: var(--color-white);
-  --color-card-foreground: var(--color-neutral-900);
-  
-  --color-popover: var(--color-white);
-  --color-popover-foreground: var(--color-neutral-900);
+   --color-background: var(--color-neutral-100) !important;
+   --color-foreground: var(--color-neutral-900) !important;
+   --color-border: var(--color-neutral-300) !important;
+   --color-border-light: var(--color-neutral-200) !important;
+   --color-input: var(--color-neutral-200) !important;
+   --color-input-background: var(--color-white) !important;
+   --color-ring: var(--color-primary) !important;
+
+   /* Cores para componentes */
+   --color-accent: var(--color-primary-50) !important;
+   --color-accent-foreground: var(--color-primary-900) !important;
+   --color-muted: var(--color-neutral-100) !important;
+   --color-muted-foreground: var(--color-neutral-600) !important;
+
+   --color-secondary-foreground: var(--color-black) !important;
+
+   --color-card: var(--color-white) !important;
+   --color-card-foreground: var(--color-neutral-900) !important;
+
+   --color-popover: var(--color-white) !important;
+   --color-popover-foreground: var(--color-neutral-900) !important;
   
   /* ==========================================
    * SPACING
@@ -140,12 +140,12 @@
   /* ==========================================
    * BORDER RADIUS
    * ========================================== */
-  --radius-sm: 0.25rem;       /* 4px */
-  --radius-md: 0.5rem;        /* 8px */
-  --radius-lg: 0.75rem;       /* 12px */
-  --radius-xl: 1rem;          /* 16px */
-  --radius-2xl: 1.5rem;       /* 24px */
-  --radius-full: 9999px;
+   --radius-sm: 0.25rem !important;       /* 4px */
+   --radius-md: 0.5rem !important;        /* 8px */
+   --radius-lg: 0.75rem !important;       /* 12px */
+   --radius-xl: 1rem !important;          /* 16px */
+   --radius-2xl: 1.5rem !important;       /* 24px */
+   --radius-full: 9999px !important;
   
   /* ==========================================
    * SHADOWS

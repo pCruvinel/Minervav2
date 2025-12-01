@@ -1,5 +1,6 @@
 import { logger } from '@/lib/utils/logger';
 import { useState, useEffect } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -12,15 +13,15 @@ import {
   Search,
   User,
   Mail,
-  Phone,
+
   Building2,
   Briefcase,
   Eye,
-  Edit,
-  UserX,
+
 } from 'lucide-react';
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
 import { colaboradoresAPI } from '../../lib/api-client';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
 interface Colaborador {
@@ -44,7 +45,7 @@ export function ColaboradoresListaPage() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
   const [setorFilter, setSetorFilter] = useState('todos');
-  const [statusFilter, setStatusFilter] = useState('todos');
+  const [statusFilter] = useState('todos');
   const [colaboradorEdicao, setColaboradorEdicao] = useState<Colaborador | null>(null);
   const [modalCadastroOpen, setModalCadastroOpen] = useState(false);
 
@@ -75,12 +76,7 @@ export function ColaboradoresListaPage() {
     }).format(value);
   };
 
-  const formatFuncao = (funcao: string) => {
-    return funcao.replace(/_/g, ' ').toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
+
 
   const colaboradoresFiltrados = colaboradores.filter((colaborador) => {
     const matchesSearch =
@@ -103,15 +99,46 @@ export function ColaboradoresListaPage() {
     setModalCadastroOpen(true);
   };
 
-  const handleEditar = (colaborador: Colaborador) => {
-    setColaboradorEdicao(colaborador);
-    setModalCadastroOpen(true);
-  };
 
-  const handleSalvarColaborador = (dados: any) => {
-    logger.log('Colaborador salvo:', dados);
-    setModalCadastroOpen(false);
-    setColaboradorEdicao(null);
+
+  const handleSalvarColaborador = async (dados: any) => {
+    try {
+      setLoading(true);
+
+      if (colaboradorEdicao) {
+        // Atualizar
+        const { error } = await supabase
+          .from('colaboradores')
+          .update(dados)
+          .eq('id', colaboradorEdicao.id);
+
+        if (error) throw error;
+        toast.success('Colaborador atualizado com sucesso!');
+      } else {
+        // Criar
+        const { error } = await supabase
+          .from('colaboradores')
+          .insert(dados);
+
+        if (error) throw error;
+        toast.success('Colaborador criado com sucesso!');
+      }
+
+      setModalCadastroOpen(false);
+      setColaboradorEdicao(null);
+
+      // Recarregar lista
+      const data = await colaboradoresAPI.list();
+      setColaboradores(data);
+
+    } catch (error) {
+      logger.error('Erro ao salvar colaborador:', error);
+      toast.error('Erro ao salvar colaborador', {
+        description: 'Ocorreu um erro ao tentar salvar os dados.',
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -286,21 +313,11 @@ export function ColaboradoresListaPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" asChild>
+                          <Link to="/colaboradores/$colaboradorId" params={{ colaboradorId: colaborador.id }}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEditar(colaborador)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        {colaborador.ativo && (
-                          <Button variant="ghost" size="sm">
-                            <UserX className="h-4 w-4 text-red-600" />
-                          </Button>
-                        )}
                       </div>
                     </TableCell>
                   </TableRow>

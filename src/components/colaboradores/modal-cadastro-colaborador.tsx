@@ -17,15 +17,42 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Checkbox } from '../ui/checkbox';
 import { Info, Upload, Calculator } from 'lucide-react';
+import { Colaborador } from '@/types/colaborador';
+import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DIAS_SEMANA } from '@/lib/constants/colaboradores';
 
 interface ModalCadastroColaboradorProps {
   open: boolean;
   onClose: () => void;
-  colaborador: any | null;
+  colaborador: Colaborador | null;
   onSalvar: (dados: any) => void;
 }
 
-import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DIAS_SEMANA } from '@/lib/constants/colaboradores';
+// Helper para máscaras
+const maskCPF = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d)/, '$1.$2')
+    .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+    .replace(/(-\d{2})\d+?$/, '$1');
+};
+
+const maskPhone = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{2})(\d)/, '($1) $2')
+    .replace(/(\d{5})(\d)/, '$1-$2')
+    .replace(/(-\d{4})\d+?$/, '$1');
+};
+
+const maskCurrency = (value: string) => {
+  const numericValue = value.replace(/\D/g, '');
+  const floatValue = parseFloat(numericValue) / 100;
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(floatValue);
+};
 
 export function ModalCadastroColaborador({
   open,
@@ -47,7 +74,7 @@ export function ModalCadastroColaborador({
   const [contatoEmergenciaNome, setContatoEmergenciaNome] = useState('');
   const [contatoEmergenciaTelefone, setContatoEmergenciaTelefone] = useState('');
   const [disponibilidadeDias, setDisponibilidadeDias] = useState<string[]>([]);
-  const [turno, setTurno] = useState('');
+  const [turno, setTurno] = useState<string[]>([]);
 
   // Função e Hierarquia
   const [funcao, setFuncao] = useState('');
@@ -57,6 +84,31 @@ export function ModalCadastroColaborador({
   const [tipoContratacao, setTipoContratacao] = useState('');
   const [salarioBruto, setSalarioBruto] = useState('');
   const [remuneracaoContratual, setRemuneracaoContratual] = useState('');
+
+  // Preencher dados ao editar
+  useEffect(() => {
+    if (colaborador) {
+      setNomeCompleto(colaborador.nome_completo || colaborador.nome || '');
+      setCpf(colaborador.cpf || '');
+      setDataNascimento(colaborador.data_nascimento ? new Date(colaborador.data_nascimento).toISOString().split('T')[0] : '');
+      setEnderecoCompleto(colaborador.endereco || '');
+      setEmailPessoal(colaborador.email_pessoal || '');
+      setEmailProfissional(colaborador.email_profissional || colaborador.email || '');
+      setTelefonePessoal(colaborador.telefone_pessoal || '');
+      setTelefoneProfissional(colaborador.telefone_profissional || colaborador.telefone || '');
+      setContatoEmergenciaNome(colaborador.contato_emergencia_nome || '');
+      setContatoEmergenciaTelefone(colaborador.contato_emergencia_telefone || '');
+      setDisponibilidadeDias(colaborador.disponibilidade_dias || []);
+      setTurno(colaborador.turno || []);
+      setFuncao(colaborador.funcao || '');
+      setQualificacao(colaborador.qualificacao || '');
+      setTipoContratacao(colaborador.tipo_contratacao || '');
+      setSalarioBruto(colaborador.salario_base?.toString() || '');
+      setRemuneracaoContratual(colaborador.remuneracao_contratual?.toString() || '');
+    } else {
+      handleReset();
+    }
+  }, [colaborador, open]);
 
   // Calcular dados derivados
   const funcaoData = FUNCOES.find(f => f.value === funcao);
@@ -104,6 +156,14 @@ export function ModalCadastroColaborador({
     );
   };
 
+  const handleTurnoToggle = (t: string) => {
+    setTurno(prev =>
+      prev.includes(t)
+        ? prev.filter(item => item !== t)
+        : [...prev, t]
+    );
+  };
+
   const handleSalvar = () => {
     if (!nomeCompleto || !cpf || !funcao || !tipoContratacao) {
       alert('Preencha todos os campos obrigatórios');
@@ -121,30 +181,31 @@ export function ModalCadastroColaborador({
     }
 
     onSalvar({
-      nomeCompleto,
+      nome_completo: nomeCompleto,
+      nome: nomeCompleto, // Compatibilidade
       cpf,
-      dataNascimento,
-      enderecoCompleto,
-      emailPessoal,
-      emailProfissional,
-      telefonePessoal,
-      telefoneProfissional,
-      contatoEmergenciaNome,
-      contatoEmergenciaTelefone,
-      disponibilidadeDias,
+      data_nascimento: dataNascimento || null,
+      endereco: enderecoCompleto,
+      email_pessoal: emailPessoal,
+      email_profissional: emailProfissional,
+      email: emailProfissional, // Compatibilidade
+      telefone_pessoal: telefonePessoal,
+      telefone_profissional: telefoneProfissional,
+      telefone: telefoneProfissional, // Compatibilidade
+      contato_emergencia_nome: contatoEmergenciaNome,
+      contato_emergencia_telefone: contatoEmergenciaTelefone,
+      disponibilidade_dias: disponibilidadeDias,
       turno,
       funcao,
       qualificacao,
       setor: funcaoData?.setor,
       gestor: funcaoData?.gestor,
-      tipoContratacao,
-      salarioBruto: isCLT ? parseFloat(salarioBruto) : null,
-      remuneracaoContratual: isContrato ? parseFloat(remuneracaoContratual) : null,
-      custoCLT: isCLT ? calcularCustoCLT() : null,
-      custoMes: calcularCustoMes(),
-      custoDia: calcularCustoDia(),
-      rateioFixo: getRateioFixo(),
-      bloqueadoSistema: isColaboradorObra,
+      tipo_contratacao: tipoContratacao,
+      salario_base: isCLT ? parseFloat(salarioBruto) : null,
+      remuneracao_contratual: isContrato ? parseFloat(remuneracaoContratual) : null,
+      custo_dia: calcularCustoDia(),
+      rateio_fixo: getRateioFixo(),
+      bloqueado_sistema: isColaboradorObra,
     });
 
     // Reset
@@ -163,7 +224,7 @@ export function ModalCadastroColaborador({
     setContatoEmergenciaNome('');
     setContatoEmergenciaTelefone('');
     setDisponibilidadeDias([]);
-    setTurno('');
+    setTurno([]);
     setFuncao('');
     setQualificacao('');
     setTipoContratacao('');
@@ -215,7 +276,8 @@ export function ModalCadastroColaborador({
                 <Input
                   placeholder="000.000.000-00"
                   value={cpf}
-                  onChange={(e) => setCpf(e.target.value)}
+                  onChange={(e) => setCpf(maskCPF(e.target.value))}
+                  maxLength={14}
                 />
               </div>
 
@@ -263,7 +325,8 @@ export function ModalCadastroColaborador({
                 <Input
                   placeholder="(00) 00000-0000"
                   value={telefonePessoal}
-                  onChange={(e) => setTelefonePessoal(e.target.value)}
+                  onChange={(e) => setTelefonePessoal(maskPhone(e.target.value))}
+                  maxLength={15}
                 />
               </div>
 
@@ -272,7 +335,8 @@ export function ModalCadastroColaborador({
                 <Input
                   placeholder="(00) 00000-0000"
                   value={telefoneProfissional}
-                  onChange={(e) => setTelefoneProfissional(e.target.value)}
+                  onChange={(e) => setTelefoneProfissional(maskPhone(e.target.value))}
+                  maxLength={15}
                 />
               </div>
             </div>
@@ -293,7 +357,8 @@ export function ModalCadastroColaborador({
                   <Input
                     placeholder="(00) 00000-0000"
                     value={contatoEmergenciaTelefone}
-                    onChange={(e) => setContatoEmergenciaTelefone(e.target.value)}
+                    onChange={(e) => setContatoEmergenciaTelefone(maskPhone(e.target.value))}
+                    maxLength={15}
                   />
                 </div>
               </div>
@@ -304,7 +369,7 @@ export function ModalCadastroColaborador({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label>Dias Disponíveis</Label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-wrap">
                     {DIAS_SEMANA.map(dia => (
                       <div key={dia} className="flex items-center">
                         <Checkbox
@@ -321,18 +386,24 @@ export function ModalCadastroColaborador({
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Turno</Label>
-                  <Select value={turno} onValueChange={setTurno}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o turno..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="MANHA">Manhã</SelectItem>
-                      <SelectItem value="TARDE">Tarde</SelectItem>
-                      <SelectItem value="NOITE">Noite</SelectItem>
-                      <SelectItem value="INTEGRAL">Integral</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label>Turno (Multi-seleção)</Label>
+                  <div className="flex gap-4 flex-wrap">
+                    {['MANHA', 'TARDE', 'NOITE', 'INTEGRAL'].map((t) => (
+                      <div key={t} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`turno-${t}`}
+                          checked={turno.includes(t)}
+                          onCheckedChange={() => handleTurnoToggle(t)}
+                        />
+                        <label
+                          htmlFor={`turno-${t}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {t.charAt(0) + t.slice(1).toLowerCase()}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>

@@ -1,0 +1,17 @@
+ALTER TABLE colaboradores
+ADD COLUMN IF NOT EXISTS data_nascimento DATE,
+ADD COLUMN IF NOT EXISTS endereco TEXT,
+ADD COLUMN IF NOT EXISTS email_pessoal TEXT,
+ADD COLUMN IF NOT EXISTS email_profissional TEXT,
+ADD COLUMN IF NOT EXISTS telefone_pessoal TEXT,
+ADD COLUMN IF NOT EXISTS telefone_profissional TEXT,
+ADD COLUMN IF NOT EXISTS contato_emergencia_nome TEXT,
+ADD COLUMN IF NOT EXISTS contato_emergencia_telefone TEXT,
+ADD COLUMN IF NOT EXISTS disponibilidade_dias JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS turno JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS qualificacao TEXT,
+ADD COLUMN IF NOT EXISTS setor TEXT,
+ADD COLUMN IF NOT EXISTS gestor TEXT,
+ADD COLUMN IF NOT EXISTS remuneracao_contratual NUMERIC,
+ADD COLUMN IF NOT EXISTS rateio_fixo TEXT,
+ADD COLUMN IF NOT EXISTS bloqueado_sistema BOOLEAN DEFAULT false;

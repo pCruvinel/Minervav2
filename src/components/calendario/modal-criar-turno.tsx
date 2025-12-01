@@ -49,6 +49,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'custom'>('uteis');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
+  const [diasSemana, setDiasSemana] = useState<number[]>([]); // 0=Domingo, 6=Sábado
   const [numeroVagas, setNumeroVagas] = useState([5]);
   const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
@@ -164,14 +165,27 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     return Object.keys(erros).length === 0;
   };
 
+  // Validar dias da semana (para recorrência custom)
+  const validarDiasSemana = (): boolean => {
+    const erros: ValidationErrors = {};
+
+    if (recorrencia === 'custom' && diasSemana.length === 0) {
+      erros.setores = 'Selecione ao menos um dia da semana para recorrência personalizada';
+    }
+
+    setErrors((prev) => ({ ...prev, ...erros }));
+    return Object.keys(erros).length === 0;
+  };
+
   // Validar formulário completo
   const validarFormulario = (): boolean => {
     const validHorarios = validarHorarios();
     const validDatas = validarDatas();
     const validVagas = validarVagas();
     const validSetores = validarSetores();
+    const validDiasSemana = validarDiasSemana();
 
-    return validHorarios && validDatas && validVagas && validSetores;
+    return validHorarios && validDatas && validVagas && validSetores && validDiasSemana;
   };
 
   // Verificar se formulário está válido
@@ -222,6 +236,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
         tipoRecorrencia: recorrencia,
         dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
         dataFim: recorrencia === 'custom' ? dataFim : undefined,
+        diasSemana: recorrencia === 'custom' ? diasSemana : undefined,
       });
 
       // Resetar formulário
@@ -230,6 +245,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
       setRecorrencia('uteis');
       setDataInicio('');
       setDataFim('');
+      setDiasSemana([]);
       setNumeroVagas([5]);
       setCorSelecionada(coresTurno[0].valor);
       setSetoresSelecionados([]);
@@ -409,6 +425,50 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                     </p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Seleção de Dias da Semana (apenas para custom) */}
+            {recorrencia === 'custom' && (
+              <div className="space-y-3 pt-2">
+                <Label className="text-sm font-medium">Dias da Semana</Label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[
+                    { label: 'Dom', value: 0 },
+                    { label: 'Seg', value: 1 },
+                    { label: 'Ter', value: 2 },
+                    { label: 'Qua', value: 3 },
+                    { label: 'Qui', value: 4 },
+                    { label: 'Sex', value: 5 },
+                    { label: 'Sáb', value: 6 },
+                  ].map((dia) => (
+                    <div key={dia.value} className="flex items-center gap-2">
+                      <Checkbox
+                        id={`dia-${dia.value}`}
+                        checked={diasSemana.includes(dia.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setDiasSemana([...diasSemana, dia.value].sort());
+                          } else {
+                            setDiasSemana(diasSemana.filter(d => d !== dia.value));
+                          }
+                        }}
+                      />
+                      <Label
+                        htmlFor={`dia-${dia.value}`}
+                        className="cursor-pointer font-normal text-sm"
+                      >
+                        {dia.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+                {recorrencia === 'custom' && diasSemana.length === 0 && (
+                  <p className="text-sm text-amber-600 flex items-center gap-1">
+                    <AlertCircle className="h-4 w-4" />
+                    Selecione ao menos um dia da semana
+                  </p>
+                )}
               </div>
             )}
           </div>

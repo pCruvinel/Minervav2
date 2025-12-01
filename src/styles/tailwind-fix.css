@@ -1,0 +1,167 @@
+/**
+ * Correção para conflitos entre Tailwind v4 e variáveis customizadas
+ * Este arquivo força a prioridade das variáveis do sistema Minerva
+ */
+
+/* Forçar prioridade máxima das variáveis customizadas */
+:root {
+  /* Variáveis críticas para Radix UI */
+  --color-background: #f4f4f5 !important;
+  --color-foreground: #18181b !important;
+  --color-border: #d4d4d8 !important;
+  --color-input: #e4e4e7 !important;
+  --color-ring: #d3af37 !important;
+  --color-accent: #fcf9f1 !important;
+  --color-accent-foreground: #544616 !important;
+  --color-muted: #f4f4f5 !important;
+  --color-muted-foreground: #52525b !important;
+  --color-card: #ffffff !important;
+  --color-card-foreground: #18181b !important;
+  --color-popover: #ffffff !important;
+  --color-popover-foreground: #18181b !important;
+
+  /* Radius para componentes */
+  --radius: 0.5rem !important;
+  --radius-sm: 0.25rem !important;
+  --radius-md: 0.5rem !important;
+  --radius-lg: 0.75rem !important;
+  --radius-xl: 1rem !important;
+  --radius-2xl: 1.5rem !important;
+  --radius-full: 9999px !important;
+
+  /* Espaçamentos */
+  --spacing: 0.25rem !important;
+
+  /* Fontes */
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Helvetica Neue", "Arial", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Monaco", "Cascadia Code", "Roboto Mono", "Consolas", "Courier New", "Courier", monospace !important;
+
+  /* Tamanhos de fonte */
+  --text-xs: 0.75rem !important;
+  --text-sm: 0.875rem !important;
+  --text-base: 1rem !important;
+  --text-lg: 1.125rem !important;
+  --text-xl: 1.25rem !important;
+
+  /* Pesos de fonte */
+  --font-weight-normal: 400 !important;
+  --font-weight-medium: 500 !important;
+  --font-weight-semibold: 600 !important;
+  --font-weight-bold: 700 !important;
+
+  /* Sombras */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1) !important;
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+
+  /* Transições */
+  --transition-base: 200ms !important;
+  --transition-timing: cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+/* Correções específicas para componentes Radix UI */
+[data-radix-checkbox-root] {
+  --color-background: #ffffff !important;
+  --color-border: #d4d4d8 !important;
+}
+
+[data-radix-slider-root] {
+  --color-background: #e4e4e7 !important;
+  --color-accent: #d3af37 !important;
+}
+
+/* Correções específicas para Switch/Toggle */
+[data-radix-switch-root] {
+  --color-background: #d4d4d8 !important;
+  --color-accent: #d3af37 !important;
+  background-color: #d4d4d8 !important;
+}
+
+[data-radix-switch-root][data-state="checked"] {
+  background-color: #d3af37 !important;
+}
+
+[data-radix-switch-thumb] {
+  background-color: #ffffff !important;
+  border: none !important;
+}
+
+/* Correções diretas para elementos Switch */
+[data-slot="switch"] {
+  background-color: #d4d4d8 !important;
+  border: 1px solid transparent !important;
+}
+
+[data-slot="switch"][data-state="checked"] {
+  background-color: #d3af37 !important;
+}
+
+[data-slot="switch-thumb"] {
+  background-color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Garantir que ícones Lucide React sejam visíveis */
+[data-lucide-icon] {
+  color: currentColor !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 2 !important;
+}
+
+/* Correção para elementos que podem estar invisíveis */
+* {
+  color: inherit !important;
+}
+
+/* Forçar visibilidade de elementos de formulário */
+input, button, select, textarea {
+  color: #18181b !important;
+  background-color: #ffffff !important;
+  border-color: #d4d4d8 !important;
+}
+
+/* Correção específica para checkboxes */
+input[type="checkbox"] {
+  accent-color: #d3af37 !important;
+}
+
+/* Correção para sliders */
+input[type="range"] {
+  accent-color: #d3af37 !important;
+}
+
+/* Garantir que o Tailwind não sobrescreva nossas variáveis */
+@layer base {
+  :root {
+    --tw-ring-color: #d3af37 !important;
+    --tw-border-color: #d4d4d8 !important;
+    --tw-bg-color: #ffffff !important;
+    --tw-text-color: #18181b !important;
+  }
+}
+
+/* Correções gerais para todos os componentes Radix UI */
+[data-radix-popper-content-wrapper] {
+  z-index: 1500 !important;
+}
+
+/* Correções para elementos interativos */
+button, input, select, textarea, [role="button"], [role="switch"] {
+  color: inherit !important;
+  background-color: inherit !important;
+  border-color: inherit !important;
+}
+
+/* Correções específicas para elementos focados */
+*:focus-visible {
+  outline: 2px solid #d3af37 !important;
+  outline-offset: 2px !important;
+}
+
+/* Garantir que elementos desabilitados tenham aparência correta */
+*:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+}
