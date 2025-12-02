@@ -173,6 +173,31 @@ export function StepGerarPropostaOS0104({
     }
   };
 
+  // ✅ NOVO: Validação preventiva com feedback específico
+  const handleGerarPropostaSegura = async () => {
+    // Validar CNPJ
+    if (!etapa1Data.cpfCnpj || etapa1Data.cpfCnpj.trim() === '') {
+      toast.error('CNPJ do cliente não foi preenchido na Etapa 1');
+      return;
+    }
+
+    // Validar se CNPJ é válido (remover máscara e validar)
+    const cpfCnpjLimpo = etapa1Data.cpfCnpj.replace(/\D/g, '');
+    if (cpfCnpjLimpo.length !== 11 && cpfCnpjLimpo.length !== 14) {
+      toast.error('CNPJ do cliente está em formato inválido');
+      return;
+    }
+
+    // Validar preço
+    if (!valorTotal || valorTotal <= 0) {
+      toast.error('Valor da proposta deve ser maior que zero');
+      return;
+    }
+
+    // Tudo validado, chamar generate com dados
+    await handleGerarProposta();
+  };
+
   const handleGerarProposta = async () => {
     // DEBUG: Log do osId
     console.log('[Step 9] Gerando proposta para osId:', osId);
@@ -198,8 +223,11 @@ export function StepGerarPropostaOS0104({
       // DEBUG: Log antes da chamada
       console.log('[Step 9] Chamando generate() com osId:', osId);
 
-      // Chamar backend real para gerar PDF
-      const result = await generate('proposta', osId, {});
+      // ✅ NOVO: Passar dados do frontend junto com a chamada
+      const result = await generate('proposta', osId, {
+        clienteCpfCnpj: etapa1Data.cpfCnpj,
+        valorProposta: valorTotal,
+      });
 
       // DEBUG: Log do resultado
       console.log('[Step 9] Resultado do generate():', result);
@@ -329,7 +357,7 @@ export function StepGerarPropostaOS0104({
       {!data.propostaGerada && (
         <div className="flex justify-center">
           <PrimaryButton
-            onClick={handleGerarProposta}
+            onClick={handleGerarPropostaSegura}
             disabled={readOnly || !data.validadeDias || !data.garantiaMeses || !validacao.valido || generating}
             className="px-8"
           >

@@ -14,7 +14,8 @@ import { PDFGenerationResponse } from '../index.ts';
 export async function handlePropostaGeneration(
   supabase: SupabaseClient,
   osId: string,
-  dados: Record<string, unknown>
+  dados: Record<string, unknown>,
+  dadosDoFrontend?: { clienteCpfCnpj?: string; valorProposta?: number }
 ): Promise<PDFGenerationResponse> {
   try {
     // DEBUG: Log do osId recebido
@@ -118,7 +119,8 @@ export async function handlePropostaGeneration(
 
       // Cliente
       clienteNome: clienteData.nome_razao_social,
-      clienteCpfCnpj: clienteData.cpf_cnpj,
+      // ✅ NOVO: Usar dados do frontend como prioridade, fallback para banco
+      clienteCpfCnpj: dadosDoFrontend?.clienteCpfCnpj || clienteData.cpf_cnpj,
       clienteEmail: clienteData.email,
       clienteTelefone: clienteData.telefone,
       clienteEndereco: endereco.logradouro,
@@ -139,7 +141,8 @@ export async function handlePropostaGeneration(
 
       // Financeiro
       dadosFinanceiros: {
-        precoFinal: os.valor_proposta || 0,
+        // ✅ NOVO: Usar dados do frontend como prioridade, fallback para banco
+        precoFinal: dadosDoFrontend?.valorProposta || os.valor_proposta || 0,
         percentualImposto: dadosPrecificacao.percentualImposto || financeiro.percentualImposto || 14,
         percentualEntrada: dadosPrecificacao.percentualEntrada || financeiro.percentualEntrada || 40,
         numeroParcelas: dadosPrecificacao.numeroParcelas || financeiro.numeroParcelas || 2,
