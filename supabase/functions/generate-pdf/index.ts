@@ -92,11 +92,7 @@ Deno.serve(async (req) => {
 
       switch (tipo) {
         case 'proposta':
-          // ✅ NOVO: Passar dados do frontend como terceiro parâmetro
-          result = await handlePropostaGeneration(supabase, osId, dados, {
-            clienteCpfCnpj: (dados?.clienteCpfCnpj as string) || undefined,
-            valorProposta: (dados?.valorProposta as number) || undefined,
-          });
+          result = await handlePropostaGeneration(supabase, osId, dados);
           break;
         case 'contrato':
           result = await handleContratoGeneration(supabase, osId, dados);

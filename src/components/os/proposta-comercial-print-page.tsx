@@ -4,6 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
+import { useOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { useEtapas } from '@/lib/hooks/use-etapas';
+import logoMinerva from '@/img/logo.png';
 
 interface EtapaPrincipal {
     nome: string;
@@ -48,60 +51,84 @@ export function PropostaComercialPrintPage() {
     const { codigo } = useParams({ from: '/_auth/os/proposta/$codigo' });
     const navigate = useNavigate();
     const [propostaData, setPropostaData] = useState<PropostaData | null>(null);
-    const [loading, setLoading] = useState(true);
 
-    // Mock data - em produção, buscar do Supabase ou receber via props/state
+    // Buscar OS e etapas do banco (codigo é na verdade o osId)
+    const osId = codigo;
+    const { data: os, isLoading: osLoading } = useOrdemServico(osId);
+    const { etapas, isLoading: etapasLoading, fetchEtapas } = useEtapas();
+
+    const loading = osLoading || etapasLoading;
+
+    // Buscar dados reais do Supabase
     useEffect(() => {
-        // Simular carregamento de dados da proposta
-        const mockData: PropostaData = {
-            codigo: codigo || 'PROP-2024-0001',
-            cliente: {
-                nome: 'Condomínio Residencial Primavera',
-                cpfCnpj: '12.345.678/0001-90',
-                endereco: 'Rua das Flores, 123 - Centro, São Luís - MA, CEP: 65000-000',
-                telefone: '(98) 99999-9999',
-                email: 'contato@condominioprimavera.com.br'
-            },
-            tipoOS: 'OS 01: Perícia de Fachada',
-            escopo: {
-                objetivo: 'Realizar diagnóstico estrutural completo da fachada do edifício',
-                etapasPrincipais: [
-                    {
-                        nome: 'Diagnóstico Visual',
-                        subetapas: [
-                            { nome: 'Inspeção externa', m2: '1200', diasUteis: '2', total: 'R$ 2.400,00' },
-                            { nome: 'Fotografia documentada', m2: '1200', diasUteis: '1', total: 'R$ 1.200,00' }
-                        ]
-                    },
-                    {
-                        nome: 'Análise Estrutural',
-                        subetapas: [
-                            { nome: 'Verificação de fissuras', m2: '1200', diasUteis: '3', total: 'R$ 3.600,00' },
-                            { nome: 'Teste de resistência', m2: '1200', diasUteis: '2', total: 'R$ 2.400,00' }
-                        ]
-                    }
-                ],
-                planejamentoInicial: '5',
-                logisticaTransporte: '3',
-                preparacaoArea: '2'
-            },
-            precificacao: {
-                valorTotal: 15000.00,
-                valorEntrada: 2250.00,
-                valorParcela: 1125.00,
-                percentualEntrada: '15',
-                numeroParcelas: '12'
-            },
-            dataGeracao: new Date().toLocaleDateString('pt-BR'),
-            validadeDias: '30',
-            garantiaMeses: '12'
-        };
+        if (osId) {
+            fetchEtapas(osId);
+        }
+    }, [osId]);
 
-        setTimeout(() => {
-            setPropostaData(mockData);
-            setLoading(false);
-        }, 500);
-    }, [codigo]);
+    // Montar dados da proposta a partir das etapas
+    useEffect(() => {
+        if (os && etapas && etapas.length > 0) {
+            const etapa1 = etapas.find(e => e.ordem === 1)?.dados_etapa as any;
+            const etapa2 = etapas.find(e => e.ordem === 2)?.dados_etapa as any;
+            const etapa7 = etapas.find(e => e.ordem === 7)?.dados_etapa as any;
+            const etapa8 = etapas.find(e => e.ordem === 8)?.dados_etapa as any;
+            const etapa9 = etapas.find(e => e.ordem === 9)?.dados_etapa as any;
+
+            if (!etapa1 || !etapa7 || !etapa8) {
+                console.error('Dados incompletos:', { etapa1, etapa7, etapa8 });
+                return;
+            }
+
+            // Calcular valores
+            const custoBase = etapa7.etapasPrincipais?.reduce((total: number, etapa: any) => {
+                return total + (etapa.subetapas?.reduce((subtotal: number, sub: any) => {
+                    return subtotal + (parseFloat(sub.total) || 0);
+                }, 0) || 0);
+            }, 0) || 0;
+
+            const percentualTotal = 1 +
+                (parseFloat(etapa8.percentualImprevisto || '0') / 100) +
+                (parseFloat(etapa8.percentualLucro || '0') / 100) +
+                (parseFloat(etapa8.percentualImposto || '0') / 100);
+
+            const valorTotal = custoBase * percentualTotal;
+            const valorEntrada = valorTotal * (parseFloat(etapa8.percentualEntrada || '0') / 100);
+            const numeroParcelas = parseInt(etapa8.numeroParcelas || '1');
+            const valorParcela = (valorTotal - valorEntrada) / numeroParcelas;
+
+            const proposta: PropostaData = {
+                codigo: etapa9?.codigoProposta || os.codigo_os,
+                cliente: {
+                    nome: etapa1.nome || os.cliente?.nome_razao_social || '',
+                    cpfCnpj: etapa1.cpfCnpj || os.cliente?.cpf_cnpj || '',
+                    endereco: `${etapa1.endereco || ''}, ${etapa1.numero || ''} - ${etapa1.bairro || ''}, ${etapa1.cidade || ''} - ${etapa1.estado || ''}`,
+                    telefone: etapa1.telefone || os.cliente?.telefone || '',
+                    email: etapa1.email || os.cliente?.email || ''
+                },
+                tipoOS: etapa2.tipoOS || '',
+                escopo: {
+                    objetivo: etapa7.objetivo || '',
+                    etapasPrincipais: etapa7.etapasPrincipais || [],
+                    planejamentoInicial: etapa7.planejamentoInicial || '0',
+                    logisticaTransporte: etapa7.logisticaTransporte || '0',
+                    preparacaoArea: etapa7.preparacaoArea || '0'
+                },
+                precificacao: {
+                    valorTotal,
+                    valorEntrada,
+                    valorParcela,
+                    percentualEntrada: etapa8.percentualEntrada || '0',
+                    numeroParcelas: etapa8.numeroParcelas || '1'
+                },
+                dataGeracao: etapa9?.dataGeracao || new Date().toLocaleDateString('pt-BR'),
+                validadeDias: etapa9?.validadeDias || '30',
+                garantiaMeses: etapa9?.garantiaMeses || '12'
+            };
+
+            setPropostaData(proposta);
+        }
+    }, [os, etapas]);
 
     const handlePrint = () => {
         window.print();
@@ -160,25 +187,30 @@ export function PropostaComercialPrintPage() {
             {/* Conteúdo da Proposta - Formato A3 */}
             <div className="max-w-4xl mx-auto p-8 print:p-0 print:max-w-none">
                 <Card className="border-0 shadow-none print:shadow-none">
-                    <CardHeader className="text-center pb-8">
+                    <CardHeader className="text-center pb-8 border-b-4 border-primary">
                         <div className="flex justify-center mb-6">
-                            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                                <span className="text-2xl font-bold text-primary">M</span>
-                            </div>
+                            <img
+                                src={logoMinerva}
+                                alt="Minerva Engenharia"
+                                className="h-24 w-auto object-contain"
+                            />
                         </div>
                         <CardTitle className="text-3xl font-bold text-primary mb-2">
                             MINERVA ENGENHARIA
                         </CardTitle>
-                        <p className="text-lg text-muted-foreground">Proposta Comercial</p>
-                        <p className="text-sm text-muted-foreground mt-2">
-                            Código: {propostaData.codigo} | Data: {propostaData.dataGeracao}
-                        </p>
+                        <p className="text-xl font-medium text-foreground">Proposta Comercial</p>
+                        <div className="mt-4 flex justify-center gap-4 text-sm text-muted-foreground">
+                            <span className="px-3 py-1 bg-primary/10 rounded">Código: {propostaData.codigo}</span>
+                            <span className="px-3 py-1 bg-primary/10 rounded">Data: {propostaData.dataGeracao}</span>
+                        </div>
                     </CardHeader>
 
                     <CardContent className="space-y-8">
                         {/* 1. Dados do Cliente */}
                         <div className="border-b pb-6">
-                            <h2 className="text-xl font-semibold mb-4 text-primary">1. DADOS DO CLIENTE</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                1. DADOS DO CLIENTE
+                            </h2>
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <p className="font-medium text-muted-foreground">Nome/Razão Social:</p>
@@ -205,14 +237,18 @@ export function PropostaComercialPrintPage() {
 
                         {/* 2. Tipo de Serviço */}
                         <div className="border-b pb-6">
-                            <h2 className="text-xl font-semibold mb-4 text-primary">2. TIPO DE SERVIÇO</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                2. TIPO DE SERVIÇO
+                            </h2>
                             <p className="text-lg font-medium text-foreground">{propostaData.tipoOS}</p>
                             <p className="text-muted-foreground mt-2">{propostaData.escopo.objetivo}</p>
                         </div>
 
                         {/* 3. Escopo dos Serviços */}
                         <div className="border-b pb-6">
-                            <h2 className="text-xl font-semibold mb-4 text-primary">3. ESCOPO DOS SERVIÇOS</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                3. ESCOPO DOS SERVIÇOS
+                            </h2>
 
                             {/* Cronograma */}
                             <div className="mb-6">
@@ -266,38 +302,40 @@ export function PropostaComercialPrintPage() {
 
                         {/* 4. Valores e Condições */}
                         <div className="border-b pb-6">
-                            <h2 className="text-xl font-semibold mb-4 text-primary">4. VALORES E CONDIÇÕES DE PAGAMENTO</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                4. VALORES E CONDIÇÕES DE PAGAMENTO
+                            </h2>
 
-                            <div className="bg-primary/5 p-6 rounded-lg mb-6">
+                            <div className="bg-primary p-6 rounded-lg mb-6 text-white">
                                 <div className="text-center">
-                                    <p className="text-sm text-muted-foreground mb-2">Valor Total (Investimento + Impostos)</p>
-                                    <p className="text-4xl font-bold text-primary">
+                                    <p className="text-sm mb-2 opacity-90">Valor Total da Proposta</p>
+                                    <p className="text-5xl font-bold">
                                         {formatCurrency(propostaData.precificacao.valorTotal)}
                                     </p>
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
-                                <div className="bg-success/5 p-4 rounded-lg">
-                                    <h4 className="font-medium text-success mb-2">Entrada</h4>
-                                    <p className="text-2xl font-bold text-success">
+                                <div className="bg-primary/10 border-2 border-primary p-4 rounded-lg">
+                                    <h4 className="font-semibold text-primary mb-2">Entrada</h4>
+                                    <p className="text-3xl font-bold text-foreground">
                                         {formatCurrency(propostaData.precificacao.valorEntrada)}
                                     </p>
-                                    <p className="text-sm text-success">
-                                        ({propostaData.precificacao.percentualEntrada}% do total)
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        {propostaData.precificacao.percentualEntrada}% do valor total
                                     </p>
-                                    <p className="text-xs text-success mt-1">
-                                        Prazo: 7 dias após assinatura do contrato
+                                    <p className="text-xs text-primary font-medium mt-2">
+                                        Prazo: 7 dias após assinatura
                                     </p>
                                 </div>
 
-                                <div className="bg-primary/5 p-4 rounded-lg">
-                                    <h4 className="font-medium text-primary mb-2">Parcelas</h4>
-                                    <p className="text-2xl font-bold text-primary">
-                                        {propostaData.precificacao.numeroParcelas}x de {formatCurrency(propostaData.precificacao.valorParcela)}
+                                <div className="bg-primary/10 border-2 border-primary p-4 rounded-lg">
+                                    <h4 className="font-semibold text-primary mb-2">Parcelamento</h4>
+                                    <p className="text-3xl font-bold text-foreground">
+                                        {propostaData.precificacao.numeroParcelas}x {formatCurrency(propostaData.precificacao.valorParcela)}
                                     </p>
-                                    <p className="text-sm text-primary">
-                                        Total financiado: {formatCurrency(propostaData.precificacao.valorTotal - propostaData.precificacao.valorEntrada)}
+                                    <p className="text-sm text-muted-foreground mt-1">
+                                        Total: {formatCurrency(propostaData.precificacao.valorTotal - propostaData.precificacao.valorEntrada)}
                                     </p>
                                 </div>
                             </div>
@@ -305,7 +343,9 @@ export function PropostaComercialPrintPage() {
 
                         {/* 5. Informações da Empresa */}
                         <div className="border-b pb-6">
-                            <h2 className="text-xl font-semibold mb-4 text-primary">5. INFORMAÇÕES DA EMPRESA</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                5. INFORMAÇÕES DA EMPRESA
+                            </h2>
                             <div className="space-y-2">
                                 <div>
                                     <span className="font-medium">Empresa:</span> MINERVA ENGENHARIA
@@ -327,24 +367,26 @@ export function PropostaComercialPrintPage() {
 
                         {/* 6. Validade e Garantia */}
                         <div>
-                            <h2 className="text-xl font-semibold mb-4 text-primary">6. VALIDADE E GARANTIA</h2>
+                            <h2 className="text-xl font-semibold mb-4 text-primary border-l-4 border-primary pl-3">
+                                6. VALIDADE E GARANTIA
+                            </h2>
                             <div className="grid grid-cols-2 gap-6">
-                                <div className="bg-warning/5 p-4 rounded-lg">
-                                    <h4 className="font-medium text-warning mb-2">Validade da Proposta</h4>
-                                    <p className="text-2xl font-bold text-warning">
+                                <div className="bg-primary/10 border-2 border-primary p-4 rounded-lg">
+                                    <h4 className="font-semibold text-primary mb-2">Validade da Proposta</h4>
+                                    <p className="text-3xl font-bold text-foreground">
                                         {propostaData.validadeDias} dias
                                     </p>
-                                    <p className="text-sm text-warning">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         A partir da data de emissão
                                     </p>
                                 </div>
 
-                                <div className="bg-secondary/5 p-4 rounded-lg">
-                                    <h4 className="font-medium text-secondary mb-2">Garantia dos Serviços</h4>
-                                    <p className="text-2xl font-bold text-secondary">
+                                <div className="bg-primary/10 border-2 border-primary p-4 rounded-lg">
+                                    <h4 className="font-semibold text-primary mb-2">Garantia dos Serviços</h4>
+                                    <p className="text-3xl font-bold text-foreground">
                                         {propostaData.garantiaMeses} meses
                                     </p>
-                                    <p className="text-sm text-secondary">
+                                    <p className="text-sm text-muted-foreground mt-1">
                                         Contra defeitos de execução
                                     </p>
                                 </div>

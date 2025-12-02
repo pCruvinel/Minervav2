@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ordensServicoAPI } from '../api-client';
 import { EtapaStatus } from '../types';
+import { logger } from '../utils/logger';
 
 export interface OsEtapa {
   id: string;
@@ -200,6 +201,18 @@ export function useEtapas() {
     formData: any,
     markAsComplete: boolean = false
   ): Promise<void> => {
+    // ✅ FIX: Validate and log data size for debugging
+    const fieldCount = Object.keys(formData || {}).length;
+    const dataSize = JSON.stringify(formData || {}).length;
+
+    logger.log(`💾 saveFormData - etapaId: ${etapaId}, fields: ${fieldCount}, size: ${dataSize}B`);
+
+    // ⚠️ WARNING: Detect potential incomplete data for Etapa 1
+    if (fieldCount === 1 && formData.leadId) {
+      logger.warn('⚠️ WARNING: Saving only leadId - possible incomplete data!');
+      logger.warn('⚠️ Expected 20+ fields for Etapa 1, got 1');
+    }
+
     const updateData: UpdateEtapaData = {
       dados_etapa: formData,
     };

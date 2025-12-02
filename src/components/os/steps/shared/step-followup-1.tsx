@@ -18,7 +18,7 @@ interface ArquivoComComentario {
   size: number;
   type: string;
   uploadedAt: string;
-  comment: string;
+  comentario: string;
 }
 
 interface StepFollowup1Props {
@@ -399,7 +399,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
                 url: file.url,
                 nome: file.name || file.nome,  // Handle both formats
                 tamanho: file.size || file.tamanho,  // Handle both formats
-                comentario: file.comment // Ensure comment is passed
+                comentario: file.comentario || file.comment // Handle both formats for backward compatibility
               }));
               onDataChange({ ...safeData, anexos: filesForSchema });
             }}

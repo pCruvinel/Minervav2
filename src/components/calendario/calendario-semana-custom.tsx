@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { PermissaoUtil } from '@/lib/auth-utils';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { nowInSaoPaulo, toSaoPauloTime } from '@/lib/utils/timezone';
 
 // Lazy load modals (reutilizando os existentes)
 const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
@@ -31,17 +32,17 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
 
     const ehAdmin = currentUser && PermissaoUtil.ehDiretoria(currentUser);
 
-    // Calcular início da semana (domingo)
+    // Calcular início da semana (domingo) no timezone de São Paulo
     const calcularInicioSemana = (data: Date) => {
-        const d = new Date(data);
+        const d = toSaoPauloTime(data);
         const dia = d.getDay();
         d.setDate(d.getDate() - dia); // Voltar para domingo
         return d.toISOString().split('T')[0];
     };
 
-    // Calcular fim da semana (sábado)
+    // Calcular fim da semana (sábado) no timezone de São Paulo
     const calcularFimSemana = (data: Date) => {
-        const d = new Date(data);
+        const d = toSaoPauloTime(data);
         const dia = d.getDay();
         d.setDate(d.getDate() + (6 - dia)); // Avançar para sábado
         return d.toISOString().split('T')[0];
@@ -67,14 +68,14 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
     };
 
     const handleHoje = () => {
-        setDataAtual(new Date());
+        setDataAtual(nowInSaoPaulo());
     };
 
     // Handler de clique em célula
     const handleClickCelula = (celula: CelulaData) => {
-        // Verificar se a data/hora já passou
-        const agora = new Date();
-        const dataHoraCelula = new Date(`${celula.data}T${String(celula.hora).padStart(2, '0')}:00:00`);
+        // Verificar se a data/hora já passou (usando timezone de São Paulo)
+        const agora = nowInSaoPaulo();
+        const dataHoraCelula = toSaoPauloTime(new Date(`${celula.data}T${String(celula.hora).padStart(2, '0')}:00:00`));
 
         if (dataHoraCelula < agora) {
             toast.error('Não é possível agendar em datas/horários passados');

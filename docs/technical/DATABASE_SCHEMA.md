@@ -1,4 +1,4 @@
-# AI Context: Minerva Database Schema (v2.3)
+# AI Context: Minerva Database Schema (v2.4)
 
 > **SYSTEM NOTE:** Este documento descreve a "Verdade" do banco de dados. Se houver conflito entre este arquivo e o código, este arquivo prevalece em lógica de negócio.
 
@@ -135,6 +135,7 @@ public.clientes (
   nome_razao_social text,
   cpf_cnpj varchar UNIQUE,
   status text,                  -- Enum: [lead, ativo, inativo]
+  tipo_cliente tipo_cliente,    -- Enum: [PESSOA_FISICA, PESSOA_JURIDICA, CONDOMINIO, CONSTRUTORA, INCORPORADORA, INDUSTRIA, COMERCIO, OUTRO]
   responsavel_id uuid FK(public.colaboradores),
   email text,
   telefone varchar,
@@ -246,6 +247,17 @@ public.audit_log (
   * `ativo` - Cliente com contrato ativo
   * `inativo` - Cliente sem contratos ativos
   * `blacklist` - Cliente bloqueado (inadimplente/problemas)
+
+**Tipo de Cliente (`tipo_cliente`)** ✅ **MIGRADO**
+
+  * `PESSOA_FISICA` - Pessoa física
+  * `PESSOA_JURIDICA` - Pessoa jurídica
+  * `CONDOMINIO` - Condomínio residencial/comercial
+  * `CONSTRUTORA` - Empresa construtora
+  * `INCORPORADORA` - Incorporadora imobiliária
+  * `INDUSTRIA` - Empresa industrial
+  * `COMERCIO` - Empresa comercial
+  * `OUTRO` - Outro tipo de cliente
 
 **Tipos Financeiros (`financeiro_tipo`)**
 

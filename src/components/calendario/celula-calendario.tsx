@@ -35,8 +35,8 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
             'bg-opacity-20': !!turno,
             'cursor-pointer hover:ring-2 hover:ring-primary hover:z-10': ehClicavel,
             'cursor-not-allowed opacity-50': turno && !podeAgendar && !ehAdmin,
-            // Sem turno
-            'bg-muted/10': !turno,
+            // Sem turno - branco pérola
+            'bg-[hsl(30,20%,98%)]': !turno,
         }
     );
 

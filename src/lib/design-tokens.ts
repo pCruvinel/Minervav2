@@ -48,7 +48,8 @@ export const designTokens = {
     background: {
       primary: 'var(--background)',
       secondary: 'var(--muted)',
-      tertiary: 'var(--muted)'
+      tertiary: 'var(--muted)',
+      pearl: 'hsl(30, 20%, 98%)'  // Branco pérola para células vazias
     },
     text: {
       primary: 'var(--foreground)',

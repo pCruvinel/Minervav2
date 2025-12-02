@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { Button } from '../ui/button';
+import { dateStringToSaoPaulo, TIMEZONE_SP } from '@/lib/utils/timezone';
 
 interface CalendarioHeaderProps {
     dataInicio: string;
@@ -19,13 +20,19 @@ export function CalendarioHeader({
     onProximaSemana,
     onHoje
 }: CalendarioHeaderProps) {
-    // Formatar período da semana
+    // Formatar período da semana no timezone de São Paulo
     const formatarPeriodo = () => {
-        const inicio = new Date(dataInicio + 'T00:00:00');
-        const fim = new Date(dataFim + 'T00:00:00');
+        const inicio = dateStringToSaoPaulo(dataInicio);
+        const fim = dateStringToSaoPaulo(dataFim);
 
-        const mesInicio = inicio.toLocaleDateString('pt-BR', { month: 'long' });
-        const mesFim = fim.toLocaleDateString('pt-BR', { month: 'long' });
+        const mesInicio = inicio.toLocaleDateString('pt-BR', {
+            month: 'long',
+            timeZone: TIMEZONE_SP
+        });
+        const mesFim = fim.toLocaleDateString('pt-BR', {
+            month: 'long',
+            timeZone: TIMEZONE_SP
+        });
         const ano = inicio.getFullYear();
 
         if (mesInicio === mesFim) {

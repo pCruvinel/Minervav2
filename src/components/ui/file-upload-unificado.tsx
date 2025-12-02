@@ -26,7 +26,7 @@ export interface FileWithComment {
     size: number;
     type: string;
     uploadedAt: string;
-    comment: string;
+    comentario: string;
 }
 
 interface FileUploadUnificadoProps {
@@ -66,7 +66,7 @@ function normalizeFileFromSchema(file: any): FileWithComment {
         size: file.tamanho || 0,
         type: '', // Não temos o tipo original no schema
         uploadedAt: new Date().toISOString(),
-        comment: file.comentario || ''
+        comentario: file.comentario || ''
     };
 }
 
@@ -149,7 +149,7 @@ export function FileUploadUnificado({
                     size: file.size,
                     type: file.type,
                     uploadedAt: new Date().toISOString(),
-                    comment: ''
+                    comentario: ''
                 };
 
                 uploadedFiles.push(fileWithComment);
@@ -200,7 +200,7 @@ export function FileUploadUnificado({
 
     const saveComment = (fileId: string) => {
         const updatedFiles = files.map(file =>
-            file.id === fileId ? { ...file, comment: tempComment } : file
+            file.id === fileId ? { ...file, comentario: tempComment } : file
         );
         onFilesChange(updatedFiles);
         setEditingComment(null);
@@ -418,13 +418,13 @@ export function FileUploadUnificado({
                                         ) : (
                                             <div className="flex items-start gap-2">
                                                 <p className="text-xs text-muted-foreground flex-1 min-h-[2rem] bg-background p-2 rounded">
-                                                    {file.comment || 'Sem comentário'}
+                                                    {file.comentario || 'Sem comentário'}
                                                 </p>
                                                 {!disabled && (
                                                     <Button
                                                         variant="ghost"
                                                         size="sm"
-                                                        onClick={() => startEditingComment(file.id, file.comment)}
+                                                        onClick={() => startEditingComment(file.id, file.comentario)}
                                                         title="Editar comentário"
                                                         className="h-6 w-6 p-0"
                                                     >

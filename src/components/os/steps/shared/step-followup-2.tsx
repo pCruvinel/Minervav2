@@ -1,16 +1,21 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { Upload, X, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
 
-interface FotoComComentario {
-  file: File;
-  comment: string;
+interface ArquivoComComentario {
+  id: string;
+  name: string;
+  url: string;
+  path: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
+  comentario: string;
 }
 
 interface StepFollowUp2Props {
@@ -20,65 +25,59 @@ interface StepFollowUp2Props {
     comoEsperaResolver: string;
     expectativaCliente: string;
     estadoAncoragem: string;
-    fotosAncoragem: Array<FotoComComentario>;
-    
+    fotosAncoragem: Array<ArquivoComComentario>;
+
     // Momento 2: Avaliação Geral da Visita
     quemAcompanhou: string;
     avaliacaoVisita: string; // "produtiva" | "pouco-produtiva" | "improdutiva"
-    
+
     // Momento 3: Respostas do Engenheiro
     estadoGeralEdificacao: string;
     servicoResolver: string;
-    arquivosGerais: Array<FotoComComentario>;
+    arquivosGerais: Array<ArquivoComComentario>;
   };
   onDataChange: (data: any) => void;
+  osId?: string;
 }
 
 export function StepFollowUp2({
   data,
   onDataChange,
+  osId,
 }: StepFollowUp2Props) {
-  const handleFileUpload = (files: FileList | null, tipo: 'ancoragem' | 'geral') => {
-    if (!files) return;
-    
-    const novoArquivo: FotoComComentario = {
-      file: files[0],
-      comment: '',
-    };
-    
-    if (tipo === 'ancoragem') {
-      onDataChange({
-        ...data,
-        fotosAncoragem: [...data.fotosAncoragem, novoArquivo],
-      });
-    } else {
-      onDataChange({
-        ...data,
-        arquivosGerais: [...data.arquivosGerais, novoArquivo],
-      });
-    }
+
+  // Helper para normalizar arquivos para o formato do schema
+  const handleFilesChange = (files: any[], field: 'fotosAncoragem' | 'arquivosGerais') => {
+    const filesForSchema = files.map((file: any) => ({
+      id: file.id,
+      url: file.url,
+      name: file.name || file.nome,
+      path: file.path || '',
+      size: file.size || file.tamanho || 0,
+      type: file.type || '',
+      uploadedAt: file.uploadedAt || new Date().toISOString(),
+      comment: file.comentario || file.comment || ''
+    }));
+
+    onDataChange({
+      ...data,
+      [field]: filesForSchema
+    });
   };
 
-  const handleRemoverArquivo = (index: number, tipo: 'ancoragem' | 'geral') => {
-    if (tipo === 'ancoragem') {
-      const novaLista = data.fotosAncoragem.filter((_, i) => i !== index);
-      onDataChange({ ...data, fotosAncoragem: novaLista });
-    } else {
-      const novaLista = data.arquivosGerais.filter((_, i) => i !== index);
-      onDataChange({ ...data, arquivosGerais: novaLista });
-    }
-  };
-
-  const handleAtualizarComentario = (index: number, comentario: string, tipo: 'ancoragem' | 'geral') => {
-    if (tipo === 'ancoragem') {
-      const novaLista = [...data.fotosAncoragem];
-      novaLista[index] = { ...novaLista[index], comment: comentario };
-      onDataChange({ ...data, fotosAncoragem: novaLista });
-    } else {
-      const novaLista = [...data.arquivosGerais];
-      novaLista[index] = { ...novaLista[index], comment: comentario };
-      onDataChange({ ...data, arquivosGerais: novaLista });
-    }
+  // Converter dados do schema para o formato do FileUploadUnificado
+  const getFilesForUpload = (files: any[]) => {
+    if (!files) return [];
+    return files.map(f => ({
+      id: f.id || '',
+      name: f.name || f.nome || '',
+      url: f.url || '',
+      path: f.path || '',
+      size: f.size || f.tamanho || 0,
+      type: f.type || '',
+      uploadedAt: f.uploadedAt || '',
+      comentario: f.comment || f.comentario || ''
+    }));
   };
 
   return (
@@ -154,56 +153,13 @@ export function StepFollowUp2({
 
         {/* 5. Anexar fotos do sistema de ancoragem */}
         <div className="space-y-2">
-          <Label>5. Anexar fotos do sistema de ancoragem</Label>
-          <div className="space-y-3">
-            {/* Área de Upload */}
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                id="upload-ancoragem"
-                onChange={(e) => handleFileUpload(e.target.files, 'ancoragem')}
-              />
-              <label htmlFor="upload-ancoragem" className="cursor-pointer">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Clique para selecionar fotos do sistema de ancoragem</p>
-                <p className="text-xs text-muted-foreground mt-1">JPG, PNG (máx. 10MB cada)</p>
-              </label>
-            </div>
-
-            {/* Lista de arquivos carregados */}
-            {data.fotosAncoragem.length > 0 && (
-              <div className="space-y-2">
-                {data.fotosAncoragem.map((foto, index) => (
-                  <Card key={index} className="bg-success/5 border-success/20">
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium truncate">{foto.file.name}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoverArquivo(index, 'ancoragem')}
-                          >
-                            <X className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <Textarea
-                          rows={2}
-                          value={foto.comment}
-                          onChange={(e) => handleAtualizarComentario(index, e.target.value, 'ancoragem')}
-                          placeholder="Adicione um comentário sobre esta foto..."
-                          className="text-sm"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          <FileUploadUnificado
+            label="5. Anexar fotos do sistema de ancoragem"
+            files={getFilesForUpload(data.fotosAncoragem || [])}
+            onFilesChange={(files) => handleFilesChange(files, 'fotosAncoragem')}
+            osId={osId}
+            acceptedTypes={['image/jpeg', 'image/png', 'image/jpg']}
+          />
         </div>
       </div>
 
@@ -299,56 +255,12 @@ export function StepFollowUp2({
 
         {/* 10. Anexar Arquivos Gerais */}
         <div className="space-y-2">
-          <Label>10. Anexar Arquivos (Fotos gerais, croquis, medições, etc)</Label>
-          <div className="space-y-3">
-            {/* Área de Upload */}
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
-              <input
-                type="file"
-                accept="image/*,.pdf,.dwg"
-                multiple
-                className="hidden"
-                id="upload-geral"
-                onChange={(e) => handleFileUpload(e.target.files, 'geral')}
-              />
-              <label htmlFor="upload-geral" className="cursor-pointer">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">Clique para selecionar arquivos</p>
-                <p className="text-xs text-muted-foreground mt-1">JPG, PNG, PDF, DWG (máx. 15MB cada)</p>
-              </label>
-            </div>
-
-            {/* Lista de arquivos carregados */}
-            {data.arquivosGerais.length > 0 && (
-              <div className="space-y-2">
-                {data.arquivosGerais.map((arquivo, index) => (
-                  <Card key={index} className="bg-success/5 border-success/20">
-                    <CardContent className="pt-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium truncate">{arquivo.file.name}</p>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoverArquivo(index, 'geral')}
-                          >
-                            <X className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                        <Textarea
-                          rows={2}
-                          value={arquivo.comment}
-                          onChange={(e) => handleAtualizarComentario(index, e.target.value, 'geral')}
-                          placeholder="Adicione um comentário sobre este arquivo..."
-                          className="text-sm"
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
+          <FileUploadUnificado
+            label="10. Anexar Arquivos (Fotos gerais, croquis, medições, etc)"
+            files={getFilesForUpload(data.arquivosGerais || [])}
+            onFilesChange={(files) => handleFilesChange(files, 'arquivosGerais')}
+            osId={osId}
+          />
         </div>
       </div>
     </div>

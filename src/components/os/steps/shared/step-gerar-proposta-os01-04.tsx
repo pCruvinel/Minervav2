@@ -127,12 +127,8 @@ export function StepGerarPropostaOS0104({
 
   const validacao = validarDadosEtapa1();
 
-  // Gerar proposta automaticamente ao montar o componente (se ainda não foi gerada)
-  useEffect(() => {
-    if (!data.propostaGerada && validacao.valido && data.validadeDias && data.garantiaMeses) {
-      handleGerarProposta();
-    }
-  }, [data.propostaGerada, validacao.valido, data.validadeDias, data.garantiaMeses]);
+  // ❌ REMOVIDO: useEffect que chamava automaticamente (bypass de validação)
+  // Gerar proposta deve ser manual via botão com validação preventiva
 
   // Calcular prazo total
   const calcularPrazoTotal = (): number => {
@@ -190,7 +186,13 @@ export function StepGerarPropostaOS0104({
 
     // Validar preço
     if (!valorTotal || valorTotal <= 0) {
-      toast.error('Valor da proposta deve ser maior que zero');
+      toast.error('Valor da proposta deve ser maior que zero. Verifique se preencheu os dados do Memorial (Etapa 7) e Precificação (Etapa 8)');
+      return;
+    }
+
+    // Validar dados do memorial
+    if (!etapa7Data.etapasPrincipais || etapa7Data.etapasPrincipais.length === 0) {
+      toast.error('Preencha o Memorial de Escopo (Etapa 7) antes de gerar a proposta');
       return;
     }
 
@@ -200,14 +202,34 @@ export function StepGerarPropostaOS0104({
 
   const handleGerarProposta = async () => {
     // DEBUG: Log do osId
-    console.log('[Step 9] Gerando proposta para osId:', osId);
-    console.log('[Step 9] Tipo de osId:', typeof osId);
-    console.log('[Step 9] osId válido?:', !!osId);
+    console.log('[Step 9] ======== INÍCIO GERAÇÃO PROPOSTA ========');
+    console.log('[Step 9] osId:', osId);
+    console.log('[Step 9] Etapa 1 (Cliente):', etapa1Data);
+    console.log('[Step 9] Etapa 7 (Memorial):', etapa7Data);
+    console.log('[Step 9] Etapa 8 (Precificação):', etapa8Data);
+    console.log('[Step 9] valorTotal calculado:', valorTotal);
+    console.log('[Step 9] valorEntrada calculado:', valorEntrada);
+    console.log('[Step 9] valorParcela calculado:', valorParcela);
 
     gerarCodigoProposta();
 
     // Gerar descrição dos serviços baseada nas etapas
     const descricaoServicos = gerarDescricaoServicos();
+
+    // Calcular custo base do memorial
+    const custoBase = etapa7Data.etapasPrincipais?.reduce((total, etapa) => {
+      return total + (etapa.subetapas?.reduce((subtotal, sub) => {
+        return subtotal + (parseFloat(sub.total) || 0);
+      }, 0) || 0);
+    }, 0) || 0;
+
+    console.log('[Step 9] custoBase calculado:', custoBase);
+
+    // Remover máscara do CNPJ
+    const cpfCnpjLimpo = etapa1Data.cpfCnpj?.replace(/\D/g, '') || '';
+    console.log('[Step 9] CNPJ original:', etapa1Data.cpfCnpj);
+    console.log('[Step 9] CNPJ limpo:', cpfCnpjLimpo);
+    console.log('[Step 9] Comprimento CNPJ limpo:', cpfCnpjLimpo.length);
 
     // Salvar dados locais primeiro
     onDataChange({
@@ -220,14 +242,25 @@ export function StepGerarPropostaOS0104({
     });
 
     try {
-      // DEBUG: Log antes da chamada
-      console.log('[Step 9] Chamando generate() com osId:', osId);
+      // Montar payload completo
+      const payload = {
+        clienteCpfCnpj: cpfCnpjLimpo,
+        dadosFinanceiros: {
+          precoFinal: valorTotal.toString(),
+          custoBase: custoBase.toString(),
+          valorEntrada: valorEntrada.toString(),
+          valorParcela: valorParcela.toString(),
+          numeroParcelas: etapa8Data.numeroParcelas || '1',
+          percentualEntrada: etapa8Data.percentualEntrada || '0',
+        }
+      };
 
-      // ✅ NOVO: Passar dados do frontend junto com a chamada
-      const result = await generate('proposta', osId, {
-        clienteCpfCnpj: etapa1Data.cpfCnpj,
-        valorProposta: valorTotal,
-      });
+      console.log('[Step 9] ======== PAYLOAD COMPLETO ========');
+      console.log('[Step 9] Payload que será enviado:', JSON.stringify(payload, null, 2));
+      console.log('[Step 9] ======================================');
+
+      // ✅ FIX: Remover máscara do CNPJ e passar dados corretos
+      const result = await generate('proposta', osId, payload);
 
       // DEBUG: Log do resultado
       console.log('[Step 9] Resultado do generate():', result);
@@ -394,19 +427,28 @@ export function StepGerarPropostaOS0104({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/os/proposta/${data.codigoProposta}`, '_blank')}
+                  onClick={() => window.open(`/os/proposta/${osId}`, '_blank')}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Visualizar Proposta
                 </Button>
                 {pdfUrl && (
-                  <PDFDownloadButton
-                    pdfUrl={pdfUrl}
-                    tipo="proposta"
-                    osId={osId}
+                  <Button
                     variant="outline"
                     size="sm"
-                  />
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = pdfUrl;
+                      link.download = `proposta-${data.codigoProposta}.pdf`;
+                      link.target = '_blank';
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Baixar PDF
+                  </Button>
                 )}
               </div>
             </div>

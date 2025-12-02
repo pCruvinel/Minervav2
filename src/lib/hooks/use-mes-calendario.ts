@@ -1,72 +1,66 @@
 /**
- * Hook: useSemanaCalendario
- * 
- * Combina turnos e agendamentos para uma semana específica,
- * processando recorrência e disponibilidade de vagas.
- * Otimizado para 2 queries apenas (turnos + agendamentos).
+ * Hook: useMesCalendario
+ *
+ * Busca e processa dados de um mês inteiro do calendário.
+ * Retorna 42 células (6 semanas × 7 dias) para cobrir qualquer mês.
  */
 
 import { useMemo } from 'react';
 import { useApi } from './use-api';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
-import { dateStringToSaoPaulo } from '@/lib/utils/timezone';
+import { dateStringToSaoPaulo, todayInSaoPaulo } from '@/lib/utils/timezone';
+import { TurnoProcessado, AgendamentoProcessado } from './use-semana-calendario';
 
 // =====================================================
 // TYPES
 // =====================================================
 
-export interface TurnoProcessado {
-  id: string;
-  horaInicio: string;      // "08:00"
-  horaFim: string;         // "12:00"
-  vagasTotal: number;
-  vagasOcupadas: number;
-  setores: string[];
-  cor: 'verde' | 'verm' | 'azul';
-  ativo: boolean;
-}
-
-export interface AgendamentoProcessado {
-  id: string;
-  turnoId: string;
-  horarioInicio: string;
-  horarioFim: string;
-  categoria: string;
-  setor: string;
-  status: string;
-  usuarioNome?: string;
-  osCodigo?: string;
-}
-
-export interface CelulaData {
-  data: string;            // "2025-12-02"
-  diaSemana: number;       // 0-6 (0=Dom)
-  hora: number;            // 6-20
-  turno: TurnoProcessado | null;
+export interface CelulaDia {
+  data: string;             // "2025-12-15"
+  turnos: TurnoProcessado[];
   agendamentos: AgendamentoProcessado[];
-  podeAgendar: boolean;
+  isOutsideMonth: boolean;  // Dia pertence ao mês anterior/próximo
+  isToday: boolean;
 }
 
-export interface SemanaData {
-  dataInicio: string;
-  dataFim: string;
-  dias: string[];          // 7 datas da semana
-  turnos: Map<string, TurnoProcessado[]>;  // key: "2025-12-02"
+export interface MesData {
+  mes: string;              // "2025-12"
+  celulas: CelulaDia[];     // 42 células (6 semanas)
+  turnos: Map<string, TurnoProcessado[]>;
   agendamentos: Map<string, AgendamentoProcessado[]>;
-  celulas: Map<string, CelulaData>;  // key: "2025-12-02-09"
 }
 
 // =====================================================
 // API FUNCTIONS
 // =====================================================
 
-const semanaAPI = {
+const mesAPI = {
   /**
-   * Buscar dados completos de uma semana
+   * Buscar dados completos de um mês (42 dias)
    */
-  async getSemana(dataInicio: string, dataFim: string): Promise<SemanaData> {
-    // 1. Buscar todos os turnos ativos (1 query)
+  async getMes(mesInicio: string): Promise<MesData> {
+    // mesInicio = "2025-12-01"
+    const [ano, mes] = mesInicio.split('-').map(Number);
+
+    // Calcular primeiro e último dia do mês
+    const primeiroDiaMes = dateStringToSaoPaulo(`${ano}-${String(mes).padStart(2, '0')}-01`);
+    const ultimoDiaMes = dateStringToSaoPaulo(
+      new Date(ano, mes, 0).toISOString().split('T')[0]
+    );
+
+    // Calcular início da grade (domingo antes do primeiro dia)
+    const inicioDomingo = new Date(primeiroDiaMes);
+    inicioDomingo.setDate(inicioDomingo.getDate() - primeiroDiaMes.getDay());
+
+    // Calcular fim da grade (sábado após o último dia, completando 42 células)
+    const fimSabado = new Date(inicioDomingo);
+    fimSabado.setDate(fimSabado.getDate() + 41); // 42 dias (6 semanas)
+
+    const dataInicioStr = inicioDomingo.toISOString().split('T')[0];
+    const dataFimStr = fimSabado.toISOString().split('T')[0];
+
+    // 1. Buscar todos os turnos ativos
     const { data: turnosDB, error: errorTurnos } = await supabase
       .from('turnos')
       .select('*')
@@ -74,7 +68,7 @@ const semanaAPI = {
 
     if (errorTurnos) throw errorTurnos;
 
-    // 2. Buscar agendamentos da semana (1 query)
+    // 2. Buscar agendamentos do período (42 dias)
     const { data: agendamentosDB, error: errorAgendamentos } = await supabase
       .from('agendamentos')
       .select(`
@@ -89,33 +83,32 @@ const semanaAPI = {
         colaborador:criado_por (nome_completo),
         ordens_servico:os_id (codigo_os)
       `)
-      .gte('data', dataInicio)
-      .lte('data', dataFim)
+      .gte('data', dataInicioStr)
+      .lte('data', dataFimStr)
       .in('status', ['confirmado', 'realizado']);
 
     if (errorAgendamentos) throw errorAgendamentos;
 
-    // 3. Gerar array de datas da semana (timezone SP)
-    const dias: string[] = [];
-    const current = dateStringToSaoPaulo(dataInicio);
-    const end = dateStringToSaoPaulo(dataFim);
+    // 3. Gerar array de 42 datas
+    const datas: string[] = [];
+    const current = new Date(inicioDomingo);
 
-    while (current <= end) {
+    for (let i = 0; i < 42; i++) {
       const ano = current.getFullYear();
       const mes = String(current.getMonth() + 1).padStart(2, '0');
       const dia = String(current.getDate()).padStart(2, '0');
-      dias.push(`${ano}-${mes}-${dia}`);
+      datas.push(`${ano}-${mes}-${dia}`);
       current.setDate(current.getDate() + 1);
     }
 
-    // 4. Processar turnos por dia (calcular recorrência)
+    // 4. Processar turnos por dia
     const turnosPorDia = new Map<string, TurnoProcessado[]>();
 
-    dias.forEach(dataStr => {
+    datas.forEach(dataStr => {
       const data = dateStringToSaoPaulo(dataStr);
-      const diaSemana = data.getDay(); // 0=Dom, 6=Sáb
+      const diaSemana = data.getDay();
 
-      const turnosDoDia = turnosDB
+      const turnosDoDia = (turnosDB || [])
         .filter(turno => {
           // Validar recorrência
           if (turno.tipo_recorrencia === 'todos') return true;
@@ -131,10 +124,10 @@ const semanaAPI = {
         })
         .map(turno => ({
           id: turno.id,
-          horaInicio: turno.hora_inicio.slice(0, 5), // "08:00:00" → "08:00"
+          horaInicio: turno.hora_inicio.slice(0, 5),
           horaFim: turno.hora_fim.slice(0, 5),
           vagasTotal: turno.vagas_total,
-          vagasOcupadas: 0, // Será calculado com agendamentos
+          vagasOcupadas: 0,
           setores: turno.setores,
           cor: turno.cor,
           ativo: turno.ativo,
@@ -166,7 +159,7 @@ const semanaAPI = {
       agendamentosPorDia.set(agend.data, lista);
     });
 
-    // 6. Calcular vagas ocupadas por turno
+    // 6. Calcular vagas ocupadas
     agendamentosPorDia.forEach((agendamentos, dataStr) => {
       const turnos = turnosPorDia.get(dataStr);
       if (!turnos) return;
@@ -179,51 +172,30 @@ const semanaAPI = {
       });
     });
 
-    // 7. Criar células otimizadas (mapeamento rápido)
-    const celulas = new Map<string, CelulaData>();
+    // 7. Criar células do mês
+    const hoje = todayInSaoPaulo();
+    const mesAtual = primeiroDiaMes.getMonth();
 
-    dias.forEach(dataStr => {
+    const celulas: CelulaDia[] = datas.map(dataStr => {
       const data = dateStringToSaoPaulo(dataStr);
-      const diaSemana = data.getDay();
-      const turnosDoDia = turnosPorDia.get(dataStr) || [];
-      const agendamentosDoDia = agendamentosPorDia.get(dataStr) || [];
+      const mesData = data.getMonth();
+      const isOutsideMonth = mesData !== mesAtual;
+      const isToday = dataStr === hoje;
 
-      // Criar células para horários 6h-20h
-      for (let hora = 6; hora <= 20; hora++) {
-        // Encontrar turno para este horário
-        const turno = turnosDoDia.find(t => {
-          const [hInicio] = t.horaInicio.split(':').map(Number);
-          const [hFim] = t.horaFim.split(':').map(Number);
-          return hora >= hInicio && hora < hFim;
-        }) || null;
-
-        // Encontrar agendamentos para este horário
-        const agendamentosHora = agendamentosDoDia.filter(a => {
-          const [hInicio] = a.horarioInicio.split(':').map(Number);
-          const [hFim] = a.horarioFim.split(':').map(Number);
-          return hora >= hInicio && hora < hFim;
-        });
-
-        const celula: CelulaData = {
-          data: dataStr,
-          diaSemana,
-          hora,
-          turno,
-          agendamentos: agendamentosHora,
-          podeAgendar: turno !== null && turno.vagasOcupadas < turno.vagasTotal && agendamentosHora.length === 0,
-        };
-
-        celulas.set(`${dataStr}-${hora}`, celula);
-      }
+      return {
+        data: dataStr,
+        turnos: turnosPorDia.get(dataStr) || [],
+        agendamentos: agendamentosPorDia.get(dataStr) || [],
+        isOutsideMonth,
+        isToday,
+      };
     });
 
     return {
-      dataInicio,
-      dataFim,
-      dias,
+      mes: `${ano}-${String(mes).padStart(2, '0')}`,
+      celulas,
       turnos: turnosPorDia,
       agendamentos: agendamentosPorDia,
-      celulas,
     };
   },
 };
@@ -233,21 +205,23 @@ const semanaAPI = {
 // =====================================================
 
 /**
- * Hook para carregar dados de uma semana do calendário
+ * Hook para carregar dados de um mês do calendário
+ *
+ * @param mesInicio - Primeiro dia do mês no formato YYYY-MM-DD (ex: "2025-12-01")
  */
-export function useSemanaCalendario(dataInicio: string, dataFim: string) {
+export function useMesCalendario(mesInicio: string) {
   const { data, loading, error, refetch } = useApi(
-    () => semanaAPI.getSemana(dataInicio, dataFim),
+    () => mesAPI.getMes(mesInicio),
     {
-      deps: [dataInicio, dataFim],
+      deps: [mesInicio],
       onError: (error) => {
-        console.error('❌ Erro ao carregar semana:', error);
+        console.error('❌ Erro ao carregar mês:', error);
         toast.error(`Erro ao carregar calendário: ${error.message}`);
       },
     }
   );
 
-  const semanaData = useMemo(() => data || null, [data]);
+  const mesData = useMemo(() => data || null, [data]);
 
-  return { semanaData, loading, error, refetch };
+  return { mesData, loading, error, refetch };
 }

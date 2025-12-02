@@ -222,21 +222,45 @@
  * ========================================== */
 
 @media print {
+  /* Ocultar elementos de navegação */
   .print\:hidden,
   header,
   nav,
   button,
-  .no-print {
+  aside,
+  .sidebar,
+  .no-print,
+  [data-sidebar],
+  [role="navigation"],
+  .navigation {
     display: none !important;
+  }
+
+  /* Remover espaçamento do sideb e forçar main a ocupar 100% */
+  body, html {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  main {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* Remover qualquer margem/padding de containers */
+  .container,
+  [class*="container"] {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 1cm !important;
   }
 
   .print\:shadow-none {
     box-shadow: none !important;
-  }
-
-  body {
-    margin: 0;
-    padding: 0;
   }
 
   .print\:break-inside-avoid {
