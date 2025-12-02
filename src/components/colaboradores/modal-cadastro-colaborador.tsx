@@ -182,16 +182,13 @@ export function ModalCadastroColaborador({
 
     onSalvar({
       nome_completo: nomeCompleto,
-      nome: nomeCompleto, // Compatibilidade
       cpf,
       data_nascimento: dataNascimento || null,
       endereco: enderecoCompleto,
       email_pessoal: emailPessoal,
       email_profissional: emailProfissional,
-      email: emailProfissional, // Compatibilidade
       telefone_pessoal: telefonePessoal,
       telefone_profissional: telefoneProfissional,
-      telefone: telefoneProfissional, // Compatibilidade
       contato_emergencia_nome: contatoEmergenciaNome,
       contato_emergencia_telefone: contatoEmergenciaTelefone,
       disponibilidade_dias: disponibilidadeDias,

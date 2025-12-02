@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
@@ -29,6 +29,9 @@ interface OS11WorkflowPageProps {
 }
 
 export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
+    // Refs para validação imperativa de steps
+    const stepAgendarVisitaRef = useRef<any>(null);
+
     const {
         currentStep,
         setCurrentStep,
@@ -145,6 +148,23 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
         completedStepsFromHook
     });
 
+    // =====================================================
+    // Cálculo de Validação - Bloqueio de Progresso
+    // =====================================================
+
+    const isCurrentStepInvalid = useMemo(() => {
+        // Não validar em modo histórico (read-only)
+        if (isHistoricalNavigation) return false;
+
+        // Switch por etapa para validação específica
+        switch (currentStep) {
+            case 2: // Agendar Visita - opcional
+                return false;
+            default:
+                return false;
+        }
+    }, [currentStep, isHistoricalNavigation]);
+
     const handleSaveStep = async () => {
         try {
             await saveStep(currentStep, true);
@@ -218,8 +238,8 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                         {currentStep === 1 && (
                             <StepCadastroCliente data={etapa1Data} onDataChange={setEtapa1Data} readOnly={isHistoricalNavigation} />
                         )}
-                        {currentStep === 2 && (
-                            <StepAgendarVisita data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />
+                        {currentStep === 2 && osId && (
+                            <StepAgendarVisita ref={stepAgendarVisitaRef} osId={osId} data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />
                         )}
                         {currentStep === 3 && (
                             <StepRealizarVisita data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} />
@@ -259,6 +279,8 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData}
+                isFormInvalid={isCurrentStepInvalid}
+                invalidFormMessage="Por favor, selecione um horário no calendário e um técnico responsável para continuar"
             />
         </div>
     );

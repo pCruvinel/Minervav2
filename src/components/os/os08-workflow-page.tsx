@@ -31,6 +31,9 @@ interface OS08WorkflowPageProps {
 }
 
 export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
+  // Refs para validação imperativa de steps
+  const stepAgendarVisitaRef = useRef<any>(null);
+
   // Hook de Estado do Workflow
   const {
     currentStep,
@@ -135,6 +138,23 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
     completedStepsFromHook
   });
 
+  // =====================================================
+  // Cálculo de Validação - Bloqueio de Progresso
+  // =====================================================
+
+  const isCurrentStepInvalid = useMemo(() => {
+    // Não validar em modo histórico (read-only)
+    if (isHistoricalNavigation) return false;
+
+    // Switch por etapa para validação específica
+    switch (currentStep) {
+      case 3: // Agendar Visita - opcional
+        return false;
+      default:
+        return false;
+    }
+  }, [currentStep, isHistoricalNavigation]);
+
   const handleSaveStep = async () => {
     try {
       await saveStep(currentStep, true); // Salvar como rascunho explicitamente se clicado no botão salvar
@@ -235,6 +255,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             {/* ETAPA 3: Agendar Visita */}
             {currentStep === 3 && osId && (
               <StepAgendarVisita
+                ref={stepAgendarVisitaRef}
                 osId={osId}
                 data={etapa3Data}
                 onDataChange={setEtapa3Data}
@@ -292,6 +313,8 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData}
+        isFormInvalid={isCurrentStepInvalid}
+        invalidFormMessage="Por favor, selecione um horário no calendário para continuar"
       />
     </div>
   );

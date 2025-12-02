@@ -77,6 +77,38 @@ export const designTokens = {
 };
 
 /**
+ * Cores para turnos do calendário (Verde, Vermelho, Azul)
+ */
+export const turnoColors = {
+  verde: {
+    bg: 'rgba(34, 197, 94, 0.2)',      // success with 20% opacity
+    border: 'var(--success)',
+    solid: 'var(--success)'
+  },
+  verm: {
+    bg: 'rgba(239, 68, 68, 0.2)',      // destructive with 20% opacity
+    border: 'var(--destructive)',
+    solid: 'var(--destructive)'
+  },
+  azul: {
+    bg: 'rgba(59, 130, 246, 0.2)',     // info with 20% opacity
+    border: 'var(--info)',
+    solid: 'var(--info)'
+  },
+  // Fallbacks para valores antigos
+  primary: {
+    bg: 'rgba(34, 197, 94, 0.2)',
+    border: 'var(--success)',
+    solid: 'var(--success)'
+  },
+  secondary: {
+    bg: 'rgba(59, 130, 246, 0.2)',
+    border: 'var(--info)',
+    solid: 'var(--info)'
+  }
+};
+
+/**
  * Mapeamento de categorias para cores de eventos
  */
 export const categoryColors = {

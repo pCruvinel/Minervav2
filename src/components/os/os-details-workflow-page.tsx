@@ -333,6 +333,8 @@ export function OSDetailsWorkflowPage({
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
   const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
+  const stepAgendarApresentacaoEtapa4Ref = useRef<any>(null);
+  const stepAgendarApresentacaoEtapa10Ref = useRef<any>(null);
 
   // Calcular quais etapas estão concluídas (status = APROVADA)
   // Regras de completude (Fallback para modo criação)
@@ -1343,11 +1345,13 @@ export function OSDetailsWorkflowPage({
       case 3:
         return stepFollowup1Ref.current?.isFormValid() === false;
       case 4:
-        // Etapa 4: Agendamento é recomendado mas não obrigatório
-        // Permite avanço mesmo sem agendamento, mas mostra aviso
-        return false; // Sempre válido - agendamento é opcional
+        // Etapa 4: Agendar Apresentação - opcional
+        return false;
       case 7:
         return stepMemorialRef.current?.isFormValid() === false;
+      case 10:
+        // Etapa 10: Agendar Apresentação - opcional
+        return false;
       default:
         return false; // Etapas sem validação obrigatória
     }
@@ -1540,6 +1544,7 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 4: Agendar Apresentação */}
               {currentStep === 4 && osId && (
                 <StepAgendarApresentacao
+                  ref={stepAgendarApresentacaoEtapa4Ref}
                   osId={osId}
                   data={etapa4Data}
                   onDataChange={setEtapa4Data}
@@ -1649,6 +1654,7 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 10: Agendar Visita (Apresentação) */}
               {currentStep === 10 && osId && (
                 <StepAgendarApresentacao
+                  ref={stepAgendarApresentacaoEtapa10Ref}
                   osId={osId}
                   data={etapa10Data}
                   onDataChange={setEtapa10Data}

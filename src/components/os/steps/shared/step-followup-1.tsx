@@ -138,23 +138,6 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
 
     return (
       <div className="space-y-6">
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Realize a entrevista inicial com o lead/cliente para levantar informações sobre o projeto.
-          </AlertDescription>
-        </Alert>
-
-        {/* Aviso: Requisitos flexibilizados para avanço rápido */}
-        <Alert className="border-primary/20 bg-primary/5">
-          <AlertCircle className="h-4 w-4 text-primary" />
-          <AlertDescription className="text-primary">
-            <strong>Requisitos flexibilizados:</strong> Os campos obrigatórios têm requisitos mínimos reduzidos
-            para permitir avanço mais rápido quando necessário. Complete o máximo possível de informações
-            para melhor qualidade do atendimento.
-          </AlertDescription>
-        </Alert>
-
         <div className="space-y-4">
           <FormSelect
             id="idadeEdificacao"

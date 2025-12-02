@@ -136,10 +136,10 @@ export class PermissaoUtil {
   }
 
   /**
-   * Verifica se é Diretoria
+   * Verifica se é Diretoria ou Admin (níveis hierárquicos superiores)
    */
   static ehDiretoria(usuario: User): boolean {
-    return usuario.role_nivel === 'diretoria';
+    return usuario.role_nivel === 'diretoria' || usuario.role_nivel === 'admin';
   }
 
   /**

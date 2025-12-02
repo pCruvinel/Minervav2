@@ -172,13 +172,8 @@ export const etapa4Schema = z.object({
   observacoes: z.string()
     .optional()
     .describe('Observações adicionais'),
-}).refine(
-  (data) => data.agendamentoId || data.dataAgendamento || (data.dataVisita && data.horaVisita && data.responsavelVisita),
-  {
-    message: 'Agendamento é obrigatório',
-    path: ['agendamentoId'],
-  }
-);
+});
+// Removido .refine() para tornar agendamento verdadeiramente opcional
 
 export type Etapa4Data = z.infer<typeof etapa4Schema>;
 

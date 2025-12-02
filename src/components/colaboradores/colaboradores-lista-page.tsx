@@ -30,6 +30,10 @@ interface Colaborador {
   cpf: string | null;
   email: string | null;
   telefone: string | null;
+  email_profissional?: string | null;
+  telefone_profissional?: string | null;
+  email_pessoal?: string | null;
+  telefone_pessoal?: string | null;
   cargo_id: string | null;
   setor: string | null;
   tipo_contratacao: string | null;
@@ -82,6 +86,8 @@ export function ColaboradoresListaPage() {
     const matchesSearch =
       colaborador.nome_completo?.toLowerCase().includes(filtro.toLowerCase()) ||
       colaborador.email?.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.email_profissional?.toLowerCase().includes(filtro.toLowerCase()) ||
+      colaborador.email_pessoal?.toLowerCase().includes(filtro.toLowerCase()) ||
       colaborador.cpf?.includes(filtro);
 
     const matchesSetor = setorFilter === 'todos' ||
@@ -116,9 +122,14 @@ export function ColaboradoresListaPage() {
         toast.success('Colaborador atualizado com sucesso!');
       } else {
         // Criar
+        const dadosParaSalvar = {
+          ...dados,
+          id: crypto.randomUUID(),
+        };
+
         const { error } = await supabase
           .from('colaboradores')
-          .insert(dados);
+          .insert(dadosParaSalvar);
 
         if (error) throw error;
         toast.success('Colaborador criado com sucesso!');
@@ -281,7 +292,7 @@ export function ColaboradoresListaPage() {
                           <p className="font-medium">{colaborador.nome_completo}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">
                             <Mail className="h-3 w-3" />
-                            {colaborador.email || 'N/A'}
+                            {colaborador.email_profissional || colaborador.email_pessoal || colaborador.email || 'N/A'}
                           </div>
                         </div>
                       </div>

@@ -1,7 +1,16 @@
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { AgendamentoOS } from '@/components/os/agendamento-os';
+import {
+  CalendarioIntegracao,
+  CalendarioIntegracaoHandle,
+} from '@/components/os/calendario-integracao';
 import { useOS } from '@/lib/hooks/use-os';
+import { toast } from 'sonner';
+
+// =====================================================
+// TYPES
+// =====================================================
 
 export interface StepAgendarVisitaFinalProps {
   osId: string;
@@ -13,44 +22,127 @@ export interface StepAgendarVisitaFinalProps {
   readOnly?: boolean;
 }
 
-export function StepAgendarVisitaFinal({ osId, data, onDataChange, readOnly }: StepAgendarVisitaFinalProps) {
-  // Buscar setor da OS
-  const { os, loading } = useOS(osId);
-  const setorSlug = os?.tipo_os?.setor?.slug || '';
+export interface StepAgendarVisitaFinalHandle {
+  isFormValid: () => boolean;
+  validate: () => boolean;
+}
 
-  if (loading) {
+// =====================================================
+// COMPONENTE
+// =====================================================
+
+export const StepAgendarVisitaFinal = forwardRef<
+  StepAgendarVisitaFinalHandle,
+  StepAgendarVisitaFinalProps
+>(
+  ({ osId, data, onDataChange, readOnly }, ref) => {
+    // Buscar setor da OS
+    const { os, loading } = useOS(osId);
+    const setorSlug = os?.tipo_os?.setor?.slug || '';
+
+    // Ref do calendário para validação
+    const calendarioRef = useRef<CalendarioIntegracaoHandle>(null);
+
+    // =====================================================
+    // REF IMPERATIVO
+    // =====================================================
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        isFormValid: () => {
+          return calendarioRef.current?.isAgendamentoConfirmado() ?? false;
+        },
+
+        validate: () => {
+          const isFormValid = calendarioRef.current?.isAgendamentoConfirmado() ?? false;
+          if (!isFormValid) {
+            toast.error(
+              'Por favor, selecione um horário no calendário para continuar'
+            );
+            return false;
+          }
+          return true;
+        },
+      }),
+      []
+    );
+
+    // =====================================================
+    // HANDLERS
+    // =====================================================
+
+    const handleAgendamentoChange = (agendamento: any) => {
+      const agendamentoData = agendamento
+        ? {
+            agendamentoId: agendamento.id,
+            dataVisitaFinal: agendamento.data,
+          }
+        : { agendamentoId: null };
+
+      onDataChange({
+        ...data,
+        ...agendamentoData,
+      });
+    };
+
+    // =====================================================
+    // RENDER
+    // =====================================================
+
+    if (loading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      );
+    }
+
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl mb-1">Agendar Visita Final</h2>
+          <p className="text-sm text-muted-foreground">
+            Agende a visita final para verificação do andamento e conclusão das
+            atividades usando o sistema de calendário
+          </p>
+        </div>
+
+        <CalendarioIntegracao
+          ref={calendarioRef}
+          osId={osId}
+          categoria="visita"
+          setorSlug={setorSlug}
+          agendamentoExistente={
+            data.agendamentoId
+              ? {
+                  id: data.agendamentoId,
+                  data: data.dataVisitaFinal || '',
+                  horarioInicio: '',
+                  horarioFim: '',
+                  duracaoHoras: 0,
+                  turnoId: '',
+                  categoria: 'Vistoria Final',
+                  setor: setorSlug,
+                  status: 'confirmado',
+                }
+              : undefined
+          }
+          onAgendamentoChange={handleAgendamentoChange}
+          readOnly={readOnly}
+        />
+
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            A visita final deve ser agendada próximo à conclusão das atividades
+            principais da obra para verificar a execução e qualidade dos
+            serviços.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
+);
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl mb-1">Agendar Visita Final</h2>
-        <p className="text-sm text-muted-foreground">
-          Agende a visita final para verificação do andamento e conclusão das atividades usando o sistema de calendário
-        </p>
-      </div>
-
-      <AgendamentoOS
-        osId={osId}
-        categoria="Vistoria Final"
-        setorSlug={setorSlug}
-        agendamentoId={data.agendamentoId}
-        onAgendamentoChange={(id) => onDataChange({ ...data, agendamentoId: id })}
-        readOnly={readOnly}
-        dataLegacy={data.dataVisitaFinal}
-      />
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          A visita final deve ser agendada próximo à conclusão das atividades principais da obra para verificar a execução e qualidade dos serviços.
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
-}
+StepAgendarVisitaFinal.displayName = 'StepAgendarVisitaFinal';

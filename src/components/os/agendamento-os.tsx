@@ -21,8 +21,7 @@ import { useState, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CalendarioSemana } from '@/components/calendario/calendario-semana';
-import { ModalNovoAgendamento } from '@/components/calendario/modal-novo-agendamento';
+import { CalendarioSemanaCustom } from '@/components/calendario/calendario-semana-custom';
 import {
   Calendar,
   CalendarCheck,
@@ -34,8 +33,7 @@ import {
   Plus,
   RefreshCw,
 } from 'lucide-react';
-import { useAgendamento, useCancelarAgendamento, useAgendamentos } from '@/lib/hooks/use-agendamentos';
-import { useTurnosPorSemana } from '@/lib/hooks/use-turnos';
+import { useAgendamento, useCancelarAgendamento } from '@/lib/hooks/use-agendamentos';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -67,68 +65,31 @@ export function AgendamentoOS({
   readOnly = false,
   dataLegacy,
 }: AgendamentoOSProps) {
-  // Estados
-  const [modalAgendamentoAberto, setModalAgendamentoAberto] = useState(false);
-  const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
-  const [diaSelecionado, setDiaSelecionado] = useState<Date>(new Date());
+  // Estados (simplificado - calendário custom gerencia seus próprios modais)
 
-  // Calcular período para buscar dados do calendário (60 dias atrás até 60 dias à frente)
+  // Data atual para o calendário
   const hoje = useMemo(() => new Date(), []);
-  const dataInicio = useMemo(() => {
-    const data = new Date(hoje);
-    data.setDate(data.getDate() - 60);
-    return data.toISOString().split('T')[0];
-  }, [hoje]);
-
-  const dataFim = useMemo(() => {
-    const data = new Date(hoje);
-    data.setDate(data.getDate() + 60);
-    return data.toISOString().split('T')[0];
-  }, [hoje]);
 
   // Hooks
   const { data: agendamento, loading: loadingAgendamento, refetch: refetchAgendamento } = useAgendamento(agendamentoId);
   const { mutate: cancelarAgendamento, loading: cancelando } = useCancelarAgendamento();
 
-  // Hooks para dados do calendário
-  const { turnosPorDia, loading: loadingTurnos, error: errorTurnos, refetch: refetchTurnos } = useTurnosPorSemana(
-    dataInicio,
-    dataFim
-  );
-
-  const { agendamentos, loading: loadingAgendamentos, refetch: refetchAgendamentos } = useAgendamentos({
-    dataInicio,
-    dataFim,
-  });
-
-  // Loading e error combinados
-  const loading = loadingTurnos || loadingAgendamentos;
-  const error = errorTurnos;
-
-  // Função de refresh unificada
+  // Função de refresh (simplificada - o calendário custom gerencia seus próprios dados)
   const handleRefresh = useCallback(() => {
-    refetchTurnos();
-    refetchAgendamentos();
-  }, [refetchTurnos, refetchAgendamentos]);
+    // O CalendarioSemanaCustom gerencia seu próprio refresh
+  }, []);
 
   // =====================================================
   // HANDLERS
   // =====================================================
 
-  const handleTurnoClick = (turno: any, dia: Date) => {
-    if (readOnly) return;
-    setTurnoSelecionado(turno);
-    setDiaSelecionado(dia);
-    setModalAgendamentoAberto(true);
+  const handleAbrirCalendario = () => {
+    // Função para abrir calendário no modo legado
+    // Por enquanto, apenas mostra um toast
+    toast.info('Funcionalidade em desenvolvimento');
   };
 
-  const handleAgendamentoSuccess = () => {
-    setModalAgendamentoAberto(false);
-    toast.success('Agendamento criado com sucesso!');
-    refetchAgendamento();
-    handleRefresh();
-    // O callback onAgendamentoChange será chamado pelo ModalNovoAgendamento
-  };
+
 
   const handleCancelarAgendamento = () => {
     if (!agendamentoId) return;
@@ -306,40 +267,21 @@ export function AgendamentoOS({
                   onClick={handleRefresh}
                   variant="outline"
                   size="sm"
-                  disabled={loading}
+                  disabled={false}
                   className="border-border"
                 >
-                  {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4" />
-                  )}
+                  <RefreshCw className="h-4 w-4" />
                 </Button>
               </div>
 
-              <CalendarioSemana
-                dataAtual={hoje}
-                turnosPorDia={turnosPorDia}
-                agendamentos={agendamentos}
-                loading={loading}
-                error={error}
+              <CalendarioSemanaCustom
+                dataInicial={hoje}
                 onRefresh={handleRefresh}
-                onTurnoClick={handleTurnoClick}
               />
             </CardContent>
           </Card>
         )}
 
-        {/* Modal de Criação de Agendamento */}
-        {turnoSelecionado && (
-          <ModalNovoAgendamento
-            open={modalAgendamentoAberto}
-            onClose={() => setModalAgendamentoAberto(false)}
-            turno={turnoSelecionado}
-            dia={diaSelecionado}
-            onSuccess={handleAgendamentoSuccess}
-          />
-        )}
       </div>
     );
   }
@@ -374,14 +316,10 @@ export function AgendamentoOS({
                 onClick={handleRefresh}
                 variant="outline"
                 size="sm"
-                disabled={loading}
+                disabled={false}
                 className="border-primary/30 text-primary hover:bg-primary/10"
               >
-                {loading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
+                <RefreshCw className="h-4 w-4" />
               </Button>
             )}
           </div>
@@ -391,28 +329,13 @@ export function AgendamentoOS({
       {/* Calendário Integrado */}
       <Card className="border-border">
         <CardContent className="p-6">
-          <CalendarioSemana
-            dataAtual={hoje}
-            turnosPorDia={turnosPorDia}
-            agendamentos={agendamentos}
-            loading={loading}
-            error={error}
+          <CalendarioSemanaCustom
+            dataInicial={hoje}
             onRefresh={handleRefresh}
-            onTurnoClick={handleTurnoClick}
           />
         </CardContent>
       </Card>
 
-      {/* Modal de Criação de Agendamento */}
-      {turnoSelecionado && (
-        <ModalNovoAgendamento
-          open={modalAgendamentoAberto}
-          onClose={() => setModalAgendamentoAberto(false)}
-          turno={turnoSelecionado}
-          dia={diaSelecionado}
-          onSuccess={handleAgendamentoSuccess}
-        />
-      )}
     </div>
   );
 }

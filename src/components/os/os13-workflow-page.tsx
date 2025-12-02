@@ -53,6 +53,8 @@ interface OS13WorkflowPageProps {
 
 export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPageProps) {
   const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
+  const stepAgendarVisitaInicialRef = useRef<any>(null);
+  const stepAgendarVisitaFinalRef = useRef<any>(null);
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
 
   // Atualizar internalOsId se prop mudar
@@ -230,6 +232,26 @@ export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPagePro
     completedStepsFromHook
   });
 
+  // =====================================================
+  // Cálculo de Validação - Bloqueio de Progresso
+  // =====================================================
+
+  const isCurrentStepInvalid = useMemo(() => {
+    // Não validar em modo histórico (read-only)
+    if (isHistoricalNavigation) return false;
+
+    // Switch por etapa para validação específica
+    switch (currentStep) {
+      case 6: // Agendar Visita Inicial - opcional
+        return false;
+      case 16: // Agendar Visita Final - opcional
+        return false;
+    }
+
+    // Para outras etapas, usar verificação de completedSteps
+    return !completedSteps.includes(currentStep);
+  }, [currentStep, isHistoricalNavigation, completedSteps]);
+
   const handleSaveStep = async () => {
     try {
       await saveStep(currentStep, true);
@@ -324,7 +346,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPagePro
             {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 6 && internalOsId && <StepAgendarVisitaInicial osId={internalOsId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 6 && internalOsId && <StepAgendarVisitaInicial ref={stepAgendarVisitaInicialRef} osId={internalOsId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
@@ -334,7 +356,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPagePro
             {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 16 && internalOsId && <StepAgendarVisitaFinal osId={internalOsId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 16 && internalOsId && <StepAgendarVisitaFinal ref={stepAgendarVisitaFinalRef} osId={internalOsId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isHistoricalNavigation} />}
           </div>
         </Card>
@@ -349,8 +371,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPagePro
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData}
-        isFormInvalid={!completedSteps.includes(currentStep)}
-        invalidFormMessage="Complete todos os campos obrigatórios desta etapa antes de continuar"
+        isFormInvalid={isCurrentStepInvalid}
+        invalidFormMessage={currentStep === 6 || currentStep === 16 ? "Por favor, selecione um horário no calendário para continuar" : "Complete todos os campos obrigatórios desta etapa antes de continuar"}
       />
     </div>
   );

@@ -11,7 +11,6 @@ import {
   CreditCard,
   Plus,
   Kanban,
-
   Receipt,
   TrendingUp,
   TrendingDown,
@@ -20,6 +19,8 @@ import {
   Building2,
   Shield,
   ChevronRight,
+  LayoutGrid,
+  Eye,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -81,7 +82,15 @@ const menuItems = [
       { id: 'clientes-lista', label: 'Meus Clientes', icon: Users, to: '/clientes' },
     ]
   },
-  { id: 'calendario', label: 'Calendário', icon: Calendar, to: '/calendario' },
+  {
+    id: 'calendario',
+    label: 'Calendário',
+    icon: Calendar,
+    submenu: [
+      { id: 'calendario-view', label: 'Visualização', icon: Eye, to: '/calendario' },
+      { id: 'calendario-painel', label: 'Painel', icon: LayoutGrid, to: '/calendario/painel' },
+    ]
+  },
   {
     id: 'configuracoes',
     label: 'Configurações',

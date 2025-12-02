@@ -26,8 +26,9 @@ interface ModalDetalhesTurnoProps {
 }
 
 const coresTurno = [
-    { nome: 'Dourado', classe: 'bg-primary', valor: 'primary' },
-    { nome: 'Rosa', classe: 'bg-secondary', valor: 'secondary' }
+    { nome: 'Verde', classe: 'bg-success', valor: 'verde' },
+    { nome: 'Vermelho', classe: 'bg-destructive', valor: 'verm' },
+    { nome: 'Azul', classe: 'bg-info', valor: 'azul' }
 ];
 
 interface ValidationErrors {
@@ -250,7 +251,7 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                 horaFim,
                 vagasTotal: numeroVagas[0],
                 setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
-                cor: coresTurno.find(c => c.classe === corSelecionada)?.valor || 'primary',
+                cor: coresTurno.find(c => c.classe === corSelecionada)?.valor || 'verde',
                 tipoRecorrencia: recorrencia,
                 dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
                 dataFim: recorrencia === 'custom' ? dataFim : undefined,
