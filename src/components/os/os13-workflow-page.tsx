@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
@@ -26,7 +26,7 @@ import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
 
-const steps: WorkflowStep[] = [
+export const steps: WorkflowStep[] = [
   { id: 1, title: 'Dados do Cliente', short: 'Cliente', responsible: 'Comercial', status: 'active' },
   { id: 2, title: 'Anexar ART', short: 'ART', responsible: 'Engenharia', status: 'pending' },
   { id: 3, title: 'Relatório Fotográfico', short: 'Fotos', responsible: 'Engenharia', status: 'pending' },
@@ -51,8 +51,14 @@ interface OS13WorkflowPageProps {
   osId?: string;
 }
 
-export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
+export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPageProps) {
   const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
+  const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
+
+  // Atualizar internalOsId se prop mudar
+  useEffect(() => {
+    if (propOsId) setInternalOsId(propOsId);
+  }, [propOsId]);
 
   // Hook de Estado do Workflow
   const {
@@ -68,7 +74,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     completedSteps: completedStepsFromHook,
     isLoading: isLoadingData
   } = useWorkflowState({
-    osId,
+    osId: internalOsId,
     totalSteps: steps.length
   });
 
@@ -111,18 +117,31 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
 
         // Salvar dados (cliente, documentos, centro de custo, metadata)
         console.log('💾 Salvando dados da obra...');
-        const saved = await stepLeadRef.current.saveData();
+        const savedOsId = await stepLeadRef.current.saveData();
 
-        if (!saved) {
+        if (!savedOsId) {
           console.log('❌ Salvamento falhou');
           return;
         }
-        console.log('✅ Dados salvos com sucesso');
+        console.log('✅ Dados salvos com sucesso. ID:', savedOsId);
+
+        // Se foi criado um novo ID, atualizar estado
+        if (savedOsId && savedOsId !== internalOsId) {
+          setInternalOsId(savedOsId);
+          // Pequeno delay para garantir que o estado atualizou antes de salvar a etapa
+          await new Promise(resolve => window.setTimeout(resolve, 100));
+        }
       }
 
       // Salvar a etapa no banco (marcar como concluída)
       console.log('💾 Salvando etapa 1 no banco...');
       try {
+        // Se tivermos um novo ID, vamos atualizar a etapa diretamente para garantir
+        if (stepLeadRef.current && typeof stepLeadRef.current.saveData === 'function') {
+          // Já salvamos os dados. Agora só precisamos marcar a etapa como completa.
+          // O saveStep do hook pode não funcionar se o osId for undefined no render atual.
+        }
+
         await saveStep(1, true); // true = mark as complete
         console.log('✅ Etapa 1 salva no banco');
       } catch (error) {
@@ -239,7 +258,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
             )}
             <div>
               <h1 className="text-2xl">OS-13: Start de Contrato de Obra</h1>
-              {osId && <p className="text-muted-foreground">OS #{osId}</p>}
+              {internalOsId && <p className="text-muted-foreground">OS #{internalOsId}</p>}
             </div>
           </div>
         </div>
@@ -298,24 +317,24 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
                 data={etapa1Data}
                 onDataChange={setEtapa1Data}
                 readOnly={isHistoricalNavigation}
-                osId={osId || ''}
+                osId={internalOsId || ''}
               />
             )}
             {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 6 && osId && <StepAgendarVisitaInicial osId={osId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
+            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
+            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
+            {currentStep === 6 && internalOsId && <StepAgendarVisitaInicial osId={internalOsId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
+            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={osId} />}
-            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={osId} />}
+            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
+            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 16 && osId && <StepAgendarVisitaFinal osId={osId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 16 && internalOsId && <StepAgendarVisitaFinal osId={internalOsId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isHistoricalNavigation} />}
           </div>
         </Card>

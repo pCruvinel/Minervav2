@@ -8,7 +8,6 @@ import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { RadioGroup, RadioGroupItem } from '../ui/radio-group';
 import { Checkbox } from '../ui/checkbox';
 import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
@@ -17,7 +16,6 @@ import { useCreateTurno } from '../../lib/hooks/use-turnos';
 import { Loader2, AlertCircle, Clock, Calendar, Users, Palette, Briefcase } from 'lucide-react';
 import { useSetores } from '../../lib/hooks/use-setores';
 import { logger } from '../../lib/utils/logger';
-import { designTokens } from '@/lib/design-tokens';
 
 interface ModalCriarTurnoProps {
   open: boolean;
@@ -26,12 +24,8 @@ interface ModalCriarTurnoProps {
 }
 
 const coresTurno = [
-  { nome: 'Dourado', valor: 'var(--primary)' },
-  { nome: 'Rosa', valor: 'var(--secondary)' },
-  { nome: 'Verde', valor: 'var(--success)' },
-  { nome: 'Amarelo', valor: 'var(--warning)' },
-  { nome: 'Vermelho', valor: 'var(--error)' },
-  { nome: 'Azul', valor: 'var(--info)' }
+  { nome: 'Dourado', classe: 'bg-primary', valor: 'primary' },
+  { nome: 'Rosa', classe: 'bg-secondary', valor: 'secondary' }
 ];
 
 interface ValidationErrors {
@@ -51,7 +45,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const [dataFim, setDataFim] = useState('');
   const [diasSemana, setDiasSemana] = useState<number[]>([]); // 0=Domingo, 6=Sábado
   const [numeroVagas, setNumeroVagas] = useState([5]);
-  const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
+  const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].classe);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
   const [todosSetores, setTodosSetores] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
@@ -232,7 +226,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
         horaFim,
         vagasTotal: numeroVagas[0],
         setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
-        cor: corSelecionada,
+        cor: coresTurno.find(c => c.classe === corSelecionada)?.valor || 'primary',
         tipoRecorrencia: recorrencia,
         dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
         dataFim: recorrencia === 'custom' ? dataFim : undefined,
@@ -247,7 +241,7 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
       setDataFim('');
       setDiasSemana([]);
       setNumeroVagas([5]);
-      setCorSelecionada(coresTurno[0].valor);
+      setCorSelecionada(coresTurno[0].classe);
       setSetoresSelecionados([]);
       setTodosSetores(false);
       setErrors({});
@@ -518,18 +512,18 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
             <div className="flex gap-3 flex-wrap">
               {coresTurno.map((cor) => (
                 <button
-                  key={cor.valor}
+                  key={cor.classe}
                   type="button"
-                  onClick={() => setCorSelecionada(cor.valor)}
+                  onClick={() => setCorSelecionada(cor.classe)}
                   className={`
                     relative w-12 h-12 rounded-full transition-all
                     hover:scale-110 shadow-sm border-2
-                    ${corSelecionada === cor.valor ? 'ring-2 ring-offset-2 ring-primary scale-110 border-transparent' : 'border-border'}
+                    ${cor.classe}
+                    ${corSelecionada === cor.classe ? 'ring-2 ring-offset-2 ring-primary scale-110 border-transparent' : 'border-border'}
                   `}
-                  style={{ backgroundColor: cor.valor }}
                   title={cor.nome}
                 >
-                  {corSelecionada === cor.valor && (
+                  {corSelecionada === cor.classe && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm">
                         <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">

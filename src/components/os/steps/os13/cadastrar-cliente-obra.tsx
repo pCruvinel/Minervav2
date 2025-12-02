@@ -47,22 +47,17 @@ import { FileUploadUnificado, FileWithComment } from '@/components/ui/file-uploa
 import { supabase } from '@/lib/supabase-client';
 
 // Validação
-import { cadastrarClienteObraSchema, CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
-
-export interface CadastrarClienteObraProps {
-  data: CadastrarClienteObraData;
-  onDataChange: (data: CadastrarClienteObraData) => void;
-  readOnly?: boolean;
-  osId: string;
-}
+import { steps } from '../../os13-workflow-page';
+import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
+import { cadastrarClienteObraSchema } from '@/lib/validations/cadastrar-cliente-obra-schema';
 
 export interface CadastrarClienteObraHandle {
   validate: () => boolean;
-  saveData: () => Promise<boolean>;
+  saveData: () => Promise<string | null>;
 }
 
 export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, CadastrarClienteObraProps>(
-  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId }, ref) {
+  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId }, ref) {
     // Estados locais
     const [showCombobox, setShowCombobox] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -82,9 +77,12 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
     const { mutate: updateCliente } = useUpdateCliente();
     const { generateCentroCusto } = useCentroCusto();
     const { uploadDocumentos } = useClienteDocumentos();
+    const { mutate: createOS } = useCreateOSWorkflow();
 
     // Cliente selecionado
     const selectedLead = leads.find(l => l.id === data.clienteId);
+
+    // ... (generatePassword and validate functions remain the same) ...
 
     /**
      * Gera senha automática segura
@@ -141,9 +139,9 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
     /**
      * Salva todos os dados (cliente, documentos, centro de custo, metadata OS)
      */
-    const saveData = async (): Promise<boolean> => {
+    const saveData = async (): Promise<string | null> => {
       if (!validate()) {
-        return false;
+        return null;
       }
 
       try {
@@ -170,11 +168,97 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
             : Promise.resolve()
         ]);
 
-        // 3. Upload de contrato assinado (documento da OS)
+        // 3. Gerar Centro de Custo
+        logger.log('🏗️ Gerando Centro de Custo...');
+
+        // Se não tem OS ID, precisamos buscar o tipo OS pelo código
+        let tipoOSId = '';
+
+        if (initialOsId) {
+          const { data: os } = await supabase
+            .from('ordens_servico')
+            .select('tipo_os_id')
+            .eq('id', initialOsId)
+            .single();
+
+          if (os?.tipo_os_id) tipoOSId = os.tipo_os_id;
+        } else {
+          const { data: tipoOS } = await supabase
+            .from('tipos_os')
+            .select('id')
+            .eq('codigo', 'OS-13')
+            .single();
+
+          if (tipoOS?.id) tipoOSId = tipoOS.id;
+        }
+
+        if (!tipoOSId) {
+          throw new Error('Tipo de OS não encontrado (OS-13)');
+        }
+
+        const cc = await generateCentroCusto(
+          tipoOSId,
+          data.clienteId,
+          `Centro de Custo - ${selectedLead?.nome_razao_social || 'Cliente'}`
+        );
+
+        let currentOsId = initialOsId;
+
+        // 4. Se não tem OS, criar
+        if (!currentOsId) {
+          logger.log('🆕 Criando nova OS...');
+          const result = await createOS({
+            tipoOSCodigo: 'OS-13',
+            clienteId: data.clienteId,
+            ccId: cc.id,
+            responsavelId: user?.id || null,
+            descricao: `Start de Contrato - ${selectedLead?.nome_razao_social || 'Cliente'}`,
+            metadata: {
+              data_contratacao: data.dataContratacao,
+              aniversario_gestor: data.aniversarioGestor
+            },
+            etapas: steps.map(s => ({
+              nome_etapa: s.title,
+              ordem: s.id,
+              dados_etapa: s.id === 1 ? data : {}
+            }))
+          });
+
+          currentOsId = result.os.id;
+          logger.log('✅ Nova OS criada:', currentOsId);
+        } else {
+          // 5. Atualizar OS existente com cc_id e metadata
+          logger.log('🔗 Vinculando Centro de Custo à OS existente...');
+          await supabase
+            .from('ordens_servico')
+            .update({ cc_id: cc.id })
+            .eq('id', currentOsId);
+
+          logger.log('💾 Salvando metadata da OS...');
+          const { data: currentOS } = await supabase
+            .from('ordens_servico')
+            .select('metadata')
+            .eq('id', currentOsId)
+            .single();
+
+          const updatedMetadata = {
+            ...(currentOS?.metadata || {}),
+            data_contratacao: data.dataContratacao,
+            aniversario_gestor: data.aniversarioGestor
+          };
+
+          await supabase
+            .from('ordens_servico')
+            .update({ metadata: updatedMetadata })
+            .eq('id', currentOsId);
+        }
+
+        // 6. Upload de contrato assinado (documento da OS)
+        // Agora temos certeza que currentOsId existe
         logger.log('📤 Fazendo upload do contrato assinado...');
         for (const file of data.contratoAssinado) {
           await supabase.from('os_documentos').insert({
-            os_id: osId,
+            os_id: currentOsId,
             etapa_id: null, // Documento geral da OS
             nome: file.name,
             tipo: 'contrato_assinado',
@@ -185,50 +269,6 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
           });
         }
 
-        // 4. Gerar Centro de Custo
-        logger.log('🏗️ Gerando Centro de Custo...');
-        const { data: os } = await supabase
-          .from('ordens_servico')
-          .select('tipo_os_id')
-          .eq('id', osId)
-          .single();
-
-        if (!os?.tipo_os_id) {
-          throw new Error('Tipo de OS não encontrado');
-        }
-
-        const cc = await generateCentroCusto(
-          os.tipo_os_id,
-          data.clienteId,
-          `Centro de Custo - ${selectedLead?.nome_razao_social || 'Cliente'}`
-        );
-
-        // 5. Atualizar OS com cc_id
-        logger.log('🔗 Vinculando Centro de Custo à OS...');
-        await supabase
-          .from('ordens_servico')
-          .update({ cc_id: cc.id })
-          .eq('id', osId);
-
-        // 6. Salvar metadata da OS (data_contratacao, aniversario_gestor)
-        logger.log('💾 Salvando metadata da OS...');
-        const { data: currentOS } = await supabase
-          .from('ordens_servico')
-          .select('metadata')
-          .eq('id', osId)
-          .single();
-
-        const updatedMetadata = {
-          ...(currentOS?.metadata || {}),
-          data_contratacao: data.dataContratacao,
-          aniversario_gestor: data.aniversarioGestor
-        };
-
-        await supabase
-          .from('ordens_servico')
-          .update({ metadata: updatedMetadata })
-          .eq('id', osId);
-
         // 7. Atualizar data local com Centro de Custo gerado
         onDataChange({
           ...data,
@@ -237,11 +277,11 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
         logger.log('✅ Salvamento concluído com sucesso!');
         toast.success('Dados salvos com sucesso!');
-        return true;
+        return currentOsId;
       } catch (error) {
         logger.error('❌ Erro ao salvar dados:', error);
         toast.error('Erro ao salvar dados. Tente novamente.');
-        return false;
+        return null;
       } finally {
         setIsSaving(false);
       }
@@ -511,7 +551,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     files={data.documentosFoto}
                     onFilesChange={(files) => onDataChange({ ...data, documentosFoto: files })}
                     disabled={readOnly}
-                    osId={osId}
+                    osId={initialOsId}
                     maxFiles={2}
                     maxFileSize={5}
                     acceptedTypes={['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']}
@@ -525,7 +565,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     files={data.comprovantesResidencia}
                     onFilesChange={(files) => onDataChange({ ...data, comprovantesResidencia: files })}
                     disabled={readOnly}
-                    osId={osId}
+                    osId={initialOsId}
                     maxFiles={2}
                     maxFileSize={5}
                     acceptedTypes={['image/jpeg', 'image/png', 'image/jpg', 'application/pdf']}
@@ -539,7 +579,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     files={data.contratoSocial}
                     onFilesChange={(files) => onDataChange({ ...data, contratoSocial: files })}
                     disabled={readOnly}
-                    osId={osId}
+                    osId={initialOsId}
                     maxFiles={3}
                     maxFileSize={10}
                     acceptedTypes={['application/pdf']}
@@ -553,7 +593,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     files={data.logoCliente || []}
                     onFilesChange={(files) => onDataChange({ ...data, logoCliente: files })}
                     disabled={readOnly}
-                    osId={osId}
+                    osId={initialOsId}
                     maxFiles={1}
                     maxFileSize={2}
                     acceptedTypes={['image/jpeg', 'image/png', 'image/jpg']}
@@ -567,7 +607,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                     files={data.contratoAssinado}
                     onFilesChange={(files) => onDataChange({ ...data, contratoAssinado: files })}
                     disabled={readOnly}
-                    osId={osId}
+                    osId={initialOsId}
                     maxFiles={2}
                     maxFileSize={10}
                     acceptedTypes={['application/pdf']}

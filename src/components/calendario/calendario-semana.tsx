@@ -1,4 +1,4 @@
-import { useState, useMemo, lazy, Suspense, memo, useRef } from 'react';
+import { useState, useMemo, lazy, Suspense, memo, useRef, useEffect } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
@@ -27,7 +27,6 @@ interface CalendarioSemanaProps {
     loading: boolean;
     error: Error | null;
     onRefresh: () => void;
-    onTurnoClick?: (turno: TurnoComVagas, dia: Date) => void;
 }
 
 /**
@@ -51,12 +50,30 @@ function CalendarioSemanaComponent({
     const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoComVagas | null>(null);
     const [dataSelecionada, setDataSelecionada] = useState<Date | null>(null);
     const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
+    const [tooltipInstance, setTooltipInstance] = useState<any>(null);
 
     // Verificar se usuário pode gerenciar turnos (admin/diretoria)
     const podeGerenciarTurnos = currentUser && PermissaoUtil.ehDiretoria(currentUser);
 
     // Ref do calendário para controle imperativo
     const calendarRef = useRef<FullCalendar>(null);
+
+    // Limpar tooltip quando componente desmontar ou modais abrirem
+    useEffect(() => {
+        return () => {
+            if (tooltipInstance) {
+                tooltipInstance.destroy();
+            }
+        };
+    }, [tooltipInstance]);
+
+    // Fechar tooltip quando modais abrirem
+    useEffect(() => {
+        if ((modalAgendamento || modalDetalhes || modalDetalhesTurno) && tooltipInstance) {
+            tooltipInstance.destroy();
+            setTooltipInstance(null);
+        }
+    }, [modalAgendamento, modalDetalhes, modalDetalhesTurno, tooltipInstance]);
 
     // Preparar eventos do FullCalendar
     const calendarEvents = useMemo(() => {
@@ -69,6 +86,15 @@ function CalendarioSemanaComponent({
             turnos.forEach(turno => {
                 if (turno.ativo === false) return;
 
+                // Mapear cores do banco para cores do design system
+                const mapCorParaHex = (cor: string): string => {
+                    switch (cor) {
+                        case 'primary': return categoryColors['Visita Semanal'].bg; // #FEE2E2
+                        case 'secondary': return categoryColors['Visita Semanal'].border; // #FCA5A5
+                        default: return categoryColors['Visita Semanal'].bg; // Fallback
+                    }
+                };
+
                 // Converter cor hex para rgba com 20% de opacidade
                 const hexToRgba = (hex: string, opacity: number = 0.2) => {
                     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -79,13 +105,15 @@ function CalendarioSemanaComponent({
                     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
                 };
 
+                const corHex = mapCorParaHex(turno.cor);
+
                 events.push({
                     id: `turno-${turno.id}`,
                     title: '', // Sem texto, apenas background colorido
                     start: `${dataStr}T${turno.horaInicio}`,
                     end: `${dataStr}T${turno.horaFim}`,
                     display: 'background',
-                    backgroundColor: hexToRgba(turno.cor, 0.2), // 20% de opacidade
+                    backgroundColor: hexToRgba(corHex, 0.2), // 20% de opacidade
                     extendedProps: {
                         type: 'turno',
                         turno: turno
@@ -100,9 +128,9 @@ function CalendarioSemanaComponent({
 
             // Obter cores da categoria ou usar azul padrão
             const colors = categoryColors[agendamento.categoria as keyof typeof categoryColors] || {
-                bg: 'hsl(var(--primary) / 0.2)',
-                border: 'hsl(var(--primary))',
-                text: 'hsl(var(--primary))'
+                bg: categoryColors['Vistoria Inicial'].bg,
+                border: categoryColors['Vistoria Inicial'].border,
+                text: categoryColors['Vistoria Inicial'].text
             };
 
             events.push({
@@ -164,16 +192,13 @@ function CalendarioSemanaComponent({
 
     // Handler para clique em evento
     const handleEventClick = (clickInfo: EventClickArg) => {
-        const { type, agendamento, turno } = clickInfo.event.extendedProps;
+        const { type, agendamento } = clickInfo.event.extendedProps;
 
         if (type === 'agendamento') {
             setAgendamentoSelecionado(agendamento);
             setModalDetalhes(true);
-        } else if (type === 'turno' && podeGerenciarTurnos) {
-            // Admin clicou em um turno - abrir modal de detalhes
-            setTurnoSelecionado(turno);
-            setModalDetalhesTurno(true);
         }
+        // Removido clique em turno - agora usa tooltip no dateClick
     };
 
     // Handler para clique em data/horário
@@ -185,9 +210,113 @@ function CalendarioSemanaComponent({
             return;
         }
 
-        setTurnoSelecionado(turno);
-        setDataSelecionada(arg.date);
-        setModalAgendamento(true);
+        // Fechar tooltip anterior se existir
+        if (tooltipInstance) {
+            tooltipInstance.destroy();
+            setTooltipInstance(null);
+        }
+
+        // Criar tooltip com opções
+        const tooltip = tippy(arg.jsEvent.target as any, {
+            content: `
+                <div style="
+                    background: hsl(var(--popover));
+                    padding: 1rem;
+                    border-radius: 0.5rem;
+                    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+                    min-width: 200px;
+                    border: 1px solid hsl(var(--border));
+                ">
+                    <div style="
+                        font-weight: 600;
+                        color: hsl(var(--popover-foreground));
+                        margin-bottom: 0.75rem;
+                        font-size: 0.875rem;
+                    ">Opções para ${turno.horaInicio} - ${turno.horaFim}</div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                        <button
+                            id="btn-agendamento"
+                            style="
+                                width: 100%;
+                                padding: 0.5rem 0.75rem;
+                                background: hsl(var(--primary));
+                                color: hsl(var(--primary-foreground));
+                                border: none;
+                                border-radius: 0.375rem;
+                                font-size: 0.875rem;
+                                font-weight: 500;
+                                cursor: pointer;
+                                transition: background-color 0.2s;
+                            "
+                            onmouseover="this.style.background='hsl(var(--primary) / 0.9)'"
+                            onmouseout="this.style.background='hsl(var(--primary))'"
+                        >
+                            📅 Criar Agendamento
+                        </button>
+
+                        ${podeGerenciarTurnos ? `
+                            <button
+                                id="btn-gerenciar-turno"
+                                style="
+                                    width: 100%;
+                                    padding: 0.5rem 0.75rem;
+                                    background: hsl(var(--secondary));
+                                    color: hsl(var(--secondary-foreground));
+                                    border: none;
+                                    border-radius: 0.375rem;
+                                    font-size: 0.875rem;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                    transition: background-color 0.2s;
+                                "
+                                onmouseover="this.style.background='hsl(var(--secondary) / 0.9)'"
+                                onmouseout="this.style.background='hsl(var(--secondary))'"
+                            >
+                                ⚙️ Gerenciar Turno
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `,
+            allowHTML: true,
+            placement: 'top',
+            trigger: 'manual',
+            showOnCreate: true,
+            hideOnClick: false,
+            interactive: true,
+            theme: 'light',
+            animation: 'scale',
+            duration: [200, 150]
+        });
+
+        // Armazenar referência do tooltip
+        setTooltipInstance(tooltip[0]);
+
+        // Handlers para os botões
+        window.setTimeout(() => {
+            const btnAgendamento = document.getElementById('btn-agendamento');
+            const btnGerenciarTurno = document.getElementById('btn-gerenciar-turno');
+
+            if (btnAgendamento) {
+                btnAgendamento.onclick = () => {
+                    tooltip[0].destroy();
+                    setTooltipInstance(null);
+                    setTurnoSelecionado(turno);
+                    setDataSelecionada(arg.date);
+                    setModalAgendamento(true);
+                };
+            }
+
+            if (btnGerenciarTurno) {
+                btnGerenciarTurno.onclick = () => {
+                    tooltip[0].destroy();
+                    setTooltipInstance(null);
+                    setTurnoSelecionado(turno);
+                    setModalDetalhesTurno(true);
+                };
+            }
+        }, 0);
     };
 
     // Handler para drag de evento
