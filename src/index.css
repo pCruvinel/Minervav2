@@ -1,48 +1,33 @@
 /**
  * Minerva Design System v4.1 - Entry Point
- *
- * ORDEM DE IMPORTAÇÃO (PostCSS):
- * 1. TODOS os @import PRIMEIRO (exigência do PostCSS)
- * 2. Depois @tailwind directives
- * 3. CSS adicional se necessário
- *
- * IMPORTANTE:
- * - PostCSS exige @import ANTES de @tailwind
- * - Variables devem vir primeiro (antes das layers)
- * - Layers organizam estilos por prioridade (base > components > utilities)
- * - Layout estrutural está na @layer base (nunca sobrescrito)
- * - Globals complementares estão na @layer components
- *
- * @see src/styles/layers.css para organização por layers
- * @see src/styles/layout.css para estilos estruturais
- * @see docs/CSS_RESTRUCTURE_AFFECTED_COMPONENTS.md para documentação
  */
 
-/* ==========================================
- * IMPORTS - TODOS PRIMEIRO (PostCSS requirement)
- * ========================================== */
+/* Base Styles & Variables */
+@import './styles/base/variables.css';
+@import './styles/base/reset.css';
+@import './styles/base/typography.css';
+@import './styles/layout.css';
 
-@import './styles/variables.css';
-@import './styles/layers.css';
+/* Components - Radix */
+@import './styles/components/radix/checkbox.css';
+@import './styles/components/radix/radio-group.css';
+@import './styles/components/radix/slider.css';
+@import './styles/components/radix/switch.css';
+@import './styles/components/radix/dialog.css';
+@import './styles/components/radix/popover.css';
+@import './styles/components/radix/select.css';
+@import './styles/components/radix/accordion.css';
 
-/* ==========================================
- * TAILWIND DIRECTIVES - DEPOIS DOS IMPORTS
- * ========================================== */
+/* Components - Custom */
+@import './styles/components/custom/color-selector.css';
+@import './styles/components/custom/form-components.css';
+@import './styles/components.css';
+@import './styles/workflow-animations.css';
 
+/* Globals */
+@import './styles/globals.css';
+
+/* Tailwind Directives */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-/* ==========================================
- * FIM DO INDEX.CSS
- *
- * Toda a estilização de componentes agora está em:
- * - src/styles/base/* (reset, variables, typography)
- * - src/styles/components/radix/* (Radix UI components)
- * - src/styles/components/custom/* (Custom Minerva components)
- *
- * Removido:
- * - Inline Switch styles (9,300+ linhas!)
- * - Estilos com !important desnecessários
- * - CSS duplicado e conflitante
- * ========================================== */

@@ -17,7 +17,7 @@
 
   /* Primary - Dourado #D3AF37 = hsl(46, 64%, 52%) */
   --primary: 46 64% 52%;
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 0 0% 9%;
 
   /* Secondary - Dourado Claro #DDC063 = hsl(46, 64%, 63%) */
   --secondary: 46 64% 63%;
@@ -26,17 +26,29 @@
   /* ==========================================
    * CORES NEUTRAS - ZINC SCALE
    * ========================================== */
-  --background: 240 5% 96%;        /* #f4f4f5 - neutral-100 */
-  --foreground: 240 6% 10%;        /* #18181b - neutral-900 */
+  --neutral-50: 0 0% 98%;          /* #fafafa */
+  --neutral-100: 240 5% 96%;       /* #f4f4f5 */
+  --neutral-200: 240 5% 91%;       /* #e4e4e7 */
+  --neutral-300: 240 6% 83%;       /* #d4d4d8 */
+  --neutral-400: 240 5% 65%;       /* #a1a1aa */
+  --neutral-500: 240 4% 46%;       /* #71717a */
+  --neutral-600: 240 5% 34%;       /* #52525b */
+  --neutral-700: 240 5% 26%;       /* #3f3f46 */
+  --neutral-800: 240 4% 16%;       /* #27272a */
+  --neutral-900: 240 6% 10%;       /* #18181b */
+  --neutral-950: 240 10% 4%;       /* #09090b */
+
+  --background: 0 0% 100%;         /* #ffffff */
+  --foreground: 240 10% 4%;        /* #09090b */
 
   --card: 0 0% 100%;               /* #ffffff */
-  --card-foreground: 240 6% 10%;   /* #18181b */
+  --card-foreground: 240 10% 4%;   /* #09090b */
 
   --popover: 0 0% 100%;            /* #ffffff */
-  --popover-foreground: 240 6% 10%; /* #18181b */
+  --popover-foreground: 240 10% 4%; /* #09090b */
 
-  --muted: 240 5% 96%;             /* #f4f4f5 */
-  --muted-foreground: 240 5% 34%;  /* #52525b */
+  --muted: 240 5% 96%;             /* #f4f4f5 - neutral-100 */
+  --muted-foreground: 240 4% 46%;  /* #71717a - neutral-500 */
 
   --accent: 46 85% 97%;            /* #fcf9f1 - primary-50 */
   --accent-foreground: 46 62% 19%; /* #544616 - primary-900 */

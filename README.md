@@ -22,12 +22,13 @@ O sistema está 100% operacional em **modo frontend-only** com dados mock. Você
 
 ## 🚀 Stack Tecnológica
 
-- **Frontend:** Next.js 14 + React
-- **UI:** shadcn/ui + Tailwind CSS v4
+- **Frontend:** Next.js 14 + React + TypeScript
+- **UI:** shadcn/ui + Tailwind CSS v4 + Sistema de Design Minerva
 - **Backend:** Supabase (Edge Functions + PostgreSQL)
 - **Autenticação:** Supabase Auth
 - **Storage:** Supabase Storage
 - **Ícones:** Lucide React
+- **CSS Architecture:** CSS Layers + Design Tokens + Layout System
 
 ---
 
@@ -37,6 +38,32 @@ O sistema está 100% operacional em **modo frontend-only** com dados mock. Você
 - Primary: `#D3AF37` (Dourado)
 - Secondary: `#DDC063` (Dourado Claro)
 - Texto: Preto em todas as situações
+
+### ✨ Sistema CSS Moderno (v4.0)
+
+**Arquitetura de CSS Layers:**
+- `@layer reset` - Normalização moderna
+- `@layer base` - Variáveis, tipografia, layout estrutural
+- `@layer components` - Componentes Radix UI customizados
+- `@layer utilities` - Tailwind utilities (sempre ganha)
+
+**Design Tokens:**
+- Variáveis CSS em HSL para compatibilidade
+- Sistema de cores, espaçamentos, tipografia
+- Transições e sombras consistentes
+- Layout responsivo com containers inteligentes
+
+**Layout System:**
+- Sidebar adaptativa (256px/64px)
+- Content wrappers (1200px/1400px/1600px)
+- Grid responsivo otimizado
+- Mobile-first com breakpoints estratégicos
+
+**Componentes Otimizados:**
+- shadcn/ui com estilos customizados
+- Radix UI primitives com visual consistente
+- Formulários com validação visual
+- Tabelas responsivas com overflow inteligente
 
 **Documentação completa:** [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md)
 
@@ -147,9 +174,18 @@ Após configurar o backend ou em modo mock:
 ├── supabase/functions/server/    # Edge Functions
 │   └── index.tsx                 # API Backend
 │
-├── styles/                       # Estilos
-│   ├── globals.css               # Estilos globais
-│   └── variables.css             # Variáveis CSS
+├── styles/                       # 🎨 Sistema de Design Minerva v4.0
+│   ├── index.css                 # Entry point com CSS layers
+│   ├── layers.css                # Arquitetura de camadas CSS
+│   ├── layout.css                # Sistema de layout estrutural
+│   ├── globals.css               # Utilities e componentes globais
+│   ├── base/                     # Foundation styles
+│   │   ├── reset.css            # CSS reset moderno
+│   │   ├── variables.css        # Design tokens (HSL)
+│   │   └── typography.css       # Sistema tipográfico
+│   └── components/               # Componentes customizados
+│       ├── radix/               # Estilos Radix UI
+│       └── custom/              # Componentes Minerva
 │
 └── docs/                         # 📚 DOCUMENTAÇÃO (NOVO!)
     ├── 00-INDEX.md               # Índice completo
@@ -217,6 +253,13 @@ Veja [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) para:
 - **[docs/TEST_API_CONNECTION.md](./docs/TEST_API_CONNECTION.md)** - Testar conexão
 - **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Problemas gerais
 
+### 🎨 Problemas de Frontend
+- **CSS não carrega:** Verificar ordem de imports em `src/index.css`
+- **Layout quebrado:** Verificar CSS layers em `src/styles/layers.css`
+- **Grid não funciona:** Verificar classes Tailwind e content-wrapper
+- **Responsividade:** Testar breakpoints (768px, 1024px)
+- **Componentes shadcn:** Verificar estilos Radix UI customizados
+
 ---
 
 ## 🎯 Fluxos de Ordens de Serviço
@@ -256,14 +299,19 @@ Veja [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) para:
 - Badge de aprovações
 
 ### 📱 Design Responsivo
-- Desktop e mobile
-- Sidebar adaptativa
-- Componentes otimizados
+- Desktop e mobile otimizados
+- Sidebar adaptativa (256px/64px)
+- Content wrappers inteligentes (1200px-1600px)
+- Grid system responsivo
+- Mobile-first approach
 
-### 🎨 Design System Consistente
-- Paleta dourada (#D3AF37)
-- Componentes shadcn/ui
-- Tailwind CSS v4
+### 🎨 Design System Consistente v4.0
+- Paleta dourada (#D3AF37) com HSL tokens
+- CSS Layers architecture moderna
+- Componentes shadcn/ui customizados
+- Tailwind CSS v4 com design tokens
+- Layout system estrutural
+- Transições e animações suaves
 
 ### 📊 Dados Mock Abundantes
 - 18 Ordens de Serviço
@@ -310,8 +358,10 @@ Veja `/lib/mock-data-*.ts` para dados disponíveis.
 ### ✅ Fase 1-4: Fundação (Completo)
 - Sistema de autenticação
 - Layout e navegação
-- Design system
+- Design system v4.0 (CSS Layers + Design Tokens)
 - Estrutura de dados
+- Sistema de layout responsivo
+- Componentes shadcn/ui customizados
 
 ### ✅ Fluxos 5-17: Módulos (Completo)
 - Todos os dashboards
@@ -360,9 +410,10 @@ Este é um projeto privado da Minerva Engenharia.
 
 ---
 
-**Versão:** 1.0.0  
-**Última Atualização:** 18/11/2025  
-**Status:** ✅ Sistema completo e funcionando  
+**Versão:** 1.0.1 (Frontend v4.0)
+**Última Atualização:** 02/12/2025
+**Status:** ✅ Sistema completo e funcionando
+**Frontend:** ✅ Design System v4.0 implementado
 **Backend:** ⚠️ Deploy pendente (opcional - sistema funciona em modo mock)
 
 ---

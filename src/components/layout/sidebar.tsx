@@ -297,52 +297,8 @@ export function Sidebar() {
 
       {/* Footer - User Info + Toggle Button */}
       <div className="border-t shrink-0" style={{ borderColor: 'var(--color-border-light)' }}>
-        {/* User Info */}
-        <div style={{ padding: 'var(--spacing-md)' }}>
-          {isOpen ? (
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                style={{
-                  backgroundColor: 'var(--color-primary-100)',
-                  color: 'var(--color-primary-700)',
-                }}
-              >
-                {currentUser?.nome_completo?.substring(0, 2).toUpperCase() || 'US'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-medium truncate"
-                  style={{ color: 'var(--color-neutral-900)' }}
-                >
-                  {currentUser?.nome_completo || 'Usuário'}
-                </p>
-                <p
-                  className="text-xs truncate capitalize"
-                  style={{ color: 'var(--color-neutral-500)' }}
-                >
-                  {currentUser?.role_nivel?.replace('_', ' ') || 'Colaborador'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                style={{
-                  backgroundColor: 'var(--color-primary-100)',
-                  color: 'var(--color-primary-700)',
-                }}
-                title={currentUser?.nome_completo}
-              >
-                {currentUser?.nome_completo?.substring(0, 2).toUpperCase() || 'US'}
-              </div>
-            </div>
-          )}
-        </div>
-
         {/* Toggle Button */}
-        <div style={{ padding: '0 var(--spacing-md) var(--spacing-md)' }}>
+        <div style={{ padding: 'var(--spacing-md)' }}>
           <button
             onClick={toggle}
             className="w-full flex items-center justify-center rounded-lg transition-colors text-sm font-medium"

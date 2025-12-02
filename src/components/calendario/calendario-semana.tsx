@@ -10,12 +10,15 @@ import type { DateClickArg, EventResizeDoneArg } from '@fullcalendar/interaction
 import { TurnoComVagas } from '../../lib/hooks/use-turnos';
 import { supabase } from '@/lib/supabase-client';
 import { categoryColors } from '@/lib/design-tokens';
+import { useAuth } from '../../lib/contexts/auth-context';
+import { PermissaoUtil } from '../../lib/auth-utils';
 
 import 'tippy.js/dist/tippy.css';
 
 // Lazy load modals
 const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
 const ModalDetalhesAgendamento = lazy(() => import('./modal-detalhes-agendamento').then(m => ({ default: m.ModalDetalhesAgendamento })));
+const ModalDetalhesTurno = lazy(() => import('./modal-detalhes-turno').then(m => ({ default: m.ModalDetalhesTurno })));
 
 interface CalendarioSemanaProps {
     dataAtual: Date;
@@ -41,11 +44,16 @@ function CalendarioSemanaComponent({
     error,
     onRefresh
 }: CalendarioSemanaProps) {
+    const { currentUser } = useAuth();
     const [modalAgendamento, setModalAgendamento] = useState(false);
     const [modalDetalhes, setModalDetalhes] = useState(false);
+    const [modalDetalhesTurno, setModalDetalhesTurno] = useState(false);
     const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoComVagas | null>(null);
     const [dataSelecionada, setDataSelecionada] = useState<Date | null>(null);
     const [agendamentoSelecionado, setAgendamentoSelecionado] = useState<any>(null);
+
+    // Verificar se usuário pode gerenciar turnos (admin/diretoria)
+    const podeGerenciarTurnos = currentUser && PermissaoUtil.ehDiretoria(currentUser);
 
     // Ref do calendário para controle imperativo
     const calendarRef = useRef<FullCalendar>(null);
@@ -156,11 +164,15 @@ function CalendarioSemanaComponent({
 
     // Handler para clique em evento
     const handleEventClick = (clickInfo: EventClickArg) => {
-        const { type, agendamento } = clickInfo.event.extendedProps;
+        const { type, agendamento, turno } = clickInfo.event.extendedProps;
 
         if (type === 'agendamento') {
             setAgendamentoSelecionado(agendamento);
             setModalDetalhes(true);
+        } else if (type === 'turno' && podeGerenciarTurnos) {
+            // Admin clicou em um turno - abrir modal de detalhes
+            setTurnoSelecionado(turno);
+            setModalDetalhesTurno(true);
         }
     };
 
@@ -259,6 +271,18 @@ function CalendarioSemanaComponent({
         if (info.event.extendedProps.type === 'agendamento') {
             const { agendamento } = info.event.extendedProps;
 
+            // Encontrar o turno correspondente para mostrar vagas disponíveis
+            const dataStr = agendamento.data;
+            const turnosDoDia = turnosPorDia?.get(dataStr) || [];
+            const turnoDoAgendamento = turnosDoDia.find(t =>
+                t.horaInicio === agendamento.horarioInicio &&
+                t.horaFim === agendamento.horarioFim
+            );
+
+            const vagasInfo = turnoDoAgendamento ?
+                `Vagas: ${turnoDoAgendamento.vagasTotal - turnoDoAgendamento.vagasOcupadas}/${turnoDoAgendamento.vagasTotal}` :
+                '';
+
             tippy(info.el, {
                 content: `
                     <div style="
@@ -288,6 +312,21 @@ function CalendarioSemanaComponent({
                             </svg>
                             <span>${agendamento.horarioInicio} - ${agendamento.horarioFim}</span>
                         </div>
+                        ${vagasInfo ? `
+                            <div style="
+                                display: flex;
+                                align-items: center;
+                                gap: 0.5rem;
+                                color: hsl(var(--muted-foreground));
+                                font-size: 0.75rem;
+                                margin-bottom: 0.25rem;
+                            ">
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+                                </svg>
+                                <span>${vagasInfo}</span>
+                            </div>
+                        ` : ''}
                         ${agendamento.usuarioNome ? `
                             <div style="
                                 display: flex;
@@ -415,6 +454,21 @@ function CalendarioSemanaComponent({
                     agendamento={agendamentoSelecionado}
                 />
             </Suspense>
+
+            {/* Modal de Detalhes do Turno (apenas para admins) */}
+            {podeGerenciarTurnos && (
+                <Suspense fallback={null}>
+                    <ModalDetalhesTurno
+                        open={modalDetalhesTurno}
+                        onClose={() => {
+                            setModalDetalhesTurno(false);
+                            setTurnoSelecionado(null);
+                        }}
+                        turno={turnoSelecionado}
+                        onSuccess={onRefresh}
+                    />
+                </Suspense>
+            )}
         </div>
     );
 }

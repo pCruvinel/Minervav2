@@ -1,9 +1,8 @@
-import { useState, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import { Card } from '../ui/card';
 import { toast } from '../../lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from './workflow-stepper';
 import { WorkflowFooter } from './workflow-footer';
-import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
 import { CadastrarClienteObra, type CadastrarClienteObraHandle } from './steps/os13/cadastrar-cliente-obra';
 import { cadastrarClienteObraDefaults, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
 import { StepAnexarART } from './steps/os13/step-anexar-art';
@@ -53,36 +52,7 @@ interface OS13WorkflowPageProps {
 }
 
 export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
-  // Estados para StepIdentificacaoLeadCompleto
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
-  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
-  const stepLeadRef = useRef<CadastrarLeadHandle | CadastrarClienteObraHandle>(null);
-
-  // Estado do formulário de dados do lead
-  const [formData, setFormData] = useState({
-    nome: '',
-    cpfCnpj: '',
-    tipo: '',
-    nomeResponsavel: '',
-    cargoResponsavel: '',
-    telefone: '',
-    email: '',
-    tipoEdificacao: '',
-    qtdUnidades: '',
-    qtdBlocos: '',
-    qtdPavimentos: '',
-    tipoTelhado: '',
-    possuiElevador: false,
-    possuiPiscina: false,
-    cep: '',
-    endereco: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-  });
+  const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
 
   // Hook de Estado do Workflow
   const {
@@ -171,45 +141,6 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     }
   };
 
-  // Função para manipular seleção de lead (compatível com o componente)
-  const handleSelectLead = (leadId: string, leadData?: any) => {
-    setSelectedLeadId(leadId);
-
-    // IMPORTANTE: Salvar leadId no formDataByStep para habilitar botão Avançar
-    setStepData(1, { ...formDataByStep[1], leadId });
-
-    if (leadData) {
-      setFormData(prev => ({
-        ...prev,
-        nome: leadData.nome_razao_social || '',
-        cpfCnpj: leadData.cpf_cnpj || '',
-        email: leadData.email || '',
-        telefone: leadData.telefone || '',
-        tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
-        nomeResponsavel: leadData.nome_responsavel || '',
-        cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
-        tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
-        qtdUnidades: leadData.endereco?.qtd_unidades || '',
-        qtdBlocos: leadData.endereco?.qtd_blocos || '',
-        qtdPavimentos: leadData.endereco?.qtd_pavimentos || '',
-        tipoTelhado: leadData.endereco?.tipo_telhado || '',
-        possuiElevador: leadData.endereco?.possui_elevador || false,
-        possuiPiscina: leadData.endereco?.possui_piscina || false,
-        cep: leadData.endereco?.cep || '',
-        endereco: leadData.endereco?.rua || '',
-        numero: leadData.endereco?.numero || '',
-        complemento: leadData.endereco?.complemento || '',
-        bairro: leadData.endereco?.bairro || '',
-        cidade: leadData.endereco?.cidade || '',
-        estado: leadData.endereco?.estado || '',
-      }));
-    }
-  };
-
-  const handleSaveNewLead = () => {
-    setShowNewLeadDialog(false);
-  };
-
   // Etapa 1: Dados do Cliente (novo componente CadastrarClienteObra)
   const etapa1Data: CadastrarClienteObraData = formDataByStep[1] || cadastrarClienteObraDefaults;
   const setEtapa1Data = (data: CadastrarClienteObraData) => setStepData(1, data);
@@ -254,17 +185,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
    */
   // Regras de completude
   const completionRules = useMemo(() => ({
-    1: () => !!(
-      formDataByStep[1]?.clienteId &&
-      formDataByStep[1]?.dataContratacao &&
-      formDataByStep[1]?.aniversarioGestor &&
-      formDataByStep[1]?.senhaAcesso &&
-      formDataByStep[1]?.centroCusto?.id &&
-      formDataByStep[1]?.documentosFoto?.length > 0 &&
-      formDataByStep[1]?.comprovantesResidencia?.length > 0 &&
-      formDataByStep[1]?.contratoSocial?.length > 0 &&
-      formDataByStep[1]?.contratoAssinado?.length > 0
-    ),
+    1: () => true, // Validação detalhada é feita no handleNextStep ao clicar em Avançar
     2: (data: any) => !!(data.arquivos && data.arquivos.length > 0),
     3: (data: any) => !!data.relatorioAnexado,
     4: (data: any) => !!data.imagemAnexada,
@@ -281,7 +202,7 @@ export function OS13WorkflowPage({ onBack, osId }: OS13WorkflowPageProps) {
     15: (data: any) => !!(data.arquivos && data.arquivos.length > 0),
     16: (data: any) => !!(data.agendamentoId || data.dataVisitaFinal),
     17: (data: any) => !!data.visitaFinalRealizada,
-  }), [formDataByStep, selectedLeadId]);
+  }), [formDataByStep]);
 
   const { completedSteps } = useWorkflowCompletion({
     currentStep,

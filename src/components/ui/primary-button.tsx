@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from './button';
 import { Loader2 } from 'lucide-react';
-import { cn } from './utils';
+import { cn } from '@/lib/utils';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
 export type ButtonSize = 'sm' | 'default' | 'lg';
@@ -32,19 +32,19 @@ interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles = {
   primary: {
-    base: 'bg-[var(--primary)] text-black hover:bg-[var(--primary)] active:bg-[var(--primary)]',
-    disabled: 'disabled:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary',
+    disabled: 'disabled:bg-primary disabled:opacity-50 disabled:cursor-not-allowed',
   },
   secondary: {
-    base: 'bg-[var(--primary)] text-black hover:bg-[var(--primary)]/80 active:bg-[var(--primary)]/90',
-    disabled: 'disabled:bg-[var(--primary)] disabled:opacity-50 disabled:cursor-not-allowed',
+    base: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/90',
+    disabled: 'disabled:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed',
   },
   danger: {
-    base: 'bg-destructive text-white hover:bg-destructive/90 active:bg-destructive',
+    base: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive',
     disabled: 'disabled:bg-destructive disabled:opacity-50 disabled:cursor-not-allowed',
   },
   ghost: {
-    base: 'bg-transparent text-black border border-border hover:bg-muted active:bg-muted',
+    base: 'bg-transparent text-foreground border border-border hover:bg-muted active:bg-muted',
     disabled: 'disabled:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed',
   },
 };
