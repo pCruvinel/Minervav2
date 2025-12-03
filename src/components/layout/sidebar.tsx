@@ -143,20 +143,20 @@ export function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 h-screen flex flex-col transition-all bg-white border-r shadow-sm sidebar-component"
+      className="fixed left-0 top-0 h-screen flex flex-col transition-all bg-white shadow-sm sidebar-component"
       style={{
         width: isOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed)',
         zIndex: 'var(--z-sticky)',
-        borderColor: 'var(--color-border-light)',
+        borderRight: '1px solid hsl(var(--border))',
         transitionDuration: 'var(--transition-base)',
       }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-center px-4 shrink-0 border-b"
+        className="flex items-center justify-center px-4 shrink-0"
         style={{
           height: 'var(--sidebar-header-height)',
-          borderColor: 'var(--color-border-light)',
+          borderBottom: '1px solid hsl(var(--border))',
         }}
       >
         {isOpen ? (
@@ -222,13 +222,13 @@ export function Sidebar() {
                   {/* Submenu */}
                   {isOpen && isExpanded && (
                     <ul
-                      className="border-l-2 flex flex-col"
+                      className="flex flex-col"
                       style={{
                         marginLeft: 'var(--spacing-md)',
                         marginTop: 'var(--spacing-xs)',
                         paddingLeft: 'var(--spacing-md)',
                         gap: 'var(--spacing-xs)',
-                        borderColor: 'var(--color-border)',
+                        borderLeft: '2px solid hsl(var(--border))',
                       }}
                     >
                       {item.submenu!.map((subItem) => {
@@ -305,7 +305,7 @@ export function Sidebar() {
       </nav>
 
       {/* Footer - User Info + Toggle Button */}
-      <div className="border-t shrink-0" style={{ borderColor: 'var(--color-border-light)' }}>
+      <div className="shrink-0" style={{ borderTop: '1px solid hsl(var(--border))' }}>
         {/* Toggle Button */}
         <div style={{ padding: 'var(--spacing-md)' }}>
           <button

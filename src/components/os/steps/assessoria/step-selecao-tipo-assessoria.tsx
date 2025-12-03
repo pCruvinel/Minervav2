@@ -23,7 +23,6 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
       </Alert>
 
       <div className="space-y-3">
-        <Label>Selecione o tipo de OS</Label>
         <RadioGroup
           value={data.tipoOS}
           onValueChange={(value) => onDataChange({ tipoOS: value })}

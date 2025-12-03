@@ -131,6 +131,9 @@ export interface OrdemServico {
   responsavel_id?: string;
   criado_por_id?: string;
   cc_id?: string;
+  
+  // 🆕 Relacionamento Hierárquico (Migration 2025-12-02)
+  parent_os_id?: string | null; // ID da OS origem/pai
 
   valor_proposta?: number;
   valor_contrato?: number;

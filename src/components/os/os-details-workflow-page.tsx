@@ -221,18 +221,21 @@ interface OSDetailsWorkflowPageProps {
   osId?: string; // ID da OS sendo editada
   initialStep?: number;
   readonly?: boolean;
+  parentOSId?: string;
 }
 
 export function OSDetailsWorkflowPage({
   onBack,
   osId: osIdProp,
   initialStep,
+  parentOSId,
 }: OSDetailsWorkflowPageProps = {}) {
   // DEBUG: Track component lifecycle
   React.useEffect(() => {
     logger.log('🎯 OSDetailsWorkflowPage mounted', {
       osId: osIdProp,
       initialStep,
+      parentOSId,
       timestamp: new Date().toISOString()
     });
 
@@ -242,7 +245,7 @@ export function OSDetailsWorkflowPage({
         timestamp: new Date().toISOString()
       });
     };
-  }, [osIdProp, initialStep]);
+  }, [osIdProp, initialStep, parentOSId]);
 
   // Estado interno para armazenar osId criada (diferente da prop osIdProp)
   const [internalOsId, setInternalOsId] = useState<string | null>(null);
@@ -831,6 +834,7 @@ export function OSDetailsWorkflowPage({
         descricao: `${etapa2Data.tipoOS} - ${nomeCliente}`,
         criado_por_id: currentUserId, // Enviar ID do usuário logado para evitar erro de "colaborador Sistema"
         status_geral: 'em_andamento',
+        parent_os_id: parentOSId // Passar parentOSId
       });
 
       logger.log('✅ OS criada:', novaOS);
@@ -1031,9 +1035,10 @@ export function OSDetailsWorkflowPage({
 
       toast.success('OS concluída com sucesso! Nova OS-13 será criada para o time de execução.');
 
-      // Redirecionar para lista de OSs após 2 segundos
+      // Redirecionar para criação de OS-13 (Start de Contrato) com parentOSId
       setTimeout(() => {
-        window.location.href = '/os';
+        // Navegar para a rota de criação de OS-13 passando o ID da OS atual como pai
+        window.location.href = `/os/criar/start-contrato-obra?parentOSId=${osId}`;
       }, 2000);
 
     } catch (error) {

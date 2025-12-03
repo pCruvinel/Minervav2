@@ -239,7 +239,7 @@ export const etapa6Schema = z.object({
     size: z.number(),
     type: z.string(),
     uploadedAt: z.string(),
-    comment: z.string(),
+    comment: z.string().optional().default(''),
   }))
     .optional()
     .default([])
@@ -271,7 +271,7 @@ export const etapa6Schema = z.object({
     size: z.number(),
     type: z.string(),
     uploadedAt: z.string(),
-    comment: z.string(),
+    comment: z.string().optional().default(''),
   }))
     .optional()
     .default([])
@@ -442,24 +442,30 @@ export type Etapa9Data = z.infer<typeof etapa9Schema>;
 // ETAPA 10: Agendar Visita (Apresentação)
 // ============================================================
 export const etapa10Schema = z.object({
+  // Campo novo: ID do agendamento no sistema centralizado
+  agendamentoId: z.string()
+    .optional()
+    .describe('ID do agendamento no sistema de calendário centralizado'),
+
+  // Campos legados mantidos para compatibilidade (todos opcionais)
   dataApresentacao: z.string()
-    .min(1, { message: 'Data da apresentação é obrigatória' })
+    .optional()
     .describe('Data agendada para apresentar proposta'),
 
   horaApresentacao: z.string()
-    .min(1, { message: 'Hora da apresentação é obrigatória' })
+    .optional()
     .describe('Hora agendada para apresentação'),
 
   responsavelApresentacao: z.string()
-    .min(1, { message: 'Responsável é obrigatório' })
+    .optional()
     .describe('Nome de quem apresentará a proposta'),
-}).partial().refine(
-  (data) => data.dataApresentacao && data.horaApresentacao,
-  {
-    message: 'Data e hora são obrigatórias',
-    path: ['dataApresentacao'],
-  }
-);
+
+  observacoes: z.string()
+    .optional()
+    .describe('Observações adicionais sobre o agendamento'),
+});
+
+
 
 export type Etapa10Data = z.infer<typeof etapa10Schema>;
 
@@ -467,24 +473,22 @@ export type Etapa10Data = z.infer<typeof etapa10Schema>;
 // ETAPA 11: Realizar Visita (Apresentação)
 // ============================================================
 export const etapa11Schema = z.object({
+  apresentacaoRealizada: z.boolean()
+    .optional()
+    .describe('Confirmação de que a apresentação foi realizada'),
+
   dataApresentacaoRealizada: z.string()
-    .min(1, { message: 'Data da apresentação é obrigatória' })
+    .optional()
     .describe('Data em que apresentação foi realizada'),
 
   reacaoCliente: z.string()
-    .min(1, { message: 'Reação do cliente é obrigatória' })
+    .optional()
     .describe('Como foi a reação do cliente (Positiva/Neutra/Negativa)'),
 
   observacoesApresentacao: z.string()
-    .min(10, { message: 'Observações devem ter pelo menos 10 caracteres' })
+    .optional()
     .describe('Observações e comentários sobre a apresentação'),
-}).partial().refine(
-  (data) => data.dataApresentacaoRealizada && data.reacaoCliente,
-  {
-    message: 'Data e reação do cliente são obrigatórias',
-    path: ['dataApresentacaoRealizada'],
-  }
-);
+});
 
 export type Etapa11Data = z.infer<typeof etapa11Schema>;
 
@@ -532,29 +536,24 @@ export type Etapa12Data = z.infer<typeof etapa12Schema>;
 // ============================================================
 export const etapa13Schema = z.object({
   descricaoContrato: z.string()
-    .min(20, { message: 'Descrição deve ter pelo menos 20 caracteres' })
+    .optional()
     .describe('Descrição do contrato e termos'),
 
   dataInicio: z.string()
-    .min(1, { message: 'Data de início é obrigatória' })
+    .optional()
     .describe('Data de início dos trabalhos'),
 
   dataFim: z.string()
-    .min(1, { message: 'Data de fim é obrigatória' })
+    .optional()
     .describe('Data de conclusão prevista'),
 
   arquivoContrato: z.object({
     url: z.string(),
     nome: z.string(),
   })
+    .optional()
     .describe('Arquivo do contrato em PDF'),
-}).partial().refine(
-  (data) => data.descricaoContrato && data.dataInicio && data.dataFim,
-  {
-    message: 'Descrição, data de início e fim são obrigatórias',
-    path: ['descricaoContrato'],
-  }
-);
+});
 
 export type Etapa13Data = z.infer<typeof etapa13Schema>;
 
@@ -563,25 +562,20 @@ export type Etapa13Data = z.infer<typeof etapa13Schema>;
 // ============================================================
 export const etapa14Schema = z.object({
   dataAssinatura: z.string()
-    .min(1, { message: 'Data de assinatura é obrigatória' })
+    .optional()
     .describe('Data em que contrato foi assinado'),
 
   assinadoPor: z.string()
-    .min(1, { message: 'Nome de quem assinou é obrigatório' })
+    .optional()
     .describe('Nome do responsável que assinou'),
 
   arquivoAssinado: z.object({
     url: z.string(),
     nome: z.string(),
   })
+    .optional()
     .describe('Arquivo do contrato assinado'),
-}).partial().refine(
-  (data) => data.dataAssinatura && data.assinadoPor,
-  {
-    message: 'Data e assinante são obrigatórios',
-    path: ['dataAssinatura'],
-  }
-);
+});
 
 export type Etapa14Data = z.infer<typeof etapa14Schema>;
 
@@ -590,23 +584,17 @@ export type Etapa14Data = z.infer<typeof etapa14Schema>;
 // ============================================================
 export const etapa15Schema = z.object({
   dataInicio: z.string()
-    .min(1, { message: 'Data de início é obrigatória' })
+    .optional()
     .describe('Data de início efetivo da obra'),
 
   responsavelObra: z.string()
-    .min(1, { message: 'Responsável é obrigatório' })
+    .optional()
     .describe('Nome do responsável pela obra'),
 
   numEquipe: z.string()
-    .min(1, { message: 'Número da equipe é obrigatório' })
+    .optional()
     .describe('Equipe designada para a obra'),
-}).partial().refine(
-  (data) => data.dataInicio && data.responsavelObra,
-  {
-    message: 'Data e responsável são obrigatórios',
-    path: ['dataInicio'],
-  }
-);
+});
 
 export type Etapa15Data = z.infer<typeof etapa15Schema>;
 

@@ -98,7 +98,11 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     isDraft: boolean | any = false,
     explicitData?: any
   ) => {
-    if (!osId) return false;
+    // Se não tem osId, permite avanço (modo demonstração/teste)
+    if (!osId) {
+      logger.log(`💾 saveStep(${step}): Sem osId - modo demonstração, permitindo avanço`);
+      return true;
+    }
 
     // Use explicit data if provided, otherwise read from state
     let data: any;

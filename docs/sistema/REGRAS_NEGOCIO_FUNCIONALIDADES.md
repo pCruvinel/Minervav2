@@ -227,6 +227,46 @@ Adapta-se ao perfil do usuário:
 - **Lembretes**: Agendamentos e prazos próximos
 - **Alertas**: Aprovações pendentes e itens críticos
 
+## 10. Funcionalidades v2.5 (Redesign 2025)
+
+### Sistema de Comentários
+- **Regras de Acesso**: Todos os usuários com acesso à OS podem adicionar comentários
+- **Tipos de Comentários**: Internos (visíveis apenas para equipe), externos (cliente), sistema (automáticos)
+- **Vinculação**: Comentários podem ser vinculados a etapas específicas ou à OS geral
+- **Auditoria**: Todos os comentários são auditados com timestamp e autor
+
+### Timeline de Atividades
+- **Registro Automático**: Sistema registra automaticamente todas as ações (criação, edição, status changes)
+- **Categorização**: Atividades categorizadas por tipo (sistema, usuário, financeiro, etc.)
+- **Dados de Contexto**: Cada atividade armazena dados anteriores e posteriores para auditoria
+- **Performance**: Timeline otimizada com paginação e filtros por data/tipo
+
+### Gestão de Documentos
+- **Tipos Suportados**: PDF, DOC, XLS, imagens (JPG, PNG), vídeos
+- **Limites**: Máximo 50MB por arquivo, 100 arquivos por OS
+- **Organização**: Documentos organizados por etapa da OS
+- **Versionamento**: Controle de versão automática para documentos modificados
+- **Compartilhamento**: Links seguros para compartilhamento externo quando necessário
+
+### Controle de Presença
+- **Registro Obrigatório**: Entrada e saída obrigatórias para colaboradores alocados
+- **Geolocalização**: Validação opcional de localização para registros externos
+- **Avaliação de Performance**: Escala de 1-5 para qualidade do trabalho diário
+- **Justificativas**: Campo obrigatório para atrasos, faltas ou ausências
+- **Relatórios**: Geração automática de relatórios de presença por período
+
+### Portal de Documentos para Clientes
+- **Acesso Seguro**: Autenticação independente do sistema principal
+- **Documentos Compartilhados**: Apenas documentos marcados como "cliente" são visíveis
+- **Notificações**: Alertas automáticos quando novos documentos são adicionados
+- **Download Seguro**: Links temporários para download com expiração
+
+### Regras de Segurança Adicionais v2.5
+- **Criptografia**: Documentos sensíveis são criptografados em trânsito e repouso
+- **Logs de Acesso**: Todos os acessos a documentos são logados
+- **Backup Automático**: Estratégia de backup incremental para dados críticos
+- **Recuperação de Desastre**: Plano de continuidade implementado com RTO < 4h
+
 ---
 
-*Documento atualizado em 01/12/2025.*
+*Documento atualizado em 03/12/2025.*

@@ -16,7 +16,7 @@ Abaixo está o PRD Oficial v2.0 no seu modelo:
 |-------|-------|
 | **Projeto** | Minerva ERP (Sistema de Gestão de Engenharia) |
 | **Data de Criação** | 28/11/2025 |
-| **Versão** | 2.0 (Definitiva) |
+| **Versão** | 2.5 (Redesign 2025) |
 | **Status** | 🟢 Aprovado para Implementação |
 | **Cliente** | Minerva Engenharia |
 | **Responsável (PM)** | [Seu Nome] |
@@ -220,6 +220,40 @@ Um ERP v2.0 com **Motor de Workflow Polimórfico** (adapta as etapas conforme o 
 
 ---
 
+### 🆕 Features v2.5 (Redesign 2025)
+
+#### ✨ Feature 5: Sistema de Comentários
+**📝 Descrição**: Sistema completo de comentários internos para OS, permitindo comunicação estruturada entre equipes.
+**❓ Por quê**: Melhorar a colaboração e rastreabilidade de decisões tomadas durante o processo.
+**💬 Exemplo**: Técnicos podem adicionar comentários em etapas específicas da OS para orientar próximos responsáveis.
+**🔴 Prioridade**: ALTA
+
+#### ✨ Feature 6: Timeline de Atividades
+**📝 Descrição**: Log completo de todas as ações realizadas em uma OS, criando uma trilha de auditoria automática.
+**❓ Por quê**: Garantir compliance e permitir análise de processos para otimização.
+**💬 Exemplo**: Sistema registra automaticamente quando uma etapa foi alterada, documento anexado ou comentário adicionado.
+**🔴 Prioridade**: ALTA
+
+#### ✨ Feature 7: Gestão Inteligente de Documentos
+**📝 Descrição**: Sistema centralizado para upload, organização e versionamento de documentos relacionados às OS.
+**❓ Por quê**: Eliminar perda de documentos e facilitar acesso rápido a arquivos importantes.
+**💬 Exemplo**: Contratos, laudos, fotos da obra ficam organizados por OS e etapa.
+**🔴 Prioridade**: ALTA
+
+#### ✨ Feature 8: Controle de Presença Eletrônico
+**📝 Descrição**: Sistema de ponto eletrônico integrado com controle de performance e justificativas.
+**❓ Por quê**: Automatizar controle de presença e fornecer dados para gestão de RH.
+**💬 Exemplo**: Colaboradores registram entrada/saída com avaliação de performance automática.
+**🔴 Prioridade**: MÉDIA
+
+#### ✨ Feature 9: Portal de Documentos para Clientes
+**📝 Descrição**: Área segura onde clientes podem acessar seus documentos e acompanhar progresso.
+**❓ Por quê**: Melhorar experiência do cliente e reduzir solicitações de informações.
+**💬 Exemplo**: Cliente faz login e vê todos os documentos da sua obra em um local centralizado.
+**🔴 Prioridade**: MÉDIA
+
+---
+
 ## 7️⃣ REQUISITOS TÉCNICOS
 
 ### 📈 Escalabilidade
@@ -335,4 +369,4 @@ Um ERP v2.0 com **Motor de Workflow Polimórfico** (adapta as etapas conforme o 
 | Campo | Valor |
 |-------|-------|
 | **Classificação** | CONFIDENCIAL / INTERNO |
-| **Última atualização** | 28/11/2025 |
+| **Última atualização** | 03/12/2025 |

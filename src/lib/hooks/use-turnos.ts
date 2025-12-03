@@ -257,20 +257,20 @@ const turnosAPI = {
  * Hook para listar todos os turnos
  */
 export function useTurnos() {
-  const { data, loading, error, refetch } = useApi(
-    () => turnosAPI.list(),
-    {
-      onError: (error) => {
-        console.error('❌ Erro ao carregar turnos:', error);
-        toast.error(`Erro ao carregar turnos: ${error.message}`);
-      },
-    }
-  );
+   const { data, loading, error, refetch } = useApi(
+     () => turnosAPI.list(),
+     {
+       onError: (error) => {
+         console.error('❌ Erro ao carregar turnos:', error);
+         toast.error(`Erro ao carregar turnos: ${error.message}`);
+       },
+     }
+   );
 
-  const turnos = useMemo(() => data || [], [data]);
+   const turnos = useMemo(() => data || [], [data]);
 
-  return { turnos, loading, error, refetch };
-}
+   return { turnos, loading, error, refetch };
+ }
 
 /**
  * Hook para obter turnos de uma data específica
@@ -314,16 +314,16 @@ export function useTurnosPorSemana(startDate: string, endDate: string) {
  * Hook para criar turno
  */
 export function useCreateTurno() {
-  return useMutation(turnosAPI.create, {
-    onSuccess: (data) => {
-      toast.success('Turno criado com sucesso!');
-    },
-    onError: (error) => {
-      console.error('❌ Erro ao criar turno:', error);
-      toast.error(`Erro ao criar turno: ${error.message}`);
-    },
-  });
-}
+   return useMutation(turnosAPI.create, {
+     onSuccess: () => {
+       toast.success('Turno criado com sucesso!');
+     },
+     onError: (error) => {
+       console.error('❌ Erro ao criar turno:', error);
+       toast.error(`Erro ao criar turno: ${error.message}`);
+     },
+   });
+ }
 
 /**
  * Hook para atualizar turno

@@ -4,13 +4,11 @@ import { CalendarioGrid } from './calendario-grid';
 import { useSemanaCalendario, CelulaData } from '@/lib/hooks/use-semana-calendario';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { PermissaoUtil } from '@/lib/auth-utils';
-import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { nowInSaoPaulo, toSaoPauloTime } from '@/lib/utils/timezone';
 
-// Lazy load modals (reutilizando os existentes)
-const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
-const ModalDetalhesAgendamento = lazy(() => import('./modal-detalhes-agendamento').then(m => ({ default: m.ModalDetalhesAgendamento })));
+// Lazy load modals
+const ModalDetalhesCelula = lazy(() => import('./modal-detalhes-celula').then(m => ({ default: m.ModalDetalhesCelula })));
 
 interface CalendarioSemanaCustomProps {
     dataInicial?: Date;
@@ -26,8 +24,7 @@ interface CalendarioSemanaCustomProps {
 function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioSemanaCustomProps) {
     const { currentUser } = useAuth();
     const [dataAtual, setDataAtual] = useState(dataInicial || new Date());
-    const [modalAgendamento, setModalAgendamento] = useState(false);
-    const [modalDetalhes, setModalDetalhes] = useState(false);
+    const [modalDetalhesCelula, setModalDetalhesCelula] = useState(false);
     const [celulaSelecionada, setCelulaSelecionada] = useState<CelulaData | null>(null);
 
     const ehAdmin = currentUser && PermissaoUtil.ehDiretoria(currentUser);
@@ -71,40 +68,11 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
         setDataAtual(nowInSaoPaulo());
     };
 
-    // Handler de clique em célula
+    // Handler de clique em célula - agora abre modal de detalhes
     const handleClickCelula = (celula: CelulaData) => {
-        // Verificar se a data/hora já passou (usando timezone de São Paulo)
-        const agora = nowInSaoPaulo();
-        const dataHoraCelula = toSaoPauloTime(new Date(`${celula.data}T${String(celula.hora).padStart(2, '0')}:00:00`));
-
-        if (dataHoraCelula < agora) {
-            toast.error('Não é possível agendar em datas/horários passados');
-            return;
-        }
-
-        // Verificar permissões
-        if (!ehAdmin && !celula.turno) {
-            toast.error('Não há turnos disponíveis neste horário');
-            return;
-        }
-
-        if (!ehAdmin && celula.turno && !celula.podeAgendar) {
-            toast.error('Não há vagas disponíveis neste turno');
-            return;
-        }
-
-        // Verificar setor (colaborador)
-        if (!ehAdmin && celula.turno && currentUser) {
-            const setorUsuario = currentUser.setor;
-            if (setorUsuario && !celula.turno.setores.includes(setorUsuario)) {
-                toast.error(`Este turno é exclusivo para: ${celula.turno.setores.join(', ')}`);
-                return;
-            }
-        }
-
-        // Abrir modal de agendamento
+        // Abrir modal de detalhes da célula (mostra turnos disponíveis)
         setCelulaSelecionada(celula);
-        setModalAgendamento(true);
+        setModalDetalhesCelula(true);
     };
 
     const handleRefetchCompleto = () => {
@@ -165,25 +133,16 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
                 ehAdmin={!!ehAdmin}
             />
 
-            {/* Modais */}
+            {/* Modal de detalhes da célula */}
             <Suspense fallback={null}>
-                <ModalNovoAgendamento
-                    open={modalAgendamento}
+                <ModalDetalhesCelula
+                    open={modalDetalhesCelula}
                     onClose={() => {
-                        setModalAgendamento(false);
+                        setModalDetalhesCelula(false);
                         setCelulaSelecionada(null);
                     }}
-                    turno={celulaSelecionada?.turno as any}
-                    dia={celulaSelecionada ? new Date(celulaSelecionada.data + 'T00:00:00') : new Date()}
+                    celula={celulaSelecionada || undefined}
                     onSuccess={handleRefetchCompleto}
-                />
-            </Suspense>
-
-            <Suspense fallback={null}>
-                <ModalDetalhesAgendamento
-                    open={modalDetalhes}
-                    onClose={() => setModalDetalhes(false)}
-                    agendamento={null}
                 />
             </Suspense>
         </div>

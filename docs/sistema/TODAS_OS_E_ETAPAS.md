@@ -1,4 +1,4 @@
-,# 📋 TODAS AS ORDENS DE SERVIÇO E ETAPAS - Minerva ERP v2.0
+# 📋 TODAS AS ORDENS DE SERVIÇO E ETAPAS - Minerva ERP v2.5
 
 ## 🎯 Visão Geral
 
@@ -551,6 +551,46 @@ Frontend → API Call → Edge Function `generate-pdf`
 
 ---
 
+## 🆕 FUNCIONALIDADES v2.5 (REDESIGN 2025)
+
+### Sistema de Comentários
+- **Integração**: Disponível em todas as OS existentes
+- **Funcionalidade**: Comentários internos e externos por etapa
+- **Arquivos**: `os_comentarios` table + componentes de UI
+- **Status**: ✅ Implementado no backend
+
+### Timeline de Atividades
+- **Integração**: Timeline automática em todas as OS
+- **Funcionalidade**: Rastreamento completo de todas as ações
+- **Arquivos**: `os_atividades` table + timeline component
+- **Status**: ✅ Implementado no backend
+
+### Gestão Inteligente de Documentos
+- **Integração**: Upload seguro em todas as etapas das OS
+- **Funcionalidade**: Versionamento, organização por tipo MIME
+- **Arquivos**: `os_documentos` table + file upload components
+- **Status**: ✅ Implementado no backend
+
+### Controle de Presença Eletrônico
+- **Integração**: Sistema independente para colaboradores
+- **Funcionalidade**: Registro entrada/saída, avaliação de performance
+- **Arquivos**: `registros_presenca` table + presence components
+- **Status**: ✅ Implementado no backend
+
+### Portal de Documentos para Clientes
+- **Integração**: Área segura externa ao sistema principal
+- **Funcionalidade**: Acesso a documentos compartilhados
+- **Arquivos**: `clientes_documentos` table + client portal
+- **Status**: ✅ Implementado no backend
+
+### Expansão do Schema de Colaboradores
+- **Novos Campos**: Contratação, salários, contatos de emergência
+- **Integração**: Campos expandidos na tabela `colaboradores`
+- **Funcionalidade**: Gestão completa de RH integrada
+- **Status**: ✅ Implementado
+
+---
+
 ## 📊 RESUMO GERAL
 
 ### 🎯 Status por Setor
@@ -609,7 +649,7 @@ Frontend → API Call → Edge Function `generate-pdf`
 
 ---
 
-**Data da Análise**: 01/12/2025
-**Última Atualização**: 01/12/2025 - Implementação completa das OS-10, OS-11 e OS-12
-**Status**: Todos os workflows implementados - Pendente integração Supabase
-**Próxima Revisão**: Após substituição de dados mockados por dados reais
+**Data da Análise**: 03/12/2025
+**Última Atualização**: 03/12/2025 - Atualização para v2.5 com novas funcionalidades
+**Status**: Todos os workflows implementados + funcionalidades v2.5 - Pendente integração Supabase
+**Próxima Revisão**: Após implementação completa das funcionalidades v2.5 no frontend

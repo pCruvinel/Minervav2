@@ -139,4 +139,23 @@ Utiliza variáveis CSS para tema (Dark/Light mode support) e plugins para anima�
 ---
 
 **Status**: ✅ **Atualizado**
-**Última Atualização**: 01/12/2025
+**Última Atualização**: 03/12/2025
+
+## 🆕 Funcionalidades v2.5 (Redesign 2025)
+
+### Novas Tabelas de Dados
+- **Sistema de Comentários**: `os_comentarios` para comunicação interna das OS
+- **Timeline de Atividades**: `os_atividades` para rastreamento completo de ações
+- **Gestão de Documentos**: `os_documentos` para arquivos anexados às OS
+- **Logs Técnicos**: `os_logs` para auditoria técnica
+- **Sequências Automáticas**: `os_sequences` para geração de códigos únicos
+- **Documentos de Clientes**: `clientes_documentos` para gestão de arquivos
+- **Controle de Presença**: `registros_presenca` para ponto eletrônico
+- **Documentos de Colaboradores**: `colaboradores_documentos` para arquivos pessoais
+
+### Expansão do Schema
+- **Colaboradores**: +20 campos (contratação, salários, contatos, etc.)
+- **Clientes**: Novos campos para senha de acesso e tipo de empresa
+- **Ordens de Serviço**: Campos de metadata e status detalhado
+- **Etapas**: Contadores de comentários e documentos
+- **Centros de Custo**: Vinculação com tipos de OS

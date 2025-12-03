@@ -1,6 +1,8 @@
 import { memo } from 'react';
 import { CelulaData } from '@/lib/hooks/use-semana-calendario';
 import { CelulaCalendario } from './celula-calendario';
+import { cn } from '@/lib/utils';
+import { nowInSaoPaulo, dateStringToSaoPaulo } from '@/lib/utils/timezone';
 
 interface CalendarioGridProps {
     dias: string[];          // 7 datas ["2025-12-01", ...]
@@ -16,6 +18,17 @@ interface CalendarioGridProps {
  */
 function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: CalendarioGridProps) {
     const horas = Array.from({ length: 15 }, (_, i) => i + 6); // 6-20
+
+    // Verificar se uma data é hoje
+    const ehHoje = (data: string): boolean => {
+        const hoje = nowInSaoPaulo();
+        const dataComparar = dateStringToSaoPaulo(data);
+        return (
+            hoje.getDate() === dataComparar.getDate() &&
+            hoje.getMonth() === dataComparar.getMonth() &&
+            hoje.getFullYear() === dataComparar.getFullYear()
+        );
+    };
 
     // Formatar nome do dia
     const formatarDia = (dataStr: string) => {
@@ -34,10 +47,11 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
             <div className="inline-block min-w-full">
                 {/* Grid: 8 colunas x 11 linhas */}
                 <div
-                    className="grid gap-px bg-border rounded-lg overflow-hidden"
+                    className="grid bg-[hsl(40,25%,95%)] rounded-lg overflow-hidden"
                     style={{
                         gridTemplateColumns: '80px repeat(7, minmax(140px, 1fr))',
                         gridTemplateRows: 'auto repeat(15, 60px)',
+                        gap: '1px',  // Aumentado de 0.5px para 1px
                     }}
                 >
                     {/* Header: Horários (vazio) */}
@@ -48,18 +62,26 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                     {/* Header: Dias da semana */}
                     {dias.map((dataStr) => {
                         const { nome, data } = formatarDia(dataStr);
-                        const hoje = new Date().toISOString().split('T')[0];
-                        const ehHoje = dataStr === hoje;
+                        const isToday = ehHoje(dataStr);
 
                         return (
                             <div
                                 key={dataStr}
-                                className={`bg-card p-2 text-center ${ehHoje ? 'bg-primary/10' : ''}`}
+                                className={cn(
+                                    'bg-card p-2 text-center',
+                                    isToday && 'bg-primary/5 ring-2 ring-primary ring-inset'
+                                )}
                             >
-                                <div className={`font-semibold text-sm ${ehHoje ? 'text-primary' : 'text-foreground'}`}>
+                                <div className={cn(
+                                    'font-semibold text-sm',
+                                    isToday ? 'text-primary' : 'text-foreground'
+                                )}>
                                     {nome}
                                 </div>
-                                <div className={`text-xs ${ehHoje ? 'text-primary/80' : 'text-muted-foreground'}`}>
+                                <div className={cn(
+                                    'text-xs',
+                                    isToday ? 'text-primary' : 'text-muted-foreground'
+                                )}>
                                     {data}
                                 </div>
                             </div>
@@ -70,7 +92,7 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                     {horas.map((hora) => (
                         <div key={`grid-hora-${hora}`} className="contents">
                             {/* Coluna de horários */}
-                            <div className="bg-muted/50 p-2 flex items-center justify-center font-medium text-sm text-muted-foreground">
+                            <div className="bg-[hsl(30,20%,98%)] p-2 flex items-center justify-center font-medium text-sm text-muted-foreground border-r border-[hsl(40,20%,85%)]">
                                 {String(hora).padStart(2, '0')}:00
                             </div>
 

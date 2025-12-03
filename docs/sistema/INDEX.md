@@ -1,7 +1,7 @@
 # 📚 ÍNDICE DA DOCUMENTAÇÃO - ERP Minerva
 
-**Última atualização:** 28/11/2025
-**Status:** Documentação consolidada e organizada
+**Última atualização:** 03/12/2025
+**Status:** Documentação atualizada com schema v2.5 e novas funcionalidades
 
 ---
 
@@ -9,9 +9,10 @@
 
 ### ⭐ Documentos Essenciais
 
-1. **[contexto-projeto.md](./contexto-projeto.md)** - Contexto geral do projeto
-2. **[SETUP_TEST_USERS.md](./SETUP_TEST_USERS.md)** - Configuração de usuários de teste
-3. **[technical/SUPABASE_CONECTADO.md](./technical/SUPABASE_CONECTADO.md)** - Guia de conexão com Supabase
+1. **[BACKLOG_PROJETO_MINERVA_ERP.md](./BACKLOG_PROJETO_MINERVA_ERP.md)** - **NOVO** - Backlog completo e status executivo do projeto
+2. **[contexto-projeto.md](./contexto-projeto.md)** - Contexto geral do projeto
+3. **[SETUP_TEST_USERS.md](./SETUP_TEST_USERS.md)** - Configuração de usuários de teste
+4. **[technical/SUPABASE_CONECTADO.md](./technical/SUPABASE_CONECTADO.md)** - Guia de conexão com Supabase
 
 ---
 
@@ -201,8 +202,8 @@
 ## 📊 ESTATÍSTICAS
 
 ```
-Total de Documentos Ativos: ~41
-├── Técnicos: 8
+Total de Documentos Ativos: ~43
+├── Técnicos: 9 (Schema v2.5 atualizado)
 ├── Planejamento: 13
 ├── Implementação: 10
 ├── Regras de Negócio: 1
@@ -210,12 +211,21 @@ Total de Documentos Ativos: ~41
 └── Geral: 6
 
 Arquivados (sprints_passadas): 31
+
+🆕 Funcionalidades v2.5:
+├── Sistema de Comentários (OS)
+├── Timeline de Atividades (OS)
+├── Gestão de Documentos (OS)
+├── Controle de Presença
+├── Documentos de Clientes/Colaboradores
+└── Schema expandido com 8 novas tabelas
 ```
 
 ---
 
 ## 🔍 BUSCA RÁPIDA POR PALAVRA-CHAVE
 
+- **Status Executivo:** `BACKLOG_PROJETO_MINERVA_ERP.md` (Visão completa do projeto)
 - **Supabase:** `technical/SUPABASE_*`, `planning/RESUMO_SUPABASE.md`
 - **Banco de Dados:** `technical/DATABASE_SCHEMA.md`, `technical/USUARIOS_SCHEMA.md`
 - **Deploy:** `planning/CHECKLIST_DEPLOY.md`, `DEPLOYMENT_PRODUCTION.md`
@@ -243,6 +253,6 @@ Scripts utilitários Python foram movidos para `/scripts/utils/`.
 
 ---
 
-**Última Organização:** 28/11/2025
-**Sistema:** ERP Minerva Engenharia v2.0
-**Documentação:** Consolidada e organizada
+**Última Organização:** 03/12/2025
+**Sistema:** ERP Minerva Engenharia v2.5
+**Documentação:** Atualizada com novas funcionalidades e schema v2.5

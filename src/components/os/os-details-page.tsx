@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { OrdemServico, Comentario, Documento, HistoricoItem, Etapa } from '@/lib/types';
 import { toast } from '../../lib/utils/safe-toast';
+import { OSHierarchyCard } from './os-hierarchy-card';
 
 interface OSDetailsPageProps {
   ordemServico: OrdemServico;
@@ -394,6 +395,9 @@ export function OSDetailsPage({
 
         {/* Right Column - Timeline (1/3) */}
         <div className="space-y-6">
+          {/* 🆕 OS Hierarchy Card */}
+          <OSHierarchyCard osId={ordemServico.id} />
+
           {/* Comments Section */}
           <Card className="border-border rounded-lg shadow-sm">
             <CardHeader>

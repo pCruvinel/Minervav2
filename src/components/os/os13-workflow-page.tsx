@@ -49,9 +49,10 @@ export const steps: WorkflowStep[] = [
 interface OS13WorkflowPageProps {
   onBack?: () => void;
   osId?: string;
+  parentOSId?: string;
 }
 
-export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPageProps) {
+export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13WorkflowPageProps) {
   const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
   const stepAgendarVisitaInicialRef = useRef<any>(null);
   const stepAgendarVisitaFinalRef = useRef<any>(null);
@@ -340,6 +341,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId }: OS13WorkflowPagePro
                 onDataChange={setEtapa1Data}
                 readOnly={isHistoricalNavigation}
                 osId={internalOsId || ''}
+                parentOSId={parentOSId}
               />
             )}
             {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}

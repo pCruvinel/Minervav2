@@ -232,7 +232,8 @@ const workflowAPI = {
     responsavelId: string | null,
     descricao: string,
     metadata: Record<string, any>,
-    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, any> }>
+    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, any> }>,
+    parentOSId?: string | null
   ): Promise<{ os: any; etapas: any[] }> {
     // 1. Buscar tipo de OS
     const tipoOS = await workflowAPI.getTipoOSByCodigo(tipoOSCodigo);
@@ -241,11 +242,11 @@ const workflowAPI = {
     }
 
     // 2. Gerar código sequencial
-    const { data: sequenceData, error: seqError } = await supabase
-      .rpc('gerar_codigo_os', { p_tipo_os_id: tipoOS.id });
+    // const { data: sequenceData, error: seqError } = await supabase
+      // .rpc('gerar_codigo_os', { p_tipo_os_id: tipoOS.id });
 
-    if (seqError) throw seqError;
-    const codigoOS = sequenceData;
+    // if (seqError) throw seqError;
+    // const codigoOS = sequenceData;
 
     // 3. Obter usuário atual
     const { data: { user } } = await supabase.auth.getUser();
@@ -254,7 +255,7 @@ const workflowAPI = {
     const { data: osData, error: osError } = await supabase
       .from('ordens_servico')
       .insert({
-        codigo_os: codigoOS,
+        // codigo_os: codigoOS, // Gerado pelo trigger
         cliente_id: clienteId,
         tipo_os_id: tipoOS.id,
         responsavel_id: responsavelId,
@@ -263,7 +264,8 @@ const workflowAPI = {
         status_geral: 'em_triagem',
         descricao,
         metadata,
-        data_entrada: new Date().toISOString()
+        data_entrada: new Date().toISOString(),
+        parent_os_id: parentOSId
       })
       .select()
       .single();
@@ -493,6 +495,7 @@ export function useCreateOSWorkflow() {
       descricao: string;
       metadata: Record<string, any>;
       etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, any> }>;
+      parentOSId?: string | null;
     }) => workflowAPI.createOSComEtapas(
       params.tipoOSCodigo,
       params.clienteId,
@@ -500,7 +503,8 @@ export function useCreateOSWorkflow() {
       params.responsavelId,
       params.descricao,
       params.metadata,
-      params.etapas
+      params.etapas,
+      params.parentOSId
     ),
     {
       onSuccess: (data) => {

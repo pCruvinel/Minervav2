@@ -15,6 +15,8 @@ import { supabase } from '@/lib/supabase-client';
 import { useWorkflowState } from '../../lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '../../lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '../../lib/hooks/use-workflow-completion';
+import { useCreateOSWorkflow } from '../../lib/hooks/use-os-workflows';
+import { useOS } from '../../lib/hooks/use-os';
 
 // Componentes compartilhados
 import { CadastrarLead, type CadastrarLeadHandle } from './steps/shared/cadastrar-lead';
@@ -55,6 +57,10 @@ interface OSDetailsAssessoriaPageProps {
 }
 
 export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDetailsAssessoriaPageProps) {
+  // Hooks de integração
+  const { os, loading: loadingOS } = useOS(osId);
+  const { mutate: createOSWorkflow, isLoading: isCreatingOS } = useCreateOSWorkflow();
+
   // Hook de Estado do Workflow
   const {
     currentStep,
@@ -223,13 +229,14 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
 
     switch (currentStep) {
       case 1:
-        return stepLeadRef.current?.isFormValid() === false;
+        // Apenas verificar se tem leadId, não validar formulário completo
+        return !etapa1Data.leadId;
       case 3:
         return stepFollowup1Ref.current?.isFormValid() === false;
       default:
         return false;
     }
-  }, [currentStep, isHistoricalNavigation]);
+  }, [currentStep, isHistoricalNavigation, etapa1Data.leadId]);
 
   const handleSelectLead = (leadId: string) => {
     setSelectedLeadId(leadId);
@@ -243,13 +250,95 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
     setEtapa1Data({ ...etapa1Data, leadId: 'NEW' });
   };
 
-  // Handler para finalizar etapa
+  // Handler para finalizar etapa e criar OS filha
   const handleConcluirEtapa = async () => {
-    const saved = await saveStep(currentStep, false);
-    if (saved || !osId) { // Se salvou ou se não tem osId (modo simulação)
-      const osDestino = tipoOS === 'OS-05' ? 'OS-12' : 'OS-11';
-      alert(`Contrato ativado com sucesso! Criando ${osDestino}...`);
-      if (onBack) onBack();
+    try {
+      setIsSaving(true);
+
+      // 1. Salvar Step 12 como concluída
+      const saved = await saveStep(currentStep, false);
+      if (!saved && osId) {
+        toast.error('Erro ao salvar etapa final');
+        return;
+      }
+
+      // 2. Obter tipo de OS selecionado na Step 2
+      const tipoOSSelecionado = formDataByStep[2]?.tipoOS || tipoOS;
+
+      // 3. Determinar OS filha a criar
+      const osFilhaCodigo = tipoOSSelecionado === 'OS-05' ? 'OS-12' : 'OS-11';
+      const osFilhaNome = tipoOSSelecionado === 'OS-05'
+        ? 'Execução de Assessoria Mensal'
+        : 'Execução de Laudo Pontual';
+
+      // 4. Se não tem osId, apenas simula
+      if (!osId || !os) {
+        toast.success(`Contrato ativado! ${osFilhaCodigo} seria criada automaticamente.`);
+        if (onBack) onBack();
+        return;
+      }
+
+      // 5. Preparar dados para criação da OS filha
+      const clienteId = formDataByStep[1]?.leadId || os.cliente_id;
+      const ccId = os.cc_id;
+      const responsavelId = os.responsavel_id;
+      const codigoOS = os.codigo_os;
+
+      // 6. Definir etapas iniciais da OS filha
+      const etapasFilha = osFilhaCodigo === 'OS-12'
+        ? [
+            { ordem: 1, nome_etapa: 'Cadastro do Cliente' },
+            { ordem: 2, nome_etapa: 'Definição de SLA' },
+            { ordem: 3, nome_etapa: 'Setup de Recorrência' },
+            { ordem: 4, nome_etapa: 'Alocação de Equipe' },
+            { ordem: 5, nome_etapa: 'Configuração de Calendário' },
+            { ordem: 6, nome_etapa: 'Início dos Serviços' },
+          ]
+        : [
+            { ordem: 1, nome_etapa: 'Cadastrar o Cliente' },
+            { ordem: 2, nome_etapa: 'Agendar Visita' },
+            { ordem: 3, nome_etapa: 'Realizar Visita e Questionário' },
+            { ordem: 4, nome_etapa: 'Anexar RT' },
+            { ordem: 5, nome_etapa: 'Gerar Documento Técnico' },
+            { ordem: 6, nome_etapa: 'Enviar ao Cliente' },
+          ];
+
+      // 7. Criar OS filha
+      logger.log(`🔗 Criando ${osFilhaCodigo} vinculada à ${codigoOS}...`);
+
+      createOSWorkflow(
+        {
+          tipoOSCodigo: osFilhaCodigo,
+          clienteId,
+          ccId,
+          responsavelId,
+          descricao: `${osFilhaNome} - Gerado automaticamente a partir de ${codigoOS}`,
+          metadata: {
+            parentOSId: osId,
+            contratoOrigem: codigoOS,
+            tipoContratoOrigem: tipoOSSelecionado,
+            dataGeracao: new Date().toISOString(),
+          },
+          etapas: etapasFilha,
+          parentOSId: osId,
+        },
+        {
+          onSuccess: (data) => {
+            logger.log(`✅ ${osFilhaCodigo} criada com sucesso:`, data);
+            toast.success(`Contrato ativado! ${osFilhaCodigo} criada automaticamente.`);
+            if (onBack) onBack();
+          },
+          onError: (error: any) => {
+            logger.error(`❌ Erro ao criar ${osFilhaCodigo}:`, error);
+            toast.error(`Erro ao criar ${osFilhaCodigo}: ${error.message}`);
+          },
+        }
+      );
+    } catch (error) {
+      logger.error('Erro ao ativar contrato:', error);
+      toast.error('Erro ao ativar contrato');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -464,8 +553,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
               onReturnToActive={handleReturnToActive}
               isFormInvalid={isCurrentStepInvalid}
               invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
-              isLoading={isSaving || isLoadingData}
-              loadingText="Salvando..."
+              isLoading={isSaving || isLoadingData || isCreatingOS}
+              loadingText={isCreatingOS ? "Criando OS filha..." : "Salvando..."}
             />
           </Card>
         </div>

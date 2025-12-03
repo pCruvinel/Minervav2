@@ -26,6 +26,7 @@ interface FormDataCompleto {
   nome: string;
   cpfCnpj: string;
   tipo: string;
+  tipoEmpresa?: string;
   nomeResponsavel: string;
   cargoResponsavel: string;
   telefone: string;
@@ -44,8 +45,11 @@ interface FormDataCompleto {
   bairro: string;
   cidade: string;
   estado: string;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  data?: any; // Campo opcional para compatibilidade futura
 }
 
+/* eslint-disable @typescript-eslint/no-unused-vars */
 interface CadastrarLeadProps {
   selectedLeadId: string;
   onSelectLead: (leadId: string, leadData?: any) => void;
@@ -57,6 +61,7 @@ interface CadastrarLeadProps {
   onFormDataChange: (data: FormDataCompleto) => void;
   readOnly?: boolean;
 }
+/* eslint-enable @typescript-eslint/no-unused-vars */
 
 export interface CadastrarLeadHandle {
   validate: () => boolean;
@@ -82,6 +87,9 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
 
     // Estado local para salvar
     const [isSaving, setIsSaving] = useState(false);
+
+    // Estado para checkbox "Sou o Responsável?"
+    const [souResponsavel, setSouResponsavel] = useState(false);
 
     // Hook de validação
     const {
@@ -256,6 +264,7 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
           nome: lead.nome_razao_social || '',
           cpfCnpj: lead.cpf_cnpj || '',
           tipo: lead.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
+          tipoEmpresa: lead.tipo_empresa || '',
           nomeResponsavel: lead.nome_responsavel || '',
           cargoResponsavel: lead.endereco?.cargo_responsavel || '',
           telefone: lead.telefone || '',
@@ -310,6 +319,7 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
         preencherFormDataComLead(lead);
 
         // Fechar combobox após um pequeno delay para evitar problemas de rendering
+        // eslint-disable-next-line no-undef
         setTimeout(() => {
           onShowComboboxChange(false);
         }, 50);
@@ -373,6 +383,7 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
           nome_razao_social: formData.nome,
           cpf_cnpj: removeMask(formData.cpfCnpj),
           tipo_cliente: formData.tipo === 'juridica' ? 'PESSOA_JURIDICA' : 'PESSOA_FISICA',
+          tipo_empresa: formData.tipo === 'juridica' ? formData.tipoEmpresa : null,
           telefone: removeMask(formData.telefone),
           email: formData.email,
           nome_responsavel: formData.nomeResponsavel || null,
@@ -771,6 +782,7 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                             const cepClean = removeMask(formData.cep);
                             if (cepClean.length === 8) {
                               try {
+                                // eslint-disable-next-line no-undef
                                 const response = await fetch(`https://viacep.com.br/ws/${cepClean}/json/`);
                                 const data = await response.json();
 
@@ -906,8 +918,12 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                             tipo: value,
                             // Limpar campos dependentes ao mudar o tipo
                             cpfCnpj: '',
-                            nome: ''
+                            nome: '',
+                            tipoEmpresa: '',
+                            nomeResponsavel: ''
                           });
+                          // Resetar checkbox ao mudar tipo
+                          setSouResponsavel(false);
                         }}
                       >
                         <SelectTrigger id="tipo">
@@ -920,6 +936,30 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                       </Select>
                     </div>
 
+                    {/* Dropdown Tipo de Empresa - Apenas para Pessoa Jurídica */}
+                    {formData.tipo === 'juridica' && (
+                      <div className="col-span-2 space-y-2">
+                        <Label htmlFor="tipoEmpresa">
+                          Tipo de Empresa <span className="text-destructive">*</span>
+                        </Label>
+                        <Select
+                          value={formData.tipoEmpresa}
+                          onValueChange={(value) => onFormDataChange({ ...formData, tipoEmpresa: value })}
+                        >
+                          <SelectTrigger id="tipoEmpresa">
+                            <SelectValue placeholder="Selecione o tipo de empresa" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="CONDOMINIO">Condomínio</SelectItem>
+                            <SelectItem value="CONSTRUTORA">Construtora</SelectItem>
+                            <SelectItem value="INCORPORADORA">Incorporadora</SelectItem>
+                            <SelectItem value="ADMINISTRADORA">Administradora</SelectItem>
+                            <SelectItem value="OUTROS">Outros</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
                     <div className="col-span-2">
                       <FormInput
                         id="nome"
@@ -928,8 +968,14 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                         value={formData.nome}
                         onChange={(e) => {
                           if (!readOnly) {
-                            onFormDataChange({ ...formData, nome: e.target.value });
-                            if (touched.nome) validateField('nome', e.target.value);
+                            const novoNome = e.target.value;
+                            onFormDataChange({ ...formData, nome: novoNome });
+                            if (touched.nome) validateField('nome', novoNome);
+
+                            // Se checkbox marcado, atualizar Nome do Responsável automaticamente
+                            if (souResponsavel && formData.tipo === 'fisica') {
+                              onFormDataChange({ ...formData, nome: novoNome, nomeResponsavel: novoNome });
+                            }
                           }
                         }}
                         onBlur={() => {
@@ -945,6 +991,29 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                         disabled={readOnly}
                       />
                     </div>
+
+                    {/* Checkbox "Sou o Responsável?" - Apenas para Pessoa Física */}
+                    {formData.tipo === 'fisica' && (
+                      <div className="col-span-2 flex items-center space-x-2">
+                        <Switch
+                          id="souResponsavel"
+                          checked={souResponsavel}
+                          onCheckedChange={(checked) => {
+                            setSouResponsavel(checked);
+                            if (checked) {
+                              // Auto-preencher Nome do Responsável com Nome Completo
+                              onFormDataChange({ ...formData, nomeResponsavel: formData.nome });
+                            } else {
+                              // Limpar Nome do Responsável
+                              onFormDataChange({ ...formData, nomeResponsavel: '' });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="souResponsavel" className="cursor-pointer">
+                          Sou o Responsável?
+                        </Label>
+                      </div>
+                    )}
 
                     <div>
                       <FormMaskedInput
@@ -988,9 +1057,15 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                       <Input
                         id="nomeResponsavel"
                         value={formData.nomeResponsavel}
-                        onChange={(e) => onFormDataChange({ ...formData, nomeResponsavel: e.target.value })}
+                        onChange={(e) => !souResponsavel && onFormDataChange({ ...formData, nomeResponsavel: e.target.value })}
                         placeholder="Nome do contato principal"
+                        disabled={souResponsavel}
                       />
+                      {souResponsavel && (
+                        <p className="text-xs text-muted-foreground">
+                          Nome preenchido automaticamente
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-2">

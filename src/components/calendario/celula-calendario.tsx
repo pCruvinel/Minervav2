@@ -29,10 +29,9 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
 
     // Determinar classes CSS
     const celulaClasses = cn(
-        'relative border border-border min-h-[60px] p-1 transition-all',
+        'relative min-h-[60px] p-2 transition-all',
+        'border border-[hsl(40,20%,85%)] rounded-md',  // Borda bege claro
         {
-            // Com turno
-            'bg-opacity-20': !!turno,
             'cursor-pointer hover:ring-2 hover:ring-primary hover:z-10': ehClicavel,
             'cursor-not-allowed opacity-50': turno && !podeAgendar && !ehAdmin,
             // Sem turno - branco pérola
@@ -40,9 +39,9 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
         }
     );
 
-    // Estilo inline para cor do turno
+    // Aplicar cor de fundo do turno (verde/vermelho/azul com 20% opacidade)
     const celulaStyle = turno && corTurno ? {
-        backgroundColor: corTurno.bg,
+        backgroundColor: corTurno.bg,  // rgba(R, G, B, 0.2)
     } : undefined;
 
     return (
@@ -52,6 +51,15 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
             onClick={() => ehClicavel && onClick(celula)}
             title={turno ? `${turno.horaInicio}-${turno.horaFim} - ${turno.vagasTotal - turno.vagasOcupadas}/${turno.vagasTotal} vagas` : 'Sem turno'}
         >
+            {/* Indicador de cor do turno (dot colorido) */}
+            {turno && corTurno && (
+                <div
+                    className="absolute top-1 left-1 w-2 h-2 rounded-full"
+                    style={{ backgroundColor: corTurno.solid }}
+                    title={`Turno ${turno.cor}`}
+                />
+            )}
+
             {/* Indicador de vagas (se houver turno) */}
             {turno && (
                 <div className="absolute top-1 right-1 flex items-center gap-1 text-xs">

@@ -49,7 +49,15 @@ import { supabase } from '@/lib/supabase-client';
 // Validação
 import { steps } from '../../os13-workflow-page';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
-import { cadastrarClienteObraSchema } from '@/lib/validations/cadastrar-cliente-obra-schema';
+import { cadastrarClienteObraSchema, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
+
+export interface CadastrarClienteObraProps {
+  data: CadastrarClienteObraData;
+  onDataChange: (data: CadastrarClienteObraData) => void;
+  readOnly?: boolean;
+  osId?: string;
+  parentOSId?: string;
+}
 
 export interface CadastrarClienteObraHandle {
   validate: () => boolean;
@@ -57,7 +65,7 @@ export interface CadastrarClienteObraHandle {
 }
 
 export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, CadastrarClienteObraProps>(
-  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId }, ref) {
+  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId, parentOSId }, ref) {
     // Estados locais
     const [showCombobox, setShowCombobox] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -221,7 +229,8 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
               nome_etapa: s.title,
               ordem: s.id,
               dados_etapa: s.id === 1 ? data : {}
-            }))
+            })),
+            parentOSId
           });
 
           currentOsId = result.os.id;

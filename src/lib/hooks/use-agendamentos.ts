@@ -301,23 +301,55 @@ const agendamentosAPI = {
   },
 
   /**
-   * Cancelar agendamento
-   */
-  async cancel(id: string, motivo: string): Promise<Agendamento> {
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .update({
-        status: 'cancelado',
-        cancelado_em: new Date().toISOString(),
-        cancelado_motivo: motivo,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    * Cancelar agendamento
+    */
+   async cancel(id: string, motivo: string): Promise<Agendamento> {
+     // Primeiro, buscar dados do agendamento para o audit log
+     const { data: agendamentoAtual, error: errorBusca } = await supabase
+       .from('agendamentos')
+       .select('*')
+       .eq('id', id)
+       .single();
 
-    if (error) throw error;
-    return mapAgendamentoFromDB(data);
-  },
+     if (errorBusca) throw errorBusca;
+
+     // Cancelar o agendamento
+     const { data, error } = await supabase
+       .from('agendamentos')
+       .update({
+         status: 'cancelado',
+         cancelado_em: new Date().toISOString(),
+         cancelado_motivo: motivo,
+       })
+       .eq('id', id)
+       .select()
+       .single();
+
+     if (error) throw error;
+
+     // Registrar no audit_log
+     const { data: user } = await supabase.auth.getUser();
+     await supabase
+       .from('audit_log')
+       .insert({
+         usuario_id: user.user?.id,
+         acao: 'UPDATE',
+         tabela_afetada: 'agendamentos',
+         registro_id_afetado: id,
+         dados_antigos: {
+           status: agendamentoAtual.status,
+           cancelado_em: agendamentoAtual.cancelado_em,
+           cancelado_motivo: agendamentoAtual.cancelado_motivo,
+         },
+         dados_novos: {
+           status: 'cancelado',
+           cancelado_em: new Date().toISOString(),
+           cancelado_motivo: motivo,
+         },
+       });
+
+     return mapAgendamentoFromDB(data);
+   },
 
   /**
    * Marcar agendamento como realizado
@@ -358,56 +390,56 @@ const agendamentosAPI = {
  * Hook para listar agendamentos com filtros
  */
 export function useAgendamentos(filters?: AgendamentoFilters) {
-  const { data, loading, error, refetch } = useApi(
-    () => agendamentosAPI.list(filters),
-    {
-      deps: [
-        filters?.turnoId,
-        filters?.data,
-        filters?.dataInicio,
-        filters?.dataFim,
-        filters?.status,
-        filters?.setor,
-        filters?.osId,
-      ],
-      onError: (error) => {
-        console.error('❌ Erro ao carregar agendamentos:', error);
-        toast.error(`Erro ao carregar agendamentos: ${error.message}`);
-      },
-    }
-  );
+   const { data, loading, error, refetch } = useApi(
+     () => agendamentosAPI.list(filters),
+     {
+       deps: [
+         filters?.turnoId,
+         filters?.data,
+         filters?.dataInicio,
+         filters?.dataFim,
+         filters?.status,
+         filters?.setor,
+         filters?.osId,
+       ],
+       onError: (error) => {
+         console.error('❌ Erro ao carregar agendamentos:', error);
+         toast.error(`Erro ao carregar agendamentos: ${error.message}`);
+       },
+     }
+   );
 
-  const agendamentos = useMemo(() => {
-    if (!data) return [];
+   const agendamentos = useMemo(() => {
+     if (!data) return [];
 
-    return data
-      .map((agendamento) => {
-        const statusGeral =
-          agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
-        const etapasAtivas =
-          agendamento.ordens_servico?.etapas?.filter((etapa) =>
-            ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
-          ).length || agendamento.etapasAtivas || 0;
+     return data
+       .map((agendamento) => {
+         const statusGeral =
+           agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
+         const etapasAtivas =
+           agendamento.ordens_servico?.etapas?.filter((etapa) =>
+             ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
+           ).length || agendamento.etapasAtivas || 0;
 
-        return {
-          ...agendamento,
-          usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
-          osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
-          clienteNome:
-            agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
-          statusGeralOS: statusGeral,
-          etapasAtivas,
-        };
-      })
-      .filter(
-        (agendamento) =>
-          agendamento.status !== 'cancelado' &&
-          (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
-      );
-  }, [data]);
+         return {
+           ...agendamento,
+           usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
+           osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
+           clienteNome:
+             agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
+           statusGeralOS: statusGeral,
+           etapasAtivas,
+         };
+       })
+       .filter(
+         (agendamento) =>
+           agendamento.status !== 'cancelado' &&
+           (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
+       );
+   }, [data]);
 
-  return { agendamentos, loading, error, refetch };
-}
+   return { agendamentos, loading, error, refetch };
+ }
 
 /**
  * Hook para obter agendamentos de uma data específica

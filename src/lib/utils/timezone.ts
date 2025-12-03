@@ -1,4 +1,4 @@
-import { utcToZonedTime, zonedTimeToUtc, format } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime, formatInTimeZone } from 'date-fns-tz';
 
 /**
  * Timezone padrão do sistema: America/São_Paulo
@@ -17,7 +17,7 @@ export const TIMEZONE_SP = 'America/Sao_Paulo';
  * ```
  */
 export function toSaoPauloTime(date: Date | string): Date {
-  return utcToZonedTime(date, TIMEZONE_SP);
+  return toZonedTime(date, TIMEZONE_SP);
 }
 
 /**
@@ -32,7 +32,7 @@ export function toSaoPauloTime(date: Date | string): Date {
  * ```
  */
 export function fromSaoPauloTime(date: Date): Date {
-  return zonedTimeToUtc(date, TIMEZONE_SP);
+  return fromZonedTime(date, TIMEZONE_SP);
 }
 
 /**
@@ -49,7 +49,7 @@ export function fromSaoPauloTime(date: Date): Date {
  * ```
  */
 export function formatInSaoPaulo(date: Date, formatStr: string): string {
-  return format(toSaoPauloTime(date), formatStr, { timeZone: TIMEZONE_SP });
+  return formatInTimeZone(date, TIMEZONE_SP, formatStr);
 }
 
 /**
