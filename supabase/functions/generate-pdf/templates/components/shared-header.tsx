@@ -24,27 +24,57 @@ export interface SharedHeaderProps {
 
 const styles = StyleSheet.create({
   headerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: 'column',
     marginBottom: spacing.lg,
     paddingBottom: spacing.md,
     borderBottom: `3 solid ${colors.primary}`,
   },
 
-  headerLeft: {
-    flexDirection: 'column',
-    width: '35%',
+  topRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: spacing.md,
+  },
+
+  logoSection: {
+    width: 150,
   },
 
   logo: {
     width: 150,
     height: 50,
-    marginBottom: spacing.sm,
+  },
+
+  documentInfo: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    flex: 1,
+  },
+
+  documentTitle: {
+    fontSize: fontSize['2xl'],
+    fontFamily: fonts.bold,
+    color: colors.neutral800,
+    marginBottom: spacing.xs,
+    textAlign: 'right',
+  },
+
+  documentSubtitle: {
+    fontSize: fontSize.base,
+    color: colors.neutral600,
+    marginBottom: spacing.xs,
+    textAlign: 'right',
+  },
+
+  documentDate: {
+    fontSize: fontSize.sm,
+    color: colors.neutral500,
   },
 
   empresaContainer: {
     flexDirection: 'column',
+    width: '100%',
   },
 
   empresaName: {
@@ -59,30 +89,6 @@ const styles = StyleSheet.create({
     color: colors.neutral600,
     lineHeight: 1.3,
     marginBottom: 2,
-  },
-
-  headerRight: {
-    flexDirection: 'column',
-    alignItems: 'flex-end',
-    width: '60%',
-  },
-
-  documentTitle: {
-    fontSize: fontSize['2xl'],
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    marginBottom: spacing.xs,
-  },
-
-  documentSubtitle: {
-    fontSize: fontSize.base,
-    color: colors.neutral600,
-    marginBottom: spacing.xs,
-  },
-
-  documentDate: {
-    fontSize: fontSize.sm,
-    color: colors.neutral500,
   },
 });
 
@@ -119,43 +125,41 @@ export function SharedHeader({
 
   return (
     <View style={headerContainerStyle}>
-      {/* Lado Esquerdo: Logo + Dados Empresa */}
-      <View style={styles.headerLeft}>
-        {logoUrl && (
-          <Image
-            style={{
-              width: logoWidth,
-              height: logoHeight,
-              marginBottom: spacing.sm,
-            }}
-            src={logoUrl}
-          />
-        )}
+      {/* Topo: Logo (esquerda) + Título (direita) */}
+      <View style={styles.topRow}>
+        <View style={styles.logoSection}>
+          {logoUrl && (
+            <Image
+              style={styles.logo}
+              src={logoUrl}
+            />
+          )}
+        </View>
 
-        <View style={styles.empresaContainer}>
-          <Text style={styles.empresaName}>Minerva Engenharia e Representações</Text>
-          <Text style={styles.empresaInfo}>
-            Av. Colares Moreira, Edifício Los Angeles, Nº100, Loja 01
-          </Text>
-          <Text style={styles.empresaInfo}>
-            Renascença, São Luís - MA, CEP: 65075-144
-          </Text>
-          <Text style={styles.empresaInfo}>
-            (98) 98226-7909 / (98) 98151-3355
-          </Text>
-          <Text style={styles.empresaInfo}>
-            www.minerva-eng.com.br / contato@minerva-eng.com.br
-          </Text>
+        <View style={styles.documentInfo}>
+          <Text style={styles.documentTitle}>{documentTitle}</Text>
+          {documentSubtitle && (
+            <Text style={styles.documentSubtitle}>{documentSubtitle}</Text>
+          )}
+          <Text style={styles.documentDate}>{documentDate}</Text>
         </View>
       </View>
 
-      {/* Lado Direito: Informações do Documento */}
-      <View style={styles.headerRight}>
-        <Text style={styles.documentTitle}>{documentTitle}</Text>
-        {documentSubtitle && (
-          <Text style={styles.documentSubtitle}>{documentSubtitle}</Text>
-        )}
-        <Text style={styles.documentDate}>{documentDate}</Text>
+      {/* Dados da Empresa: alinhados à esquerda abaixo do logo/título */}
+      <View style={styles.empresaContainer}>
+        <Text style={styles.empresaName}>Minerva Engenharia e Representações</Text>
+        <Text style={styles.empresaInfo}>
+          Av. Colares Moreira, Edifício Los Angeles, Nº100, Loja 01
+        </Text>
+        <Text style={styles.empresaInfo}>
+          Renascença, São Luís - MA, CEP: 65075-144
+        </Text>
+        <Text style={styles.empresaInfo}>
+          (98) 98226-7909 / (98) 98151-3355
+        </Text>
+        <Text style={styles.empresaInfo}>
+          www.minerva-eng.com.br / contato@minerva-eng.com.br
+        </Text>
       </View>
     </View>
   );
