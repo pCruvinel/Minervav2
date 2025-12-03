@@ -22,7 +22,7 @@ import { FormMaskedInput, validarCPF, validarCNPJ, validarTelefone, validarCEP, 
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { etapa1Schema } from '@/lib/validations/os-etapas-schema';
 
-interface FormDataCompleto {
+export interface FormDataCompleto {
   nome: string;
   cpfCnpj: string;
   tipo: string;

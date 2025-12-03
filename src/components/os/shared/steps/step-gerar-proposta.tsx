@@ -1,31 +1,63 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, CheckCircle, Eye } from 'lucide-react';
+import { FileText, CheckCircle, Eye, AlertCircle } from 'lucide-react';
 import { PDFDownloadButton } from '@/components/pdf/pdf-download-button';
 import { PDFPreviewModal } from '@/components/pdf/pdf-preview-modal';
+import { isValidUUID } from '@/lib/utils/os-workflow-helpers';
 
 interface StepGerarPropostaProps {
+  osId: string; // ✅ FIX: osId como prop separada obrigatória
+  etapa1Data?: {
+    nome?: string;
+    cpfCnpj?: string;
+    email?: string;
+    telefone?: string;
+    [key: string]: unknown;
+  };
+  etapa2Data?: {
+    tipoOS?: string;
+    [key: string]: unknown;
+  };
+  etapa7Data?: {
+    objetivo?: string;
+    etapasPrincipais?: unknown[];
+    [key: string]: unknown;
+  };
+  etapa8Data?: {
+    percentualEntrada?: string;
+    numeroParcelas?: string;
+    percentualImposto?: string;
+    [key: string]: unknown;
+  };
+  valorTotal?: number;
+  valorEntrada?: number;
+  valorParcela?: number;
   data: {
     propostaGerada?: boolean;
     dataGeracao?: string;
     pdfUrl?: string;
-    // Dados necessários para gerar a proposta
-    osId: string;
-    codigoOS: string;
-    clienteNome: string;
-    clienteCpfCnpj: string;
-    clienteEmail?: string;
-    clienteTelefone?: string;
-    descricaoServico?: string;
-    valorProposta: number;
+    codigoProposta?: string;
+    validadeDias?: string;
+    garantiaMeses?: string;
     [key: string]: unknown;
   };
-  onDataChange: (data: any) => void;
+  // eslint-disable-next-line no-unused-vars
+  onDataChange: (data: Record<string, unknown>) => void;
   readOnly?: boolean;
 }
 
-export function StepGerarProposta({ data, onDataChange, readOnly = false }: StepGerarPropostaProps) {
+export function StepGerarProposta({
+  osId,
+  etapa1Data = {},
+  etapa8Data = {},
+  valorTotal = 0,
+  valorEntrada = 0,
+  valorParcela = 0,
+  data,
+  onDataChange,
+  readOnly = false
+}: StepGerarPropostaProps) {
   const [showPreview, setShowPreview] = useState(false);
 
   const handleSuccess = (url: string) => {
@@ -37,21 +69,38 @@ export function StepGerarProposta({ data, onDataChange, readOnly = false }: Step
     });
   };
 
+  // ✅ FIX: Construir dados da proposta a partir das props recebidas
+  // Remover máscara do CNPJ para enviar ao backend
+  const cpfCnpjLimpo = (etapa1Data.cpfCnpj || '').replace(/\D/g, '');
+
   const propostaData = {
-    codigoOS: data.codigoOS,
-    tipoOS: 'Proposta Comercial',
-    dataEmissao: new Date().toISOString(),
-    clienteNome: data.clienteNome,
-    clienteCpfCnpj: data.clienteCpfCnpj,
-    clienteEmail: data.clienteEmail,
-    clienteTelefone: data.clienteTelefone,
-    descricaoServico: data.descricaoServico || 'Serviços de engenharia conforme solicitado',
-    valorProposta: data.valorProposta,
-    ...data
+    clienteCpfCnpj: cpfCnpjLimpo,
+    dadosFinanceiros: {
+      precoFinal: valorTotal.toString(),
+      valorEntrada: valorEntrada.toString(),
+      valorParcela: valorParcela.toString(),
+      numeroParcelas: etapa8Data.numeroParcelas || '1',
+      percentualEntrada: etapa8Data.percentualEntrada || '0',
+      percentualImposto: etapa8Data.percentualImposto || '0',
+    }
   };
+
+  // ✅ FIX: Validar se osId é um UUID válido (não a string "undefined")
+  const osIdValido = osId && isValidUUID(osId);
 
   return (
     <div className="space-y-6">
+      {/* Alerta de osId inválido */}
+      {!osIdValido && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            <strong>Erro:</strong> ID da OS não está disponível ou é inválido.
+            Certifique-se de que a OS foi criada corretamente nas etapas anteriores.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Alert>
         <FileText className="h-4 w-4" />
         <AlertDescription>
@@ -63,17 +112,26 @@ export function StepGerarProposta({ data, onDataChange, readOnly = false }: Step
         <FileText className="h-16 w-16 text-muted-foreground" />
 
         <div className="flex gap-3">
-          <PDFDownloadButton
-            tipo="proposta"
-            osId={data.osId}
-            dados={propostaData}
-            onSuccess={handleSuccess}
-            variant="default"
-            disabled={readOnly}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Gerar Proposta Comercial
-          </PDFDownloadButton>
+          {osIdValido && !readOnly ? (
+            <PDFDownloadButton
+              tipo="proposta"
+              osId={osId}
+              dados={propostaData}
+              onSuccess={handleSuccess}
+              variant="default"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Gerar Proposta Comercial
+            </PDFDownloadButton>
+          ) : (
+            <button
+              disabled
+              className="px-4 py-2 text-sm bg-muted text-muted-foreground rounded-md cursor-not-allowed flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              {!osIdValido ? 'OS não disponível' : 'Modo de visualização'}
+            </button>
+          )}
 
           <button
             onClick={() => setShowPreview(true)}
@@ -112,14 +170,16 @@ export function StepGerarProposta({ data, onDataChange, readOnly = false }: Step
         </Card>
       )}
 
-      <PDFPreviewModal
-        isOpen={showPreview}
-        onClose={() => setShowPreview(false)}
-        tipo="proposta"
-        osId={data.osId}
-        dados={propostaData}
-        onSuccess={handleSuccess}
-      />
+      {osIdValido && (
+        <PDFPreviewModal
+          isOpen={showPreview}
+          onClose={() => setShowPreview(false)}
+          tipo="proposta"
+          osId={osId}
+          dados={propostaData}
+          onSuccess={handleSuccess}
+        />
+      )}
     </div>
   );
 }

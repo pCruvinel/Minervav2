@@ -13,6 +13,7 @@ export interface OSDocumento {
   metadados?: Record<string, unknown>;
   uploaded_by: string;
   criado_em: string;
+  url?: string;
 }
 
 export interface UploadDocumentoParams {
@@ -164,7 +165,7 @@ export function useOSDocumentUpload(osId: string) {
 
       if (storageError) {
         console.warn('Erro ao deletar do storage:', storageError);
-     }
+      }
 
       // 3. Deletar do banco
       const { error: dbError } = await supabase
@@ -185,7 +186,7 @@ export function useOSDocumentUpload(osId: string) {
   /**
    * Lista todos os documentos de uma OS
    */
-  const listDocuments = async ( tipoDocumento?: string): Promise<OSDocumento[]> => {
+  const listDocuments = async (tipoDocumento?: string): Promise<OSDocumento[]> => {
     let query = supabase
       .from('os_documentos')
       .select('*')

@@ -26,7 +26,17 @@ export default [
         process: 'readonly',
         Buffer: 'readonly',
         __dirname: 'readonly',
-        __filename: 'readonly'
+        __filename: 'readonly',
+        File: 'readonly',
+        Blob: 'readonly',
+        FormData: 'readonly',
+        FileReader: 'readonly',
+        URL: 'readonly',
+        URLSearchParams: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        Headers: 'readonly'
       }
     },
     plugins: {

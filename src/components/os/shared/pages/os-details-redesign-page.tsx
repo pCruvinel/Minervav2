@@ -29,8 +29,13 @@ import {
     Send,
     Loader2,
     Sun,
-    Moon
+    Moon,
+    ChevronDown,
+    ChevronUp,
+    Code
 } from 'lucide-react';
+import { OSHierarchyCard } from '../components/os-hierarchy-card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
 
@@ -54,6 +59,9 @@ interface OSDetails {
     documentos_count: number;
     etapas_concluidas_count: number;
     etapas_total_count: number;
+    parent_os_id?: string;
+    status_detalhado?: any;
+    metadata?: any;
 }
 
 interface WorkflowStep {
@@ -1002,6 +1010,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                             </CardContent>
                         </Card>
 
+                        {/* OS Hierarchy */}
+                        <OSHierarchyCard osId={osDetails.id} />
+
                         {/* OS Information */}
                         <Card className="border-border rounded-lg shadow-sm">
                             <CardHeader>
@@ -1075,6 +1086,40 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Metadata Section */}
+                        <Collapsible className="border border-border rounded-lg shadow-sm bg-card">
+                            <CollapsibleTrigger className="group flex items-center justify-between w-full p-4 font-medium hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center gap-2">
+                                    <Code className="w-4 h-4 text-muted-foreground" />
+                                    <span>Dados Técnicos</span>
+                                </div>
+                                <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                            </CollapsibleTrigger>
+                            <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
+                                <div className="space-y-4">
+                                    {osDetails.status_detalhado && (
+                                        <div>
+                                            <h4 className="text-sm font-medium mb-2">Status Detalhado</h4>
+                                            <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
+                                                {JSON.stringify(osDetails.status_detalhado, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
+                                    {osDetails.metadata && (
+                                        <div>
+                                            <h4 className="text-sm font-medium mb-2">Metadados</h4>
+                                            <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
+                                                {JSON.stringify(osDetails.metadata, null, 2)}
+                                            </pre>
+                                        </div>
+                                    )}
+                                    {!osDetails.status_detalhado && !osDetails.metadata && (
+                                        <p className="text-sm text-muted-foreground">Nenhum dado técnico disponível.</p>
+                                    )}
+                                </div>
+                            </CollapsibleContent>
+                        </Collapsible>
                     </TabsContent>
 
                     {/* Workflow Tab */}

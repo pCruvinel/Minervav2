@@ -4,10 +4,10 @@
  */
 
 export const colors = {
-  // Primary colors
-  primary: '#FF6B35',
-  primaryDark: '#E55A2B',
-  primaryLight: '#FF8C66',
+  // Primary colors - Gold (Minerva Brand)
+  primary: '#D3AF37',
+  primaryDark: '#B8941E',
+  primaryLight: '#E6C866',
 
   // Neutral colors
   neutral50: '#FAFAFA',
@@ -26,6 +26,10 @@ export const colors = {
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
+
+  // Table Header Colors (Blue)
+  tableHeaderBg: '#3B82F6',
+  tableHeaderText: '#FFFFFF',
 
   // Background
   white: '#FFFFFF',
@@ -174,15 +178,15 @@ export const commonStyles = {
 
   tableHeader: {
     flexDirection: 'row' as const,
-    backgroundColor: colors.neutral100,
+    backgroundColor: colors.tableHeaderBg,
     padding: spacing.sm,
-    borderBottom: `2 solid ${colors.neutral300}`,
+    borderBottom: `2 solid ${colors.tableHeaderBg}`,
   },
 
   tableHeaderCell: {
     fontSize: fontSize.sm,
     fontFamily: fonts.bold,
-    color: colors.neutral800,
+    color: colors.tableHeaderText,
   },
 
   tableRow: {
