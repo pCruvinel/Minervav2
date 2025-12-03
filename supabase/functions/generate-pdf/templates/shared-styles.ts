@@ -48,10 +48,10 @@ export const spacing = {
 };
 
 export const fonts = {
-  regular: 'Calibri',
-  bold: 'Calibri-Bold',
-  italic: 'Calibri-Italic',
-  boldItalic: 'Calibri-BoldItalic',
+  regular: 'Helvetica',
+  bold: 'Helvetica-Bold',
+  italic: 'Helvetica-Oblique',
+  boldItalic: 'Helvetica-BoldOblique',
 };
 
 export const fontSize = {
