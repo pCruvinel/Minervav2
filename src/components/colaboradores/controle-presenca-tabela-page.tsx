@@ -1,4 +1,3 @@
-import { logger } from '@/lib/utils/logger';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
@@ -12,6 +11,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
 import {
   Calendar as CalendarIcon,
   User,
@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
 import { CentroCusto } from '@/lib/hooks/use-centro-custo';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 interface RegistroPresenca {
   colaboradorId: string;
@@ -42,17 +43,22 @@ interface RegistroPresenca {
   justificativaPerformance?: string;
   minutosAtraso?: number;
   anexoUrl?: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
 }
 
 export function ControlePresencaTabelaPage() {
+  const { currentUser } = useAuth();
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [registros, setRegistros] = useState<Record<string, RegistroPresenca>>({});
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [modalJustificativaOpen, setModalJustificativaOpen] = useState(false);
+  const [modalConfirmacaoOpen, setModalConfirmacaoOpen] = useState(false);
   const [colaboradorAtual, setColaboradorAtual] = useState<string | null>(null);
   const [tipoJustificativa, setTipoJustificativa] = useState<'STATUS' | 'PERFORMANCE'>('STATUS');
+  const [setorFiltro, setSetorFiltro] = useState<string>('todos');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -125,7 +131,9 @@ export function ControlePresencaTabelaPage() {
               justificativaStatus: reg.justificativa,
               justificativaPerformance: reg.performance_justificativa,
               minutosAtraso: reg.minutos_atraso,
-              anexoUrl: reg.anexo_url
+              anexoUrl: reg.anexo_url,
+              confirmedAt: reg.confirmed_at,
+              confirmedBy: reg.confirmed_by
             };
           }
         });
@@ -295,9 +303,14 @@ export function ControlePresencaTabelaPage() {
     return { presentes, ausentes, atrasados };
   };
 
-  const handleConfirmarRegistros = async () => {
+  const handleAbrirModalConfirmacao = () => {
     const erros: string[] = [];
-    const dateStr = format(dataSelecionada, 'yyyy-MM-dd');
+
+    // Verificar se usuário está autenticado
+    if (!currentUser?.id) {
+      toast.error('Usuário não autenticado. Faça login para confirmar presenças.');
+      return;
+    }
 
     // Validação
     colaboradores.forEach(col => {
@@ -323,6 +336,13 @@ export function ControlePresencaTabelaPage() {
       return;
     }
 
+    // Abrir modal de confirmação
+    setModalConfirmacaoOpen(true);
+  };
+
+  const handleConfirmarRegistros = async () => {
+    const dateStr = format(dataSelecionada, 'yyyy-MM-dd');
+
     try {
       setSaving(true);
 
@@ -338,6 +358,13 @@ export function ControlePresencaTabelaPage() {
           performance_justificativa: reg.justificativaPerformance || null,
           centros_custo: reg.centrosCusto,
           anexo_url: reg.anexoUrl || null,
+          confirmed_at: new Date().toISOString(),
+          confirmed_by: currentUser?.id || null,
+          confirmed_changes: {
+            timestamp: new Date().toISOString(),
+            action: 'confirmed',
+            previous_state: reg.confirmedAt ? 'confirmed' : 'draft'
+          },
           updated_at: new Date().toISOString()
         };
       });
@@ -353,7 +380,8 @@ export function ControlePresencaTabelaPage() {
 
       toast.success(`✅ Presença registrada para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
 
-      // Recarregar para garantir sincronia
+      // Fechar modal e recarregar
+      setModalConfirmacaoOpen(false);
       fetchRegistrosDoDia(dataSelecionada);
 
     } catch (error: any) {
@@ -368,9 +396,73 @@ export function ControlePresencaTabelaPage() {
     return centrosCusto.find(cc => cc.id === id)?.nome || id;
   };
 
+  const isRegistroConfirmado = (registro: RegistroPresenca) => {
+    return registro.confirmedAt !== null && registro.confirmedAt !== undefined;
+  };
+
+  const handleReverterConfirmacao = async () => {
+    try {
+      setSaving(true);
+      const dateStr = format(dataSelecionada, 'yyyy-MM-dd');
+
+      const { error } = await supabase
+        .from('registros_presenca')
+        .update({
+          confirmed_at: null,
+          confirmed_by: null,
+          confirmed_changes: null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('data', dateStr);
+
+      if (error) throw error;
+
+      toast.success('✅ Confirmação revertida! Agora é possível editar os registros.');
+
+      // Recarregar para refletir mudanças
+      fetchRegistrosDoDia(dataSelecionada);
+
+    } catch (error: any) {
+      console.error('Erro ao reverter confirmação:', error);
+      toast.error(error.message || 'Erro ao reverter confirmação.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const stats = calcularEstatisticas();
   const custoTotalDia = calcularCustoTotalDia();
   const todosSelecionados = selecionados.size === colaboradores.length;
+  const algumRegistroConfirmado = colaboradores.some(col => isRegistroConfirmado(registros[col.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] }));
+
+  // Filtrar colaboradores por setor
+  const colaboradoresFiltrados = colaboradores.filter(col =>
+    setorFiltro === 'todos' || col.setor === setorFiltro
+  );
+
+  // Obter setores únicos para o filtro
+  const setoresUnicos = Array.from(new Set(colaboradores.map(col => col.setor))).sort();
+
+  // Função para validar campos obrigatórios visualmente
+  const getValidationClass = (colaborador: Colaborador, registro: RegistroPresenca, field: 'status' | 'performance' | 'centrosCusto') => {
+    if (isRegistroConfirmado(registro)) return '';
+
+    let hasError = false;
+
+    switch (field) {
+      case 'centrosCusto':
+        hasError = colaborador.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0;
+        break;
+      case 'status':
+        hasError = (registro.status === 'FALTA' || registro.status === 'ATRASADO') && !registro.justificativaStatus;
+        break;
+      case 'performance':
+        hasError = registro.performance === 'RUIM' && !registro.justificativaPerformance;
+        break;
+    }
+
+    return hasError ? 'border-destructive' : '';
+  };
 
   if (loading && colaboradores.length === 0) {
     return (
@@ -382,321 +474,388 @@ export function ControlePresencaTabelaPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Barra Superior */}
-      <div className="bg-white border-b px-6 py-4 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl mb-1">Controle de Presença Diária</h1>
-            <p className="text-sm text-muted-foreground">
-              Interface de alta produtividade para lançamento rápido
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Resumo */}
-            <div className="flex items-center gap-4 px-4 py-2 bg-muted rounded-lg border">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">
-                  <strong>Total:</strong> {colaboradores.length}
-                </span>
-              </div>
-              <div className="h-4 w-px bg-border" />
-              <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-success" />
-                <span className="text-sm">
-                  <strong>Presentes:</strong> {stats.presentes}
-                </span>
-              </div>
-              {stats.ausentes > 0 && (
-                <>
-                  <div className="h-4 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <XCircle className="h-4 w-4 text-destructive" />
-                    <span className="text-sm">
-                      <strong>Ausentes:</strong> {stats.ausentes}
-                    </span>
-                  </div>
-                </>
-              )}
-              {stats.atrasados > 0 && (
-                <>
-                  <div className="h-4 w-px bg-border" />
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-warning" />
-                    <span className="text-sm">
-                      <strong>Atrasados:</strong> {stats.atrasados}
-                    </span>
-                  </div>
-                </>
-              )}
+    <TooltipProvider>
+      <div className="flex flex-col h-screen bg-background">
+        {/* Barra Superior */}
+        <div className="bg-white border-b px-6 py-4 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl mb-1">Controle de Presença Diária</h1>
+              <p className="text-sm text-muted-foreground">
+                Interface de alta produtividade para lançamento rápido
+              </p>
             </div>
 
-            <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading}>
-              <Copy className="mr-2 h-4 w-4" />
-              Repetir Alocação de Ontem
-            </Button>
+            <div className="flex items-center gap-3">
+              {/* Resumo */}
+              <div className="flex items-center gap-4 px-4 py-2 bg-muted rounded-lg border">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">
+                    <strong>Total:</strong> {colaboradores.length}
+                  </span>
+                </div>
+                <div className="h-4 w-px bg-border" />
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-success" />
+                  <span className="text-sm">
+                    <strong>Presentes:</strong> {stats.presentes}
+                  </span>
+                </div>
+                {stats.ausentes > 0 && (
+                  <>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-sm">
+                        <strong>Ausentes:</strong> {stats.ausentes}
+                      </span>
+                    </div>
+                  </>
+                )}
+                {stats.atrasados > 0 && (
+                  <>
+                    <div className="h-4 w-px bg-border" />
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-warning" />
+                      <span className="text-sm">
+                        <strong>Atrasados:</strong> {stats.atrasados}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-64">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="end">
-                <Calendar
-                  mode="single"
-                  selected={dataSelecionada}
-                  onSelect={(date) => date && setDataSelecionada(date)}
-                  locale={ptBR}
-                  initialFocus
-                />
-              </PopoverContent>
-            </Popover>
+              <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading || algumRegistroConfirmado}>
+                <Copy className="mr-2 h-4 w-4" />
+                Repetir Alocação de Ontem
+              </Button>
+
+              <Select value={setorFiltro} onValueChange={setSetorFiltro}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filtrar por setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os setores</SelectItem>
+                  {setoresUnicos.map(setor => (
+                    <SelectItem key={setor} value={setor}>
+                      {setor.charAt(0).toUpperCase() + setor.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {algumRegistroConfirmado && (
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
+                    <CheckCircle className="mr-1 h-3 w-3" />
+                    Confirmado
+                  </Badge>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReverterConfirmacao}
+                    disabled={saving}
+                    className="text-xs"
+                  >
+                    Reverter Confirmação
+                  </Button>
+                </div>
+              )}
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-64">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <Calendar
+                    mode="single"
+                    selected={dataSelecionada}
+                    onSelect={(date) => date && setDataSelecionada(date)}
+                    locale={ptBR}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Tabela Grid */}
-      <div className="flex-1 overflow-auto px-6 py-4">
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted">
-                  <TableHead className="w-12">
-                    <Checkbox
-                      checked={todosSelecionados}
-                      onCheckedChange={handleSelecionarTodos}
-                    />
-                  </TableHead>
-                  <TableHead className="w-80">Colaborador</TableHead>
-                  <TableHead className="w-48">Status</TableHead>
-                  <TableHead className="w-48">Performance</TableHead>
-                  <TableHead className="min-w-96">Centro de Custo</TableHead>
-                  <TableHead className="w-20 text-center">Info</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {colaboradores.map((colaborador) => {
-                  const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
-                  const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
+        {/* Tabela Grid */}
+        <div className="flex-1 overflow-auto px-6 py-4">
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted">
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={todosSelecionados}
+                        onCheckedChange={handleSelecionarTodos}
+                      />
+                    </TableHead>
+                    <TableHead className="w-80">Colaborador</TableHead>
+                    <TableHead className="w-32">Setor</TableHead>
+                    <TableHead className="w-48">Status</TableHead>
+                    <TableHead className="w-48">Performance</TableHead>
+                    <TableHead className="w-80">Centro de Custo</TableHead>
+                    <TableHead className="w-20 text-center">Info</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {colaboradoresFiltrados.map((colaborador) => {
+                    const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
+                    const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
 
-                  return (
-                    <TableRow
-                      key={colaborador.id}
-                      className={cn(
-                        "hover:bg-muted",
-                        registro.status === 'FALTA' && "bg-destructive/5",
-                        registro.status === 'ATRASADO' && "bg-warning/5"
-                      )}
-                    >
-                      <TableCell>
-                        <Checkbox
-                          checked={selecionados.has(colaborador.id)}
-                          onCheckedChange={(checked) => handleSelecionarColaborador(colaborador.id, checked as boolean)}
-                        />
-                      </TableCell>
+                    return (
+                      <TableRow
+                        key={colaborador.id}
+                        className={cn(
+                          "hover:bg-muted",
+                          registro.status === 'FALTA' && "bg-destructive/5",
+                          registro.status === 'ATRASADO' && "bg-warning/5"
+                        )}
+                      >
+                        <TableCell>
+                          <Checkbox
+                            checked={selecionados.has(colaborador.id)}
+                            onCheckedChange={(checked) => handleSelecionarColaborador(colaborador.id, checked as boolean)}
+                          />
+                        </TableCell>
 
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                            {colaborador.avatar_url ? (
-                              <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
-                            ) : (
-                              <User className="h-5 w-5 text-primary" />
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium">{colaborador.nome_completo || colaborador.nome}</p>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
-                              <Badge variant="secondary" className="text-xs">{colaborador.setor}</Badge>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {colaborador.setor}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
+                              {colaborador.avatar_url ? (
+                                <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="h-5 w-5 text-primary" />
+                              )}
                             </div>
-                          </div>
-                        </div>
-                      </TableCell>
-
-                      <TableCell>
-                        <Select
-                          value={registro.status}
-                          onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OK">✅ OK</SelectItem>
-                            <SelectItem value="ATRASADO">⏰ Atrasado</SelectItem>
-                            <SelectItem value="FALTA">❌ Falta</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-
-                      <TableCell>
-                        <Select
-                          value={registro.performance}
-                          onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
-                        >
-                          <SelectTrigger className="w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="OTIMA">🌟 Ótima</SelectItem>
-                            <SelectItem value="BOA">👍 Boa</SelectItem>
-                            <SelectItem value="REGULAR">⚠️ Regular</SelectItem>
-                            <SelectItem value="RUIM">👎 Ruim</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
-
-                      <TableCell>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-between h-auto min-h-10 py-2"
-                            >
-                              <div className="flex flex-wrap gap-1">
-                                {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
-                                  registro.centrosCusto.map(ccId => (
-                                    <Badge
-                                      key={ccId}
-                                      variant="secondary"
-                                      className="text-xs bg-info/10 text-info"
-                                    >
-                                      {getCentroCustoNome(ccId)}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">
-                                    Selecione os CCs...
-                                  </span>
-                                )}
-                              </div>
-                              <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-96" align="start">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-medium">
-                                Centros de Custo (Multiselect)
-                              </Label>
-                              <div className="space-y-2 max-h-60 overflow-y-auto">
-                                {centrosCusto.map(cc => (
-                                  <label
-                                    key={cc.id}
-                                    className={cn(
-                                      "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all border",
-                                      registro.centrosCusto?.includes(cc.id)
-                                        ? "border-primary bg-primary/5"
-                                        : "border-transparent hover:bg-muted"
-                                    )}
-                                  >
-                                    <Checkbox
-                                      checked={registro.centrosCusto?.includes(cc.id)}
-                                      onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
-                                    />
-                                    <span className="text-sm flex-1">{cc.nome}</span>
-                                  </label>
-                                ))}
+                            <div>
+                              <p className="font-medium">{colaborador.nome_completo || colaborador.nome}</p>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
+                                <Badge variant="secondary" className="text-xs">{colaborador.setor}</Badge>
                               </div>
                             </div>
-                          </PopoverContent>
-                        </Popover>
-                      </TableCell>
+                          </div>
+                        </TableCell>
 
-                      <TableCell className="text-center">
-                        {temJustificativa && (
+                        <TableCell>
+                          <Select
+                            value={registro.status}
+                            onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
+                            disabled={isRegistroConfirmado(registro)}
+                          >
+                            <SelectTrigger className={cn("w-full", getValidationClass(colaborador, registro, 'status'))}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OK">OK</SelectItem>
+                              <SelectItem value="ATRASADO">Atrasado</SelectItem>
+                              <SelectItem value="FALTA">Falta</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+
+                        <TableCell>
+                          <Select
+                            value={registro.performance}
+                            onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
+                            disabled={isRegistroConfirmado(registro)}
+                          >
+                            <SelectTrigger className={cn("w-full", getValidationClass(colaborador, registro, 'performance'))}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="OTIMA">Ótima</SelectItem>
+                              <SelectItem value="BOA">Boa</SelectItem>
+                              <SelectItem value="REGULAR">Regular</SelectItem>
+                              <SelectItem value="RUIM">Ruim</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+
+                        <TableCell>
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <MessageSquare className="h-4 w-4 text-primary" />
+                              <Button
+                                variant="outline"
+                                className={cn("w-full justify-between h-auto min-h-10 py-2", getValidationClass(colaborador, registro, 'centrosCusto'))}
+                                disabled={isRegistroConfirmado(registro)}
+                              >
+                                <div className="flex flex-wrap gap-1">
+                                  {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
+                                    registro.centrosCusto.map(ccId => (
+                                      <Badge
+                                        key={ccId}
+                                        variant="secondary"
+                                        className="text-xs bg-info/10 text-info"
+                                      >
+                                        {getCentroCustoNome(ccId)}
+                                      </Badge>
+                                    ))
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">
+                                      Selecione os CCs...
+                                    </span>
+                                  )}
+                                </div>
+                                <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-80" align="end">
+                            <PopoverContent className="w-96" align="start">
                               <div className="space-y-2">
-                                {registro.justificativaStatus && (
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Justificativa de {registro.status === 'FALTA' ? 'Falta' : 'Atraso'}
-                                      {registro.minutosAtraso && ` (${registro.minutosAtraso} min)`}
-                                    </Label>
-                                    <p className="text-sm mt-1">{registro.justificativaStatus}</p>
-                                  </div>
-                                )}
-                                {registro.justificativaPerformance && (
-                                  <div>
-                                    <Label className="text-xs text-muted-foreground">
-                                      Justificativa de Performance
-                                    </Label>
-                                    <p className="text-sm mt-1">{registro.justificativaPerformance}</p>
-                                  </div>
-                                )}
+                                <Label className="text-sm font-medium">
+                                  Centros de Custo (Multiselect)
+                                </Label>
+                                <div className="space-y-2 max-h-60 overflow-y-auto">
+                                  {centrosCusto.map(cc => (
+                                    <label
+                                      key={cc.id}
+                                      className={cn(
+                                        "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all border",
+                                        registro.centrosCusto?.includes(cc.id)
+                                          ? "border-primary bg-primary/5"
+                                          : "border-transparent hover:bg-muted"
+                                      )}
+                                    >
+                                      <Checkbox
+                                        checked={registro.centrosCusto?.includes(cc.id)}
+                                        onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
+                                      />
+                                      <span className="text-sm flex-1">{cc.nome}</span>
+                                    </label>
+                                  ))}
+                                </div>
                               </div>
                             </PopoverContent>
                           </Popover>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                        </TableCell>
 
-      {/* Rodapé Fixo */}
-      <div className="bg-white border-t px-6 py-4 shadow-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <DollarSign className="h-6 w-6 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Custo Total do Dia (Rateado)</p>
-                <p className="text-2xl font-medium text-primary">{formatCurrency(custoTotalDia)}</p>
+                        <TableCell className="text-center">
+                          {temJustificativa && (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MessageSquare className="h-4 w-4 text-primary" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-80" align="end">
+                                <div className="space-y-2">
+                                  {registro.justificativaStatus && (
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">
+                                        Justificativa de {registro.status === 'FALTA' ? 'Falta' : 'Atraso'}
+                                        {registro.minutosAtraso && ` (${registro.minutosAtraso} min)`}
+                                      </Label>
+                                      <p className="text-sm mt-1">{registro.justificativaStatus}</p>
+                                    </div>
+                                  )}
+                                  {registro.justificativaPerformance && (
+                                    <div>
+                                      <Label className="text-xs text-muted-foreground">
+                                        Justificativa de Performance
+                                      </Label>
+                                      <p className="text-sm mt-1">{registro.justificativaPerformance}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Rodapé Fixo */}
+        <div className="bg-white border-t px-6 py-4 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
+                <DollarSign className="h-6 w-6 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Custo Total do Dia (Rateado)</p>
+                  <p className="text-2xl font-medium text-primary">{formatCurrency(custoTotalDia)}</p>
+                </div>
+              </div>
+
+              <div className="h-12 w-px bg-border" />
+
+              <div className="text-sm space-y-1">
+                <p className="text-muted-foreground">
+                  <strong>{stats.presentes}</strong> presentes •
+                  <strong className="ml-2">{stats.ausentes}</strong> ausentes
+                  {stats.atrasados > 0 && (
+                    <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} colaboradores com CC alocado
+                </p>
               </div>
             </div>
 
-            <div className="h-12 w-px bg-border" />
-
-            <div className="text-sm space-y-1">
-              <p className="text-muted-foreground">
-                📊 <strong>{stats.presentes}</strong> presentes •
-                <strong className="ml-2">{stats.ausentes}</strong> ausentes
-                {stats.atrasados > 0 && (
-                  <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} colaboradores com CC alocado
-              </p>
-            </div>
+            <Button size="lg" onClick={handleAbrirModalConfirmacao} className="px-8" disabled={saving || algumRegistroConfirmado}>
+              {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
+              {algumRegistroConfirmado ? 'Presenças Já Confirmadas' : 'Registrar'}
+            </Button>
           </div>
-
-          <Button size="lg" onClick={handleConfirmarRegistros} className="px-8" disabled={saving}>
-            {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
-            Confirmar e Registrar Presenças
-          </Button>
         </div>
-      </div>
 
-      {/* Modal de Justificativa */}
-      <ModalJustificativa
-        open={modalJustificativaOpen}
-        onClose={() => {
-          setModalJustificativaOpen(false);
-          setColaboradorAtual(null);
-        }}
-        onSalvar={handleSalvarJustificativa}
-        tipo={tipoJustificativa}
-        colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome || ''}
-        status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
-      />
-    </div>
+        {/* Modal de Confirmação */}
+        <Dialog open={modalConfirmacaoOpen} onOpenChange={setModalConfirmacaoOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirmar Registro de Presenças</DialogTitle>
+              <DialogDescription>
+                Você deseja registrar as presenças do dia {format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}?
+                Esta ação irá confirmar todos os registros e não poderá ser desfeita sem autorização administrativa.
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setModalConfirmacaoOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmarRegistros} disabled={saving}>
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Confirmar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de Justificativa */}
+        <ModalJustificativa
+          open={modalJustificativaOpen}
+          onClose={() => {
+            setModalJustificativaOpen(false);
+            setColaboradorAtual(null);
+          }}
+          onSalvar={handleSalvarJustificativa}
+          tipo={tipoJustificativa}
+          colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome || ''}
+          status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
+        />
+      </div>
+    </TooltipProvider>
   );
 }
 

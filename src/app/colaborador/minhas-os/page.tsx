@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,47 +12,138 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Eye, Filter } from "lucide-react";
+import { Search, Eye, Filter, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { StatusBadge, PriorityBadge } from "@/components/design-system";
-import { getStatusColor, getPrioridadeColor } from "@/lib/color-utils";
-import {
-  mockUserColaborador,
-  mockOrdensServico,
-} from "@/lib/mock-data-colaborador";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 
-// Mock de dados - substituir por API real
-const mockUser = mockUserColaborador;
-const mockOrdemServico = mockOrdensServico;
+interface OrdemServico {
+  id: string;
+  codigo_os: string;
+  tipo_os_id: string;
+  cliente_id: string;
+  responsavel_id: string;
+  criado_por_id: string;
+  status_geral: string;
+  descricao: string;
+  valor_proposta: number;
+  data_prazo: string;
+  data_entrada: string;
+  prioridade: string;
+  cliente?: {
+    nome_razao_social: string;
+  };
+  tipos_os?: {
+    nome: string;
+  };
+}
 
 export default function MinhasOSPage() {
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const [ordensServico, setOrdensServico] = useState<OrdemServico[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("TODOS");
   const [filterPrioridade, setFilterPrioridade] = useState("TODOS");
 
+  // Carregar OS do colaborador autenticado
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchOrdensServico();
+    }
+  }, [currentUser?.id]);
+
+  const fetchOrdensServico = async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('ordens_servico')
+        .select(`
+          id,
+          codigo_os,
+          tipo_os_id,
+          cliente_id,
+          responsavel_id,
+          criado_por_id,
+          status_geral,
+          descricao,
+          valor_proposta,
+          data_prazo,
+          data_entrada,
+          prioridade,
+          clientes (
+            nome_razao_social
+          ),
+          tipos_os (
+            nome
+          )
+        `)
+        .or(`responsavel_id.eq.${currentUser?.id},criado_por_id.eq.${currentUser?.id}`)
+        .order('data_prazo', { ascending: true });
+
+      if (error) throw error;
+
+      setOrdensServico(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar OS:', error);
+      toast.error('Erro ao carregar ordens de serviço');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filtrar OS do usuário logado
-  const minhasOS = mockOrdemServico.filter(
-    (os) => os.responsavel === mockUser.nome
+  const minhasOS = useMemo(() =>
+    ordensServico.filter((os) =>
+      os.responsavel_id === currentUser?.id || os.criado_por_id === currentUser?.id
+    ),
+    [ordensServico, currentUser?.id]
   );
 
   // Aplicar filtros de busca e status
-  const osFiltradas = minhasOS.filter((os) => {
-    const matchSearch =
-      os.codigo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.cliente.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      os.endereco.toLowerCase().includes(searchTerm.toLowerCase());
+  const osFiltradas = useMemo(() =>
+    minhasOS.filter((os) => {
+      const matchSearch =
+        os.codigo_os.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        os.cliente?.nome_razao_social?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        os.descricao.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus =
-      filterStatus === "TODOS" || os.status === filterStatus;
+      const matchStatus =
+        filterStatus === "TODOS" || os.status_geral === filterStatus;
 
-    const matchPrioridade =
-      filterPrioridade === "TODOS" || os.prioridade === filterPrioridade;
+      const matchPrioridade =
+        filterPrioridade === "TODOS" || os.prioridade === filterPrioridade;
 
-    return matchSearch && matchStatus && matchPrioridade;
-  });
+      return matchSearch && matchStatus && matchPrioridade;
+    }),
+    [minhasOS, searchTerm, filterStatus, filterPrioridade]
+  );
 
   // Funções de cores migradas para usar design system
   // @deprecated Use StatusBadge e PriorityBadge components
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Acesso negado</h2>
+          <p className="text-muted-foreground">Você precisa estar logado para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,32 +255,32 @@ export default function MinhasOSPage() {
                       className="hover:bg-muted transition-colors"
                     >
                       <td className="px-6 py-4">
-                        <p className="text-foreground">{os.codigo}</p>
+                        <p className="text-foreground">{os.codigo_os}</p>
                       </td>
                       <td className="px-6 py-4">
                         <Badge
                           variant="outline"
                           className="border-primary text-primary-foreground bg-primary/10"
                         >
-                          {os.tipo}
+                          {os.tipos_os?.nome || 'N/A'}
                         </Badge>
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-foreground">{os.cliente}</p>
+                        <p className="text-foreground">{os.cliente?.nome_razao_social || 'N/A'}</p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-muted-foreground max-w-xs truncate">
-                          {os.endereco}
+                          {os.descricao}
                         </p>
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-muted-foreground">
-                          {os.etapaAtual.replace(/_/g, " ")}
+                          {os.status_geral.replace(/_/g, " ")}
                         </p>
                       </td>
                       <td className="px-6 py-4">
-                        <StatusBadge status={os.status as any}>
-                          {os.status.replace(/_/g, " ")}
+                        <StatusBadge status={os.status_geral as any}>
+                          {os.status_geral.replace(/_/g, " ")}
                         </StatusBadge>
                       </td>
                       <td className="px-6 py-4">
@@ -199,7 +290,7 @@ export default function MinhasOSPage() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-foreground">
-                          {new Date(os.prazo).toLocaleDateString("pt-BR")}
+                          {new Date(os.data_prazo).toLocaleDateString("pt-BR")}
                         </p>
                       </td>
                       <td className="px-6 py-4">

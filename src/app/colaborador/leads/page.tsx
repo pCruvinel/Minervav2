@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,133 +30,179 @@ import {
   Building2,
   TrendingUp,
   Filter,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  mockUserColaborador,
-  mockLeads as initialMockLeads,
-} from "@/lib/mock-data-colaborador";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { supabase } from "@/lib/supabase-client";
+import { logger } from "@/lib/utils/logger";
+
+interface Lead {
+  id: string;
+  nome_razao_social: string;
+  cpf_cnpj: string;
+  email: string;
+  telefone: string;
+  tipo_cliente: 'PESSOA_FISICA' | 'PESSOA_JURIDICA';
+  endereco: {
+    logradouro?: string;
+    numero?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+  };
+  observacoes?: string;
+  created_at: string;
+  updated_at: string;
+}
 
 export default function LeadsComercialPage() {
-  // Mock de dados - substituir por API real
-  const mockUser = mockUserColaborador;
-  const [leads, setLeads] = useState(initialMockLeads);
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingLead, setEditingLead] = useState<(typeof initialMockLeads)[0] | null>(
-    null
-  );
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("TODOS");
 
-  const [formData, setFormData] = useState({
-    nome: "",
-    contato: "",
+  // Carregar leads do colaborador autenticado
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchLeads();
+    }
+  }, [currentUser?.id]);
+
+  const fetchLeads = async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('status', 'lead')
+        .eq('responsavel_id', currentUser?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      setLeads(data || []);
+    } catch (error) {
+      logger.error('Erro ao buscar leads:', error);
+      toast.error('Erro ao carregar leads');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const [formData, setFormData] = useState<{
+    nome_razao_social: string;
+    cpf_cnpj: string;
+    telefone: string;
+    email: string;
+    tipo_cliente: 'PESSOA_FISICA' | 'PESSOA_JURIDICA';
+    observacoes: string;
+  }>({
+    nome_razao_social: "",
+    cpf_cnpj: "",
     telefone: "",
     email: "",
-    origem: "",
-    status: "NOVO",
-    potencial: "MEDIO",
+    tipo_cliente: "PESSOA_FISICA",
     observacoes: "",
   });
 
   const handleNovoLead = () => {
     setEditingLead(null);
     setFormData({
-      nome: "",
-      contato: "",
+      nome_razao_social: "",
+      cpf_cnpj: "",
       telefone: "",
       email: "",
-      origem: "",
-      status: "NOVO",
-      potencial: "MEDIO",
+      tipo_cliente: "PESSOA_FISICA",
       observacoes: "",
     });
     setIsDialogOpen(true);
   };
 
-  const handleEditarLead = (lead: (typeof initialMockLeads)[0]) => {
+  const handleEditarLead = (lead: Lead) => {
     setEditingLead(lead);
     setFormData({
-      nome: lead.nome,
-      contato: lead.contato,
+      nome_razao_social: lead.nome_razao_social,
+      cpf_cnpj: lead.cpf_cnpj,
       telefone: lead.telefone,
       email: lead.email,
-      origem: lead.origem,
-      status: lead.status,
-      potencial: lead.potencial,
+      tipo_cliente: lead.tipo_cliente,
       observacoes: lead.observacoes || "",
     });
     setIsDialogOpen(true);
   };
 
-  const handleSalvarLead = () => {
-    if (editingLead) {
-      // Editar lead existente
-      setLeads(
-        leads.map((l) =>
-          l.id === editingLead.id
-            ? { ...l, ...formData }
-            : l
-        )
-      );
-      toast.success("Lead atualizado com sucesso!");
-    } else {
-      // Criar novo lead
-      const novoLead = {
-        id: leads.length + 1,
-        ...formData,
-        criadoPor: mockUser.nome,
-        criadoEm: new Date().toISOString().split("T")[0],
-      };
-      setLeads([...leads, novoLead]);
-      toast.success("Lead criado com sucesso!");
+  const handleSalvarLead = async () => {
+    try {
+      if (editingLead) {
+        // Editar lead existente
+        const { error } = await supabase
+          .from('clientes')
+          .update(formData)
+          .eq('id', editingLead.id);
+
+        if (error) throw error;
+        toast.success("Lead atualizado com sucesso!");
+      } else {
+        // Criar novo lead
+        const { error } = await supabase
+          .from('clientes')
+          .insert([{
+            ...formData,
+            status: 'lead',
+            responsavel_id: currentUser?.id
+          }]);
+
+        if (error) throw error;
+        toast.success("Lead criado com sucesso!");
+      }
+      setIsDialogOpen(false);
+      fetchLeads();
+    } catch (error) {
+      logger.error('Erro ao salvar lead:', error);
+      toast.error('Erro ao salvar lead');
     }
-    setIsDialogOpen(false);
   };
 
   const leadsFiltrados = leads.filter((lead) => {
     const matchSearch =
-      lead.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lead.contato.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lead.nome_razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
       lead.email.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchStatus = filterStatus === "TODOS" || lead.status === filterStatus;
+    // TODO: Implementar filtro por status quando campo existir no schema
+    const matchStatus = filterStatus === "TODOS";
 
     return matchSearch && matchStatus;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "NOVO":
-        return "bg-primary/10 text-primary border-primary/20";
-      case "EM_CONTATO":
-        return "bg-warning/10 text-warning border-warning/20";
-      case "QUALIFICADO":
-        return "bg-success/10 text-success border-success/20";
-      case "NAO_QUALIFICADO":
-        return "bg-muted text-foreground border-border";
-      case "CONVERTIDO":
-        return "bg-secondary/10 text-secondary border-secondary/20";
-      default:
-        return "bg-muted text-foreground border-border";
-    }
-  };
 
-  const getPotencialColor = (potencial: string) => {
-    switch (potencial) {
-      case "ALTO":
-        return "bg-destructive/5 text-destructive border-destructive/30";
-      case "MEDIO":
-        return "bg-warning/5 text-warning border-warning/30";
-      case "BAIXO":
-        return "bg-success/5 text-success border-success/30";
-      default:
-        return "bg-background text-muted-foreground border-border";
-    }
-  };
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Acesso negado</h2>
+          <p className="text-muted-foreground">Você precisa estar logado para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   // Verificar se o usuário é do setor administrativo
-  if (mockUser.setor !== "ADMINISTRATIVO") {
+  if (currentUser.setor !== "ADMINISTRATIVO") {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="p-8 border-border max-w-md">
@@ -209,21 +255,26 @@ export default function LeadsComercialPage() {
             <p className="text-black">{leads.length}</p>
           </Card>
           <Card className="p-6 border-border">
-            <p className="text-muted-foreground mb-2">Novos</p>
+            <p className="text-muted-foreground mb-2">Pessoa Física</p>
             <p className="text-black">
-              {leads.filter((l) => l.status === "NOVO").length}
+              {leads.filter((l) => l.tipo_cliente === "PESSOA_FISICA").length}
             </p>
           </Card>
           <Card className="p-6 border-border">
-            <p className="text-muted-foreground mb-2">Em Contato</p>
+            <p className="text-muted-foreground mb-2">Pessoa Jurídica</p>
             <p className="text-black">
-              {leads.filter((l) => l.status === "EM_CONTATO").length}
+              {leads.filter((l) => l.tipo_cliente === "PESSOA_JURIDICA").length}
             </p>
           </Card>
           <Card className="p-6 border-border">
-            <p className="text-muted-foreground mb-2">Qualificados</p>
+            <p className="text-muted-foreground mb-2">Esta Semana</p>
             <p className="text-black">
-              {leads.filter((l) => l.status === "QUALIFICADO").length}
+              {leads.filter((l) => {
+                const created = new Date(l.created_at);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return created >= weekAgo;
+              }).length}
             </p>
           </Card>
         </div>
@@ -284,8 +335,8 @@ export default function LeadsComercialPage() {
                       <TrendingUp className="w-6 h-6 text-[var(--primary)]" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-black mb-1">{lead.nome}</h3>
-                      <p className="text-muted-foreground">Contato: {lead.contato}</p>
+                      <h3 className="text-black mb-1">{lead.nome_razao_social}</h3>
+                      <p className="text-muted-foreground">CPF/CNPJ: {lead.cpf_cnpj}</p>
                     </div>
                   </div>
                   <Button
@@ -325,22 +376,14 @@ export default function LeadsComercialPage() {
                 )}
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Badge variant="outline" className={getStatusColor(lead.status)}>
-                    {lead.status.replace(/_/g, " ")}
+                  <Badge variant="outline">
+                    {lead.tipo_cliente === 'PESSOA_FISICA' ? 'Pessoa Física' : 'Pessoa Jurídica'}
                   </Badge>
-                  <Badge variant="outline" className={getPotencialColor(lead.potencial)}>
-                    {lead.potencial}
-                  </Badge>
-                  <Badge
-                    variant="outline"
-                    className="border-border text-muted-foreground"
-                  >
-                    {lead.origem}
-                  </Badge>
+                  {/* TODO: Adicionar campos status, potencial, origem ao schema */}
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border text-muted-foreground">
-                  Criado em {new Date(lead.criadoEm).toLocaleDateString("pt-BR")}
+                  Criado em {new Date(lead.created_at).toLocaleDateString("pt-BR")}
                 </div>
               </Card>
             ))
@@ -360,31 +403,31 @@ export default function LeadsComercialPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="nome" className="text-black">
-                  Nome da Empresa *
+                <Label htmlFor="nome_razao_social" className="text-black">
+                  Nome / Razão Social *
                 </Label>
                 <Input
-                  id="nome"
-                  value={formData.nome}
+                  id="nome_razao_social"
+                  value={formData.nome_razao_social}
                   onChange={(e) =>
-                    setFormData({ ...formData, nome: e.target.value })
+                    setFormData({ ...formData, nome_razao_social: e.target.value })
                   }
                   className="border-border"
-                  placeholder="Ex: Empresa ABC Ltda"
+                  placeholder="Ex: Empresa ABC Ltda ou João Silva"
                 />
               </div>
               <div>
-                <Label htmlFor="contato" className="text-black">
-                  Nome do Contato *
+                <Label htmlFor="cpf_cnpj" className="text-black">
+                  CPF / CNPJ *
                 </Label>
                 <Input
-                  id="contato"
-                  value={formData.contato}
+                  id="cpf_cnpj"
+                  value={formData.cpf_cnpj}
                   onChange={(e) =>
-                    setFormData({ ...formData, contato: e.target.value })
+                    setFormData({ ...formData, cpf_cnpj: e.target.value })
                   }
                   className="border-border"
-                  placeholder="Ex: João Silva"
+                  placeholder="000.000.000-00 ou 00.000.000/0000-00"
                 />
               </div>
             </div>
@@ -421,74 +464,27 @@ export default function LeadsComercialPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="origem" className="text-black">
-                  Origem *
-                </Label>
-                <Select
-                  value={formData.origem}
-                  onValueChange={(value: string) =>
-                    setFormData({ ...formData, origem: value })
-                  }
-                >
-                  <SelectTrigger className="border-border">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="SITE">Site</SelectItem>
-                    <SelectItem value="TELEFONE">Telefone</SelectItem>
-                    <SelectItem value="EMAIL">E-mail</SelectItem>
-                    <SelectItem value="INDICACAO">Indicação</SelectItem>
-                    <SelectItem value="REDES_SOCIAIS">Redes Sociais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="status" className="text-black">
-                  Status
-                </Label>
-                <Select
-                  value={formData.status}
-                  onValueChange={(value: string) =>
-                    setFormData({ ...formData, status: value })
-                  }
-                >
-                  <SelectTrigger className="border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="NOVO">Novo</SelectItem>
-                    <SelectItem value="EM_CONTATO">Em Contato</SelectItem>
-                    <SelectItem value="QUALIFICADO">Qualificado</SelectItem>
-                    <SelectItem value="NAO_QUALIFICADO">Não Qualificado</SelectItem>
-                    <SelectItem value="CONVERTIDO">Convertido</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="potencial" className="text-black">
-                  Potencial
-                </Label>
-                <Select
-                  value={formData.potencial}
-                  onValueChange={(value: string) =>
-                    setFormData({ ...formData, potencial: value })
-                  }
-                >
-                  <SelectTrigger className="border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ALTO">Alto</SelectItem>
-                    <SelectItem value="MEDIO">Médio</SelectItem>
-                    <SelectItem value="BAIXO">Baixo</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="tipo_cliente" className="text-black">
+                Tipo de Cliente *
+              </Label>
+              <Select
+                value={formData.tipo_cliente}
+                onValueChange={(value: "PESSOA_FISICA" | "PESSOA_JURIDICA") =>
+                  setFormData({ ...formData, tipo_cliente: value })
+                }
+              >
+                <SelectTrigger className="border-border">
+                  <SelectValue placeholder="Selecione" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PESSOA_FISICA">Pessoa Física</SelectItem>
+                  <SelectItem value="PESSOA_JURIDICA">Pessoa Jurídica</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+
+            {/* TODO: Adicionar campos origem, status, potencial ao schema clientes */}
 
             <div>
               <Label htmlFor="observacoes" className="text-black">

@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { DashboardPage } from '../../components/dashboard/dashboard-page'
-import { mockOrdensServico } from '../../lib/mock-data'
+import { mockOrdensServico } from '@/lib/mock-data'
 import { useState } from 'react'
-import { Delegacao } from '../../lib/types'
+import { Delegacao } from '@/lib/types'
 
 export const Route = createFileRoute('/_auth/')({
   component: DashboardRoute,
@@ -14,12 +14,12 @@ function DashboardRoute() {
   const [delegacoes] = useState<Delegacao[]>([]) // Empty for now or mock it
 
   return (
-    <DashboardPage 
+    <DashboardPage
       ordensServico={ordensServico}
       delegacoes={delegacoes}
-      onOSClick={() => {}}
-      onViewAllOS={() => {}}
-      onDelegarClick={() => {}}
+      onOSClick={() => { }}
+      onViewAllOS={() => { }}
+      onDelegarClick={() => { }}
     />
   )
 }

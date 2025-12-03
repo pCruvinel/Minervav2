@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OSDetailsWorkflowPage } from '../../../../components/os/os-details-workflow-page'
+import { OSDetailsWorkflowPage } from '@/components/os/shared/pages/os-details-workflow-page'
 
 export const Route = createFileRoute('/_auth/os/$osId/workflow')({
   component: OSWorkflowRoute,

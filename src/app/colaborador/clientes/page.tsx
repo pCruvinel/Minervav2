@@ -1,29 +1,106 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Search, Building2, MapPin, Phone, Mail, Lock, History, Eye } from "lucide-react";
-import { mockClientes } from "@/lib/mock-data-colaborador";
+import { Search, Building2, MapPin, Phone, Mail, Lock, History, Eye, Loader2 } from "lucide-react";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 import { ClienteHistoricoCompleto } from "@/components/clientes/ClienteHistoricoCompleto";
 
-// Mock de dados - substituir por API real
+interface Cliente {
+  id: string;
+  nome_razao_social: string;
+  cpf_cnpj: string;
+  email: string;
+  telefone: string;
+  status: string;
+  endereco: {
+    logradouro?: string;
+    numero?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    cep?: string;
+  };
+  tipo_cliente: string;
+}
 
 export default function ClientesConsultaPage() {
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [clienteHistoricoAberto, setClienteHistoricoAberto] = useState<string | null>(null);
+
+  // Carregar clientes do Supabase
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchClientes();
+    }
+  }, [currentUser?.id]);
+
+  const fetchClientes = async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('ativo', true)
+        .order('nome_razao_social');
+
+      if (error) throw error;
+
+      setClientes(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+      toast.error('Erro ao carregar clientes');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filtrar clientes pela busca
-  const clientesFiltrados = mockClientes.filter(
-    (cliente) =>
-      cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.endereco.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cliente.telefone.includes(searchTerm) ||
-      cliente.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const clientesFiltrados = useMemo(() =>
+    clientes.filter((cliente) => {
+      const enderecoCompleto = cliente.endereco ?
+        `${cliente.endereco.logradouro || ''} ${cliente.endereco.numero || ''} ${cliente.endereco.bairro || ''} ${cliente.endereco.cidade || ''}`.toLowerCase()
+        : '';
+
+      return (
+        cliente.nome_razao_social.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        enderecoCompleto.includes(searchTerm.toLowerCase()) ||
+        cliente.telefone?.includes(searchTerm) ||
+        cliente.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        cliente.cpf_cnpj?.includes(searchTerm)
+      );
+    }),
+    [clientes, searchTerm]
   );
+
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Acesso negado</h2>
+          <p className="text-muted-foreground">Você precisa estar logado para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,11 +158,11 @@ export default function ClientesConsultaPage() {
                       <Building2 className="w-6 h-6 text-[var(--primary)]" />
                     </div>
                     <div>
-                      <h3 className="text-black mb-1">{cliente.nome}</h3>
+                      <h3 className="text-black mb-1">{cliente.nome_razao_social}</h3>
                       <p className="text-muted-foreground">
-                        {cliente.tipo === "PESSOA_JURIDICA"
-                          ? `CNPJ: ${cliente.cnpj}`
-                          : `CPF: ${cliente.cpf}`}
+                        {cliente.tipo_cliente === "PESSOA_JURIDICA"
+                          ? `CNPJ: ${cliente.cpf_cnpj}`
+                          : `CPF: ${cliente.cpf_cnpj}`}
                       </p>
                     </div>
                   </div>
@@ -114,7 +191,7 @@ export default function ClientesConsultaPage() {
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                           <Eye className="w-5 h-5" />
-                          Histórico Completo - {cliente.nome}
+                          Histórico Completo - {cliente.nome_razao_social}
                         </DialogTitle>
                       </DialogHeader>
                       <ClienteHistoricoCompleto clienteId={cliente.id.toString()} />
@@ -126,8 +203,10 @@ export default function ClientesConsultaPage() {
                   <div className="flex items-start gap-3">
                     <MapPin className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="text-black">{cliente.endereco}</p>
-                      <p className="text-muted-foreground">CEP: {cliente.cep}</p>
+                      <p className="text-black">
+                        {cliente.endereco?.logradouro || ''} {cliente.endereco?.numero || ''}, {cliente.endereco?.bairro || ''}, {cliente.endereco?.cidade || ''} - {cliente.endereco?.estado || ''}
+                      </p>
+                      <p className="text-muted-foreground">CEP: {cliente.endereco?.cep || 'N/A'}</p>
                     </div>
                   </div>
 
@@ -157,7 +236,7 @@ export default function ClientesConsultaPage() {
                     variant="outline"
                     className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                   >
-                    {cliente.tipo === "PESSOA_JURIDICA"
+                    {cliente.tipo_cliente === "PESSOA_JURIDICA"
                       ? "Pessoa Jurídica"
                       : "Pessoa Física"}
                   </Badge>

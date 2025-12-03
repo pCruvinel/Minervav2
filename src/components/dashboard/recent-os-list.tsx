@@ -3,19 +3,18 @@
 
 import React from 'react';
 import { Link } from '@tanstack/react-router';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ChevronRight, Calendar, User, Building2 } from 'lucide-react';
-import { OrdemServico } from '../../lib/types';
-import { formatarDataRelativa } from '../../lib/utils/date-utils';
+import { OrdemServico } from '@/lib/types';
+import { formatarDataRelativa } from '@/lib/utils/date-utils';
 
 interface RecentOSListProps {
   ordensServico: OrdemServico[];
   limit?: number;
   title?: string;
-  onOSClick?: (os: OrdemServico) => void;
-  onViewAll?: () => void;
+  onOSClick?: (_os: OrdemServico) => void;
 }
 
 export function RecentOSList({
@@ -23,7 +22,6 @@ export function RecentOSList({
   limit = 5,
   title = 'Ordens de Serviço Recentes',
   onOSClick,
-  onViewAll,
 }: RecentOSListProps) {
   // Ordenar por data de criação (mais recente primeiro)
   const recentOS = React.useMemo(() => {

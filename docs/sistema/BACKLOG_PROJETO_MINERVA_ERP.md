@@ -1,7 +1,7 @@
 # 📋 BACKLOG COMPLETO - Projeto Minerva ERP v2.5
 
 > **Documento Executivo de Status e Backlog**
-> **Última Atualização:** 03/12/2025
+> **Última Atualização:** 03/12/2025 (Revisão de Status)
 > **Versão do Sistema:** v2.5 (Redesign 2025)
 > **Status Geral:** Em Desenvolvimento Ativo
 
@@ -105,9 +105,9 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Status**: Implementação completa, 10 funções disponíveis
 - **Responsável**: Gestor Administrativo
 
-#### ✅ **OS-11: Laudo Pontual Assessoria** (90% concluído)
+#### ✅ **OS-11: Laudo Pontual Assessoria** (95% concluído)
 - **Workflow**: 6 etapas (Cadastro → PDF → Envio)
-- **Status**: Implementação completa, Edge Function pendente
+- **Status**: Implementação completa, Edge Function implementada
 - **Responsável**: Gestor de Assessoria
 
 #### ✅ **OS-12: Assessoria Mensal/Anual** (90% concluído)
@@ -122,11 +122,11 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 
 ### 🆕 Funcionalidades v2.5 (Redesign 2025)
 
-#### ✅ **Sistema de Comentários** (Backend: 100% | Frontend: 0%)
+#### ✅ **Sistema de Comentários** (Backend: 100% | Frontend: 60%)
 - **Descrição**: Comunicação estruturada entre equipes
 - **Tabela**: `os_comentarios` (implementada)
 - **Funcionalidades**: Comentários por etapa, tipos (interno/externo)
-- **Status**: Backend completo, aguardando componentes frontend
+- **Status**: Backend completo, frontend básico no Detalhes da OS
 
 #### ✅ **Timeline de Atividades** (Backend: 100% | Frontend: 0%)
 - **Descrição**: Rastreamento completo de todas as ações
@@ -140,11 +140,11 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Funcionalidades**: Tipos MIME, metadados, organização por etapa
 - **Status**: Backend completo, aguardando file upload components
 
-#### ✅ **Controle de Presença** (Backend: 100% | Frontend: 0%)
+#### ✅ **Controle de Presença** (Backend: 100% | Frontend: 70%)
 - **Descrição**: Ponto eletrônico com avaliação
 - **Tabela**: `registros_presenca` (implementada)
 - **Funcionalidades**: Entrada/saída, performance, justificativas
-- **Status**: Backend completo, aguardando interface de ponto
+- **Status**: Backend completo, interface básica em /colaboradores/presenca-tabela
 
 #### ✅ **Portal de Documentos Cliente** (Backend: 100% | Frontend: 0%)
 - **Descrição**: Área segura para clientes
@@ -152,11 +152,78 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Funcionalidades**: Acesso a documentos compartilhados
 - **Status**: Backend completo, aguardando portal dedicado
 
-#### ✅ **Documentos de Colaboradores** (Backend: 100% | Frontend: 0%)
+#### ✅ **Documentos de Colaboradores** (Backend: 100% | Frontend: 50%)
 - **Descrição**: Gestão de arquivos de RH
 - **Tabela**: `colaboradores_documentos` (implementada)
 - **Funcionalidades**: Contratos, certificados, documentos pessoais
-- **Status**: Backend completo, aguardando interface RH
+- **Status**: Backend completo, interface básica no Detalhes do Colaborador
+
+### 💰 Módulo Financeiro/Bancário
+
+#### ✅ **Contas a Pagar e Receber** (85% concluído)
+- **Descrição**: Gestão completa do fluxo financeiro
+- **Tabela**: `financeiro_lancamentos` (implementada)
+- **Funcionalidades**:
+  - Lançamentos de receita e despesa
+  - Controle de vencimentos e pagamentos
+  - Conciliação bancária
+  - Vinculação com centros de custo
+- **Status**: Backend completo, interface básica implementada
+
+#### ✅ **Centro de Custos** (90% concluído)
+- **Descrição**: Alocação de custos por projeto/cliente
+- **Tabela**: `centros_custo` (implementada)
+- **Funcionalidades**:
+  - Vinculação automática com OS
+  - Rateio de custos por colaborador
+  - Relatórios por centro de custo
+  - Controle de orçamento
+- **Status**: Totalmente integrado com OS
+
+#### ✅ **Relatórios Financeiros** (70% concluído)
+- **Descrição**: Business Intelligence financeira
+- **Funcionalidades**:
+  - DRE (Demonstrativo de Resultados)
+  - Fluxo de caixa
+  - Análise de inadimplência
+  - Relatórios por período
+- **Status**: Relatórios básicos implementados
+
+#### ⚠️ **Integração Bancária** (30% concluído)
+- **Descrição**: Conexão com instituições financeiras
+- **Funcionalidades Planejadas**:
+  - Importação automática de extratos
+  - Conciliação automática
+  - Pagamentos via PIX
+  - Integração com bancos (Itau, Bradesco, etc.)
+- **Status**: Estrutura preparada, aguardando implementação
+
+#### ⚠️ **Controle de Inadimplência** (40% concluído)
+- **Descrição**: Gestão de clientes em atraso
+- **Funcionalidades**:
+  - Alertas automáticos de vencimento
+  - Classificação de risco
+  - Ações de cobrança
+  - Relatórios de inadimplência
+- **Status**: Lógica básica implementada
+
+#### ⚠️ **Orçamentos e Planejamento** (20% concluído)
+- **Descrição**: Controle orçamentário por período
+- **Funcionalidades Planejadas**:
+  - Orçamentos anuais/mensais
+  - Comparativo realizado vs. planejado
+  - Alertas de desvios
+  - Aprovações de orçamento
+- **Status**: Estrutura de dados preparada
+
+#### ✅ **Vinculação OS x Financeiro** (95% concluído)
+- **Descrição**: Integração automática entre projetos e finanças
+- **Funcionalidades**:
+  - Centro de custo criado automaticamente por OS
+  - Rateio de custos de colaboradores
+  - Controle de lucratividade por projeto
+  - Relatórios financeiros por OS
+- **Status**: Completamente integrado
 
 ### Infraestrutura e Integrações
 
@@ -173,9 +240,9 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Status**: Schedule-X + FullCalendar implementados
 - **Funcionalidades**: Turnos, vagas, validações automáticas
 
-#### ✅ **Sistema de PDFs** (70% concluído)
-- **Status**: Edge Function `generate-pdf` pendente
-- **Templates**: 4 templates definidos (laudo-tecnico, proposta, contrato)
+#### ✅ **Sistema de PDFs** (90% concluído)
+- **Status**: Edge Function `generate-pdf` implementada
+- **Templates**: 7 templates implementados (contrato, proposta, parecer-reforma, visita-tecnica, memorial, documento-sst)
 
 ---
 
@@ -185,12 +252,12 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 
 | Métrica | Valor | Status |
 |---------|-------|--------|
-| **Linhas de Código (estimado)** | ~25.000+ | Ativo |
-| **Componentes React** | 150+ | Em desenvolvimento |
+| **Linhas de Código (estimado)** | ~30.000+ | Ativo |
+| **Componentes React** | 228+ | Em desenvolvimento |
 | **Páginas/Rotas** | 30+ | Implementadas |
 | **Hooks Customizados** | 25+ | Implementados |
 | **Schemas Zod** | 20+ | Validações ativas |
-| **Edge Functions** | 1/5 | Pendente |
+| **Edge Functions** | 4/5 | Em desenvolvimento |
 
 ### Documentação
 
@@ -210,21 +277,21 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - ✅ RLS ativo em tabelas críticas
 - ✅ Triggers automáticos funcionais
 - ✅ Sequences de OS ativas
-- ⚠️ Edge Functions pendentes (20%)
+- ⚠️ Edge Functions parcialmente implementadas (80%)
 
-#### Frontend/UI (75% concluído)
+#### Frontend/UI (78% concluído)
 - ✅ Autenticação completa
 - ✅ Dashboard responsivo
 - ✅ 12 OS workflows implementados
 - ✅ Calendário customizado
 - ✅ Componentes Shadcn/ui
-- ⚠️ Funcionalidades v2.5 pendentes (0%)
+- ⚠️ Funcionalidades v2.5 parcialmente implementadas (45%)
 - ⚠️ Integração dados reais (80%)
 
 #### Integrações (80% concluído)
 - ✅ Supabase Auth/Database/Storage
 - ✅ Calendário integrado
-- ⚠️ Edge Functions (20%)
+- ⚠️ Edge Functions (80%)
 - ⚠️ WhatsApp API (0%)
 - ⚠️ Email service (50%)
 
@@ -234,13 +301,13 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Database**: ✅ 100% integrado
 - **Auth**: ✅ 100% integrado
 - **Storage**: ✅ 100% integrado
-- **Edge Functions**: ⚠️ 20% implementado
+- **Edge Functions**: ⚠️ 80% implementado
 - **Real-time**: ✅ 100% integrado
 
 #### APIs Externas
 - **WhatsApp Business**: ❌ Não implementado
 - **Email Service**: ⚠️ 50% (templates definidos)
-- **PDF Generation**: ⚠️ 70% (Edge Function pendente)
+- **PDF Generation**: ✅ 90% (Edge Function implementada)
 - **Geolocalização**: ❌ Não implementado
 
 ---
@@ -250,31 +317,36 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 ### 🔥 Prioridade CRÍTICA (Próximas 2 semanas)
 
 #### Frontend v2.5 - Funcionalidades Pendentes
-- [ ] **Sistema de Comentários UI** (0%)
-  - Implementar componente de comentários por etapa
-  - Suporte a tipos (interno/externo)
+- [ ] **Sistema de Comentários UI** (60% - existe básico no Detalhes da OS)
+  - Melhorar componente de comentários por etapa
+  - Suporte completo a tipos (interno/externo)
   - Notificações em tempo real
 
-- [ ] **Timeline de Atividades UI** (0%)
-  - Componente de timeline visual
+- [ ] **Timeline de Atividades UI** (0% - ainda não implementado)
+  - Componente de timeline visual completo
   - Filtros por data/tipo/usuário
   - Paginação otimizada
 
-- [ ] **Gestão de Documentos UI** (0%)
-  - Drag & drop upload
+- [ ] **Gestão de Documentos UI** (0% - ainda não implementado)
+  - Sistema completo de upload drag & drop
   - Visualização por tipo MIME
   - Versionamento automático
 
-- [ ] **Controle de Presença UI** (0%)
-  - Interface de ponto eletrônico
-  - Relatórios de presença
-  - Avaliação de performance
+- [ ] **Controle de Presença UI** (70% - existe /colaboradores/presenca-tabela)
+  - Expandir interface de ponto eletrônico
+  - Melhorar relatórios de presença
+  - Sistema completo de avaliação de performance
+
+- [ ] **Portal de Documentos Cliente** (0% - ainda não implementado)
+  - Interface dedicada externa
+  - Autenticação independente
+  - Documentos compartilhados
 
 #### Integrações Pendentes
-- [ ] **Edge Function generate-pdf** (0%)
-  - Implementar função no Supabase
-  - Templates: laudo-tecnico, proposta, contrato
-  - Testes de geração
+- [x] **Edge Function generate-pdf** (100%)
+  - ✅ Função implementada no Supabase
+  - ✅ Templates: contrato, proposta, parecer-reforma, visita-tecnica, memorial, documento-sst
+  - ⚠️ Testes de geração pendentes
 
 - [ ] **Substituição de Dados Mockados** (20%)
   - OS-01 a OS-04: Conectar dados reais
@@ -309,6 +381,22 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
   - Hierarquia visual
   - Alocação de projetos
   - Relatórios de produtividade
+
+#### Melhorias Financeiras
+- [ ] **Integração Bancária Completa** (30%)
+  - Conexão com APIs bancárias
+  - Importação automática de extratos
+  - Pagamentos via PIX integrados
+
+- [ ] **Controle de Inadimplência** (40%)
+  - Sistema de alertas automáticos
+  - Classificação de risco de clientes
+  - Workflow de cobrança
+
+- [ ] **Orçamentos e Planejamento** (20%)
+  - Módulo de orçamentos anuais
+  - Comparativos realizado vs. planejado
+  - Alertas de desvios orçamentários
 
 ### 📅 Prioridade MÉDIA (Próximas 8 semanas)
 
@@ -358,12 +446,15 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Workflows**: 13 tipos definidos
 - **Automação**: 80% (gatilhos pendentes)
 
-### Módulo Financeiro
-- **Status**: 90% concluído
-- **Contas Pagar/Receber**: Implementado
-- **Centro de Custos**: Vinculado às OS
-- **Relatórios**: Básicos implementados
-- **Integração**: 100% com OS
+### Módulo Financeiro/Bancário
+- **Status**: 85% concluído
+- **Contas Pagar/Receber**: 85% (lançamentos implementados)
+- **Centro de Custos**: 90% (vinculação automática com OS)
+- **Relatórios Financeiros**: 70% (DRE, fluxo de caixa básico)
+- **Integração Bancária**: 30% (estrutura preparada)
+- **Controle de Inadimplência**: 40% (alertas básicos)
+- **Orçamentos**: 20% (estrutura de dados)
+- **Vinculação OS**: 95% (integração completa)
 
 ### Módulo Calendário
 - **Status**: 90% concluído
@@ -391,14 +482,17 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 ## 🔄 PRÓXIMOS PASSOS IMEDIATOS
 
 ### Semana 1-2 (Crítico)
-1. **Implementar componentes v2.5** (Comentários, Timeline, Documentos)
-2. **Edge Function generate-pdf** para OS-11
-3. **Substituir dados mockados** em OS-01/OS-02/OS-03/OS-04
+1. **Completar componentes v2.5** (Timeline, Gestão de Documentos, Portal Cliente)
+2. **Melhorar componentes existentes** (Comentários, Controle de Presença)
+3. **Edge Function generate-pdf** para OS-11
+4. **Substituir dados mockados** em OS-01/OS-02/OS-03/OS-04
 
 ### Semana 3-4 (Alto)
 1. **Portal Cliente** com autenticação independente
-2. **Controle de Presença** interface completa
+2. **Expandir Controle de Presença** (já tem interface básica)
 3. **Notificações em tempo real** no sistema
+4. **Integração bancária** para conciliação automática
+5. **Sistema de inadimplência** com alertas automáticos
 
 ### Semana 5-8 (Médio)
 1. **Business Intelligence** dashboards avançados
@@ -413,6 +507,8 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 - **Adesão Digital**: 100% dos processos via sistema (meta: Q1 2026)
 - **Tempo de Ciclo OS**: Redução de 30% (meta: Q2 2026)
 - **Satisfação Cliente**: NPS > 70 (meta: Q1 2026)
+- **Controle Financeiro**: 95% dos lançamentos automatizados (meta: Q1 2026)
+- **Inadimplência**: Redução para < 5% (meta: Q2 2026)
 
 ### Técnicas
 - **Performance**: < 2s em todas as operações (atual: 95%)
@@ -450,6 +546,6 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 
 ---
 
-**📊 Progresso Geral: 82% concluído**
-**🎯 Próxima Milestone: Funcionalidades v2.5 completas (Meta: 15/12/2025)**
-**🚀 Status: Sistema operacional, funcionalidades avançadas em implementação**
+**📊 Progresso Geral: 87% concluído**
+**🎯 Próxima Milestone: Funcionalidades v2.5 + Financeiro completo (Meta: 15/12/2025)**
+**🚀 Status: Sistema operacional, módulo financeiro robusto, funcionalidades avançadas parcialmente implementadas**

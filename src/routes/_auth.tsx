@@ -1,9 +1,9 @@
 import { createFileRoute, redirect, Outlet, useRouter } from '@tanstack/react-router'
-import { Sidebar } from '../components/layout/sidebar'
-import { SidebarProvider, useSidebarContext } from '../components/layout/sidebar-context'
-import { Header } from '../components/layout/header'
-import { useAuth } from '../lib/contexts/auth-context'
-import { cn } from '../lib/utils'
+import { Sidebar } from '@/components/layout/sidebar'
+import { SidebarProvider, useSidebarContext } from '@/components/layout/sidebar-context'
+import { Header } from '@/components/layout/header'
+import { useAuth } from '@/lib/contexts/auth-context'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: ({ context, location }) => {

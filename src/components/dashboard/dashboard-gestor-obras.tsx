@@ -1,8 +1,8 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Building2, TrendingUp, AlertTriangle, DollarSign, BarChart3 } from 'lucide-react';
-import { mockKPIsObras, mockEvolucaoFisicaGeral } from '../../lib/mock-data-gestores';
+import { mockKPIsObras, mockEvolucaoFisicaGeral } from '@/lib/mock-data-gestores';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 /**

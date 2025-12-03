@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OS12WorkflowPage } from '../../../../components/os/os12-workflow-page'
+import { OS12WorkflowPage } from '@/components/os/assessoria/os-12/pages/os12-workflow-page'
 
 export const Route = createFileRoute('/_auth/os/criar/assessoria-recorrente')({
     component: AssessoriaRecorrenteRoute,

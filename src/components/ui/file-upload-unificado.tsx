@@ -15,8 +15,8 @@ import {
     Loader2,
     Plus
 } from 'lucide-react';
-import { toast } from '../../lib/utils/safe-toast';
-import { supabase } from '../../lib/supabase-client';
+import { toast } from '@/lib/utils/safe-toast';
+import { supabase } from '@/lib/supabase-client';
 
 export interface FileWithComment {
     id: string;

@@ -15,7 +15,7 @@ import { MetricCard } from './metric-card';
 import { OSStatusChart } from './os-status-chart';
 import { OSSetorChart } from './os-setor-chart';
 import { RecentOSList } from './recent-os-list';
-import { OrdemServico, Delegacao, normalizeSetorOS } from '../../lib/types';
+import { OrdemServico, Delegacao, normalizeSetorOS } from '@/lib/types';
 
 interface DashboardDiretoriaProps {
   ordensServico: OrdemServico[];
@@ -105,159 +105,159 @@ export function DashboardDiretoria({
           </p>
         </div>
 
-      {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total de OS"
-          value={metrics.total}
-          icon={FileText}
-          variant="primary"
-          description="Todas as ordens de serviço"
-          onClick={onViewAllOS}
-        />
+        {/* Métricas Principais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title="Total de OS"
+            value={metrics.total}
+            icon={FileText}
+            variant="primary"
+            description="Todas as ordens de serviço"
+            onClick={onViewAllOS}
+          />
 
-        <MetricCard
-          title="Em Andamento"
-          value={metrics.emAndamento}
-          icon={Clock}
-          variant="default"
-          description="OS ativas no momento"
-          trend={{
-            value: 12,
-            label: 'vs. mês anterior',
-            direction: 'up',
-          }}
-        />
+          <MetricCard
+            title="Em Andamento"
+            value={metrics.emAndamento}
+            icon={Clock}
+            variant="default"
+            description="OS ativas no momento"
+            trend={{
+              value: 12,
+              label: 'vs. mês anterior',
+              direction: 'up',
+            }}
+          />
 
-        <MetricCard
-          title="Concluídas"
-          value={metrics.concluidas}
-          icon={CheckCircle2}
-          variant="success"
-          description={`Taxa de ${metrics.taxaConclusao}% (30 dias)`}
-          trend={{
-            value: 8,
-            label: 'vs. mês anterior',
-            direction: 'up',
-          }}
-        />
+          <MetricCard
+            title="Concluídas"
+            value={metrics.concluidas}
+            icon={CheckCircle2}
+            variant="success"
+            description={`Taxa de ${metrics.taxaConclusao}% (30 dias)`}
+            trend={{
+              value: 8,
+              label: 'vs. mês anterior',
+              direction: 'up',
+            }}
+          />
 
-        <MetricCard
-          title="Atrasadas"
-          value={metrics.atrasadas}
-          icon={AlertTriangle}
-          variant={metrics.atrasadas > 0 ? 'danger' : 'success'}
-          description="Mais de 7 dias pendentes"
-          trend={metrics.atrasadas > 0 ? {
-            value: -5,
-            label: 'vs. mês anterior',
-            direction: 'down',
-          } : undefined}
-        />
-      </div>
+          <MetricCard
+            title="Atrasadas"
+            value={metrics.atrasadas}
+            icon={AlertTriangle}
+            variant={metrics.atrasadas > 0 ? 'danger' : 'success'}
+            description="Mais de 7 dias pendentes"
+            trend={metrics.atrasadas > 0 ? {
+              value: -5,
+              label: 'vs. mês anterior',
+              direction: 'down',
+            } : undefined}
+          />
+        </div>
 
-      {/* Métricas por Setor */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard
-          title="Comercial"
-          value={osPorSetor.comercial.length}
-          icon={Users}
-          variant="default"
-          description={`${osPorSetor.comercial.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
-        />
+        {/* Métricas por Setor */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MetricCard
+            title="Comercial"
+            value={osPorSetor.comercial.length}
+            icon={Users}
+            variant="default"
+            description={`${osPorSetor.comercial.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
+          />
 
-        <MetricCard
-          title="Assessoria"
-          value={osPorSetor.assessoria.length}
-          icon={Building2}
-          variant="default"
-          description={`${osPorSetor.assessoria.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
-        />
+          <MetricCard
+            title="Assessoria"
+            value={osPorSetor.assessoria.length}
+            icon={Building2}
+            variant="default"
+            description={`${osPorSetor.assessoria.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
+          />
 
-        <MetricCard
-          title="Obras"
-          value={osPorSetor.obras.length}
-          icon={TrendingUp}
-          variant="default"
-          description={`${osPorSetor.obras.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
-        />
-      </div>
+          <MetricCard
+            title="Obras"
+            value={osPorSetor.obras.length}
+            icon={TrendingUp}
+            variant="default"
+            description={`${osPorSetor.obras.filter(os => (os as any).status === 'em_andamento').length} em andamento`}
+          />
+        </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OSStatusChart ordensServico={ordensServico} height={350} />
-        <OSSetorChart ordensServico={ordensServico} height={350} />
-      </div>
+        {/* Gráficos */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OSStatusChart ordensServico={ordensServico} height={350} />
+          <OSSetorChart ordensServico={ordensServico} height={350} />
+        </div>
 
-      {/* Lista de OS Recentes */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentOSList
-          ordensServico={ordensServico}
-          limit={5}
-          onOSClick={onOSClick}
-          onViewAll={onViewAllOS}
-        />
+        {/* Lista de OS Recentes */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <RecentOSList
+            ordensServico={ordensServico}
+            limit={5}
+            onOSClick={onOSClick}
+            onViewAll={onViewAllOS}
+          />
 
-        {/* Aprovações Pendentes */}
-        {metrics.delegacoesPendentes > 0 && (
-          <div className="bg-warning/5 border-2 border-warning/20 rounded-lg p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                <AlertTriangle className="w-6 h-6 text-warning" />
-              </div>
-              <div className="flex-1">
-                <h3 className="font-semibold text-warning mb-1">
-                  {metrics.delegacoesPendentes} {metrics.delegacoesPendentes === 1 ? 'Aprovação Pendente' : 'Aprovações Pendentes'}
-                </h3>
-                <p className="text-sm text-warning mb-4">
-                  Tarefas delegadas foram concluídas e aguardam sua aprovação.
-                </p>
-                <button className="text-sm font-medium text-warning hover:text-warning underline">
-                  Ver delegações →
-                </button>
+          {/* Aprovações Pendentes */}
+          {metrics.delegacoesPendentes > 0 && (
+            <div className="bg-warning/5 border-2 border-warning/20 rounded-lg p-6">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-6 h-6 text-warning" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-warning mb-1">
+                    {metrics.delegacoesPendentes} {metrics.delegacoesPendentes === 1 ? 'Aprovação Pendente' : 'Aprovações Pendentes'}
+                  </h3>
+                  <p className="text-sm text-warning mb-4">
+                    Tarefas delegadas foram concluídas e aguardam sua aprovação.
+                  </p>
+                  <button className="text-sm font-medium text-warning hover:text-warning underline">
+                    Ver delegações →
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Insights e Alertas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* OS Atrasadas */}
-        {metrics.atrasadas > 0 && (
-          <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
+        {/* Insights e Alertas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* OS Atrasadas */}
+          {metrics.atrasadas > 0 && (
+            <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-destructive mb-1">
+                    Atenção: OS Atrasadas
+                  </h3>
+                  <p className="text-sm text-destructive">
+                    Existem {metrics.atrasadas} ordens de serviço pendentes há mais de 7 dias.
+                    Revise e tome ações necessárias.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Performance do Mês */}
+          <div className="bg-success/5 border border-success/20 rounded-lg p-6">
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+              <TrendingUp className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-semibold text-destructive mb-1">
-                  Atenção: OS Atrasadas
+                <h3 className="font-semibold text-success mb-1">
+                  Performance do Mês
                 </h3>
-                <p className="text-sm text-destructive">
-                  Existem {metrics.atrasadas} ordens de serviço pendentes há mais de 7 dias.
-                  Revise e tome ações necessárias.
+                <p className="text-sm text-success">
+                  Taxa de conclusão de {metrics.taxaConclusao}% nos últimos 30 dias.
+                  {metrics.taxaConclusao >= 80 ? ' Excelente desempenho!' : ' Continue melhorando!'}
                 </p>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* Performance do Mês */}
-        <div className="bg-success/5 border border-success/20 rounded-lg p-6">
-          <div className="flex items-start gap-3">
-            <TrendingUp className="w-5 h-5 text-success flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold text-success mb-1">
-                Performance do Mês
-              </h3>
-              <p className="text-sm text-success">
-                Taxa de conclusão de {metrics.taxaConclusao}% nos últimos 30 dias.
-                {metrics.taxaConclusao >= 80 ? ' Excelente desempenho!' : ' Continue melhorando!'}
-              </p>
             </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   );
 }

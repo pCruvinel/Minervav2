@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 import { DialogHeader, DialogTitle, DialogDescription } from './dialog';
-import { modalThemes, ModalTheme, customGradients, CustomGradient } from '../../lib/modal-themes';
+import { modalThemes, ModalTheme, customGradients, CustomGradient } from '@/lib/modal-themes';
 
 interface ModalHeaderPadraoProps {
     title: string;

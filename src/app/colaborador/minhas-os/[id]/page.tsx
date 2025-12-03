@@ -21,13 +21,11 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner@2.0.3";
-import { mockOrdensServico } from "@/lib/mock-data-colaborador";
+// TODO: Arquivo mock-data-colaborador foi removido - implementar fetch do Supabase
+// import { mockOrdensServico } from "@/lib/mock-data-colaborador";
 
-// Mock de dados - substituir por API real
-const mockOS = mockOrdensServico.reduce((acc, os) => {
-  acc[os.id] = os;
-  return acc;
-}, {} as Record<number, typeof mockOrdensServico[0]>);
+// TODO: Substituir mock por fetch real do Supabase (tabela ordens_servico)
+const mockOS: Record<number, any> = {};
 
 export default function DetalhesOSExecucaoPage() {
   const params = useParams();

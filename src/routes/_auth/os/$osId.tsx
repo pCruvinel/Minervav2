@@ -1,7 +1,6 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OSDetailsRedesignPage } from '../../../components/os/os-details-redesign-page'
-import { useOrdemServico, useEtapasOS } from '../../../lib/hooks/use-ordens-servico'
-import { useEffect } from 'react'
+import { OSDetailsRedesignPage } from '@/components/os/shared/pages/os-details-redesign-page'
+import { useOrdemServico, useEtapasOS } from '@/lib/hooks/use-ordens-servico'
 
 export const Route = createFileRoute('/_auth/os/$osId')({
   component: OSDetailsRoute,
@@ -15,7 +14,7 @@ function OSDetailsRoute() {
   const { data: os, isLoading: isLoadingOS, error: errorOS } = useOrdemServico(osId)
 
   // Fetch Etapas data
-  const { etapas, loading: isLoadingEtapas } = useEtapasOS(osId)
+  const { loading: isLoadingEtapas } = useEtapasOS(osId)
 
   if (isLoadingOS || isLoadingEtapas) {
     return (

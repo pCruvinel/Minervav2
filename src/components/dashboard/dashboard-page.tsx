@@ -1,19 +1,19 @@
 // Página Principal de Dashboard - Sistema Minerva ERP
 'use client';
 
-import React from 'react';
-import { useAuth } from '../../lib/contexts/auth-context';
+
+import { useAuth } from '@/lib/contexts/auth-context';
 import { DashboardDiretoria } from './dashboard-diretoria';
 import { DashboardGestor } from './dashboard-gestor';
 import { DashboardColaborador } from './dashboard-colaborador';
-import { OrdemServico, Delegacao } from '../../lib/types';
+import { OrdemServico, Delegacao } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 
 interface DashboardPageProps {
   ordensServico: OrdemServico[];
   delegacoes: Delegacao[];
-  onOSClick?: (os: OrdemServico) => void;
-  onDelegacaoClick?: (delegacao: Delegacao) => void;
+  onOSClick?: (_os: OrdemServico) => void;
+  onDelegacaoClick?: (_delegacao: Delegacao) => void;
   onViewAllOS?: () => void;
   onDelegarClick?: () => void;
 }

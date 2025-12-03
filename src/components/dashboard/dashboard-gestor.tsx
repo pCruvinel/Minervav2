@@ -14,16 +14,16 @@ import {
 import { MetricCard } from './metric-card';
 import { OSStatusChart } from './os-status-chart';
 import { RecentOSList } from './recent-os-list';
-import { OrdemServico, Delegacao, User, normalizeSetorOS } from '../../lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { OrdemServico, Delegacao, User, normalizeSetorOS } from '@/lib/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 interface DashboardGestorProps {
   currentUser: User;
   ordensServico: OrdemServico[];
   delegacoes: Delegacao[];
-  onOSClick?: (os: OrdemServico) => void;
+  onOSClick?: (_os: OrdemServico) => void;
   onViewAllOS?: () => void;
   onDelegarClick?: () => void;
 }
@@ -143,185 +143,184 @@ export function DashboardGestor({
           </p>
         </div>
 
-      {/* Métricas Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title={`OS do ${getSetorLabel(currentUser.setor || '')}`}
-          value={metrics.total}
-          icon={FileText}
-          variant="primary"
-          description="Total de ordens no setor"
-          onClick={onViewAllOS}
-        />
+        {/* Métricas Principais */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <MetricCard
+            title={`OS do ${getSetorLabel(currentUser.setor || '')}`}
+            value={metrics.total}
+            icon={FileText}
+            variant="primary"
+            description="Total de ordens no setor"
+            onClick={onViewAllOS}
+          />
 
-        <MetricCard
-          title="Em Andamento"
-          value={metrics.emAndamento}
-          icon={Clock}
-          variant="default"
-          description="OS ativas no momento"
-        />
+          <MetricCard
+            title="Em Andamento"
+            value={metrics.emAndamento}
+            icon={Clock}
+            variant="default"
+            description="OS ativas no momento"
+          />
 
-        <MetricCard
-          title="Minhas OS"
-          value={metrics.minhasOS}
-          icon={Users}
-          variant="default"
-          description="Sob minha responsabilidade"
-        />
+          <MetricCard
+            title="Minhas OS"
+            value={metrics.minhasOS}
+            icon={Users}
+            variant="default"
+            description="Sob minha responsabilidade"
+          />
 
-        <MetricCard
-          title="Taxa de Conclusão"
-          value={`${metrics.taxaConclusao}%`}
-          icon={Target}
-          variant={metrics.taxaConclusao >= 80 ? 'success' : 'warning'}
-          description="Performance do setor"
-          trend={metrics.taxaConclusao >= 80 ? {
-            value: 5,
-            label: 'vs. mês anterior',
-            direction: 'up',
-          } : undefined}
-        />
-      </div>
+          <MetricCard
+            title="Taxa de Conclusão"
+            value={`${metrics.taxaConclusao}%`}
+            icon={Target}
+            variant={metrics.taxaConclusao >= 80 ? 'success' : 'warning'}
+            description="Performance do setor"
+            trend={metrics.taxaConclusao >= 80 ? {
+              value: 5,
+              label: 'vs. mês anterior',
+              direction: 'up',
+            } : undefined}
+          />
+        </div>
 
-      {/* Métricas de Delegação */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MetricCard
-          title="Tarefas Delegadas"
-          value={metrics.delegacoesAtivas}
-          icon={UserPlus}
-          variant="default"
-          description="Em andamento na equipe"
-          onClick={onDelegarClick}
-        />
+        {/* Métricas de Delegação */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <MetricCard
+            title="Tarefas Delegadas"
+            value={metrics.delegacoesAtivas}
+            icon={UserPlus}
+            variant="default"
+            description="Em andamento na equipe"
+            onClick={onDelegarClick}
+          />
 
-        <MetricCard
-          title="Aguardando Aprovação"
-          value={metrics.aguardandoAprovacao}
-          icon={CheckCircle2}
-          variant={metrics.aguardandoAprovacao > 0 ? 'warning' : 'success'}
-          description="Tarefas para revisar"
-        />
+          <MetricCard
+            title="Aguardando Aprovação"
+            value={metrics.aguardandoAprovacao}
+            icon={CheckCircle2}
+            variant={metrics.aguardandoAprovacao > 0 ? 'warning' : 'success'}
+            description="Tarefas para revisar"
+          />
 
-        <MetricCard
-          title="Concluídas"
-          value={metrics.concluidas}
-          icon={CheckCircle2}
-          variant="success"
-          description="OS finalizadas"
-        />
-      </div>
+          <MetricCard
+            title="Concluídas"
+            value={metrics.concluidas}
+            icon={CheckCircle2}
+            variant="success"
+            description="OS finalizadas"
+          />
+        </div>
 
-      {/* Gráficos e Listas */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <OSStatusChart
-          ordensServico={osDoSetor}
-          title={`Status - ${getSetorLabel(currentUser.setor || '')}`}
-          height={300}
-        />
+        {/* Gráficos e Listas */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <OSStatusChart
+            ordensServico={osDoSetor}
+            title={`Status - ${getSetorLabel(currentUser.setor || '')}`}
+            height={300}
+          />
 
-        <RecentOSList
-          ordensServico={osDoSetor}
-          limit={6}
-          title="OS Recentes do Setor"
-          onOSClick={onOSClick}
-          onViewAll={onViewAllOS}
-        />
-      </div>
+          <RecentOSList
+            ordensServico={osDoSetor}
+            limit={6}
+            title="OS Recentes do Setor"
+            onOSClick={onOSClick}
+          />
+        </div>
 
-      {/* Performance da Equipe */}
-      {equipe.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Performance da Equipe</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Colaboradores com tarefas delegadas
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {equipe.map((colaborador) => (
-                <div
-                  key={colaborador.id}
-                  className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-background transition-colors"
-                >
-                  <Avatar className="w-10 h-10">
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
-                      {getInitials(colaborador.nome)}
-                    </AvatarFallback>
-                  </Avatar>
+        {/* Performance da Equipe */}
+        {equipe.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Performance da Equipe</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Colaboradores com tarefas delegadas
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {equipe.map((colaborador) => (
+                  <div
+                    key={colaborador.id}
+                    className="flex items-center gap-4 p-4 rounded-lg border border-border hover:bg-background transition-colors"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                        {getInitials(colaborador.nome)}
+                      </AvatarFallback>
+                    </Avatar>
 
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate mb-1">
-                      {colaborador.nome}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {colaborador.concluidas} de {colaborador.tarefas} tarefas concluídas
-                    </p>
-                  </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-sm truncate mb-1">
+                        {colaborador.nome}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {colaborador.concluidas} de {colaborador.tarefas} tarefas concluídas
+                      </p>
+                    </div>
 
-                  <div className="flex items-center gap-3">
-                    <Badge
-                      variant="outline"
-                      className={`
+                    <div className="flex items-center gap-3">
+                      <Badge
+                        variant="outline"
+                        className={`
                         ${colaborador.performance >= 80 ? 'bg-success/5 text-success border-success/20' : ''}
                         ${colaborador.performance >= 50 && colaborador.performance < 80 ? 'bg-warning/5 text-warning border-warning/20' : ''}
                         ${colaborador.performance < 50 ? 'bg-destructive/5 text-destructive border-destructive/20' : ''}
                       `}
-                    >
-                      {colaborador.performance}%
-                    </Badge>
+                      >
+                        {colaborador.performance}%
+                      </Badge>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
-      {/* Alertas e Ações */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Aprovações Pendentes */}
-        {metrics.aguardandoAprovacao > 0 && (
-          <div className="bg-warning/5 border border-warning/20 rounded-lg p-6">
+        {/* Alertas e Ações */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Aprovações Pendentes */}
+          {metrics.aguardandoAprovacao > 0 && (
+            <div className="bg-warning/5 border border-warning/20 rounded-lg p-6">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-warning mb-1">
+                    {metrics.aguardandoAprovacao} {metrics.aguardandoAprovacao === 1 ? 'Tarefa' : 'Tarefas'} para Aprovar
+                  </h3>
+                  <p className="text-sm text-warning mb-3">
+                    Sua equipe concluiu tarefas que aguardam sua aprovação.
+                  </p>
+                  <button className="text-sm font-medium text-warning hover:text-warning underline">
+                    Revisar aprovações →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Delegar Tarefas */}
+          <div
+            className="bg-primary/5 border border-primary/20 rounded-lg p-6 cursor-pointer hover:bg-primary/10 transition-colors"
+            onClick={onDelegarClick}
+          >
             <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+              <UserPlus className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div className="flex-1">
-                <h3 className="font-semibold text-warning mb-1">
-                  {metrics.aguardandoAprovacao} {metrics.aguardandoAprovacao === 1 ? 'Tarefa' : 'Tarefas'} para Aprovar
+                <h3 className="font-semibold mb-1">
+                  Delegar Tarefas
                 </h3>
-                <p className="text-sm text-warning mb-3">
-                  Sua equipe concluiu tarefas que aguardam sua aprovação.
+                <p className="text-sm text-muted-foreground mb-3">
+                  Distribua ordens de serviço para sua equipe e acompanhe o progresso.
                 </p>
-                <button className="text-sm font-medium text-warning hover:text-warning underline">
-                  Revisar aprovações →
-                </button>
+                <span className="text-sm font-medium text-primary">
+                  Criar nova delegação →
+                </span>
               </div>
             </div>
           </div>
-        )}
-
-        {/* Delegar Tarefas */}
-        <div
-          className="bg-primary/5 border border-primary/20 rounded-lg p-6 cursor-pointer hover:bg-primary/10 transition-colors"
-          onClick={onDelegarClick}
-        >
-          <div className="flex items-start gap-3">
-            <UserPlus className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="font-semibold mb-1">
-                Delegar Tarefas
-              </h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                Distribua ordens de serviço para sua equipe e acompanhe o progresso.
-              </p>
-              <span className="text-sm font-medium text-primary">
-                Criar nova delegação →
-              </span>
-            </div>
-          </div>
         </div>
-      </div>
       </div>
     </div>
   );

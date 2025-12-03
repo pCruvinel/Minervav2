@@ -3,8 +3,8 @@
 
 import { Link } from '@tanstack/react-router';
 import { LucideIcon, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { Card, CardContent } from '../ui/card';
-import { Badge } from '../ui/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 
 interface MetricCardProps {
   title: string;
