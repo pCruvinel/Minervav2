@@ -26,7 +26,9 @@ const styles = StyleSheet.create({
   tableHeaderRow: {
     flexDirection: 'row',
     backgroundColor: colors.tableHeaderBg,
-    padding: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
+    borderTop: `3 solid ${colors.tableHeaderBg}`,
     borderBottom: `2 solid ${colors.tableHeaderBg}`,
   },
 
