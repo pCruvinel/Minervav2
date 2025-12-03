@@ -1,13 +1,24 @@
+/**
+ * StepGerarProposta - Etapa 9 do Workflow OS 1-4
+ * 
+ * Funcionalidades:
+ * - Botão "Gerar Documento" no canto superior direito
+ * - Visualizador de PDF embarcado após geração
+ * - Toolbar com impressão, download, rotação, navegação
+ */
+
 import React, { useState } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { FileText, CheckCircle, Eye, AlertCircle } from 'lucide-react';
-import { PDFDownloadButton } from '@/components/pdf/pdf-download-button';
-import { PDFPreviewModal } from '@/components/pdf/pdf-preview-modal';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FileText, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { PDFViewerEmbedded } from '@/components/pdf/pdf-viewer-embedded';
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
 import { isValidUUID } from '@/lib/utils/os-workflow-helpers';
+import { toast } from '@/lib/utils/safe-toast';
 
 interface StepGerarPropostaProps {
-  osId: string; // ✅ FIX: osId como prop separada obrigatória
+  osId: string;
   etapa1Data?: {
     nome?: string;
     cpfCnpj?: string;
@@ -43,7 +54,7 @@ interface StepGerarPropostaProps {
     [key: string]: unknown;
   };
   // eslint-disable-next-line no-unused-vars
-  onDataChange: (data: Record<string, unknown>) => void;
+  onDataChange: (newData: Record<string, unknown>) => void;
   readOnly?: boolean;
 }
 
@@ -58,21 +69,17 @@ export function StepGerarProposta({
   onDataChange,
   readOnly = false
 }: StepGerarPropostaProps) {
-  const [showPreview, setShowPreview] = useState(false);
+  // Hook de geração de PDF
+  const { generating, generate } = usePDFGeneration();
 
-  const handleSuccess = (url: string) => {
-    onDataChange({
-      ...data,
-      propostaGerada: true,
-      dataGeracao: new Date().toISOString().split('T')[0],
-      pdfUrl: url
-    });
-  };
+  // Estado local do PDF gerado
+  const [pdfUrl, setPdfUrl] = useState<string | null>(data.pdfUrl || null);
 
-  // ✅ FIX: Construir dados da proposta a partir das props recebidas
-  // Remover máscara do CNPJ para enviar ao backend
+  // Validar se osId é um UUID válido
+  const osIdValido = osId && isValidUUID(osId);
+
+  // Construir dados da proposta
   const cpfCnpjLimpo = (etapa1Data.cpfCnpj || '').replace(/\D/g, '');
-
   const propostaData = {
     clienteCpfCnpj: cpfCnpjLimpo,
     dadosFinanceiros: {
@@ -85,11 +92,74 @@ export function StepGerarProposta({
     }
   };
 
-  // ✅ FIX: Validar se osId é um UUID válido (não a string "undefined")
-  const osIdValido = osId && isValidUUID(osId);
+  // Handler para gerar PDF
+  const handleGeneratePDF = async () => {
+    if (!osIdValido) {
+      toast.error('ID da OS inválido');
+      return;
+    }
+
+    try {
+      const result = await generate('proposta', osId, propostaData);
+
+      if (result?.success && result.url) {
+        setPdfUrl(result.url);
+        onDataChange({
+          ...data,
+          propostaGerada: true,
+          dataGeracao: new Date().toISOString().split('T')[0],
+          pdfUrl: result.url
+        });
+        toast.success('Proposta gerada com sucesso!');
+      } else {
+        toast.error(result?.error || 'Erro ao gerar proposta');
+      }
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar proposta. Tente novamente.');
+    }
+  };
+
+  // Nome do arquivo para download
+  const filename = `proposta-${osId.substring(0, 8)}.pdf`;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Header com Título e Botão */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FileText className="h-5 w-5 text-primary" />
+          <h3 className="text-lg font-medium">Proposta Comercial</h3>
+          {data.propostaGerada && (
+            <span className="inline-flex items-center gap-1 text-xs text-success bg-success/10 px-2 py-1 rounded-full">
+              <CheckCircle className="h-3 w-3" />
+              Gerada em {data.dataGeracao}
+            </span>
+          )}
+        </div>
+
+        {/* Botão Gerar - Canto Superior Direito */}
+        {osIdValido && !readOnly && (
+          <Button
+            onClick={handleGeneratePDF}
+            disabled={generating}
+            className="min-w-[160px]"
+          >
+            {generating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Gerando...
+              </>
+            ) : (
+              <>
+                <FileText className="h-4 w-4 mr-2" />
+                {pdfUrl ? 'Gerar Novamente' : 'Gerar Documento'}
+              </>
+            )}
+          </Button>
+        )}
+      </div>
+
       {/* Alerta de osId inválido */}
       {!osIdValido && (
         <Alert variant="destructive">
@@ -101,84 +171,65 @@ export function StepGerarProposta({
         </Alert>
       )}
 
-      <Alert>
-        <FileText className="h-4 w-4" />
-        <AlertDescription>
-          Clique no botão abaixo para gerar a proposta comercial automaticamente com base nas informações preenchidas.
-        </AlertDescription>
-      </Alert>
+      {/* Alerta informativo (só mostra se não tem PDF) */}
+      {!pdfUrl && osIdValido && (
+        <Alert>
+          <FileText className="h-4 w-4" />
+          <AlertDescription>
+            Clique no botão <strong>"Gerar Documento"</strong> para criar a proposta comercial
+            automaticamente com base nas informações preenchidas nas etapas anteriores.
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <div className="flex flex-col items-center justify-center py-8 gap-4 border-2 border-dashed rounded-lg">
-        <FileText className="h-16 w-16 text-muted-foreground" />
-
-        <div className="flex gap-3">
-          {osIdValido && !readOnly ? (
-            <PDFDownloadButton
-              tipo="proposta"
-              osId={osId}
-              dados={propostaData}
-              onSuccess={handleSuccess}
-              variant="default"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              Gerar Proposta Comercial
-            </PDFDownloadButton>
-          ) : (
-            <button
-              disabled
-              className="px-4 py-2 text-sm bg-muted text-muted-foreground rounded-md cursor-not-allowed flex items-center gap-2"
-            >
-              <FileText className="w-4 h-4" />
-              {!osIdValido ? 'OS não disponível' : 'Modo de visualização'}
-            </button>
-          )}
-
-          <button
-            onClick={() => setShowPreview(true)}
-            className="px-4 py-2 text-sm border border-border rounded-md hover:bg-background flex items-center gap-2"
-            disabled={readOnly}
-          >
-            <Eye className="w-4 h-4" />
-            Preview
-          </button>
-        </div>
-      </div>
-
-      {data.propostaGerada && data.pdfUrl && (
-        <Card className="bg-success/5 border-success/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-success" />
-                <div>
-                  <div className="text-sm">Proposta gerada com sucesso!</div>
-                  <div className="text-xs text-muted-foreground">
-                    Data: {data.dataGeracao}
-                  </div>
-                </div>
-              </div>
-              <a
-                href={data.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline"
-              >
-                Visualizar PDF
-              </a>
-            </div>
+      {/* Visualizador de PDF Embarcado */}
+      {pdfUrl ? (
+        <PDFViewerEmbedded
+          pdfUrl={pdfUrl}
+          filename={filename}
+          height={600}
+          showToolbar={true}
+          className="mt-4"
+        />
+      ) : (
+        /* Estado Vazio - Antes de Gerar */
+        <Card className="border-dashed">
+          <CardHeader className="text-center pb-2">
+            <FileText className="h-16 w-16 text-muted-foreground mx-auto mb-2" />
+            <CardTitle className="text-muted-foreground font-normal">
+              Nenhuma proposta gerada ainda
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-sm text-muted-foreground">
+            <p>
+              O documento será exibido aqui após a geração.
+            </p>
+            <p className="mt-2">
+              A proposta incluirá os dados do cliente, memorial descritivo,
+              cronograma e valores calculados.
+            </p>
           </CardContent>
         </Card>
       )}
 
-      {osIdValido && (
-        <PDFPreviewModal
-          isOpen={showPreview}
-          onClose={() => setShowPreview(false)}
-          tipo="proposta"
-          osId={osId}
-          dados={propostaData}
-          onSuccess={handleSuccess}
-        />
+      {/* Info sobre dados utilizados (colapsável para debug) */}
+      {pdfUrl && (
+        <details className="text-xs text-muted-foreground">
+          <summary className="cursor-pointer hover:text-foreground">
+            Dados utilizados na proposta
+          </summary>
+          <pre className="mt-2 p-3 bg-muted rounded-md overflow-x-auto">
+            {JSON.stringify({
+              osId: osId.substring(0, 8) + '...',
+              clienteCpfCnpj: cpfCnpjLimpo ? `***${cpfCnpjLimpo.slice(-4)}` : 'N/A',
+              valorTotal,
+              valorEntrada,
+              valorParcela,
+              numeroParcelas: etapa8Data.numeroParcelas,
+              percentualEntrada: etapa8Data.percentualEntrada
+            }, null, 2)}
+          </pre>
+        </details>
       )}
     </div>
   );

@@ -175,8 +175,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.neutral300,
   },
 
   clienteRow: {
@@ -186,10 +184,6 @@ const styles = StyleSheet.create({
 
   clienteCell: {
     padding: spacing.xs,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral300,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral300,
   },
 
   clienteLabel: {

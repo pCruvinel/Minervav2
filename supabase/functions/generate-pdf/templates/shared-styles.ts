@@ -48,22 +48,22 @@ export const spacing = {
 };
 
 export const fonts = {
-  regular: 'Helvetica',
-  bold: 'Helvetica-Bold',
-  italic: 'Helvetica-Oblique',
-  boldItalic: 'Helvetica-BoldOblique',
+  regular: 'Calibri',
+  bold: 'Calibri-Bold',
+  italic: 'Calibri-Italic',
+  boldItalic: 'Calibri-BoldItalic',
 };
 
 export const fontSize = {
-  xs: 10,
-  sm: 11,
-  base: 12,
-  lg: 14,
-  xl: 16,
-  '2xl': 20,
-  '3xl': 24,
-  '4xl': 30,
-  '5xl': 36,
+  xs: 8,
+  sm: 9,
+  base: 10,
+  lg: 11,
+  xl: 12,
+  '2xl': 14,
+  '3xl': 16,
+  '4xl': 18,
+  '5xl': 20,
 };
 
 export const borderRadius = {
