@@ -71,6 +71,7 @@ export function StepRequisicaoMaoObra({
         tipoOSCodigo: 'OS-10',
         clienteId,
         ccId,
+        responsavelId: null, // ✅ FIX: Parâmetro obrigatório
         parentOSId, // ⭐ Vínculo com OS-13
         descricao: `Requisição de Mão de Obra - ${os10FormData.departamento}`,
         metadata: { origem: 'OS-13-Step-11' },

@@ -80,6 +80,7 @@ export function StepRequisicaoCompras({
         tipoOSCodigo: 'OS-09',
         clienteId,
         ccId,
+        responsavelId: null, // ✅ FIX: Parâmetro obrigatório
         parentOSId, // ⭐ Vínculo com OS-13
         descricao: `Requisição de Compras - ${os9FormData.tipo}`,
         metadata: { origem: 'OS-13-Step-10' },
