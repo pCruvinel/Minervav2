@@ -155,6 +155,17 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
         toast.error('Erro ao salvar dados. Tente novamente.');
         return;
       }
+    } else {
+      // ✅ FIX: Salvar etapas 2-17
+      console.log(`💾 Salvando etapa ${currentStep} no banco...`);
+      try {
+        await saveStep(currentStep, true);
+        console.log(`✅ Etapa ${currentStep} salva no banco`);
+      } catch (error) {
+        console.error(`❌ Erro ao salvar etapa ${currentStep}:`, error);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        return; // Não avançar se falhar
+      }
     }
 
     // Avançar para próxima etapa manualmente
@@ -219,8 +230,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
     7: (data: Record<string, any>) => !!data.visitaRealizada,
     8: (data: Record<string, any>) => !!data.histogramaAnexado,
     9: (data: Record<string, any>) => !!data.placaAnexada,
-    10: (data: Record<string, any>) => !!data.os09Criada,
-    11: (data: Record<string, any>) => !!data.os10Criada,
+    10: (data: Record<string, any>) => !!(data.os09Criada && data.os09Id),
+    11: (data: Record<string, any>) => !!(data.os10Criada && data.os10Id),
     12: (data: Record<string, any>) => !!data.evidenciaAnexada,
     13: (data: Record<string, any>) => !!data.diarioAnexado,
     14: (data: Record<string, any>) => !!data.decisaoSeguro,
@@ -355,8 +366,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} />}
+            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto} />}
+            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto} />}
             {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
