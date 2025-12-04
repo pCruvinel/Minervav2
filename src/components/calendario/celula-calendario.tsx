@@ -1,24 +1,24 @@
 import { memo } from 'react';
 import { CelulaData } from '@/lib/hooks/use-semana-calendario';
-import { turnoColors } from '@/lib/design-tokens';
-import { Clock, Users } from 'lucide-react';
+import { turnoColors, badgeColors } from '@/lib/design-tokens';
+import { Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CelulaCalendarioProps {
     celula: CelulaData;
     onClick: (celula: CelulaData) => void;
     ehAdmin: boolean;
+    ehFimDeSemana?: boolean;
 }
 
 /**
  * CelulaCalendario - Célula individual do grid
  * 
  * Renderiza uma célula de 1 hora com:
- * - Cor de fundo se houver turno
- * - Indicador de vagas
- * - Badges de agendamentos
+ * - Cor de fundo se houver turno (75% opacidade)
+ * - Badges de agendamentos (Cores tríades, full size)
  */
-function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendarioProps) {
+function CelulaCalendarioComponent({ celula, onClick, ehAdmin, ehFimDeSemana }: CelulaCalendarioProps) {
     const { turno, agendamentos, podeAgendar } = celula;
 
     // Determinar se a célula é clicável
@@ -27,21 +27,25 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
     // Obter cor do turno
     const corTurno = turno ? turnoColors[turno.cor as keyof typeof turnoColors] : null;
 
+    // Obter cor do badge (tríade)
+    const corBadge = turno ? badgeColors[turno.cor as keyof typeof badgeColors] : null;
+
     // Determinar classes CSS
     const celulaClasses = cn(
-        'relative min-h-[60px] p-2 transition-all',
-        'border border-[hsl(40,20%,85%)] rounded-md',  // Borda bege claro
+        'relative min-h-[60px] p-1 transition-all flex flex-col', // p-1 para dar um respiro
+        'border border-[hsl(40,20%,85%)] rounded-md',
         {
             'cursor-pointer hover:ring-2 hover:ring-primary hover:z-10': ehClicavel,
             'cursor-not-allowed opacity-50': turno && !podeAgendar && !ehAdmin,
-            // Sem turno - branco pérola
-            'bg-[hsl(30,20%,98%)]': !turno,
+            // Sem turno: Branco dias úteis, Pérola fds
+            'bg-white': !turno && !ehFimDeSemana,
+            'bg-[hsl(30,20%,98%)]': !turno && ehFimDeSemana,
         }
     );
 
-    // Aplicar cor de fundo do turno (verde/vermelho/azul com 20% opacidade)
+    // Aplicar cor de fundo do turno
     const celulaStyle = turno && corTurno ? {
-        backgroundColor: corTurno.bg,  // rgba(R, G, B, 0.2)
+        backgroundColor: corTurno.bg,
     } : undefined;
 
     return (
@@ -49,50 +53,34 @@ function CelulaCalendarioComponent({ celula, onClick, ehAdmin }: CelulaCalendari
             className={celulaClasses}
             style={celulaStyle}
             onClick={() => ehClicavel && onClick(celula)}
-            title={turno ? `${turno.horaInicio}-${turno.horaFim} - ${turno.vagasTotal - turno.vagasOcupadas}/${turno.vagasTotal} vagas` : 'Sem turno'}
+            title={turno ? `${turno.horaInicio}-${turno.horaFim}` : 'Sem turno'}
         >
-            {/* Indicador de cor do turno (dot colorido) */}
+            {/* Indicador de cor do turno (dot colorido) - Mantido para referência visual rápida */}
             {turno && corTurno && (
                 <div
-                    className="absolute top-1 left-1 w-2 h-2 rounded-full"
+                    className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full opacity-50"
                     style={{ backgroundColor: corTurno.solid }}
-                    title={`Turno ${turno.cor}`}
                 />
             )}
 
-            {/* Indicador de vagas (se houver turno) */}
-            {turno && (
-                <div className="absolute top-1 right-1 flex items-center gap-1 text-xs">
-                    <Users className="h-3 w-3" style={{ color: corTurno?.solid }} />
-                    <span
-                        className="font-semibold"
-                        style={{ color: corTurno?.solid }}
-                    >
-                        {turno.vagasTotal - turno.vagasOcupadas}/{turno.vagasTotal}
-                    </span>
-                </div>
-            )}
-
-            {/* Badges de agendamentos */}
+            {/* Badges de agendamentos - Full Size */}
             {agendamentos.length > 0 && (
-                <div className="mt-5 space-y-1">
-                    {agendamentos.slice(0, 2).map((agend) => (
+                <div className="flex-1 flex flex-col gap-1 mt-1">
+                    {agendamentos.map((agend) => (
                         <div
                             key={agend.id}
-                            className="text-xs p-1 rounded bg-primary/10 border border-primary/20 truncate"
+                            className="flex-1 p-1 rounded text-xs font-medium truncate flex items-center gap-1 shadow-sm"
+                            style={corBadge ? {
+                                backgroundColor: corBadge.bg,
+                                color: corBadge.text,
+                                border: `1px solid ${corBadge.border}`
+                            } : undefined}
                             title={`${agend.categoria} - ${agend.usuarioNome || 'Sem usuário'}`}
                         >
-                            <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3 shrink-0" />
-                                <span className="truncate">{agend.categoria}</span>
-                            </div>
+                            <Clock className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{agend.categoria}</span>
                         </div>
                     ))}
-                    {agendamentos.length > 2 && (
-                        <div className="text-xs text-center text-muted-foreground">
-                            +{agendamentos.length - 2} mais
-                        </div>
-                    )}
                 </div>
             )}
         </div>

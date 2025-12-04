@@ -100,6 +100,7 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                             {dias.map((dataStr) => {
                                 const chaveCelula = `${dataStr}-${hora}`;
                                 const celula = celulas.get(chaveCelula);
+                                const { nome } = formatarDia(dataStr);
 
                                 if (!celula) {
                                     return (
@@ -117,6 +118,7 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                                         celula={celula}
                                         onClick={onClickCelula}
                                         ehAdmin={ehAdmin}
+                                        ehFimDeSemana={nome === 'Sáb' || nome === 'Dom'}
                                     />
                                 );
                             })}

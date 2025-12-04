@@ -43,7 +43,7 @@ const styles = StyleSheet.create({
 
   logo: {
     width: 150,
-    height: 50,
+    height: 80,
   },
 
   documentInfo: {
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
 export function SharedHeader({
   logoUrl = 'https://zxfevlkssljndqqhxkjb.supabase.co/storage/v1/object/public/uploads/logo.png',
   logoWidth = 150,
-  logoHeight = 50,
+  logoHeight = 80,
   documentTitle,
   documentSubtitle,
   documentDate,

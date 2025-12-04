@@ -441,7 +441,7 @@ export function ControlePresencaTabelaPage() {
   );
 
   // Obter setores únicos para o filtro
-  const setoresUnicos = Array.from(new Set(colaboradores.map(col => col.setor))).sort();
+  const setoresUnicos = Array.from(new Set(colaboradores.map(col => col.setor))).filter(Boolean).sort();
 
   // Função para validar campos obrigatórios visualmente
   const getValidationClass = (colaborador: Colaborador, registro: RegistroPresenca, field: 'status' | 'performance' | 'centrosCusto') => {
@@ -627,12 +627,6 @@ export function ControlePresencaTabelaPage() {
                         </TableCell>
 
                         <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {colaborador.setor}
-                          </Badge>
-                        </TableCell>
-
-                        <TableCell>
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
                               {colaborador.avatar_url ? (
@@ -642,13 +636,18 @@ export function ControlePresencaTabelaPage() {
                               )}
                             </div>
                             <div>
-                              <p className="font-medium">{colaborador.nome_completo || colaborador.nome}</p>
+                              <p className="font-medium">{colaborador.nome_completo}</p>
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
-                                <Badge variant="secondary" className="text-xs">{colaborador.setor}</Badge>
                               </div>
                             </div>
                           </div>
+                        </TableCell>
+
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {colaborador.setor || '-'}
+                          </Badge>
                         </TableCell>
 
                         <TableCell>

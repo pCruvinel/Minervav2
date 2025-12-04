@@ -82,30 +82,55 @@ export const designTokens = {
  */
 export const turnoColors = {
   verde: {
-    bg: 'rgba(34, 197, 94, 0.2)',      // success with 20% opacity
+    bg: 'rgba(34, 197, 94, 0.23)',      // success with 23% opacity (77% transparency)
     border: 'var(--success)',
     solid: 'var(--success)'
   },
   verm: {
-    bg: 'rgba(239, 68, 68, 0.2)',      // destructive with 20% opacity
+    bg: 'rgba(239, 68, 68, 0.23)',      // destructive with 23% opacity (77% transparency)
     border: 'var(--destructive)',
     solid: 'var(--destructive)'
   },
   azul: {
-    bg: 'rgba(59, 130, 246, 0.2)',     // info with 20% opacity
+    bg: 'rgba(59, 130, 246, 0.23)',     // info with 23% opacity (77% transparency)
     border: 'var(--info)',
     solid: 'var(--info)'
   },
   // Fallbacks para valores antigos
   primary: {
-    bg: 'rgba(34, 197, 94, 0.2)',
+    bg: 'rgba(34, 197, 94, 0.23)',
     border: 'var(--success)',
     solid: 'var(--success)'
   },
   secondary: {
-    bg: 'rgba(59, 130, 246, 0.2)',
+    bg: 'rgba(59, 130, 246, 0.23)',
     border: 'var(--info)',
     solid: 'var(--info)'
+  }
+};
+
+/**
+ * Cores para badges de agendamento (Tríade em relação ao turno)
+ * Para destacar sobre o fundo do turno.
+ */
+export const badgeColors = {
+  // Tríade do Verde (Success) -> Roxo/Rosa
+  verde: {
+    bg: 'rgba(147, 51, 234, 0.7)', // Purple 600 with 30% transparency
+    text: '#FFFFFF',
+    border: '#7E22CE'
+  },
+  // Tríade do Vermelho (Destructive) -> Azul/Ciano
+  verm: {
+    bg: 'rgba(6, 182, 212, 0.7)', // Cyan 500 with 30% transparency
+    text: '#FFFFFF',
+    border: '#0891B2'
+  },
+  // Tríade do Azul (Info) -> Laranja/Amarelo
+  azul: {
+    bg: 'rgba(245, 158, 11, 0.7)', // Amber 500 with 30% transparency
+    text: '#FFFFFF',
+    border: '#D97706'
   }
 };
 

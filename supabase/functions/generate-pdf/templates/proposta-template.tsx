@@ -581,7 +581,7 @@ function EspecificacoesTecnicas({ etapas }: { etapas: Etapa[] }) {
   return (
     <View>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
+        <Text style={styles.sectionHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS:</Text>
       </View>
 
       <View style={styles.tableContainer}>

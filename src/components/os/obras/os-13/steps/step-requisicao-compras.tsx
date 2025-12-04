@@ -50,8 +50,13 @@ export function StepRequisicaoCompras({
   const { mutate: createOS, isPending } = useCreateOSWorkflow();
 
   const handleCriarOS09 = async () => {
+    console.log('🔵 handleCriarOS09 chamado');
+    console.log('📊 Dados do formulário:', os9FormData);
+    console.log('📊 Props:', { parentOSId, clienteId, ccId, isPending, readOnly });
+
     // Validações
     if (!parentOSId) {
+      console.log('❌ parentOSId não encontrado');
       toast.error('ID da OS-13 não encontrado');
       return;
     }
@@ -66,11 +71,13 @@ export function StepRequisicaoCompras({
       'quantidade', 'parametroPreco', 'linkProduto',
       'localEntrega', 'prazoEntrega', 'sistema', 'item',
       'geraRuido', 'dataPrevistaInicio', 'dataPrevistaFim'
+      // Nota: 'observacoes' é OPCIONAL, não validar
     ];
 
     const missingFields = requiredFields.filter(field => !os9FormData[field as keyof typeof os9FormData]);
     if (missingFields.length > 0) {
-      toast.error('Preencha todos os campos obrigatórios');
+      console.log('❌ Campos obrigatórios faltando:', missingFields);
+      toast.error(`Preencha todos os campos obrigatórios. Faltam: ${missingFields.join(', ')}`);
       return;
     }
 
