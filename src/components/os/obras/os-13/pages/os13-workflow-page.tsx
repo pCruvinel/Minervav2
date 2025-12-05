@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
 import {
   CadastrarClienteObra,
   type CadastrarClienteObraHandle,
@@ -28,6 +28,8 @@ import { ChevronLeft, Info } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 
 export const steps: WorkflowStep[] = [
   { id: 1, title: 'Dados do Cliente', short: 'Cliente', responsible: 'Comercial', status: 'active' },
@@ -60,6 +62,9 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
   const stepAgendarVisitaInicialRef = useRef<unknown>(null);
   const stepAgendarVisitaFinalRef = useRef<unknown>(null);
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
+
+  // Obter usuário atual para delegação
+  const { currentUser } = useAuth();
 
   // Atualizar internalOsId se prop mudar
   useEffect(() => {
@@ -346,7 +351,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
 
       {/* Conteúdo das Etapas */}
       <div className="px-6 py-6">
-        <Card className="max-w-5xl mx-auto">
+        <Card className={`mx-auto ${currentStep === 6 || currentStep === 16 ? 'max-w-6xl' : 'max-w-5xl'}`}>
           <div className="p-6">
             {currentStep === 1 && (
               <CadastrarClienteObra
@@ -378,7 +383,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
         </Card>
       </div>
 
-      <WorkflowFooter
+      <WorkflowFooterWithDelegation
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
@@ -389,6 +394,14 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId }: OS13Wor
         isLoading={isLoadingData}
         isFormInvalid={isCurrentStepInvalid}
         invalidFormMessage={currentStep === 6 || currentStep === 16 ? "Por favor, selecione um horário no calendário para continuar" : "Complete todos os campos obrigatórios desta etapa antes de continuar"}
+        // Props de delegação - OS-13 tem 7 pontos de handoff
+        osType="OS-13"
+        osId={internalOsId}
+        currentOwnerId={currentUser?.id}
+        currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+        onDelegationComplete={() => {
+          toast.success('Responsabilidade transferida com sucesso!');
+        }}
       />
     </div>
   );

@@ -1,9 +1,10 @@
 import React from 'react';
-import { Search, Bell, LogOut, ArrowLeft } from 'lucide-react';
+import { Search, LogOut, ArrowLeft, User as UserIcon, FileText, Bell } from 'lucide-react';
 import { User } from '@/lib/types';
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
+import { NotificationBell } from '@/components/shared/notification-bell';
 
 interface OSHeaderData {
   codigo: string;
@@ -70,10 +71,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
             </div>
 
             {/* Notifications */}
-            <button className="minerva-header-notification">
-              <Bell className="w-5 h-5 text-muted-foreground" />
-              <span className="minerva-header-notification-badge"></span>
-            </button>
+            <NotificationBell />
 
             {/* User Dropdown */}
             <div className="relative">
@@ -96,15 +94,47 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
                     className="fixed top-0 left-0 right-0 bottom-0 z-10"
                     onClick={() => setShowDropdown(false)}
                   />
-                  <div className="minerva-dropdown-content absolute right-0 top-full mt-2 z-20">
+                  <div className="minerva-dropdown-content absolute right-0 top-full mt-2 z-20 min-w-[200px]">
+                    {/* Header do Dropdown */}
                     <div className="px-3 py-2">
-                      <p className="font-semibold text-sm">Minha Conta</p>
+                      <p className="font-semibold text-sm">{user.nome_completo}</p>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
                     </div>
                     <div className="minerva-dropdown-separator" />
-                    <div className="px-3 py-2">
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
-                    </div>
+
+                    {/* Minha Conta */}
+                    <a
+                      href="/perfil"
+                      className="minerva-dropdown-item w-full"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <UserIcon className="w-4 h-4" />
+                      <span>Minha Conta</span>
+                    </a>
+
+                    {/* Meus Documentos */}
+                    <a
+                      href="/meus-documentos"
+                      className="minerva-dropdown-item w-full"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Meus Documentos</span>
+                    </a>
+
+                    {/* Notificações */}
+                    <a
+                      href="/notificacoes"
+                      className="minerva-dropdown-item w-full"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <Bell className="w-4 h-4" />
+                      <span>Notificações</span>
+                    </a>
+
                     <div className="minerva-dropdown-separator" />
+
+                    {/* Logout */}
                     <button
                       onClick={onLogout}
                       className="minerva-dropdown-item text-error font-medium w-full"

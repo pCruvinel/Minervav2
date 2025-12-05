@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
 import {
     StepAberturaSolicitacao,
     StepSelecaoCentroCusto,
@@ -14,6 +14,8 @@ import { ChevronLeft, Info } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Abertura da Solicitação', short: 'Abertura', responsible: 'Solicitante', status: 'active' },
@@ -29,6 +31,9 @@ interface OS10WorkflowPageProps {
 }
 
 export function OS10WorkflowPage({ onBack, osId }: OS10WorkflowPageProps) {
+    // Obter usuário atual para delegação
+    const { currentUser } = useAuth();
+
     // Hook de Estado do Workflow
     const {
         currentStep,
@@ -259,7 +264,7 @@ export function OS10WorkflowPage({ onBack, osId }: OS10WorkflowPageProps) {
             </div>
 
             {/* Footer com botões de navegação */}
-            <WorkflowFooter
+            <WorkflowFooterWithDelegation
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -268,6 +273,14 @@ export function OS10WorkflowPage({ onBack, osId }: OS10WorkflowPageProps) {
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData}
+                // Props de delegação (OS-10 não tem handoffs, mas mantemos consistência)
+                osType="OS-10"
+                osId={osId}
+                currentOwnerId={currentUser?.id}
+                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+                onDelegationComplete={() => {
+                    toast.success('Responsabilidade transferida com sucesso!');
+                }}
             />
         </div>
     );

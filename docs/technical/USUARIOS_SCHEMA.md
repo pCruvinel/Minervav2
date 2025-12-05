@@ -1,79 +1,137 @@
-### 2. Arquivo: `docs/guides/usuarios-sistema.md`
+# 👥 Guia de Usuários e Permissões (v3.0)
 
-Este é o documento funcional. Ele explica *quem* são os usuários e *o que* eles podem fazer.
-
-# 👥 Guia de Usuários e Permissões (v2.1)
-
-**Arquitetura:** Relacional (Tabela `cargos` e `setores`)
-**Status:** Atualizado em 21/11/2025
+**Arquitetura:** Relacional (Tabelas `cargos` e `setores`)  
+**Atualizado em:** 2025-12-05  
+**Status:** ✅ Sincronizado com migration `20250105_refactor_roles_sectors.sql`
 
 ---
 
-## 1. Visão Geral dos Cargos
+## 1. Visão Geral dos Cargos (10 Cargos Padronizados)
 
-O sistema abandonou os "tipos fixos" e agora usa uma tabela dinâmica de cargos. Cada usuário tem um Cargo e um Setor.
-
-| Cargo (Slug) | Nível | Quem é? | O que faz? |
-| :--- | :--- | :--- | :--- |
-| **`admin`** | 10 | TI / Desenvolvedor | Acesso irrestrito para manutenção do sistema. |
-| **`diretoria`** | 9 | Sócios / Donos | Visão estratégica total. Acessa Financeiro, Todos os Setores e Relatórios. |
-| **`gestor_administrativo`** | 5 | Gerente Geral | O "braço direito" da diretoria. Gerencia o Financeiro e supervisiona Obras e Assessoria. |
-| **`gestor_obras`** | 5 | Eng. Chefe Obras | Focado apenas na execução. Vê apenas OSs e Equipe de Obras. Sem acesso financeiro. |
-| **`gestor_assessoria`** | 5 | Eng. Chefe Laudos | Focado apenas em laudos. Vê apenas OSs e Equipe de Assessoria. Sem acesso financeiro. |
-| **`colaborador`** | 1 | Equipe Padrão | Operacional. Vê apenas o que é dele (Responsável) ou o que foi delegado para ele. |
-| **`mao_de_obra`** | 0 | Pedreiro/Pintor | **Sem acesso ao sistema**. Usado apenas para compor custos e lista de presença. |
-
----
-
-## 2. Matriz de Permissões (Quem vê o quê?)
-
-A segurança é garantida pelo banco de dados (RLS).
-
-### Módulo de Ordens de Serviço (OS)
-* **Diretoria/Admin/Gestor ADM:** Veem TODAS as OSs de TODOS os setores.
-* **Gestor de Obras:** Vê apenas OSs do tipo "Obra" ou "Reforma".
-* **Gestor de Assessoria:** Vê apenas OSs do tipo "Laudo" ou "Consultoria".
-* **Colaborador:** Vê apenas as OSs onde ele é o **Responsável Técnico** ou recebeu uma **Delegação**.
-
-### Módulo Financeiro
-* **Acesso Total (Ler/Criar):** `diretoria`, `gestor_administrativo`, `admin`.
-* **Bloqueado:** `gestor_obras`, `gestor_assessoria`, `colaborador`, `mao_de_obra`.
-
-### Módulo de Usuários
-* **Gerenciar Equipe:** Apenas usuários de Nível 9 ou 10 (`diretoria`, `admin`) podem criar/editar outros usuários livremente.
-* **Ver Lista:** Gestores (Nível 5) podem ver a lista de colaboradores do seu próprio setor para delegar tarefas.
+| Cargo | Slug | Setor | Nível | Acesso Financeiro | Escopo de Visão |
+|:------|:-----|:------|:-----:|:-----------------:|:---------------:|
+| **Admin** | `admin` | TI | 10 | ✅ | Global |
+| **Diretor** | `diretor` | Diretoria | 9 | ✅ | Global |
+| **Coord. Administrativo** | `coord_administrativo` | Administrativo | 6 | ✅ | Global |
+| **Coord. de Assessoria** | `coord_assessoria` | Assessoria | 5 | ❌ | Setorial |
+| **Coord. de Obras** | `coord_obras` | Obras | 5 | ❌ | Setorial |
+| **Operacional Administrativo** | `operacional_admin` | Administrativo | 3 | ❌ | Setorial |
+| **Operacional Comercial** | `operacional_comercial` | Administrativo | 3 | ❌ | Setorial |
+| **Operacional Assessoria** | `operacional_assessoria` | Assessoria | 2 | ❌ | Setorial |
+| **Operacional Obras** | `operacional_obras` | Obras | 2 | ❌ | Setorial |
+| **Colaborador Obra** | `colaborador_obra` | Obras | 0 | ❌ | Nenhuma |
 
 ---
 
-## 3. O Novo Perfil: "Mão de Obra"
+## 2. Setores do Sistema (5 Setores)
 
-Criamos um perfil especial para funcionários de campo que não utilizam computador/celular corporativo.
-
-* **Login:** Bloqueado (Se tentar logar, não verá dados).
-* **Utilidade:**
-    1.  Aparece na lista para o Gestor lançar **Presença**.
-    2.  Aparece no Financeiro como **Centro de Custo** (Mão de Obra).
-    3.  Pode ser alocado em Cronogramas.
-
----
-
-## 4. Regras de Delegação
-
-O sistema possui um "Guardião" (Trigger de Banco) que impede delegações erradas.
-
-* **Gestor de Obras** TENTA delegar para **Assessoria** -> ❌ **ERRO:** "Você só pode delegar para seu setor."
-* **Gestor Administrativo** TENTA delegar para **Obras** -> ✅ **SUCESSO** (Ele tem visão cruzada).
-* **Colaborador** TENTA delegar -> ❌ **ERRO** (Nível insuficiente).
+| Setor | Slug | Descrição |
+|:------|:-----|:----------|
+| **Diretoria** | `diretoria` | Setor estratégico |
+| **Administrativo** | `administrativo` | Comercial, Financeiro, RH |
+| **Assessoria** | `assessoria` | Laudos e consultoria técnica |
+| **Obras** | `obras` | Execução e mão de obra |
+| **TI** | `ti` | Tecnologia e sistemas |
 
 ---
 
-## 5. FAQ de Permissões
+## 3. Matriz de Permissões (RBAC v3.0)
 
-**Q: Criei um usuário e ele não vê nada.**
-**R:** Verifique se ele está com o cargo `colaborador`. Se sim, ele só verá algo quando alguém delegar uma tarefa para ele ou colocá-lo como responsável de uma OS.
+### 3.1 Escopo de Visão
 
-**Q: O Gestor de Obras não consegue ver o Financeiro.**
-**R:** Comportamento esperado. Financeiro é restrito à Diretoria e Administrativo.
+| Escopo | Quem | O que vê |
+|:-------|:-----|:---------|
+| **Global** | Admin, Diretor, Coord. Admin | Todas as OSs de todos os setores |
+| **Setorial** | Coordenadores e Operacionais | OSs do próprio setor |
+| **Próprio** | (não usado atualmente) | Apenas tarefas atribuídas |
+| **Nenhuma** | Colaborador Obra | Sem acesso ao sistema |
 
-**Q: Mudei o status da OS para 'CONCLUIDA' e deu erro.**
-**R:** Verifique se você usou minúsculo (`concluido`). O sistema V2.1 não aceita mais MAIÚSCULAS (`CONCLUIDA`).
+### 3.2 Acesso Financeiro
+
+Apenas 3 cargos têm acesso ao módulo financeiro:
+- `admin`
+- `diretor`  
+- `coord_administrativo`
+
+> [!IMPORTANT]
+> A flag `acesso_financeiro` é verificada via `getPermissoes()` ou hook `usePermissoes()`.
+
+---
+
+## 4. Dashboards por Cargo
+
+O sistema usa um **Dashboard unificado** com renderização RBAC:
+
+| Cargo | Visão no Dashboard |
+|:------|:-------------------|
+| Admin/Diretor | ManagerTable Global + KPIs executivos |
+| Coordenadores (`coord_*`) | ManagerTable Setorial + Link para Kanban |
+| Operacionais (`operacional_*`) | ActionKanban pessoal |
+| Colaborador Obra | Sem acesso |
+
+**Rota:** `/dashboard` (renderiza componente diferente por cargo)  
+**Kanban Pessoal:** `/dashboard/kanban`
+
+---
+
+## 5. Sistema de Delegação
+
+O sistema possui regras de delegação definidas em `os-ownership-rules.ts`:
+
+### 5.1 Pontos de Handoff
+
+Cada tipo de OS define pontos onde a responsabilidade muda de cargo:
+
+```
+OS 01-04 (Obras):
+  Etapa 4 → 5: coord_administrativo → coord_obras
+  Etapa 8 → 9: coord_obras → coord_administrativo
+```
+
+### 5.2 Regras de Delegação
+
+- **Coordenadores** podem delegar para operacionais do mesmo setor
+- **Coord. Administrativo** tem visão cruzada (pode delegar para outros setores)
+- **Operacionais** não podem delegar (apenas receber delegações)
+- **Colaborador Obra** está bloqueado do sistema
+
+---
+
+## 6. Verificação de Permissões no Código
+
+### Hook `usePermissoes()`
+
+```typescript
+const { 
+  podeAcessarFinanceiro,  // boolean
+  escopo_visao,           // 'global' | 'setorial' | 'proprio' | 'nenhuma'
+  isGestor,               // true se coord_* ou diretor
+  isOperacional           // true se operacional_*
+} = usePermissoes();
+```
+
+### Função `getPermissoes(user)`
+
+```typescript
+const permissoes = getPermissoes(currentUser);
+if (permissoes.acesso_financeiro) {
+  // Mostrar módulo financeiro
+}
+```
+
+---
+
+## 7. FAQ
+
+**Q: Por que o Coordenador de Obras não vê o Financeiro?**  
+R: Comportamento correto. Apenas `admin`, `diretor` e `coord_administrativo` têm `acesso_financeiro = true`.
+
+**Q: Como verificar permissões no frontend?**  
+R: Use `usePermissoes()` hook ou `getPermissoes(user)` de `src/lib/types.ts`.
+
+**Q: Posso criar novos cargos?**  
+R: Sim, via tabela `cargos` no Supabase. Defina `acesso_financeiro` e `escopo_visao` corretamente.
+
+---
+
+*Documento alinhado com migration `20250105_refactor_roles_sectors.sql`*

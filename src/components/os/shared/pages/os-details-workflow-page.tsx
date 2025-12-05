@@ -25,7 +25,9 @@ import {
   Info
 } from 'lucide-react';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { DelegationModal } from '@/components/os/shared/components/delegation-modal';
+import { CargoSlug, checkDelegationRequired, HandoffPoint } from '@/lib/constants/os-ownership-rules';
 import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
 import { StepMemorialEscopo, type StepMemorialEscopoHandle } from '@/components/os/shared/steps/step-memorial-escopo';
@@ -316,6 +318,10 @@ export function OSDetailsWorkflowPage({
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
+  // Estado para interceptação de delegação (Bypass Protection)
+  const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
+  const [pendingHandoff, setPendingHandoff] = useState<HandoffPoint | null>(null);
 
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
@@ -833,6 +839,7 @@ export function OSDetailsWorkflowPage({
         tipo_os_id: tipoOSEncontrado.id,
         descricao: `${etapa2Data.tipoOS} - ${nomeCliente}`,
         criado_por_id: currentUserId, // Enviar ID do usuário logado para evitar erro de "colaborador Sistema"
+        responsavel_id: currentUserId, // ✅ FIX: Regra de Ouro - Responsabilidade Inicial
         status_geral: 'em_andamento',
         parent_os_id: parentOSId // Passar parentOSId
       });
@@ -853,7 +860,13 @@ export function OSDetailsWorkflowPage({
 
         let dadosEtapa = {};
         if (i === 1) {
-          dadosEtapa = { leadId: etapa1Data.leadId };
+          // ✅ FIX: Salvar TODOS os dados da Etapa 1, não apenas leadId
+          dadosEtapa = { ...etapa1Data };
+          logger.log('📋 Etapa 1 - Salvando dados completos:', {
+            fieldsCount: Object.keys(dadosEtapa).length,
+            hasLeadId: !!etapa1Data.leadId,
+            hasNome: !!etapa1Data.nome
+          });
         } else if (i === 2) {
           dadosEtapa = { tipoOS: etapa2Data.tipoOS };
         }
@@ -1274,8 +1287,14 @@ export function OSDetailsWorkflowPage({
       logger.log('🚀 Etapa 1: Validações passaram, avançando...');
       try {
         if (osId) {
-          logger.log('💾 Etapa 1: Salvando dados...');
-          await saveCurrentStepData(true);
+          // ✅ FIX: Passar dados explícitos para evitar timing issue do React state
+          // O getStepData lê do formDataByStep que pode não ter atualizado ainda
+          const currentData = getStepData(1);
+          logger.log('💾 Etapa 1: Salvando dados...', {
+            fieldsCount: Object.keys(currentData || {}).length,
+            hasLeadId: !!currentData?.leadId
+          });
+          await saveStep(1, false, currentData); // isDraft=false, passa explicitData
           logger.log('✅ Etapa 1: Dados salvos');
         } else {
           logger.log('⚠️ Etapa 1: Sem osId, pulando salvamento');
@@ -1309,12 +1328,39 @@ export function OSDetailsWorkflowPage({
     // Salvar dados da etapa atual
     try {
       if (osId) {
-        await saveCurrentStepData(true);
+        // ✅ FIX: Passar dados explícitos para evitar timing issue do React state
+        const currentData = getStepData(currentStep);
+        logger.log(`💾 Etapa ${currentStep}: Salvando dados...`, {
+          fieldsCount: Object.keys(currentData || {}).length
+        });
+        await saveStep(currentStep, false, currentData);
       }
 
-      // Avançar para próxima etapa
+      // ✅ INTERCEPTAÇÃO DE DELEGAÇÃO (Bypass Protection)
+      const nextStep = currentStep + 1;
+      // Tenta obter o código do tipo de OS (da OS carregada ou do formulário se for criação)
+      const osTypeCodigo = os?.tipo_os_codigo || (etapa2Data.tipoOS ? mapearTipoOSParaCodigo(etapa2Data.tipoOS) : undefined);
+
+      if (osTypeCodigo && currentUser?.cargo_slug && nextStep <= steps.length) {
+        const handoff = checkDelegationRequired(
+          osTypeCodigo,
+          currentStep,
+          nextStep,
+          currentUser.cargo_slug as CargoSlug
+        );
+
+        if (handoff) {
+          logger.warn('🛑 Interceptação de Navegação: Delegação Necessária', handoff);
+          setPendingHandoff(handoff);
+          setIsDelegationModalOpen(true);
+          return; // ⛔️ INTERROMPE O AVANÇO
+        }
+      }
+
+      // Avançar para próxima etapa (Fluxo Normal)
       if (currentStep < steps.length) {
-        setCurrentStep(currentStep + 1);
+        setCurrentStep(prev => prev + 1);
+        setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
       }
     } catch {
       // Não avança se houver erro ao salvar
@@ -1749,8 +1795,8 @@ export function OSDetailsWorkflowPage({
 
             </CardContent>
 
-            {/* Footer com botões de navegação */}
-            <WorkflowFooter
+            {/* Footer com botões de navegação e delegação */}
+            <WorkflowFooterWithDelegation
               currentStep={currentStep}
               totalSteps={TOTAL_WORKFLOW_STEPS}
               onPrevStep={handlePrevStep}
@@ -1764,11 +1810,50 @@ export function OSDetailsWorkflowPage({
               onReturnToActive={handleReturnToActive}
               isFormInvalid={isCurrentStepInvalid}
               invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
+              // Props de delegação - habilitam verificação automática de handoff
+              osType={os?.tipo_os_codigo || mapearTipoOSParaCodigo(etapa2Data.tipoOS || '')}
+              osId={osId || undefined}
+              currentOwnerId={os?.responsavel_id}
+              currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+              onDelegationComplete={() => {
+                toast.success('Responsabilidade transferida com sucesso!');
+                // Refresh para atualizar responsavel_id
+                refreshEtapas?.();
+              }}
             />
           </Card>
         </div>
       </div>
 
+      {/* Modal de Delegação (Interceptação no nível da Página) */}
+      {osId && currentUser?.id && pendingHandoff && (
+        <DelegationModal
+          isOpen={isDelegationModalOpen}
+          onClose={() => {
+            setIsDelegationModalOpen(false);
+            setPendingHandoff(null);
+          }}
+          onDelegationComplete={() => {
+            setIsDelegationModalOpen(false);
+            setPendingHandoff(null);
+            toast.success('Responsabilidade transferida!');
+
+            // Retornar ao Dashboard pois perdeu acesso
+            // window.location.href = '/dashboard'; // Opcional, ou simplesmente avançar
+
+            // Avançar para próxima etapa após delegar
+            setCurrentStep(prev => prev + 1);
+            setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+            window.scrollTo(0, 0);
+
+            // Refresh para atualizar permissões visualmente
+            refreshEtapas?.();
+          }}
+          osId={osId}
+          currentOwnerId={currentUser.id} // Usar user logado para garantir, já que ele é quem está delegando
+          handoff={pendingHandoff}
+        />
+      )}
     </div >
   );
 }

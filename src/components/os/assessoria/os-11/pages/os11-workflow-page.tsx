@@ -1,9 +1,9 @@
-import React, { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
-import { StepCadastroCliente } from '@/components/os/assessoria/os-11/steps/step-cadastro-cliente';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { CadastrarLead, CadastrarLeadHandle, FormDataCompleto } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepAgendarVisita } from '@/components/os/assessoria/os-11/steps/step-agendar-visita';
 import { StepRealizarVisita } from '@/components/os/assessoria/os-11/steps/step-realizar-visita';
 import { StepAnexarRT } from '@/components/os/assessoria/os-11/steps/step-anexar-rt';
@@ -13,6 +13,8 @@ import { ChevronLeft, Info } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastrar Cliente', short: 'Cliente', responsible: 'Assessoria', status: 'active' },
@@ -30,7 +32,16 @@ interface OS11WorkflowPageProps {
 
 export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
     // Refs para validação imperativa de steps
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stepAgendarVisitaRef = useRef<any>(null);
+    const cadastrarLeadRef = useRef<CadastrarLeadHandle>(null);
+
+    // Estado para CadastrarLead
+    const [showCombobox, setShowCombobox] = useState(false);
+    const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
+    // Obter usuário atual para delegação
+    const { currentUser } = useAuth();
 
     const {
         currentStep,
@@ -65,19 +76,33 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
         onSaveStep: (step) => saveStep(step, false)
     });
 
-    // Etapa 1: Cadastro do Cliente
-    const etapa1Data = formDataByStep[1] || {
-        clienteId: '',
-        nomeCliente: '',
+    // Estado para o leadId selecionado (CadastrarLead)
+    const [selectedLeadId, setSelectedLeadId] = useState<string>(formDataByStep[1]?.leadId || '');
+
+    // Etapa 1: Cadastrar Lead (compatível com CadastrarLead)
+    const etapa1Data: FormDataCompleto = formDataByStep[1] || {
+        nome: '',
         cpfCnpj: '',
-        email: '',
+        tipo: '',
+        tipoEmpresa: '',
+        nomeResponsavel: '',
+        cargoResponsavel: '',
         telefone: '',
+        email: '',
+        tipoEdificacao: '',
+        qtdUnidades: '',
+        qtdBlocos: '',
+        qtdPavimentos: '',
+        tipoTelhado: '',
+        possuiElevador: false,
+        possuiPiscina: false,
+        cep: '',
         endereco: '',
+        numero: '',
+        complemento: '',
+        bairro: '',
         cidade: '',
         estado: '',
-        cep: '',
-        tipoImovel: '',
-        observacoes: '',
     };
 
     // Etapa 2: Agendar Visita
@@ -125,21 +150,31 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
         confirmacaoRecebimento: false,
     };
 
-    const setEtapa1Data = (d: any) => setStepData(1, d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setEtapa2Data = (d: any) => setStepData(2, d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setEtapa3Data = (d: any) => setStepData(3, d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setEtapa4Data = (d: any) => setStepData(4, d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setEtapa5Data = (d: any) => setStepData(5, d);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const setEtapa6Data = (d: any) => setStepData(6, d);
 
     const completionRules = useMemo(() => ({
-        1: (d: any) => !!(d.nomeCliente && d.cpfCnpj && d.endereco),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        1: (d: any) => !!(d.nome && d.cpfCnpj && d.endereco && selectedLeadId),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         2: (d: any) => !!(d.dataVisita && d.tecnicoResponsavel),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         3: (d: any) => !!(d.visitaRealizada),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         4: (d: any) => !!(d.arquivoRT && d.numeroRT),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         5: (d: any) => !!(d.documentoGerado),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         6: (d: any) => !!(d.enviado),
-    }), []);
+    }), [selectedLeadId]);
 
     const { completedSteps } = useWorkflowCompletion({
         currentStep,
@@ -236,7 +271,21 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                 <Card className="max-w-5xl mx-auto">
                     <div className="p-6">
                         {currentStep === 1 && (
-                            <StepCadastroCliente data={etapa1Data} onDataChange={setEtapa1Data} readOnly={isHistoricalNavigation} />
+                            <CadastrarLead
+                                ref={cadastrarLeadRef}
+                                selectedLeadId={selectedLeadId}
+                                onSelectLead={(leadId, leadData) => {
+                                    setSelectedLeadId(leadId);
+                                    setStepData(1, { ...etapa1Data, leadId, leadData });
+                                }}
+                                showCombobox={showCombobox}
+                                onShowComboboxChange={setShowCombobox}
+                                showNewLeadDialog={showNewLeadDialog}
+                                onShowNewLeadDialogChange={setShowNewLeadDialog}
+                                formData={etapa1Data}
+                                onFormDataChange={(data) => setStepData(1, { ...data, leadId: selectedLeadId })}
+                                readOnly={isHistoricalNavigation}
+                            />
                         )}
                         {currentStep === 2 && osId && (
                             <StepAgendarVisita ref={stepAgendarVisitaRef} osId={osId} data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />
@@ -270,7 +319,7 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                 </Card>
             </div>
 
-            <WorkflowFooter
+            <WorkflowFooterWithDelegation
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -281,6 +330,14 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                 isLoading={isLoadingData}
                 isFormInvalid={isCurrentStepInvalid}
                 invalidFormMessage="Por favor, selecione um horário no calendário e um técnico responsável para continuar"
+                // Props de delegação
+                osType="OS-11"
+                osId={osId}
+                currentOwnerId={currentUser?.id}
+                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+                onDelegationComplete={() => {
+                    toast.success('Responsabilidade transferida com sucesso!');
+                }}
             />
         </div>
     );

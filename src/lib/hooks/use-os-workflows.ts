@@ -224,6 +224,14 @@ const workflowAPI = {
 
   /**
    * Criar OS completa com etapas
+   * @param tipoOSCodigo - Código do tipo de OS (ex: "OS-13", "OS-09")
+   * @param clienteId - ID do cliente
+   * @param ccId - ID do centro de custo
+   * @param responsavelId - ID do responsável
+   * @param descricao - Descrição da OS
+   * @param metadata - Metadados adicionais
+   * @param etapas - Array de etapas a criar
+   * @param parentOSId - ID da OS pai (para satélites e contratos)
    */
   async createOSComEtapas(
     tipoOSCodigo: string,
@@ -231,31 +239,26 @@ const workflowAPI = {
     ccId: string,
     responsavelId: string | null,
     descricao: string,
-    metadata: Record<string, any>,
-    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, any> }>,
+    metadata: Record<string, unknown>,
+    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown> }>,
     parentOSId?: string | null
-  ): Promise<{ os: any; etapas: any[] }> {
+  ): Promise<{ os: Record<string, unknown>; etapas: Record<string, unknown>[] }> {
     // 1. Buscar tipo de OS
     const tipoOS = await workflowAPI.getTipoOSByCodigo(tipoOSCodigo);
     if (!tipoOS) {
       throw new Error(`Tipo de OS ${tipoOSCodigo} não encontrado`);
     }
 
-    // 2. Gerar código sequencial
-    // const { data: sequenceData, error: seqError } = await supabase
-      // .rpc('gerar_codigo_os', { p_tipo_os_id: tipoOS.id });
-
-    // if (seqError) throw seqError;
-    // const codigoOS = sequenceData;
-
-    // 3. Obter usuário atual
+    // 2. Obter usuário atual
     const { data: { user } } = await supabase.auth.getUser();
+
+    // 3. Determinar se é um contrato ativo (OS-12 ou OS-13)
+    const isContractActive = ['OS-12', 'OS-13'].includes(tipoOSCodigo);
 
     // 4. Criar OS
     const { data: osData, error: osError } = await supabase
       .from('ordens_servico')
       .insert({
-        // codigo_os: codigoOS, // Gerado pelo trigger
         cliente_id: clienteId,
         tipo_os_id: tipoOS.id,
         responsavel_id: responsavelId,
@@ -265,7 +268,8 @@ const workflowAPI = {
         descricao,
         metadata,
         data_entrada: new Date().toISOString(),
-        parent_os_id: parentOSId
+        parent_os_id: parentOSId || null,
+        is_contract_active: isContractActive // ✅ Flag para contratos faturáveis
       })
       .select()
       .single();
@@ -493,8 +497,8 @@ export function useCreateOSWorkflow() {
       ccId: string;
       responsavelId: string | null;
       descricao: string;
-      metadata: Record<string, any>;
-      etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, any> }>;
+      metadata: Record<string, unknown>;
+      etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown> }>;
       parentOSId?: string | null;
     }) => workflowAPI.createOSComEtapas(
       params.tipoOSCodigo,
@@ -508,7 +512,8 @@ export function useCreateOSWorkflow() {
     ),
     {
       onSuccess: (data) => {
-        toast.success(`OS ${data.os.codigo_os} criada com sucesso!`);
+        const osData = data.os as { codigo_os?: string };
+        toast.success(`OS ${osData.codigo_os || ''} criada com sucesso!`);
       },
       onError: (error) => {
         logger.error('Erro ao criar OS:', error);
@@ -542,19 +547,19 @@ export function useUploadDocumentoOS() {
 // =====================================================
 
 /**
- * Lista das 10 funções existentes no sistema
+ * Lista das 10 funções existentes no sistema (RBAC Reestruturado)
  */
 export const FUNCOES_COLABORADOR = [
-  { slug: 'admin', nome: 'Administrador', nivel: 10, acesso_sistema: true },
-  { slug: 'diretoria', nome: 'Diretoria', nivel: 9, acesso_sistema: true },
-  { slug: 'gestor_administrativo', nome: 'Gestor Administrativo', nivel: 8, acesso_sistema: true },
-  { slug: 'gestor_obras', nome: 'Gestor de Obras', nivel: 7, acesso_sistema: true },
-  { slug: 'gestor_assessoria', nome: 'Gestor de Assessoria', nivel: 7, acesso_sistema: true },
-  { slug: 'coordenador_obras', nome: 'Coordenador de Obras', nivel: 6, acesso_sistema: true },
-  { slug: 'coordenador_assessoria', nome: 'Coordenador de Assessoria', nivel: 6, acesso_sistema: true },
-  { slug: 'colaborador', nome: 'Colaborador', nivel: 5, acesso_sistema: true },
-  { slug: 'colaborador_obra', nome: 'Colaborador de Obra', nivel: 3, acesso_sistema: false },
-  { slug: 'mao_de_obra', nome: 'Mão de Obra', nivel: 1, acesso_sistema: false }
+  { slug: 'admin', nome: 'Admin', nivel: 10, acesso_sistema: true },
+  { slug: 'diretor', nome: 'Diretor', nivel: 9, acesso_sistema: true },
+  { slug: 'coord_administrativo', nome: 'Coordenador Administrativo', nivel: 6, acesso_sistema: true },
+  { slug: 'coord_assessoria', nome: 'Coordenador de Assessoria', nivel: 5, acesso_sistema: true },
+  { slug: 'coord_obras', nome: 'Coordenador de Obras', nivel: 5, acesso_sistema: true },
+  { slug: 'operacional_admin', nome: 'Operacional Administrativo', nivel: 3, acesso_sistema: true },
+  { slug: 'operacional_comercial', nome: 'Operacional Comercial', nivel: 3, acesso_sistema: true },
+  { slug: 'operacional_assessoria', nome: 'Operacional Assessoria', nivel: 2, acesso_sistema: true },
+  { slug: 'operacional_obras', nome: 'Operacional Obras', nivel: 2, acesso_sistema: true },
+  { slug: 'colaborador_obra', nome: 'Colaborador Obra', nivel: 0, acesso_sistema: false },
 ] as const;
 
 /**

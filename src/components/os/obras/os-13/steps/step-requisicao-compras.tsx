@@ -2,9 +2,12 @@ import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ShoppingCart, Plus, CheckCircle2, AlertCircle, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { StepRequisicaoCompra } from '@/components/os/administrativo/os-9/steps/step-requisicao-compra';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
 
 export interface StepRequisicaoComprasProps {

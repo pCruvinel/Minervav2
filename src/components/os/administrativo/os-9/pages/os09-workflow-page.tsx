@@ -1,16 +1,23 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
 import {
   StepRequisicaoCompra,
   StepUploadOrcamentos
 } from '@/components/os/administrativo/os-9/steps';
-import { ChevronLeft, Info } from 'lucide-react';
+import { ChevronLeft, Info, Loader2 } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { CargoSlug } from '@/lib/constants/os-ownership-rules';
+import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { Route } from '@/routes/_auth/os/criar/requisicao-compras';
+import { logger } from '@/lib/utils/logger';
+import { supabase } from '@/lib/supabase-client';
 
 const steps: WorkflowStep[] = [
   { id: 1, title: 'Requisição de Compra', short: 'Requisição', responsible: 'Solicitante', status: 'active' },
@@ -23,7 +30,48 @@ interface OS09WorkflowPageProps {
 }
 
 export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
-  // Hook de Estado do Workflow
+  // 1. Consolidar osId (props > URL)
+  const { osId: urlOsId } = Route.useSearch();
+  const finalOsId = osId || urlOsId;
+  const navigate = useNavigate();
+
+  // Obter usuário atual para delegação
+  const { currentUser } = useAuth();
+
+  // 2. Hook de Auto-Criação
+  const {
+    createOSWithFirstStep,
+    isCreating: isCreatingOS,
+    createdOsId
+  } = useAutoCreateOS({
+    tipoOS: 'OS-09',
+    nomeEtapa1: 'Requisição de Compra',
+    enabled: !finalOsId
+  });
+
+  // 3. useEffect para auto-criar na montagem
+  useEffect(() => {
+    if (!finalOsId && !isCreatingOS) {
+      logger.log('[OS09WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
+      createOSWithFirstStep().catch((err) => {
+        logger.error('[OS09WorkflowPage] ❌ Erro na auto-criação:', err);
+      });
+    }
+  }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
+
+  // 4. Navegar quando OS for criada
+  useEffect(() => {
+    if (createdOsId && !finalOsId) {
+      logger.log(`[OS09WorkflowPage] 🔄 Navegando para osId=${createdOsId}...`);
+      navigate({
+        to: '/os/criar/requisicao-compras',
+        search: { osId: createdOsId },
+        replace: true
+      });
+    }
+  }, [createdOsId, finalOsId, navigate]);
+
+  // 5. Hook de Estado do Workflow (aguarda osId)
   const {
     currentStep,
     setCurrentStep,
@@ -35,11 +83,53 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
     setStepData,
     saveStep,
     completedSteps: completedStepsFromHook,
-    isLoading: isLoadingData
+    isLoading: isLoadingData,
+    etapas
   } = useWorkflowState({
-    osId,
+    osId: finalOsId,
     totalSteps: steps.length
   });
+
+  // Callback de conclusão do workflow
+  const handleCompleteWorkflow = async (): Promise<boolean> => {
+    if (!finalOsId) {
+      toast.error('Erro: OS não identificada');
+      return false;
+    }
+
+    try {
+      // 1. Save current step
+      const saved = await saveStep(currentStep, false);
+      if (!saved) return false;
+
+      // 2. Update OS status (IMPORTANTE: DB usa 'concluido' sem acento!)
+      const { error } = await supabase
+        .from('ordens_servico')
+        .update({
+          status_geral: 'concluido', // SEM acento!
+          data_conclusao: new Date().toISOString()
+        })
+        .eq('id', finalOsId);
+
+      if (error) throw error;
+
+      logger.log('[OS09] ✅ Requisição concluída:', finalOsId);
+
+      toast.success('Requisição de Compras concluída!', {
+        icon: '🎉',
+        description: 'Agora disponível para aprovação do Financeiro.'
+      });
+
+      // 3. Navigate to OS list after 2s
+      setTimeout(() => navigate({ to: '/os' }), 2000);
+      return true;
+
+    } catch (error) {
+      logger.error('[OS09] ❌ Erro ao concluir:', error);
+      toast.error('Erro ao concluir requisição');
+      return false;
+    }
+  };
 
   // Hook de Navegação
   const {
@@ -55,43 +145,37 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
     setLastActiveStep,
     isHistoricalNavigation,
     setIsHistoricalNavigation,
-    onSaveStep: (step) => saveStep(step, false)
+    onSaveStep: (step) => saveStep(step, false),
+    onCompleteWorkflow: handleCompleteWorkflow
   });
 
   // Mapeamento de dados para compatibilidade
   const etapa1Data = formDataByStep[1] || {
-    cnpj: '',
-    centroCusto: '',
-    tipo: '',
-    descricaoMaterial: '',
-    quantidade: '',
-    parametroPreco: '',
-    linkProduto: '',
-    localEntrega: '',
-    prazoEntrega: '',
-    observacoes: '',
-    sistema: '',
-    item: '',
-    geraRuido: '',
-    dataPrevistaInicio: '',
-    dataPrevistaFim: '',
+    totalItems: 0,
+    valorTotal: 0,
+    hasItems: false
   };
 
   const etapa2Data = formDataByStep[2] || {
-    orcamentosAnexados: [],
+    arquivos: [],
   };
 
   // Setters wrappers
   const setEtapa1Data = (data: any) => setStepData(1, data);
   const setEtapa2Data = (data: any) => setStepData(2, data);
 
+  // 5. Buscar o ID da etapa 1 das etapas carregadas
+  const etapa1Id = etapas?.find(e => e.ordem === 1)?.id;
+
+  logger.log(`[OS09WorkflowPage] 📊 finalOsId=${finalOsId}, etapa1Id=${etapa1Id}, isCreating=${isCreatingOS}`);
+
   /**
    * Cálculo dinâmico de etapas completadas
    */
   // Regras de completude
   const completionRules = useMemo(() => ({
-    1: (data: any) => !!(data.cnpj && data.centroCusto && data.tipo && data.descricaoMaterial),
-    2: (data: any) => !!(data.orcamentosAnexados && data.orcamentosAnexados.length > 0),
+    1: (data: any) => !!(data.hasItems && data.totalItems > 0),
+    2: (data: any) => !!(data.arquivos && data.arquivos.length >= 3),
   }), []);
 
   const { completedSteps } = useWorkflowCompletion({
@@ -110,6 +194,23 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
     }
   };
 
+  // 6. Loading state enquanto cria OS
+  if (!finalOsId || isCreatingOS) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md p-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <h2 className="text-xl font-semibold">Preparando Requisição de Compras...</h2>
+            <p className="text-sm text-muted-foreground">
+              Isso levará apenas alguns segundos
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -127,7 +228,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
             )}
             <div>
               <h1 className="text-2xl">OS-09: Requisição de Compras</h1>
-              {osId && <p className="text-muted-foreground">OS #{osId}</p>}
+              {finalOsId && <p className="text-muted-foreground">OS #{finalOsId}</p>}
             </div>
           </div>
         </div>
@@ -185,6 +286,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
               <StepRequisicaoCompra
                 data={etapa1Data}
                 onDataChange={setEtapa1Data}
+                etapaId={etapa1Id}
                 readOnly={isHistoricalNavigation}
               />
             )}
@@ -201,8 +303,8 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         </Card>
       </div>
 
-      {/* Footer com botões de navegação */}
-      <WorkflowFooter
+      {/* Footer com botões de navegação e delegação */}
+      <WorkflowFooterWithDelegation
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
@@ -211,6 +313,14 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData}
+        // Props de delegação
+        osType="OS-09"
+        osId={finalOsId}
+        currentOwnerId={currentUser?.id}
+        currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+        onDelegationComplete={() => {
+          toast.success('Responsabilidade transferida com sucesso!');
+        }}
       />
     </div>
   );

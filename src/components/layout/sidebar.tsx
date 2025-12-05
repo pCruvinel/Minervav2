@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
+  Home,
   LayoutDashboard,
   FileText,
   Users,
@@ -21,10 +22,11 @@ import {
   ChevronRight,
   LayoutGrid,
   Eye,
+  CheckCircle,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { RoleLevel } from '@/lib/types';
+import { RoleLevel, podeAcessarFinanceiro } from '@/lib/types';
 import { useSidebarContext } from './sidebar-context';
 import { cn } from '@/lib/utils';
 
@@ -33,17 +35,48 @@ import { cn } from '@/lib/utils';
 // ============================================================
 
 const visibilityByRole: Record<RoleLevel, string[]> = {
+  // Nível 10: Admin - Acesso Total
   'admin': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'diretoria': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'gestor_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'gestor_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
-  'gestor_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
-  'colaborador': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'mao_de_obra': [],
+
+  // Nível 9: Diretor - Acesso Total
+  'diretor': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Nível 6: Coord. Administrativo - Acesso Total (inclui financeiro)
+  'coord_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Nível 5: Coordenadores Setoriais - SEM acesso financeiro
+  'coord_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+  'coord_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+
+  // Nível 3: Operacionais - Básico sem financeiro
+  'operacional_admin': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_comercial': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // Nível 2: Operacionais Jr - Básico sem financeiro
+  'operacional_assessoria': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_obras': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // Nível 0: Colaborador Obra - Sem acesso ao sistema
+  'colaborador_obra': [],
 };
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/' },
+  {
+    id: 'home',
+    label: 'Início',
+    icon: Home,
+    to: '/'
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    submenu: [
+      { id: 'dashboard-home', label: 'Operacional', icon: PieChart, to: '/dashboard' },
+      { id: 'dashboard-kanban', label: 'Kanban', icon: Kanban, to: '/dashboard/kanban' },
+      { id: 'dashboard-executivo', label: 'Executivo', icon: Shield, to: '/dashboard/executivo' },
+    ]
+  },
   {
     id: 'projetos',
     label: 'Ordem de Serviço',
@@ -63,6 +96,7 @@ const menuItems = [
       { id: 'prestacao-contas', label: 'Prestação de Contas', icon: Receipt, to: '/financeiro/prestacao-contas' },
       { id: 'contas-pagar', label: 'Contas a Pagar', icon: TrendingDown, to: '/financeiro/contas-pagar' },
       { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
+      { id: 'aprovar-requisicoes', label: 'Aprovar Requisições', icon: CheckCircle, to: '/financeiro/requisicoes' },
     ]
   },
   {
@@ -112,9 +146,33 @@ export function Sidebar() {
   // Filtrar itens do menu baseado no perfil do usuário
   const getVisibleMenuItems = () => {
     if (!currentUser) return menuItems;
-    const roleSlug = currentUser.cargo_slug || currentUser.role_nivel || 'colaborador';
-    const visibleItemIds = visibilityByRole[roleSlug] || [];
-    return menuItems.filter(item => visibleItemIds.includes(item.id));
+
+    // Tentar obter o role de várias propriedades possíveis
+    const roleSlug = (
+      currentUser.cargo_slug ||
+      currentUser.role_nivel ||
+      currentUser.role ||
+      'colaborador_obra'
+    ) as RoleLevel;
+
+    const visibleItemIds = visibilityByRole[roleSlug];
+
+    // Se o role não foi encontrado ou retornou undefined, mostrar todos os itens
+    // (usuário logado mas com cargo não mapeado ainda)
+    if (!visibleItemIds || visibleItemIds.length === 0) {
+      console.warn(`[Sidebar] Role "${roleSlug}" não encontrado em visibilityByRole. Mostrando menu completo.`);
+      return menuItems;
+    }
+
+    // Filtrar itens base por role
+    let filteredItems = menuItems.filter(item => visibleItemIds.includes(item.id));
+
+    // 🆕 VERIFICAÇÃO DINÂMICA: Remover menu 'Financeiro' se usuário não tem acesso_financeiro
+    if (!podeAcessarFinanceiro(currentUser)) {
+      filteredItems = filteredItems.filter(item => item.id !== 'financeiro');
+    }
+
+    return filteredItems;
   };
 
   const visibleMenuItems = getVisibleMenuItems();

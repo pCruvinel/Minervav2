@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
 import { StepCadastroClienteContrato } from '@/components/os/assessoria/os-12/steps/step-cadastro-cliente-contrato';
 import { StepDefinicaoSLA } from '@/components/os/assessoria/os-12/steps/step-definicao-sla';
 import { StepSetupRecorrencia } from '@/components/os/assessoria/os-12/steps/step-setup-recorrencia';
@@ -13,6 +13,8 @@ import { ChevronLeft, Info } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useAuth } from '@/lib/contexts/auth-context';
+import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastro do Cliente', short: 'Cliente', responsible: 'Assessoria', status: 'active' },
@@ -29,6 +31,9 @@ interface OS12WorkflowPageProps {
 }
 
 export function OS12WorkflowPage({ onBack, osId }: OS12WorkflowPageProps) {
+    // Obter usuário atual para delegação
+    const { currentUser } = useAuth();
+
     const {
         currentStep,
         setCurrentStep,
@@ -253,7 +258,7 @@ export function OS12WorkflowPage({ onBack, osId }: OS12WorkflowPageProps) {
                 </Card>
             </div>
 
-            <WorkflowFooter
+            <WorkflowFooterWithDelegation
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -262,6 +267,14 @@ export function OS12WorkflowPage({ onBack, osId }: OS12WorkflowPageProps) {
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData}
+                // Props de delegação
+                osType="OS-12"
+                osId={osId}
+                currentOwnerId={currentUser?.id}
+                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+                onDelegationComplete={() => {
+                    toast.success('Responsabilidade transferida com sucesso!');
+                }}
             />
         </div>
     );

@@ -4,107 +4,145 @@
  * Retorna:
  * - parent: OS origem (se existir)
  * - children: OSs derivadas desta OS
+ * - rootLead: OS Lead raiz da árvore (se existir)
+ * - isContract: Se a OS atual é um contrato (OS-12/OS-13)
  * - loading: Estado de carregamento
  * - error: Erro, se houver
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import type { OrdemServico } from '@/lib/types';
 import { logger } from '@/lib/utils/logger';
 
-interface OSHierarchyResult {
-  parent: OrdemServico | null;
-  children: OrdemServico[];
-  loading: boolean;
-  error: Error | null;
+interface OSHierarchyData {
+  id: string;
+  codigo_os: string;
+  status_geral: string;
+  data_entrada: string;
+  tipo_os_id: string;
+  is_contract_active?: boolean;
+  parent_os_id?: string;
+  tipos_os?: {
+    nome: string;
+    codigo: string;
+  };
+  clientes?: {
+    nome_razao_social: string;
+  };
 }
 
+interface OSHierarchyResult {
+  parent: OSHierarchyData | null;
+  children: OSHierarchyData[];
+  rootLead: OSHierarchyData | null;
+  isContract: boolean;
+  loading: boolean;
+  error: Error | null;
+  refetch: () => void;
+}
+
+const OS_HIERARCHY_SELECT = `
+  id,
+  codigo_os,
+  status_geral,
+  data_entrada,
+  tipo_os_id,
+  is_contract_active,
+  parent_os_id,
+  tipos_os:tipo_os_id (
+    nome,
+    codigo
+  ),
+  clientes:cliente_id (
+    nome_razao_social
+  )
+`;
+
 export function useOSHierarchy(osId: string | undefined): OSHierarchyResult {
-  const [parent, setParent] = useState<OrdemServico | null>(null);
-  const [children, setChildren] = useState<OrdemServico[]>([]);
+  const [parent, setParent] = useState<OSHierarchyData | null>(null);
+  const [children, setChildren] = useState<OSHierarchyData[]>([]);
+  const [rootLead, setRootLead] = useState<OSHierarchyData | null>(null);
+  const [isContract, setIsContract] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  useEffect(() => {
+  const fetchHierarchy = useCallback(async () => {
     if (!osId) {
       setLoading(false);
       return;
     }
 
-    async function fetchHierarchy() {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // 1. Buscar OS atual para obter parent_os_id
-        const { data: currentOS, error: currentError } = await supabase
+      // 1. Buscar OS atual para obter parent_os_id e is_contract_active
+      const { data: currentOS, error: currentError } = await supabase
+        .from('ordens_servico')
+        .select('parent_os_id, is_contract_active')
+        .eq('id', osId)
+        .single();
+
+      if (currentError) throw currentError;
+
+      setIsContract(currentOS?.is_contract_active || false);
+
+      // 2. Buscar OS pai (se existir)
+      if (currentOS?.parent_os_id) {
+        const { data: parentOS, error: parentError } = await supabase
           .from('ordens_servico')
-          .select('parent_os_id')
-          .eq('id', osId)
+          .select(OS_HIERARCHY_SELECT)
+          .eq('id', currentOS.parent_os_id)
           .single();
 
-        if (currentError) throw currentError;
+        if (parentError) {
+          logger.error('Erro ao buscar OS pai:', parentError);
+        } else {
+          setParent(parentOS as unknown as OSHierarchyData);
 
-        // 2. Buscar OS pai (se existir)
-        if (currentOS?.parent_os_id) {
-          const { data: parentOS, error: parentError } = await supabase
-            .from('ordens_servico')
-            .select(`
-              id,
-              codigo_os,
-              status_geral,
-              data_entrada,
-              tipo_os_id,
-              tipos_os:tipo_os_id (
-                nome,
-                codigo
-              )
-            `)
-            .eq('id', currentOS.parent_os_id)
-            .single();
+          // 3. Se o pai tem parent_os_id, buscar o Lead raiz (recursivo até 3 níveis)
+          if (parentOS?.parent_os_id) {
+            const { data: grandparentOS } = await supabase
+              .from('ordens_servico')
+              .select(OS_HIERARCHY_SELECT)
+              .eq('id', parentOS.parent_os_id)
+              .single();
 
-          if (parentError) {
-            logger.error('Erro ao buscar OS pai:', parentError);
+            if (grandparentOS) {
+              setRootLead(grandparentOS as unknown as OSHierarchyData);
+            }
           } else {
-            setParent(parentOS as unknown as OrdemServico);
+            // O pai é o Lead raiz
+            setRootLead(parentOS as unknown as OSHierarchyData);
           }
         }
-
-        // 3. Buscar OSs filhas
-        const { data: childrenOS, error: childrenError } = await supabase
-          .from('ordens_servico')
-          .select(`
-            id,
-            codigo_os,
-            status_geral,
-            data_entrada,
-            tipo_os_id,
-            tipos_os:tipo_os_id (
-              nome,
-              codigo
-            )
-          `)
-          .eq('parent_os_id', osId)
-          .order('data_entrada', { ascending: false });
-
-        if (childrenError) {
-          logger.error('Erro ao buscar OSs filhas:', childrenError);
-        } else {
-          setChildren((childrenOS as unknown as OrdemServico[]) || []);
-        }
-
-      } catch (err) {
-        const error = err as Error;
-        logger.error('Erro ao buscar hierarquia da OS:', error);
-        setError(error);
-      } finally {
-        setLoading(false);
       }
-    }
 
-    fetchHierarchy();
+      // 4. Buscar OSs filhas
+      const { data: childrenOS, error: childrenError } = await supabase
+        .from('ordens_servico')
+        .select(OS_HIERARCHY_SELECT)
+        .eq('parent_os_id', osId)
+        .order('data_entrada', { ascending: false });
+
+      if (childrenError) {
+        logger.error('Erro ao buscar OSs filhas:', childrenError);
+      } else {
+        setChildren((childrenOS as unknown as OSHierarchyData[]) || []);
+      }
+
+    } catch (err) {
+      const error = err as Error;
+      logger.error('Erro ao buscar hierarquia da OS:', error);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
   }, [osId]);
 
-  return { parent, children, loading, error };
+  useEffect(() => {
+    fetchHierarchy();
+  }, [fetchHierarchy]);
+
+  return { parent, children, rootLead, isContract, loading, error, refetch: fetchHierarchy };
 }

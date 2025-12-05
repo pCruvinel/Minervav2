@@ -1,405 +1,601 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { cn } from '@/components/ui/utils';
-
-const CENTROS_CUSTO = [
-  'Option 01',
-  'Option 02',
-];
-
-const TIPOS_REQUISICAO = [
-  'Material',
-  'Ferramenta/Equipamento (aluguel)',
-  'Ferramenta/Equipamento (aquisição)',
-  'Logística',
-  'Documentação',
-];
+import { AlertCircle, Plus, Package, Loader2, Trash2 } from 'lucide-react';
+import { FormMaskedInput } from '@/components/ui/form-masked-input';
+import { RequisitionItemCard } from '../components';
+import { useRequisitionItems, useCreateRequisitionItem, useDeleteRequisitionItem } from '@/lib/hooks/use-requisition-items';
+import { useViaCEP } from '@/lib/hooks/use-viacep';
+import { useCentrosCusto } from '@/lib/hooks/use-os-workflows';
+import type { ItemRequisicao, DadosRequisicaoOS } from '@/lib/types';
+import { PRAZOS_NECESSIDADE } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
 
 interface StepRequisicaoCompraProps {
-  data: {
-    cnpj: string;
-    centroCusto: string;
-    tipo: string;
-    descricaoMaterial: string;
-    quantidade: string;
-    parametroPreco: string;
-    linkProduto: string;
-    localEntrega: string;
-    prazoEntrega: string;
-    observacoes: string;
-    sistema: string;
-    item: string;
-    geraRuido: string;
-    dataPrevistaInicio: string;
-    dataPrevistaFim: string;
-  };
+  data: Record<string, any>;
   onDataChange: (data: any) => void;
   readOnly?: boolean;
+  etapaId?: string;
 }
 
-export function StepRequisicaoCompra({ data, onDataChange, readOnly }: StepRequisicaoCompraProps) {
-  const handleInputChange = (field: string, value: any) => {
+/**
+ * StepRequisicaoCompra - Etapa 1 da OS-09 (Requisição de Compra)
+ *
+ * Permite gerenciar requisição de compra com dados em nível de OS
+ * (endereço de entrega e prazo) e múltiplos itens.
+ *
+ * Features:
+ * - Dados de OS: Endereço de Entrega (ViaCEP) + Prazo de Necessidade
+ * - Array dinâmico de itens (Material, Ferramenta, Equipamento, Logística, Documentação)
+ * - Integração com useRequisitionItems (CRUD no Supabase)
+ * - Cálculo de valor total da requisição
+ * - Empty state quando sem itens
+ * - Modo readOnly para navegação histórica
+ *
+ * @example
+ * ```tsx
+ * <StepRequisicaoCompra
+ *   data={etapa1Data}
+ *   onDataChange={setEtapa1Data}
+ *   etapaId={etapaId}
+ *   readOnly={false}
+ * />
+ * ```
+ */
+export function StepRequisicaoCompra({
+  data,
+  onDataChange,
+  readOnly,
+  etapaId
+}: StepRequisicaoCompraProps) {
+  // Estado local para dados da OS (endereço + prazo)
+  const [dadosOS, setDadosOS] = useState<Partial<DadosRequisicaoOS>>({
+    centro_custo_id: data.centro_custo_id || undefined,
+    prazo_necessidade: data.prazo_necessidade || undefined,
+    cep: data.cep || '',
+    logradouro: data.logradouro || '',
+    numero: data.numero || '',
+    complemento: data.complemento || '',
+    bairro: data.bairro || '',
+    cidade: data.cidade || '',
+    uf: data.uf || ''
+  });
+
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Estado local para itens (enquanto edita, antes de salvar no banco)
+  const [localItems, setLocalItems] = useState<Partial<ItemRequisicao>[]>([]);
+
+  // Hooks de integração com Supabase e ViaCEP
+  const { items: savedItems, loading, refetch } = useRequisitionItems(etapaId);
+  const { mutate: createItem, loading: creating } = useCreateRequisitionItem();
+  const { mutate: deleteItem, loading: deleting } = useDeleteRequisitionItem();
+  const { fetchCEP, loading: cepLoading } = useViaCEP();
+  const { centrosCusto, loading: loadingCC } = useCentrosCusto();
+
+  // Combinar itens salvos + itens locais (novos)
+  const allItems = [...savedItems, ...localItems];
+
+  const handleAddItem = () => {
     if (readOnly) return;
-    onDataChange({ ...data, [field]: value });
+
+    const newItem: Partial<ItemRequisicao> = {
+      tipo: undefined,
+      sub_tipo: undefined,
+      descricao: '',
+      quantidade: 0,
+      unidade_medida: undefined,
+      preco_unitario: 0,
+      link_produto: '',
+      observacao: ''
+    };
+
+    setLocalItems([...localItems, newItem]);
   };
 
-  const handleDateSelect = (field: string, date: Date | undefined) => {
+  const handleUpdateLocalItem = (index: number, updates: Partial<ItemRequisicao>) => {
     if (readOnly) return;
-    if (date) {
-      handleInputChange(field, date.toISOString());
+
+    const adjustedIndex = index - savedItems.length;
+    if (adjustedIndex < 0) return; // Item salvo, não local
+
+    const updatedLocalItems = [...localItems];
+    updatedLocalItems[adjustedIndex] = { ...updatedLocalItems[adjustedIndex], ...updates };
+    setLocalItems(updatedLocalItems);
+  };
+
+  const handleRemoveLocalItem = async (index: number) => {
+    if (readOnly) return;
+
+    const adjustedIndex = index - savedItems.length;
+    if (adjustedIndex < 0) {
+      // Item salvo no banco - deletar via API
+      const itemToDelete = savedItems[index];
+      if (itemToDelete.id) {
+        try {
+          await deleteItem(itemToDelete.id);
+          logger.log(`✅ Item ${itemToDelete.id} deletado com sucesso`);
+          await refetch();
+        } catch (error) {
+          logger.error('Erro ao deletar item:', error);
+        }
+      }
+    } else {
+      // Item local - remover do array
+      const updatedLocalItems = localItems.filter((_, i) => i !== adjustedIndex);
+      setLocalItems(updatedLocalItems);
     }
   };
 
-  const formatCNPJ = (value: string) => {
-    // Remove tudo que não é número
-    const numbers = value.replace(/\D/g, '');
-    
-    // Aplica máscara de CNPJ: 00.000.000/0000-00
-    if (numbers.length <= 14) {
-      return numbers
-        .replace(/(\d{2})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1.$2')
-        .replace(/(\d{3})(\d)/, '$1/$2')
-        .replace(/(\d{4})(\d)/, '$1-$2');
+  const handleSaveLocalItems = async () => {
+    if (!etapaId || readOnly) return;
+
+    logger.log(`💾 Salvando ${localItems.length} itens locais...`);
+
+    for (const item of localItems) {
+      // Validar campos obrigatórios do item
+      if (
+        !item.tipo ||
+        !item.descricao ||
+        !item.quantidade ||
+        !item.unidade_medida ||
+        item.preco_unitario === undefined
+      ) {
+        logger.error('Item com campos obrigatórios faltando:', item);
+        continue;
+      }
+
+      // Validar sub_tipo se necessário
+      if ((item.tipo === 'Ferramenta' || item.tipo === 'Equipamento') && !item.sub_tipo) {
+        logger.error('Sub-tipo obrigatório para Ferramenta/Equipamento:', item);
+        continue;
+      }
+
+      try {
+        await createItem({
+          etapaId,
+          item: item as Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'created_at' | 'updated_at'>
+        });
+        logger.log(`✅ Item salvo com sucesso`);
+      } catch (error) {
+        logger.error('Erro ao salvar item:', error);
+      }
     }
-    return value;
+
+    // Limpar itens locais e refetch do banco
+    setLocalItems([]);
+    await refetch();
   };
 
-  const handleCNPJChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handlers para dados da OS
+  const handleOSFieldChange = (field: keyof DadosRequisicaoOS, value: any) => {
     if (readOnly) return;
-    const formatted = formatCNPJ(e.target.value);
-    handleInputChange('cnpj', formatted);
+    setDadosOS({ ...dadosOS, [field]: value });
   };
 
-  const dataInicio = data.dataPrevistaInicio ? new Date(data.dataPrevistaInicio) : undefined;
-  const dataFim = data.dataPrevistaFim ? new Date(data.dataPrevistaFim) : undefined;
+  const handleCEPBlur = async () => {
+    if (readOnly || !dadosOS.cep) return;
+
+    setTouched({ ...touched, cep: true });
+
+    const endereco = await fetchCEP(dadosOS.cep);
+    if (endereco) {
+      setDadosOS({
+        ...dadosOS,
+        logradouro: endereco.logradouro,
+        bairro: endereco.bairro,
+        cidade: endereco.localidade,
+        uf: endereco.uf,
+        complemento: endereco.complemento || dadosOS.complemento
+      });
+    }
+  };
+
+  // Cálculo de resumo
+  const totalItems = allItems.length;
+  const valorTotalRequisicao = allItems.reduce(
+    (sum, item) => sum + (item.quantidade || 0) * (item.preco_unitario || 0),
+    0
+  );
+
+  // Validação dos dados da OS
+  const dadosOSCompletos = !!(
+    dadosOS.centro_custo_id &&
+    dadosOS.prazo_necessidade &&
+    dadosOS.cep &&
+    dadosOS.logradouro &&
+    dadosOS.numero &&
+    dadosOS.bairro &&
+    dadosOS.cidade &&
+    dadosOS.uf
+  );
+
+  // Fluxo progressivo: CC + Prazo devem ser preenchidos primeiro
+  const camposPrincipaisPreenchidos = Boolean(
+    dadosOS.centro_custo_id &&
+    dadosOS.prazo_necessidade
+  );
+
+  // Sincronizar com parent component para validação de completude
+  React.useEffect(() => {
+    onDataChange({
+      totalItems,
+      valorTotal: valorTotalRequisicao,
+      hasItems: totalItems > 0,
+      dadosOSCompletos,
+      ...dadosOS
+    });
+  }, [totalItems, valorTotalRequisicao, dadosOS, dadosOSCompletos]);
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
         <h2 className="text-xl mb-1">Requisição de Compra</h2>
         <p className="text-sm text-muted-foreground">
-          Preencha os dados da requisição de compra de material ou serviço
+          Preencha os dados da requisição e adicione os itens necessários
         </p>
       </div>
 
-      {/* Informações Básicas */}
-      <div className="space-y-4">
-        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
-          Informações Básicas
-        </h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Dados da Requisição (OS Level) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Dados da Requisição</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Centro de Custo */}
           <div className="space-y-2">
-            <Label htmlFor="cnpj">
-              CNPJ <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="cnpj"
-              value={data.cnpj}
-              onChange={handleCNPJChange}
-              placeholder="00.000.000/0000-00"
-              maxLength={18}
-              disabled={readOnly}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="centroCusto">
-              Centro de Custo da Requisição <span className="text-destructive">*</span>
+            <Label htmlFor="centro-custo">
+              Centro de Custo <span className="text-destructive">*</span>
             </Label>
             <Select
-              value={data.centroCusto}
-              onValueChange={(value: string) => handleInputChange('centroCusto', value)}
-              disabled={readOnly}
+              value={dadosOS.centro_custo_id || ''}
+              onValueChange={(value) => handleOSFieldChange('centro_custo_id', value)}
+              disabled={readOnly || loadingCC}
             >
-              <SelectTrigger id="centroCusto">
-                <SelectValue placeholder="Selecione o centro de custo" />
+              <SelectTrigger id="centro-custo">
+                <SelectValue placeholder={
+                  loadingCC ? 'Carregando centros de custo...' : 'Selecione o centro de custo'
+                } />
               </SelectTrigger>
               <SelectContent>
-                {CENTROS_CUSTO.map((centro) => (
-                  <SelectItem key={centro} value={centro}>
-                    {centro}
+                {centrosCusto?.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{cc.nome}</span>
+                      {cc.cliente?.nome_razao_social && (
+                        <span className="text-xs text-muted-foreground">
+                          ({cc.cliente.nome_razao_social})
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!dadosOS.centro_custo_id && touched.centro_custo_id && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                Centro de custo é obrigatório
+              </p>
+            )}
+          </div>
+
+          {/* Prazo de Necessidade */}
+          <div className="space-y-2">
+            <Label htmlFor="prazo-necessidade">
+              Prazo de Necessidade <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={dadosOS.prazo_necessidade}
+              onValueChange={(value) => handleOSFieldChange('prazo_necessidade', value)}
+              disabled={readOnly}
+            >
+              <SelectTrigger id="prazo-necessidade">
+                <SelectValue placeholder="Selecione o prazo" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRAZOS_NECESSIDADE.map((prazo) => (
+                  <SelectItem key={prazo.value} value={prazo.value}>
+                    {prazo.label}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="tipo">
-              Tipo <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={data.tipo}
-              onValueChange={(value: string) => handleInputChange('tipo', value)}
-              disabled={readOnly}
+          {/* Endereço de Entrega - Só aparece após selecionar CC + Prazo */}
+          {camposPrincipaisPreenchidos && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
+                Endereço de Entrega
+              </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cep">
+                  CEP <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <FormMaskedInput
+                    id="cep"
+                    maskType="cep"
+                    value={dadosOS.cep || ''}
+                    onChange={(e) => handleOSFieldChange('cep', e.target.value)}
+                    onBlur={handleCEPBlur}
+                    placeholder="00000-000"
+                    disabled={readOnly}
+                  />
+                  {cepLoading && (
+                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="logradouro">
+                  Logradouro <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="logradouro"
+                  value={dadosOS.logradouro || ''}
+                  onChange={(e) => handleOSFieldChange('logradouro', e.target.value)}
+                  placeholder="Rua, Avenida, etc."
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="numero">
+                  Número <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="numero"
+                  value={dadosOS.numero || ''}
+                  onChange={(e) => handleOSFieldChange('numero', e.target.value)}
+                  placeholder="123"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complemento">Complemento</Label>
+                <Input
+                  id="complemento"
+                  value={dadosOS.complemento || ''}
+                  onChange={(e) => handleOSFieldChange('complemento', e.target.value)}
+                  placeholder="Apto, Bloco, etc."
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bairro">
+                  Bairro <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="bairro"
+                  value={dadosOS.bairro || ''}
+                  onChange={(e) => handleOSFieldChange('bairro', e.target.value)}
+                  placeholder="Bairro"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cidade">
+                  Cidade <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="cidade"
+                  value={dadosOS.cidade || ''}
+                  onChange={(e) => handleOSFieldChange('cidade', e.target.value)}
+                  placeholder="Cidade"
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="uf">
+                  UF <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="uf"
+                  value={dadosOS.uf || ''}
+                  onChange={(e) => handleOSFieldChange('uf', e.target.value.toUpperCase())}
+                  placeholder="SP"
+                  maxLength={2}
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Seção de Itens - Só aparece após selecionar CC + Prazo */}
+      {camposPrincipaisPreenchidos && (
+        <>
+          {/* Botão Adicionar */}
+          {!readOnly && (
+            <Button
+              onClick={handleAddItem}
+              disabled={loading || creating || deleting}
+              className="w-full md:w-auto"
             >
-              <SelectTrigger id="tipo">
-                <SelectValue placeholder="Selecione o tipo de requisição" />
-              </SelectTrigger>
-              <SelectContent>
-                {TIPOS_REQUISICAO.map((tipo) => (
-                  <SelectItem key={tipo} value={tipo}>
-                    {tipo}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Item
+            </Button>
+          )}
 
-      {/* Detalhes do Material/Serviço */}
-      <div className="space-y-4">
-        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
-          Detalhes do Material/Serviço
-        </h3>
+      {/* Tabela de Itens Salvos */}
+      {savedItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Itens da Requisição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">#</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Tipo</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Descrição</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Qtd</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Un.</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Preço Unit.</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                    {!readOnly && <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedItems.map((item, index) => {
+                    const total = (item.quantidade || 0) * (item.preco_unitario || 0);
+                    return (
+                      <tr key={item.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="py-3 px-4 text-sm font-mono text-muted-foreground">{index + 1}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <div>
+                            <div className="font-medium">{item.tipo}</div>
+                            {item.sub_tipo && <div className="text-xs text-muted-foreground">{item.sub_tipo}</div>}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm max-w-md">
+                          <div className="truncate" title={item.descricao}>{item.descricao}</div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right font-medium">{item.quantidade}</td>
+                        <td className="py-3 px-4 text-sm">{item.unidade_medida}</td>
+                        <td className="py-3 px-4 text-sm text-right">
+                          R$ {(item.preco_unitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right font-semibold">
+                          R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        {!readOnly && (
+                          <td className="py-3 px-4 text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveLocalItem(index)}
+                              disabled={deleting}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
+      {/* Cards de Itens em Edição (Locais) */}
+      {localItems.length > 0 && (
         <div className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="descricaoMaterial">
-              Descrição do Material <span className="text-destructive">*</span>
-            </Label>
-            <Textarea
-              id="descricaoMaterial"
-              value={data.descricaoMaterial}
-              onChange={(e) => handleInputChange('descricaoMaterial', e.target.value)}
-              placeholder="Descreva detalhadamente o material ou serviço solicitado"
-              rows={3}
-              disabled={readOnly}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="quantidade">
-                Quantidade (Especifique a unidade de medida) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="quantidade"
-                value={data.quantidade}
-                onChange={(e) => handleInputChange('quantidade', e.target.value)}
-                placeholder="Ex: 100 unidades, 50 metros, etc."
-                disabled={readOnly}
+          <h3 className="text-sm font-medium text-muted-foreground">Itens em Edição</h3>
+          {localItems.map((item, localIndex) => {
+            const globalIndex = savedItems.length + localIndex;
+            return (
+              <RequisitionItemCard
+                key={`local-${localIndex}`}
+                item={item}
+                index={globalIndex}
+                onChange={(updates) => handleUpdateLocalItem(globalIndex, updates)}
+                onRemove={() => handleRemoveLocalItem(globalIndex)}
+                readOnly={readOnly}
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="parametroPreco">
-                Parâmetro de Preço Unitário <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="parametroPreco"
-                value={data.parametroPreco}
-                onChange={(e) => handleInputChange('parametroPreco', e.target.value)}
-                placeholder="Ex: R$ 50,00"
-                disabled={readOnly}
-              />
-            </div>
-
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="linkProduto">
-                Anexe Link de Produto Parâmetro <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="linkProduto"
-                type="url"
-                value={data.linkProduto}
-                onChange={(e) => handleInputChange('linkProduto', e.target.value)}
-                placeholder="https://exemplo.com/produto"
-                disabled={readOnly}
-              />
-            </div>
-          </div>
+            );
+          })}
         </div>
-      </div>
+      )}
 
-      {/* Entrega */}
-      <div className="space-y-4">
-        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
-          Informações de Entrega
-        </h3>
+      {/* Empty State */}
+      {savedItems.length === 0 && localItems.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Package className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum item adicionado</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Clique no botão "Adicionar Item" para começar
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="localEntrega">
-              Local de Entrega <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="localEntrega"
-              value={data.localEntrega}
-              onChange={(e) => handleInputChange('localEntrega', e.target.value)}
-              placeholder="Endereço completo de entrega"
-              disabled={readOnly}
-            />
-          </div>
+      {/* Botão Salvar Itens Locais */}
+      {localItems.length > 0 && !readOnly && (
+        <Button
+          onClick={handleSaveLocalItems}
+          disabled={creating || !etapaId}
+          variant="default"
+          className="w-full"
+        >
+          {creating ? 'Salvando...' : `Salvar ${localItems.length} ${localItems.length === 1 ? 'Item' : 'Itens'}`}
+        </Button>
+      )}
 
-          <div className="space-y-2">
-            <Label htmlFor="prazoEntrega">
-              Prazo de Entrega <span className="text-destructive">*</span>
-            </Label>
-            <Input
-              id="prazoEntrega"
-              value={data.prazoEntrega}
-              onChange={(e) => handleInputChange('prazoEntrega', e.target.value)}
-              placeholder="Ex: 15 dias úteis"
-              disabled={readOnly}
-            />
-          </div>
-
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="observacoes">Observações</Label>
-            <Textarea
-              id="observacoes"
-              value={data.observacoes}
-              onChange={(e) => handleInputChange('observacoes', e.target.value)}
-              placeholder="Observações adicionais sobre a requisição"
-              rows={3}
-              disabled={readOnly}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Produtos Adicionados */}
-      <div className="space-y-4">
-        <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
-          Produtos Adicionados
-        </h3>
-
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="sistema">
-                Sistema <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="sistema"
-                value={data.sistema}
-                onChange={(e) => handleInputChange('sistema', e.target.value)}
-                placeholder="Ex: Sistema Hidráulico, Elétrico, etc."
-                disabled={readOnly}
-              />
+      {/* Resumo */}
+      {totalItems > 0 && (
+        <Card className="border-border">
+          <CardContent className="pt-6 pb-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Total de Itens:</span>
+                <span className="text-base font-semibold">{totalItems}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Valor Total:</span>
+                <span className="text-xl font-bold">
+                  R$ {valorTotalRequisicao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+        </>
+      )}
 
-            <div className="space-y-2">
-              <Label htmlFor="item">
-                Item (o que será feito) <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="item"
-                value={data.item}
-                onChange={(e) => handleInputChange('item', e.target.value)}
-                placeholder="Descreva o que será feito"
-                disabled={readOnly}
-              />
-            </div>
+      {/* Mensagem quando CC + Prazo não preenchidos */}
+      {!camposPrincipaisPreenchidos && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Campos Obrigatórios</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione o Centro de Custo e o Prazo de Necessidade para prosseguir
+            </p>
+          </CardContent>
+        </Card>
+      )}
 
-            <div className="space-y-2">
-              <Label htmlFor="geraRuido">
-                Gera Ruído? <span className="text-destructive">*</span>
-              </Label>
-              <Select
-                value={data.geraRuido}
-                onValueChange={(value: string) => handleInputChange('geraRuido', value)}
-                disabled={readOnly}
-              >
-                <SelectTrigger id="geraRuido">
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sim">Sim</SelectItem>
-                  <SelectItem value="nao">Não</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Datas Previstas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>
-                Data Prevista Início <span className="text-destructive">*</span>
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !dataInicio && 'text-muted-foreground'
-                    )}
-                    disabled={readOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataInicio ? format(dataInicio, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataInicio}
-                    onSelect={(date: Date | undefined) => handleDateSelect('dataPrevistaInicio', date)}
-                    locale={ptBR}
-                    initialFocus
-                    disabled={readOnly}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-
-            <div className="space-y-2">
-              <Label>
-                Data Prevista Fim <span className="text-destructive">*</span>
-              </Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !dataFim && 'text-muted-foreground'
-                    )}
-                    disabled={readOnly}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dataFim ? format(dataFim, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione a data'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={dataFim}
-                    onSelect={(date: Date | undefined) => handleDateSelect('dataPrevistaFim', date)}
-                    locale={ptBR}
-                    disabled={(date: Date) => (dataInicio ? date < dataInicio : false) || !!readOnly}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
-          Certifique-se de preencher todas as informações antes de avançar.
-        </AlertDescription>
-      </Alert>
+      {/* Aviso */}
+      {camposPrincipaisPreenchidos && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {totalItems === 0
+              ? 'Adicione pelo menos 1 item para continuar.'
+              : `${totalItems} ${totalItems === 1 ? 'item adicionado' : 'itens adicionados'}. Revise os dados antes de avançar.`}
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 }
