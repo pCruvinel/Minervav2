@@ -69,6 +69,7 @@ export function ColaboradorDetalhesPage() {
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);
     const [modalEdicaoOpen, setModalEdicaoOpen] = useState(false);
+    const [isResendingInvite, setIsResendingInvite] = useState(false);
 
     // Fetch Data
     const fetchData = async () => {
@@ -224,6 +225,39 @@ export function ColaboradorDetalhesPage() {
         }
     };
 
+    // Reenviar convite por email
+    const handleReenviarConvite = async () => {
+        if (!colaborador?.email) {
+            toast.error('Colaborador não possui email cadastrado');
+            return;
+        }
+
+        setIsResendingInvite(true);
+        try {
+            const { error } = await supabase.functions.invoke('invite-user', {
+                body: {
+                    invites: [{
+                        email: colaborador.email,
+                        nome: colaborador.nome_completo || colaborador.nome,
+                        cargo_id: colaborador.cargo_id,
+                        setor_id: colaborador.setor_id,
+                    }],
+                    redirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+
+            if (error) throw error;
+            toast.success('Convite reenviado com sucesso!', {
+                description: `Email enviado para ${colaborador.email}`
+            });
+        } catch (err) {
+            console.error('Erro ao reenviar convite:', err);
+            toast.error('Erro ao reenviar convite');
+        } finally {
+            setIsResendingInvite(false);
+        }
+    };
+
     // Calculations
     const calculateFinancialStats = () => {
         if (!colaborador) return { monthlyData: [], totalCost: 0, avgAttendance: 0 };
@@ -304,10 +338,27 @@ export function ColaboradorDetalhesPage() {
                     </div>
                 </div>
 
-                <Button variant="outline" onClick={() => setModalEdicaoOpen(true)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    Editar Cadastro
-                </Button>
+                <div className="flex items-center gap-2">
+                    {/* Botão Reenviar Convite - só aparece se não for ativo */}
+                    {colaborador.status_convite && colaborador.status_convite !== 'ativo' && (
+                        <Button
+                            variant="outline"
+                            onClick={handleReenviarConvite}
+                            disabled={isResendingInvite}
+                        >
+                            {isResendingInvite ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <Mail className="mr-2 h-4 w-4" />
+                            )}
+                            Reenviar Convite
+                        </Button>
+                    )}
+                    <Button variant="outline" onClick={() => setModalEdicaoOpen(true)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar Cadastro
+                    </Button>
+                </div>
             </div>
 
             <Tabs defaultValue="overview" className="w-full">

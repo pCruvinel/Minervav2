@@ -9,19 +9,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Loader2 } from 'lucide-react';
 import {
-  Plus,
+  Mail,
   Search,
   User,
-  Mail,
-
+  Send,
   Building2,
   Briefcase,
   Eye,
-
+  Clock,
+  CheckCircle2,
 } from 'lucide-react';
-import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
+import { ModalConviteColaborador } from './modal-convite-colaborador';
 import { colaboradoresAPI } from '../../lib/api-client';
-import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
 interface Colaborador {
@@ -39,6 +38,7 @@ interface Colaborador {
   tipo_contratacao: string | null;
   custo_dia: number | null;
   ativo: boolean;
+  status_convite?: string | null;
   data_admissao: string | null;
   cargos?: { nome: string } | null;
   setores?: { nome: string } | null;
@@ -50,8 +50,7 @@ export function ColaboradoresListaPage() {
   const [filtro, setFiltro] = useState('');
   const [setorFilter, setSetorFilter] = useState('todos');
   const [statusFilter] = useState('todos');
-  const [colaboradorEdicao, setColaboradorEdicao] = useState<Colaborador | null>(null);
-  const [modalCadastroOpen, setModalCadastroOpen] = useState(false);
+  const [modalConviteOpen, setModalConviteOpen] = useState(false);
 
   // Buscar colaboradores da API
   useEffect(() => {
@@ -100,56 +99,14 @@ export function ColaboradoresListaPage() {
     return matchesSearch && matchesSetor && matchesStatus;
   });
 
-  const handleNovoCadastro = () => {
-    setColaboradorEdicao(null);
-    setModalCadastroOpen(true);
+  const handleConvidar = () => {
+    setModalConviteOpen(true);
   };
 
-
-
-  const handleSalvarColaborador = async (dados: any) => {
-    try {
-      setLoading(true);
-
-      if (colaboradorEdicao) {
-        // Atualizar
-        const { error } = await supabase
-          .from('colaboradores')
-          .update(dados)
-          .eq('id', colaboradorEdicao.id);
-
-        if (error) throw error;
-        toast.success('Colaborador atualizado com sucesso!');
-      } else {
-        // Criar
-        const dadosParaSalvar = {
-          ...dados,
-          id: crypto.randomUUID(),
-        };
-
-        const { error } = await supabase
-          .from('colaboradores')
-          .insert(dadosParaSalvar);
-
-        if (error) throw error;
-        toast.success('Colaborador criado com sucesso!');
-      }
-
-      setModalCadastroOpen(false);
-      setColaboradorEdicao(null);
-
-      // Recarregar lista
-      const data = await colaboradoresAPI.list();
-      setColaboradores(data);
-
-    } catch (error) {
-      logger.error('Erro ao salvar colaborador:', error);
-      toast.error('Erro ao salvar colaborador', {
-        description: 'Ocorreu um erro ao tentar salvar os dados.',
-      });
-    } finally {
-      setLoading(false);
-    }
+  const handleConviteSuccess = async () => {
+    // Recarregar lista após enviar convites
+    const data = await colaboradoresAPI.list();
+    setColaboradores(data);
   };
 
   return (
@@ -159,12 +116,12 @@ export function ColaboradoresListaPage() {
         <div>
           <h1 className="text-3xl mb-2">Gestão de Colaboradores</h1>
           <p className="text-muted-foreground">
-            Cadastro completo de colaboradores (Fluxo OS Tipo 10)
+            Gerencia os documentos e informações de todos os Colaboradores.
           </p>
         </div>
-        <Button onClick={handleNovoCadastro}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Colaborador
+        <Button onClick={handleConvidar}>
+          <Send className="mr-2 h-4 w-4" />
+          Convidar Colaborador
         </Button>
       </div>
 
@@ -318,9 +275,7 @@ export function ColaboradoresListaPage() {
                       {colaborador.custo_dia ? formatCurrency(colaborador.custo_dia) : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={colaborador.ativo ? 'default' : 'destructive'}>
-                        {colaborador.ativo ? 'ATIVO' : 'INATIVO'}
-                      </Badge>
+                      {renderStatusBadge(colaborador)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -339,16 +294,53 @@ export function ColaboradoresListaPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de Cadastro */}
-      <ModalCadastroColaborador
-        open={modalCadastroOpen}
-        onClose={() => {
-          setModalCadastroOpen(false);
-          setColaboradorEdicao(null);
-        }}
-        colaborador={colaboradorEdicao}
-        onSalvar={handleSalvarColaborador}
+      {/* Modal de Convite */}
+      <ModalConviteColaborador
+        open={modalConviteOpen}
+        onClose={() => setModalConviteOpen(false)}
+        onSuccess={handleConviteSuccess}
       />
     </div>
   );
+}
+
+// Helper para badge de status
+function renderStatusBadge(colaborador: Colaborador) {
+  const status = colaborador.status_convite || (colaborador.ativo ? 'ativo' : 'inativo');
+
+  switch (status) {
+    case 'pendente':
+    case 'convidado':
+      return (
+        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+          <Clock className="h-3 w-3 mr-1" />
+          Pendente
+        </Badge>
+      );
+    case 'aceito':
+      return (
+        <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/30">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Aceito
+        </Badge>
+      );
+    case 'ativo':
+      return (
+        <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/30">
+          Ativo
+        </Badge>
+      );
+    case 'inativo':
+      return (
+        <Badge variant="destructive">
+          Inativo
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant={colaborador.ativo ? 'default' : 'destructive'}>
+          {colaborador.ativo ? 'ATIVO' : 'INATIVO'}
+        </Badge>
+      );
+  }
 }

@@ -139,6 +139,26 @@
 
 ---
 
+### 9.5. `agendamentos` - Sistema de Agendamentos
+
+| Coluna | Tipo | Descrição |
+|:-------|:-----|:----------|
+| `id` | uuid | PK |
+| `turno_id` | uuid | FK para tabela de turnos |
+| `data` | date | Data do agendamento |
+| `horario_inicio` | time | Horário de início |
+| `horario_fim` | time | Horário de término |
+| `duracao_horas` | numeric | Duração em horas |
+| `categoria` | text | Tipo: 'Vistoria Inicial', 'Vistoria Técnica', etc. |
+| `setor` | text | Setor do agendamento |
+| `os_id` | uuid | FK para `ordens_servico` (opcional) |
+| `responsavel_id` | uuid | FK para `colaboradores` - **Executor** (dono da agenda) |
+| `criado_por` | uuid | FK para `colaboradores` - **Agendador** (audit) |
+| `status` | text | 'confirmado', 'cancelado', 'realizado', 'ausente' |
+
+> **Semântica:** `responsavel_id` = quem vai executar (agenda bloqueada).
+> `criado_por` = quem criou o registro (rastreabilidade).
+
 ## 🆕 Novas Tabelas v2.6 (Financeiro & Cobrança)
 
 ### 10. `contas_pagar` - Contas a Pagar

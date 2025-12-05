@@ -73,9 +73,9 @@ export function useOSDocumentUpload(osId: string) {
 
       setUploadProgress(20);
 
-      // 2. Upload para Supabase Storage (bucket: uploads)
+      // 2. Upload para Supabase Storage (bucket: os-documents)
       const { error: uploadError } = await supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .upload(path, file, {
           contentType: file.type,
           upsert: false
@@ -90,7 +90,7 @@ export function useOSDocumentUpload(osId: string) {
 
       // 3. Obter URL pública
       const { data: urlData } = supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .getPublicUrl(path);
 
       setUploadProgress(80);
@@ -160,7 +160,7 @@ export function useOSDocumentUpload(osId: string) {
 
       // 2. Deletar do storage
       const { error: storageError } = await supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .remove([documento.caminho_arquivo]);
 
       if (storageError) {

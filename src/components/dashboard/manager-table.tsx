@@ -70,11 +70,11 @@ const SETORES: { value: SetorSlug | 'todos'; label: string }[] = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    em_triagem: { label: 'Em Triagem', className: 'bg-muted text-muted-foreground' },
-    em_andamento: { label: 'Em Andamento', className: 'bg-warning/20 text-warning-foreground' },
-    aguardando_aprovacao: { label: 'Aguardando', className: 'bg-orange-500/20 text-orange-700' },
-    concluida: { label: 'Concluída', className: 'bg-success/20 text-success' },
-    cancelada: { label: 'Cancelada', className: 'bg-destructive/20 text-destructive' },
+    em_triagem: { label: 'Em Triagem', className: 'bg-warning/10 text-warning border-warning/20' },
+    em_andamento: { label: 'Em Andamento', className: 'bg-info/10 text-info border-info/20' },
+    aguardando_aprovacao: { label: 'Aguardando', className: 'bg-warning/10 text-warning border-warning/20' },
+    concluida: { label: 'Concluída', className: 'bg-success/10 text-success border-success/20' },
+    cancelada: { label: 'Cancelada', className: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
 // ============================================================
@@ -183,8 +183,8 @@ export function ManagerTable({
     };
 
     const getStatusBadge = (status: string) => {
-        const config = STATUS_CONFIG[status] || { label: status, className: 'bg-muted' };
-        return <Badge className={config.className}>{config.label}</Badge>;
+        const config = STATUS_CONFIG[status] || { label: status, className: 'bg-muted text-muted-foreground' };
+        return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
     };
 
     return (

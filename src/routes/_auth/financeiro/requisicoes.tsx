@@ -1,28 +1,14 @@
 import { createFileRoute, redirect } from '@tanstack/react-router';
-import { PurchaseApprovalBoard } from '@/components/financeiro/purchase-approval-board';
 
+/**
+ * Rota legada - redireciona para /financeiro/compras
+ * Mantida para compatibilidade com links antigos
+ */
 export const Route = createFileRoute('/_auth/financeiro/requisicoes')({
-  component: RequisicoesRoute,
-  beforeLoad: ({ context }) => {
-    const { currentUser } = context.auth;
-    const cargoSlug = currentUser?.cargo_slug || currentUser?.role_nivel;
-
-    // RBAC: Apenas admin, diretor, coord_administrativo (novos slugs)
-    const CARGOS_PERMITIDOS = ['admin', 'diretor', 'coord_administrativo'];
-
-    if (!cargoSlug || !CARGOS_PERMITIDOS.includes(cargoSlug)) {
-      throw redirect({
-        to: '/',
-        search: { error: 'sem-permissao-financeiro' }
-      });
-    }
-  }
+  beforeLoad: () => {
+    // Redirecionar para a nova rota de Gestão de Compras
+    throw redirect({
+      to: '/financeiro/compras',
+    });
+  },
 });
-
-function RequisicoesRoute() {
-  return (
-    <div className="container mx-auto py-8">
-      <PurchaseApprovalBoard />
-    </div>
-  );
-}

@@ -89,7 +89,7 @@ export function DashboardPage() {
         <div className="space-y-6">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-semibold mb-2">Dashboard Executivo</h1>
+            <h1 className="text-3xl font-semibold mb-2">Dashboard</h1>
             <p className="text-muted-foreground">
               Visão geral completa do sistema • Atualizado em tempo real
             </p>

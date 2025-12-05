@@ -6,15 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     ArrowLeft,
     FileText,
-    Upload,
-    Download,
     Calendar,
     User,
     Clock,
@@ -35,6 +32,7 @@ import {
     Code
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
+import { OSDocumentsTab } from '../../tabs/os-documents-tab';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
@@ -304,12 +302,8 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
     const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
     const [activities, setActivities] = useState<ActivityItem[]>([]);
-    const [documents, setDocuments] = useState<Document[]>([]);
-    const [activeTab, setActiveTab] = useState('overview');
     const [newComment, setNewComment] = useState('');
     const [isNavigating, setIsNavigating] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
-    const [uploadProgress, setUploadProgress] = useState(0);
 
     // Pagination and filtering states
     const [commentsPage, setCommentsPage] = useState(1);
@@ -527,41 +521,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                 setActivities([]);
             }
 
-            // Load documents (with error handling)
-            try {
-                const { data: documentsData, error: documentsError } = await supabase
-                    .from('os_documentos')
-                    .select(`
-                        id,
-                        nome,
-                        tipo,
-                        tamanho_bytes,
-                        criado_em,
-                        caminho_arquivo,
-                        colaboradores!inner(nome_completo)
-                    `)
-                    .eq('os_id', osId)
-                    .order('criado_em', { ascending: false });
-
-                if (documentsError) {
-                    console.warn('Erro ao carregar documentos:', documentsError);
-                    setDocuments([]);
-                } else {
-                    const formattedDocuments = documentsData?.map(d => ({
-                        id: d.id,
-                        nome: d.nome,
-                        tipo: d.tipo,
-                        tamanho_bytes: d.tamanho_bytes,
-                        criado_em: d.criado_em,
-                        caminho_arquivo: d.caminho_arquivo,
-                        uploaded_by_nome: (d.colaboradores as any)?.nome_completo || 'Usuário'
-                    })) || [];
-                    setDocuments(formattedDocuments);
-                }
-            } catch (documentsError) {
-                console.warn('Erro ao carregar documentos:', documentsError);
-                setDocuments([]);
-            }
+            // Documents loading removed - handled by OSDockumentsTab
 
         } catch (error) {
             console.error('Erro crítico ao carregar dados da OS:', error);
@@ -611,93 +571,6 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
         } catch (error) {
             console.error('Erro ao adicionar comentário:', error);
             toast.error('Erro ao adicionar comentário');
-        }
-    };
-
-    const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
-
-        // Validações básicas
-        const maxSize = 10 * 1024 * 1024; // 10MB
-        if (file.size > maxSize) {
-            toast.error('Arquivo muito grande. Máximo 10MB.');
-            return;
-        }
-
-        const allowedTypes = [
-            'application/pdf',
-            'image/jpeg',
-            'image/png',
-            'image/gif',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        ];
-
-        if (!allowedTypes.includes(file.type)) {
-            toast.error('Tipo de arquivo não permitido. Use PDF, imagens ou documentos Word.');
-            return;
-        }
-
-        try {
-            setIsUploading(true);
-            setUploadProgress(0);
-
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) throw new Error('Usuário não autenticado');
-
-            // Simular progresso
-            const progressInterval = setInterval(() => {
-                setUploadProgress(prev => Math.min(prev + 10, 90));
-            }, 200);
-
-            // Upload para Supabase Storage
-            const fileExt = file.name.split('.').pop();
-            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-            const filePath = `os/${osId}/${fileName}`;
-
-            const { error: uploadError } = await supabase.storage
-                .from('os-documents')
-                .upload(filePath, file);
-
-            if (uploadError) throw uploadError;
-
-            clearInterval(progressInterval);
-            setUploadProgress(100);
-
-            // Registrar no banco
-            const { error: dbError } = await supabase
-                .from('os_documentos')
-                .insert({
-                    os_id: osId,
-                    nome: file.name,
-                    tipo: file.type,
-                    caminho_arquivo: filePath,
-                    tamanho_bytes: file.size,
-                    uploaded_by: user.id
-                });
-
-            if (dbError) throw dbError;
-
-            // Log activity
-            await supabase.rpc('registrar_atividade_os', {
-                p_os_id: osId,
-                p_usuario_id: user.id,
-                p_tipo: 'documento_upload',
-                p_descricao: `Documento "${file.name}" foi enviado`
-            });
-
-            toast.success('Documento enviado com sucesso!');
-            loadOSData(); // Recarregar dados
-
-        } catch (error) {
-            console.error('Erro no upload:', error);
-            toast.error('Erro ao enviar documento. Tente novamente.');
-        } finally {
-            setIsUploading(false);
-            setUploadProgress(0);
-            // Limpar input file
-            event.target.value = '';
         }
     };
 
@@ -774,37 +647,6 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
             toast.error('Erro ao navegar para a etapa');
         } finally {
             setIsNavigating(false);
-        }
-    };
-
-    const handleFileDownload = async (doc: Document) => {
-        try {
-            if (!doc.caminho_arquivo) {
-                toast.error('Caminho do arquivo não encontrado');
-                return;
-            }
-
-            const { data, error } = await supabase.storage
-                .from('os-documents')
-                .download(doc.caminho_arquivo);
-
-            if (error) throw error;
-
-            // Criar URL de download
-            const url = URL.createObjectURL(data);
-            const link = window.document.createElement('a');
-            link.href = url;
-            link.download = doc.nome;
-            window.document.body.appendChild(link);
-            link.click();
-            window.document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            toast.success('Download iniciado');
-
-        } catch (error) {
-            console.error('Erro no download:', error);
-            toast.error('Erro ao baixar arquivo');
         }
     };
 
@@ -1192,108 +1034,11 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
 
                     {/* Documents Tab */}
                     <TabsContent value="documents" className="space-y-6">
-                        <Card className="border-border rounded-lg shadow-sm">
-                            <CardHeader>
-                                <div className="flex items-center justify-between">
-                                    <CardTitle className="text-xl font-semibold">Documentos Vinculados</CardTitle>
-                                    <div className="flex items-center gap-2">
-                                        {isUploading && (
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Loader2 className="w-4 h-4 animate-spin" />
-                                                <span>Enviando... {uploadProgress}%</span>
-                                            </div>
-                                        )}
-                                        <Button
-                                            size="sm"
-                                            className="rounded-md"
-                                            disabled={isUploading}
-                                            onClick={() => document.getElementById('file-upload')?.click()}
-                                        >
-                                            <Upload className="w-4 h-4 mr-2" />
-                                            Upload
-                                        </Button>
-                                        <input
-                                            id="file-upload"
-                                            type="file"
-                                            className="hidden"
-                                            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                                            onChange={handleFileUpload}
-                                            disabled={isUploading}
-                                        />
-                                    </div>
-                                </div>
-                            </CardHeader>
-                            <CardContent>
-                                {documents.length === 0 ? (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <Paperclip className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                        <p>Nenhum documento vinculado ainda</p>
-                                        <p className="text-sm">Os documentos gerados no workflow aparecerão aqui</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {documents.map(doc => (
-                                            <div
-                                                key={doc.id}
-                                                className="flex items-center justify-between p-3 bg-background rounded-md hover:bg-muted transition-colors border border-border"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <FileText className="w-5 h-5 text-primary flex-shrink-0" />
-                                                    <div>
-                                                        <p className="font-medium">{doc.nome}</p>
-                                                        <p className="text-sm text-muted-foreground">
-                                                            {doc.uploaded_by_nome} • {formatDate(doc.criado_em)}
-                                                            {doc.tamanho_bytes && ` • ${(doc.tamanho_bytes / 1024 / 1024).toFixed(2)} MB`}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() => handleFileDownload(doc)}
-                                                    disabled={!doc.caminho_arquivo}
-                                                >
-                                                    <Download className="w-4 h-4" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
+                        <OSDocumentsTab osId={osId} />
                     </TabsContent>
 
                     {/* Comments Tab */}
                     <TabsContent value="comments" className="space-y-6">
-                        {/* Filters and Search */}
-                        <Card className="border-border rounded-lg shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold">Filtros e Busca</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <div className="flex-1">
-                                        <Input
-                                            placeholder="Buscar comentários..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full"
-                                        />
-                                    </div>
-                                    <Select value={commentFilter} onValueChange={(value: any) => setCommentFilter(value)}>
-                                        <SelectTrigger className="w-full sm:w-48">
-                                            <SelectValue placeholder="Filtrar por tipo" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="all">Todos os tipos</SelectItem>
-                                            <SelectItem value="comentario">Comentários</SelectItem>
-                                            <SelectItem value="sistema">Sistema</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </CardContent>
-                        </Card>
-
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                             {/* Comments List */}
                             <div className="lg:col-span-2">
@@ -1305,13 +1050,13 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent>
-                                        <ScrollArea className="h-96">
+                                        <ScrollArea className="h-[500px]">
                                             <div className="space-y-4">
                                                 {comments.length === 0 ? (
                                                     <div className="text-center py-8 text-muted-foreground">
                                                         <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
                                                         <p>Nenhum comentário encontrado</p>
-                                                        <p className="text-sm">Tente ajustar os filtros de busca</p>
+                                                        <p className="text-sm">Seja o primeiro a comentar.</p>
                                                     </div>
                                                 ) : (
                                                     comments.map(comment => (
@@ -1337,7 +1082,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                                             {comment.tipo}
                                                                         </Badge>
                                                                     </div>
-                                                                    <p className="text-sm text-muted-foreground">{comment.comentario}</p>
+                                                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{comment.comentario}</p>
                                                                 </div>
                                                                 <p className="text-xs text-muted-foreground mt-1">
                                                                     {formatDateTime(comment.criado_em)}
@@ -1348,48 +1093,23 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                 )}
                                             </div>
                                         </ScrollArea>
-
-                                        {/* Pagination */}
-                                        {comments.length > 0 && (
-                                            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setCommentsPage(prev => Math.max(1, prev - 1))}
-                                                    disabled={commentsPage === 1}
-                                                >
-                                                    Anterior
-                                                </Button>
-                                                <span className="text-sm text-muted-foreground">
-                                                    Página {commentsPage}
-                                                </span>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => setCommentsPage(prev => prev + 1)}
-                                                    disabled={comments.length < commentsPerPage}
-                                                >
-                                                    Próxima
-                                                </Button>
-                                            </div>
-                                        )}
                                     </CardContent>
                                 </Card>
                             </div>
 
                             {/* Add Comment */}
                             <div>
-                                <Card className="border-border rounded-lg shadow-sm">
+                                <Card className="border-border rounded-lg shadow-sm sticky top-24">
                                     <CardHeader>
                                         <CardTitle className="text-lg font-semibold">Adicionar Comentário</CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4">
                                         <Textarea
-                                            placeholder="Compartilhe informações importantes sobre esta OS..."
+                                            placeholder="Digite seu comentário..."
                                             value={newComment}
                                             onChange={(e) => setNewComment(e.target.value)}
                                             rows={4}
-                                            className="border-border rounded-md"
+                                            className="border-border rounded-md resize-none"
                                         />
                                         <Button
                                             onClick={handleAddComment}
@@ -1397,7 +1117,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             className="w-full rounded-md"
                                         >
                                             <Send className="w-4 h-4 mr-2" />
-                                            Adicionar Comentário
+                                            Enviar
                                         </Button>
                                     </CardContent>
                                 </Card>

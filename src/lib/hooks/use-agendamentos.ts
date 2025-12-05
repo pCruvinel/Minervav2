@@ -37,6 +37,10 @@ export interface Agendamento {
   atualizadoEm?: string;
   canceladoEm?: string;
   canceladoMotivo?: string;
+  // Responsável pela execução (dono da agenda)
+  responsavelId?: string;
+  responsavelNome?: string;
+  // Dados legacy/enriquecidos
   usuarioNome?: string;
   osCodigo?: string;
   clienteNome?: string;
@@ -51,8 +55,14 @@ export interface AgendamentoComTurno extends Agendamento {
     cor: string;
     setores: string[];
   };
+  // Criador do agendamento (audit)
   colaborador?: {
     nome_completo?: string;
+  };
+  // Responsável pela execução (dono da agenda)
+  responsavel?: {
+    nome_completo?: string;
+    avatar_url?: string;
   };
   ordens_servico?: {
     codigo_os?: string;
@@ -87,6 +97,8 @@ export interface CreateAgendamentoInput {
   solicitanteContato?: string;
   solicitanteObservacoes?: string;
   osId?: string;
+  /** ID do responsável pela execução. Se não informado, usa o usuário logado. */
+  responsavelId?: string;
 }
 
 export interface UpdateAgendamentoInput {
@@ -136,6 +148,10 @@ const agendamentosAPI = {
         ),
         colaborador:criado_por (
           nome_completo
+        ),
+        responsavel:responsavel_id (
+          nome_completo,
+          avatar_url
         ),
         ordens_servico:os_id (
           codigo_os,
@@ -220,6 +236,10 @@ const agendamentosAPI = {
           hora_fim,
           cor,
           setores
+        ),
+        responsavel:responsavel_id (
+          nome_completo,
+          avatar_url
         )
       `)
       .eq('id', id)
@@ -250,6 +270,9 @@ const agendamentosAPI = {
       throw new Error('Não há vagas disponíveis neste horário');
     }
 
+    // Determinar responsável: usa o informado ou o usuário logado
+    const responsavelId = input.responsavelId || user.user?.id;
+
     const { data, error } = await supabase
       .from('agendamentos')
       .insert({
@@ -265,6 +288,7 @@ const agendamentosAPI = {
         solicitante_observacoes: input.solicitanteObservacoes,
         os_id: input.osId,
         criado_por: user.user?.id,
+        responsavel_id: responsavelId,
       })
       .select()
       .single();
@@ -617,6 +641,10 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     atualizadoEm: data.atualizado_em,
     canceladoEm: data.cancelado_em,
     canceladoMotivo: data.cancelado_motivo,
+    // Responsável pela execução
+    responsavelId: data.responsavel_id,
+    responsavelNome: data.responsavel?.nome_completo,
+    // Dados legacy/enriquecidos
     usuarioNome: data.colaborador?.nome_completo,
     osCodigo: data.ordens_servico?.codigo_os,
     clienteNome: data.ordens_servico?.cliente?.nome_razao_social,
@@ -633,6 +661,14 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
       horaFim: data.turno.hora_fim,
       cor: data.turno.cor,
       setores: data.turno.setores,
+    };
+  }
+
+  // Mapear objeto responsável se existir
+  if (data.responsavel) {
+    agendamento.responsavel = {
+      nome_completo: data.responsavel.nome_completo,
+      avatar_url: data.responsavel.avatar_url,
     };
   }
 
