@@ -17,10 +17,13 @@ export async function handlePropostaGeneration(
   dados: Record<string, unknown>
 ): Promise<PDFGenerationResponse> {
   try {
-    // DEBUG: Log do osId recebido
-    console.log('[Proposta Handler] Iniciando geração para osId:', osId);
-    console.log('[Proposta Handler] Tipo de osId:', typeof osId);
-    console.log('[Proposta Handler] osId é válido?:', osId && osId.length > 0);
+    // DEBUG: Log do osId e dados recebidos
+    console.log('[Proposta Handler] ======== INÍCIO ========');
+    console.log('[Proposta Handler] osId:', osId);
+    console.log('[Proposta Handler] dados recebidos:', JSON.stringify(dados, null, 2));
+    console.log('[Proposta Handler] dados.clienteCpfCnpj:', dados.clienteCpfCnpj);
+    console.log('[Proposta Handler] dados.dadosFinanceiros:', dados.dadosFinanceiros);
+    console.log('[Proposta Handler] ==============================');
 
     // 1. Buscar dados completos da OS do banco
     console.log('[Proposta Handler] Executando query para buscar OS...');
@@ -118,7 +121,8 @@ export async function handlePropostaGeneration(
 
       // Cliente
       clienteNome: clienteData.nome_razao_social,
-      clienteCpfCnpj: clienteData.cpf_cnpj,
+      // ✅ FIX: Usar dados do parâmetro 'dados' que vem do frontend
+      clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj,
       clienteEmail: clienteData.email,
       clienteTelefone: clienteData.telefone,
       clienteEndereco: endereco.logradouro,
@@ -139,12 +143,20 @@ export async function handlePropostaGeneration(
 
       // Financeiro
       dadosFinanceiros: {
-        precoFinal: os.valor_proposta || 0,
-        percentualImposto: dadosPrecificacao.percentualImposto || financeiro.percentualImposto || 14,
-        percentualEntrada: dadosPrecificacao.percentualEntrada || financeiro.percentualEntrada || 40,
-        numeroParcelas: dadosPrecificacao.numeroParcelas || financeiro.numeroParcelas || 2,
-        percentualLucro: dadosPrecificacao.percentualLucro,
-        percentualImprevisto: dadosPrecificacao.percentualImprevisto,
+        // ✅ FIX: Ler de dados.dadosFinanceiros que vem do frontend
+        precoFinal: (dados.dadosFinanceiros as any)?.precoFinal ?
+          parseFloat((dados.dadosFinanceiros as any).precoFinal) :
+          (parseFloat(dadosPrecificacao.precoFinal) || os.valor_proposta || 0),
+        percentualImposto: (dados.dadosFinanceiros as any)?.percentualImposto ||
+          dadosPrecificacao.percentualImposto || financeiro.percentualImposto || 14,
+        percentualEntrada: (dados.dadosFinanceiros as any)?.percentualEntrada ||
+          dadosPrecificacao.percentualEntrada || financeiro.percentualEntrada || 40,
+        numeroParcelas: (dados.dadosFinanceiros as any)?.numeroParcelas ||
+          dadosPrecificacao.numeroParcelas || financeiro.numeroParcelas || 2,
+        percentualLucro: (dados.dadosFinanceiros as any)?.percentualLucro ||
+          dadosPrecificacao.percentualLucro,
+        percentualImprevisto: (dados.dadosFinanceiros as any)?.percentualImprevisto ||
+          dadosPrecificacao.percentualImprevisto,
       },
 
       // Garantias (usar padrão se não fornecido)

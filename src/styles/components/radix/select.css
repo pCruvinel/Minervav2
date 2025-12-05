@@ -1,0 +1,60 @@
+/**
+ * Select Component Styles - Radix UI
+ *
+ * Estilos para dropdowns de seleção.
+ *
+ * @see src/components/ui/select.tsx
+ */
+
+/* ==========================================
+ * SELECT TRIGGER
+ * ========================================== */
+
+[data-slot='select-trigger'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid hsl(var(--border));
+  background-color: hsl(var(--background));
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-base) var(--transition-timing);
+}
+
+[data-slot='select-trigger']:hover:not(:disabled) {
+  border-color: hsl(var(--ring));
+}
+
+[data-slot='select-trigger']:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* ==========================================
+ * SELECT CONTENT
+ * ========================================== */
+
+[data-slot='select-content'] {
+  z-index: var(--z-dropdown);
+  background-color: hsl(var(--popover));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ==========================================
+ * SELECT ITEM
+ * ========================================== */
+
+[data-slot='select-item'] {
+  cursor: pointer;
+  transition: background-color var(--transition-fast) var(--transition-timing);
+}
+
+[data-slot='select-item']:hover {
+  background-color: hsl(var(--accent));
+}
+
+[data-slot='select-item'][data-state='checked'] {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}

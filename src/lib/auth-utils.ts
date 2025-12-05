@@ -1,4 +1,23 @@
+/**
+ * ============================================================================
+ * ⚠️ ARQUIVO DEPRECADO - NÃO USE PARA NOVO CÓDIGO
+ * ============================================================================
+ * 
+ * Este arquivo contém lógica de permissões LEGADA baseada em `role_nivel`.
+ * 
+ * Para novo código, use:
+ * - Hook: `usePermissoes()` de '@/lib/hooks/use-permissoes'
+ * - Função: `getPermissoes(user)` de '@/lib/types'
+ * 
+ * Sistema novo usa `cargo_slug` e `escopo_visao` ao invés de `role_nivel`.
+ * 
+ * @deprecated Migrar para sistema RBAC v3.0
+ * @see docs/technical/USUARIOS_SCHEMA.md
+ * ============================================================================
+ */
+
 // Utilitários de Autenticação e Permissões - Sistema Hierárquico Minerva ERP
+// ⚠️ DEPRECADO: Use usePermissoes() ou getPermissoes() para novo código
 
 import {
   User,
@@ -136,10 +155,10 @@ export class PermissaoUtil {
   }
 
   /**
-   * Verifica se é Diretoria
+   * Verifica se é Diretoria ou Admin (níveis hierárquicos superiores)
    */
   static ehDiretoria(usuario: User): boolean {
-    return usuario.role_nivel === 'diretoria';
+    return usuario.role_nivel === 'diretoria' || usuario.role_nivel === 'admin';
   }
 
   /**

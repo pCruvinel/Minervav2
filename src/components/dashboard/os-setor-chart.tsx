@@ -2,9 +2,9 @@
 'use client';
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
-import { OrdemServico } from '../../lib/types';
+import { OrdemServico } from '@/lib/types';
 
 interface OSSetorChartProps {
   ordensServico: OrdemServico[];
@@ -12,10 +12,10 @@ interface OSSetorChartProps {
   height?: number;
 }
 
-export function OSSetorChart({ 
-  ordensServico, 
+export function OSSetorChart({
+  ordensServico,
   title = 'Distribuição por Setor',
-  height = 300 
+  height = 300
 }: OSSetorChartProps) {
   // Agrupar OS por setor
   const setorData = React.useMemo(() => {
@@ -55,7 +55,7 @@ export function OSSetorChart({
     if (active && payload && payload.length) {
       const data = payload[0];
       const percentage = ((data.value / totalOS) * 100).toFixed(1);
-      
+
       return (
         <div className="bg-white p-3 rounded-lg shadow-lg border border-border">
           <p className="text-sm font-medium mb-1">{data.name}</p>
@@ -77,11 +77,11 @@ export function OSSetorChart({
     if (percent < 0.05) return null; // Não mostrar label se < 5%
 
     return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor={x > cx ? 'start' : 'end'} 
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor={x > cx ? 'start' : 'end'}
         dominantBaseline="central"
         className="text-xs font-semibold"
       >
@@ -131,10 +131,10 @@ export function OSSetorChart({
               ))}
             </Pie>
             <Tooltip content={<CustomTooltip />} />
-            <Legend 
-              verticalAlign="bottom" 
+            <Legend
+              verticalAlign="bottom"
               height={36}
-              formatter={(value, entry: any) => {
+              formatter={(value) => {
                 const item = setorData.find(d => d.name === value);
                 return `${value} (${item?.value || 0})`;
               }}

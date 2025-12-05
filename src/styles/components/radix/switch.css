@@ -1,0 +1,235 @@
+/**
+ * Switch Component Styles - Radix UI
+ *
+ * Fonte única de verdade para o componente Switch.
+ * Substitui os estilos inline em index.css e tailwind-fix.css.
+ *
+ * @see src/components/ui/switch.tsx
+ */
+
+/* ==========================================
+ * SWITCH ROOT
+ * data-slot="switch"
+ * O container do switch (track)
+ * ========================================== */
+
+[data-slot='switch'] {
+  /* Layout - inline para alinhar com texto */
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  /* Dimensões - formato pill (pílula) */
+  height: 1.5rem;        /* 24px */
+  width: 2.75rem;        /* 44px */
+
+  /* Formato arredondado completo */
+  border-radius: 9999px;
+
+  /* Visual base - unchecked state */
+  background-color: hsl(var(--muted));
+  border: 1px solid hsl(var(--border));
+
+  /* Transições suaves */
+  transition-property: background-color, border-color;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Cursor */
+  cursor: pointer;
+
+  /* Focus outline removido - será aplicado via focus-visible */
+  outline: none;
+
+  /* Posicionamento para o thumb */
+  position: relative;
+}
+
+/* ==========================================
+ * SWITCH STATES
+ * ========================================== */
+
+/* Hover - unchecked */
+[data-slot='switch']:hover:not(:disabled) {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+/* Focus visible - acessibilidade */
+[data-slot='switch']:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Checked state - CRÍTICO */
+[data-slot='switch'][data-state='checked'] {
+  background-color: hsl(var(--primary));
+  border-color: hsl(var(--primary));
+}
+
+/* Checked + Hover */
+[data-slot='switch'][data-state='checked']:hover:not(:disabled) {
+  background-color: hsl(var(--primary-hover));
+  border-color: hsl(var(--primary-hover));
+}
+
+/* Disabled */
+[data-slot='switch']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+[data-slot='switch']:disabled:hover {
+  background-color: hsl(var(--muted));
+}
+
+[data-slot='switch'][data-state='checked']:disabled:hover {
+  background-color: hsl(var(--primary));
+}
+
+/* ==========================================
+ * SWITCH THUMB
+ * data-slot="switch-thumb"
+ * O círculo que desliza
+ * ========================================== */
+
+[data-slot='switch-thumb'] {
+  /* Layout e dimensões - círculo perfeito */
+  display: block;
+  width: 1.25rem;        /* 20px */
+  height: 1.25rem;       /* 20px */
+  border-radius: 9999px;
+
+  /* Visual - sempre branco */
+  background-color: #ffffff;
+
+  /* Sombra para elevação */
+  box-shadow: var(--shadow-lg);
+
+  /* Remove border */
+  border: none;
+
+  /* Transição da posição */
+  transition-property: transform;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Previne interação direta */
+  pointer-events: none;
+
+  /* Posicionamento inicial - esquerda */
+  transform: translateX(0);
+}
+
+/* Thumb quando checked - desliza para direita */
+[data-slot='switch'][data-state='checked'] [data-slot='switch-thumb'] {
+  transform: translateX(1.25rem);  /* 20px - move exatamente o tamanho do thumb */
+}
+
+/* Thumb quando unchecked - volta para esquerda */
+[data-slot='switch'][data-state='unchecked'] [data-slot='switch-thumb'] {
+  transform: translateX(0);
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+/* Preparação para dark mode (futuro) */
+@media (prefers-color-scheme: dark) {
+  [data-slot='switch-thumb'] {
+    /* Thumb continua branco mesmo em dark mode */
+    background-color: #ffffff;
+  }
+}
+
+/* Reduzir animações se preferido pelo usuário */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='switch'],
+  [data-slot='switch-thumb'] {
+    transition: none;
+  }
+}
+
+/* ==========================================
+ * VARIAÇÕES DE TAMANHO
+ * Caso necessário no futuro
+ * ========================================== */
+
+/* Small switch */
+[data-slot='switch'][data-size='sm'] {
+  height: 1.25rem;       /* 20px */
+  width: 2.25rem;        /* 36px */
+}
+
+[data-slot='switch'][data-size='sm'] [data-slot='switch-thumb'] {
+  width: 1rem;           /* 16px */
+  height: 1rem;          /* 16px */
+}
+
+[data-slot='switch'][data-size='sm'][data-state='checked'] [data-slot='switch-thumb'] {
+  transform: translateX(1rem);  /* 16px */
+}
+
+/* Large switch */
+[data-slot='switch'][data-size='lg'] {
+  height: 1.75rem;       /* 28px */
+  width: 3.25rem;        /* 52px */
+}
+
+[data-slot='switch'][data-size='lg'] [data-slot='switch-thumb'] {
+  width: 1.5rem;         /* 24px */
+  height: 1.5rem;        /* 24px */
+}
+
+[data-slot='switch'][data-size='lg'][data-state='checked'] [data-slot='switch-thumb'] {
+  transform: translateX(1.5rem);  /* 24px */
+}
+
+/* ==========================================
+ * CONTEXTOS ESPECÍFICOS
+ * ========================================== */
+
+/* Dentro de formulários */
+form [data-slot='switch'] {
+  /* Garantir que não herde estilos indesejados */
+}
+
+/* Dentro de labels - aumentar área de clique */
+label [data-slot='switch'] {
+  /* Label já aumenta área de clique naturalmente */
+}
+
+/* ==========================================
+ * AJUSTES FINOS
+ * ========================================== */
+
+/* Garantir que o thumb não ultrapasse os limites do track */
+[data-slot='switch'] {
+  padding: 2px;  /* Pequeno padding interno */
+}
+
+[data-slot='switch-thumb'] {
+  /* Compensar o padding do track */
+  margin: 0;
+}
+
+/* ==========================================
+ * DEBUGGING
+ * Remover após verificação
+ * ========================================== */
+
+/* Descomentar para debug visual */
+/*
+[data-slot='switch'] {
+  outline: 2px solid red !important;
+}
+
+[data-slot='switch-thumb'] {
+  outline: 2px solid blue !important;
+}
+
+[data-slot='switch'][data-state='checked'] {
+  outline: 2px solid green !important;
+}
+*/

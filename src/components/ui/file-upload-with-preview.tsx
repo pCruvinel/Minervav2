@@ -15,8 +15,8 @@ import {
     X,
     Loader2
 } from 'lucide-react';
-import { toast } from '../../lib/utils/safe-toast';
-import { supabase } from '../../lib/supabase-client';
+import { toast } from '@/lib/utils/safe-toast';
+import { supabase } from '@/lib/supabase-client';
 
 export interface FileWithComment {
     id: string;
@@ -92,7 +92,7 @@ export function FileUploadWithPreview({
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
                 const filePath = osId ? `os/${osId}/${fileName}` : `temp/${fileName}`;
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
+                const { error: uploadError } = await supabase.storage
                     .from('os-files')
                     .upload(filePath, file);
 
@@ -124,7 +124,7 @@ export function FileUploadWithPreview({
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao fazer upload:', error);
             toast.error('Erro ao enviar arquivo. Tente novamente.');
         } finally {
@@ -153,7 +153,7 @@ export function FileUploadWithPreview({
             // Remove from local state
             onFilesChange(files.filter(f => f.id !== fileToDelete.id));
             toast.success('Arquivo removido com sucesso');
-        } catch (error: any) {
+        } catch (error) {
             console.error('Erro ao deletar arquivo:', error);
             toast.error('Erro ao remover arquivo. Tente novamente.');
         }

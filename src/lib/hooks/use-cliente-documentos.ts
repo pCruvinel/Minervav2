@@ -70,17 +70,9 @@ export function useClienteDocumentos() {
 
       // Upload paralelo de todos os arquivos
       const uploads = files.map(async (file) => {
-        // 1. Upload para Storage (bucket: uploads)
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('uploads')
-          .upload(file.path, file);
-
-        if (uploadError) {
-          logger.error(`❌ Erro no upload do arquivo ${file.name}:`, uploadError);
-          throw uploadError;
-        }
-
-        logger.log(`✅ Arquivo ${file.name} enviado para Storage`);
+        // 1. O arquivo já foi enviado para o Storage pelo componente FileUploadUnificado
+        // Não precisamos fazer upload novamente, apenas registrar no banco
+        logger.log(`ℹ️ Arquivo ${file.name} já está no Storage em ${file.path}`);
 
         // 2. Registrar em clientes_documentos
         const { error: dbError } = await supabase

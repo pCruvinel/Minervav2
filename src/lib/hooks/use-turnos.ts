@@ -99,24 +99,64 @@ const turnosAPI = {
 
   /**
    * Obter turnos de uma semana
+   * OTIMIZADO: Busca todos os turnos de uma vez e distribui por dia no frontend
    */
   async getByWeek(startDate: string, endDate: string): Promise<Map<string, TurnoComVagas[]>> {
+    console.log(`📅 Buscando turnos de ${startDate} a ${endDate}`);
+    
+    // Buscar todos os turnos ativos de uma vez
+    const { data: todosOsTurnos, error } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('ativo', true)
+      .order('hora_inicio');
+
+    if (error) throw error;
+
+    // Gerar array de datas para o período
     const dates: string[] = [];
-    const current = new Date(startDate);
-    const end = new Date(endDate);
+    const current = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
 
     while (current <= end) {
-      dates.push(current.toISOString().split('T')[0]);
+      const ano = current.getFullYear();
+      const mes = String(current.getMonth() + 1).padStart(2, '0');
+      const dia = String(current.getDate()).padStart(2, '0');
+      dates.push(`${ano}-${mes}-${dia}`);
       current.setDate(current.getDate() + 1);
     }
 
+    // Distribuir turnos por dia (calcular recorrência no frontend)
     const turnosPorDia = new Map<string, TurnoComVagas[]>();
 
-    for (const date of dates) {
-      const turnos = await turnosAPI.getByDate(date);
-      turnosPorDia.set(date, turnos);
-    }
+    dates.forEach(dataStr => {
+      const data = new Date(dataStr + 'T00:00:00');
+      const diaSemana = data.getDay(); // 0=Dom, 6=Sáb
 
+      const turnosDoDia = todosOsTurnos
+        .filter(turno => {
+          // Verificar se turno é válido para esta data
+          if (turno.data_inicio && dataStr < turno.data_inicio) return false;
+          if (turno.data_fim && dataStr > turno.data_fim) return false;
+
+          // Verificar recorrência
+          if (turno.tipo_recorrencia === 'todos') return true;
+          if (turno.tipo_recorrencia === 'uteis' && diaSemana >= 1 && diaSemana <= 5) return true;
+          if (turno.tipo_recorrencia === 'custom' && turno.dias_semana?.includes(diaSemana)) return true;
+
+          return false;
+        })
+        .map(turno => ({
+          ...mapTurnoFromDB(turno),
+          vagasOcupadas: 0 // Será calculado depois com agendamentos
+        }));
+
+      if (turnosDoDia.length > 0) {
+        turnosPorDia.set(dataStr, turnosDoDia);
+      }
+    });
+
+    console.log(`📅 Turnos distribuídos: ${turnosPorDia.size} dias com turnos`);
     return turnosPorDia;
   },
 
@@ -217,20 +257,20 @@ const turnosAPI = {
  * Hook para listar todos os turnos
  */
 export function useTurnos() {
-  const { data, loading, error, refetch } = useApi(
-    () => turnosAPI.list(),
-    {
-      onError: (error) => {
-        console.error('❌ Erro ao carregar turnos:', error);
-        toast.error(`Erro ao carregar turnos: ${error.message}`);
-      },
-    }
-  );
+   const { data, loading, error, refetch } = useApi(
+     () => turnosAPI.list(),
+     {
+       onError: (error) => {
+         console.error('❌ Erro ao carregar turnos:', error);
+         toast.error(`Erro ao carregar turnos: ${error.message}`);
+       },
+     }
+   );
 
-  const turnos = useMemo(() => data || [], [data]);
+   const turnos = useMemo(() => data || [], [data]);
 
-  return { turnos, loading, error, refetch };
-}
+   return { turnos, loading, error, refetch };
+ }
 
 /**
  * Hook para obter turnos de uma data específica
@@ -274,16 +314,16 @@ export function useTurnosPorSemana(startDate: string, endDate: string) {
  * Hook para criar turno
  */
 export function useCreateTurno() {
-  return useMutation(turnosAPI.create, {
-    onSuccess: (data) => {
-      toast.success('Turno criado com sucesso!');
-    },
-    onError: (error) => {
-      console.error('❌ Erro ao criar turno:', error);
-      toast.error(`Erro ao criar turno: ${error.message}`);
-    },
-  });
-}
+   return useMutation(turnosAPI.create, {
+     onSuccess: () => {
+       toast.success('Turno criado com sucesso!');
+     },
+     onError: (error) => {
+       console.error('❌ Erro ao criar turno:', error);
+       toast.error(`Erro ao criar turno: ${error.message}`);
+     },
+   });
+ }
 
 /**
  * Hook para atualizar turno

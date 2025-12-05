@@ -9,6 +9,7 @@ export interface WorkflowNavigationOptions {
   isHistoricalNavigation: boolean;
   setIsHistoricalNavigation: (isHistorical: boolean) => void;
   onSaveStep?: (step: number) => Promise<boolean>;
+  onCompleteWorkflow?: () => Promise<boolean>;
 }
 
 export function useWorkflowNavigation({
@@ -19,7 +20,8 @@ export function useWorkflowNavigation({
   setLastActiveStep,
   isHistoricalNavigation,
   setIsHistoricalNavigation,
-  onSaveStep
+  onSaveStep,
+  onCompleteWorkflow
 }: WorkflowNavigationOptions) {
 
   const handleStepClick = (stepId: number) => {
@@ -63,7 +65,18 @@ export function useWorkflowNavigation({
       if (!saved) return;
     }
 
-    if (currentStep < totalSteps) {
+    // Handle last step completion
+    if (currentStep === totalSteps) {
+      if (onCompleteWorkflow) {
+        const completed = await onCompleteWorkflow();
+        if (completed) {
+          toast.success('OS concluída com sucesso!', {
+            icon: '🎉',
+            description: 'Requisição enviada para aprovação.'
+          });
+        }
+      }
+    } else if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
       toast.success('Etapa concluída!', { icon: '✅' });
     }

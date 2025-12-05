@@ -1,0 +1,248 @@
+/**
+ * RadioGroup Component Styles - Radix UI
+ *
+ * Estilos específicos para garantir que o radio button renderize corretamente.
+ * Prioriza a funcionalidade visual: círculo deve ser sempre visível quando selecionado.
+ *
+ * @see src/components/ui/radio-group.tsx
+ */
+
+/* ==========================================
+ * RADIO GROUP ROOT
+ * data-slot="radio-group"
+ * Container dos radio buttons
+ * ========================================== */
+
+[data-slot='radio-group'] {
+  /* Layout grid com gap consistente */
+  display: grid;
+  gap: 0.75rem;
+}
+
+/* ==========================================
+ * RADIO GROUP ITEM
+ * data-slot="radio-group-item"
+ * O botão radio em si
+ * ========================================== */
+
+[data-slot='radio-group-item'] {
+  /* Dimensões consistentes - círculo perfeito */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1rem;
+  aspect-ratio: 1;
+  flex-shrink: 0;
+
+  /* Formato circular */
+  border-radius: 9999px;
+
+  /* Visual base */
+  border-width: 1px;
+  border-style: solid;
+  border-color: hsl(var(--input));
+  background-color: hsl(var(--background));
+
+  /* Cor do texto para o indicator */
+  color: hsl(var(--primary));
+
+  /* Transições suaves */
+  transition-property: background-color, border-color, box-shadow;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Cursor */
+  cursor: pointer;
+
+  /* Focus outline removido - será aplicado via focus-visible */
+  outline: none;
+
+  /* Sombra sutil */
+  box-shadow: var(--shadow-sm);
+}
+
+/* ==========================================
+ * RADIO GROUP ITEM - STATES
+ * ========================================== */
+
+/* Hover */
+[data-slot='radio-group-item']:hover:not(:disabled) {
+  background-color: hsl(var(--accent) / 0.5);
+  border-color: hsl(var(--input) / 0.8);
+}
+
+/* Focus visible - acessibilidade */
+[data-slot='radio-group-item']:focus-visible {
+  border-color: hsl(var(--ring));
+  outline: 3px solid hsl(var(--ring) / 0.5);
+  outline-offset: 2px;
+}
+
+/* Checked state - CRÍTICO */
+[data-slot='radio-group-item'][data-state='checked'] {
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--background));
+}
+
+/* Checked + Hover - manter background claro */
+[data-slot='radio-group-item'][data-state='checked']:hover:not(:disabled) {
+  background-color: hsl(var(--background));
+  border-color: hsl(var(--primary));
+}
+
+/* Disabled */
+[data-slot='radio-group-item']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Invalid/Error state */
+[data-slot='radio-group-item'][aria-invalid='true'] {
+  border-color: hsl(var(--error));
+  outline: 2px solid hsl(var(--error) / 0.2);
+  outline-offset: 0;
+}
+
+[data-slot='radio-group-item'][aria-invalid='true']:focus-visible {
+  outline: 3px solid hsl(var(--error) / 0.4);
+  outline-offset: 2px;
+}
+
+/* ==========================================
+ * RADIO GROUP INDICATOR
+ * data-slot="radio-group-indicator"
+ * Container do círculo preenchido
+ * ========================================== */
+
+[data-slot='radio-group-indicator'] {
+  /* Layout - centralizado */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================
+ * RADIO GROUP INDICATOR - ÍCONE CIRCLE
+ * O círculo preenchido que aparece quando selecionado
+ * ========================================== */
+
+[data-slot='radio-group-indicator'] svg {
+  /* Dimensões - círculo pequeno interno */
+  width: 0.5rem;
+  height: 0.5rem;
+
+  /* Posicionamento absoluto para garantir centralização */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  /* Preenchimento - CRÍTICO para visibilidade */
+  fill: hsl(var(--primary));
+  color: hsl(var(--primary));
+
+  /* Anti-aliasing */
+  shape-rendering: geometricPrecision;
+
+  /* Transição suave ao aparecer */
+  transition: opacity var(--transition-fast) var(--transition-timing);
+}
+
+/* Garantir que o círculo seja visível quando checked */
+[data-slot='radio-group-item'][data-state='checked'] [data-slot='radio-group-indicator'] svg {
+  fill: hsl(var(--primary));
+  color: hsl(var(--primary));
+  opacity: 1;
+}
+
+/* Quando não checked, o indicator não é renderizado, mas caso seja: */
+[data-slot='radio-group-item'][data-state='unchecked'] [data-slot='radio-group-indicator'] svg {
+  opacity: 0;
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+/* Preparação para dark mode (futuro) */
+@media (prefers-color-scheme: dark) {
+  [data-slot='radio-group-item'] {
+    /* Ajustes automáticos se necessário */
+    background-color: hsl(var(--input) / 0.3);
+  }
+
+  [data-slot='radio-group-item'][data-state='checked'] {
+    background-color: hsl(var(--background));
+  }
+}
+
+/* Reduzir animações se preferido pelo usuário */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='radio-group-item'],
+  [data-slot='radio-group-indicator'] svg {
+    transition: none;
+  }
+}
+
+/* ==========================================
+ * VARIAÇÕES DE LAYOUT
+ * ========================================== */
+
+/* RadioGroup horizontal */
+[data-slot='radio-group'][data-orientation='horizontal'] {
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  justify-content: start;
+}
+
+/* RadioGroup vertical (padrão) */
+[data-slot='radio-group'][data-orientation='vertical'] {
+  grid-auto-flow: row;
+}
+
+/* ==========================================
+ * CONTEXTOS ESPECÍFICOS
+ * ========================================== */
+
+/* Dentro de formulários */
+form [data-slot='radio-group-item'] {
+  /* Garantir que não herde estilos indesejados */
+}
+
+/* Dentro de labels - aumentar área de clique */
+label [data-slot='radio-group-item'] {
+  /* Label já aumenta área de clique naturalmente */
+}
+
+/* ==========================================
+ * DEBUGGING
+ * Remover após verificação
+ * ========================================== */
+
+/* Descomentar para debug visual */
+/*
+[data-slot='radio-group'] {
+  outline: 2px solid purple !important;
+}
+
+[data-slot='radio-group-item'] {
+  outline: 2px solid red !important;
+}
+
+[data-slot='radio-group-indicator'] {
+  outline: 2px solid blue !important;
+}
+
+[data-slot='radio-group-item'][data-state='checked'] {
+  outline: 2px solid green !important;
+}
+
+[data-slot='radio-group-indicator'] svg {
+  outline: 2px solid yellow !important;
+}
+*/

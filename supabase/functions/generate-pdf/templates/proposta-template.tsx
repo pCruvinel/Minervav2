@@ -1,22 +1,34 @@
 /**
  * Template de Proposta Comercial em React PDF
  * Baseado no modelo Minerva Engenharia
- * 
+ *
  * Estrutura:
- * - Header com logo e dados da empresa
+ * - Header com logo e dados da empresa (REFATORADO: usa SharedHeader)
  * - Dados do Cliente
  * - Objetivo
- * - Especificações Técnicas (Etapas e Subetapas)
+ * - Especificações Técnicas (Etapas e Subetapas - REFATORADO: usa Table components)
  * - Prazo - Cronograma de Obra
  * - Garantia
  * - Investimentos
  * - Pagamento
+ * - Footer (REFATORADO: usa SharedFooter)
  */
 
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 import { colors, spacing, fonts, fontSize, commonStyles } from './shared-styles.ts';
 import { formatarMoeda, formatarData, formatarCpfCnpj } from '../utils/pdf-formatter.ts';
+import { SharedHeader } from './components/shared-header.tsx';
+import {
+  Table,
+  TableHeaderRow,
+  TableHeaderCell,
+  TableRow,
+  TableCell,
+  CategoryRow,
+  SummaryRow,
+} from './components/table-components.tsx';
+import { SharedFooter } from './components/shared-footer.tsx';
 
 // ============================================
 // INTERFACES
@@ -163,8 +175,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.neutral300,
   },
 
   clienteRow: {
@@ -174,10 +184,6 @@ const styles = StyleSheet.create({
 
   clienteCell: {
     padding: spacing.xs,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral300,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral300,
   },
 
   clienteLabel: {
@@ -497,37 +503,6 @@ const styles = StyleSheet.create({
 // COMPONENTES AUXILIARES
 // ============================================
 
-function Header({ data }: { data: PropostaData }) {
-  return (
-    <View style={styles.headerContainer}>
-      <View style={styles.headerLeft}>
-        {data.empresaLogo ? (
-          <Image style={styles.logo} src={data.empresaLogo} />
-        ) : (
-          <Text style={{ fontSize: fontSize.xl, fontFamily: fonts.bold, color: colors.primary }}>
-            {data.empresaNome || 'MINERVA'}
-          </Text>
-        )}
-      </View>
-      <View style={styles.headerRight}>
-        <Text style={styles.empresaInfo}>
-          {data.empresaEndereco || 'Av. Colares Moreira, Edifício Los Angeles, Nº100, Loja 01'}
-        </Text>
-        <Text style={styles.empresaInfo}>
-          {data.empresaCidade || 'Renascença, São Luís - MA'}
-        </Text>
-        <Text style={styles.empresaInfo}>
-          {data.empresaTelefone || '(98) 98226-7909 / (98) 98151-3355'}
-        </Text>
-        <Text style={styles.empresaInfo}>
-          {data.empresaSite || 'www.minerva-eng.com.br'} / {data.empresaEmail || 'contato@minerva-eng.com.br'}
-        </Text>
-        <Text style={styles.dataEmissao}>{formatarData(data.dataEmissao)}</Text>
-      </View>
-    </View>
-  );
-}
-
 function DadosCliente({ data }: { data: PropostaData }) {
   return (
     <View style={styles.clienteGrid}>
@@ -606,7 +581,7 @@ function EspecificacoesTecnicas({ etapas }: { etapas: Etapa[] }) {
   return (
     <View>
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
+        <Text style={styles.sectionHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS:</Text>
       </View>
 
       <View style={styles.tableContainer}>
@@ -853,16 +828,6 @@ function Pagamento({ dados, quantidadeUnidades }: { dados: DadosFinanceiros; qua
   );
 }
 
-function Footer() {
-  return (
-    <View style={styles.footer}>
-      <Text style={styles.footerText}>
-        Documento de autoria própria, ficando proibido sua replicabilidade, assim como exposição desta para demais empresas concorrentes, como rege o conselho de ética.
-      </Text>
-    </View>
-  );
-}
-
 // ============================================
 // UTILITÁRIOS
 // ============================================
@@ -883,7 +848,12 @@ export function PropostaTemplate({ data }: { data: PropostaData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <Header data={data} />
+        <SharedHeader
+          documentTitle="PROPOSTA COMERCIAL"
+          documentSubtitle={`Proposta Nº ${data.codigoProposta || data.codigoOS}`}
+          documentDate={formatarData(data.dataEmissao)}
+          dividerColor="primary"
+        />
         <DadosCliente data={data} />
         <TituloProposta titulo={data.tituloProposta} />
         <Objetivo objetivo={data.objetivo} />
@@ -892,7 +862,11 @@ export function PropostaTemplate({ data }: { data: PropostaData }) {
         <Garantia garantias={data.garantias} />
         <Investimentos dados={data.dadosFinanceiros} etapas={etapas} />
         <Pagamento dados={data.dadosFinanceiros} quantidadeUnidades={data.quantidadeUnidades} />
-        <Footer />
+        <SharedFooter
+          leftText={`Proposta Comercial - OS ${data.codigoOS}`}
+          rightText={formatarData(data.dataEmissao)}
+          fixed={true}
+        />
       </Page>
     </Document>
   );

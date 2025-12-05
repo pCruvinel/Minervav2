@@ -7,6 +7,8 @@ import { handleMemorialGeneration } from './handlers/memorial-handler.ts';
 import { handleDocumentoSSTGeneration } from './handlers/documento-sst-handler.ts';
 import { handleParecerReformaGeneration } from './handlers/parecer-reforma-handler.ts';
 import { handleVisitaTecnicaGeneration } from './handlers/visita-tecnica-handler.ts';
+import { handlePropostaAssAnualGeneration } from './handlers/proposta-ass-anual-handler.ts';
+import { handlePropostaAssPontualGeneration } from './handlers/proposta-ass-pontual-handler.ts';
 
 // CORS headers
 const corsHeaders = {
@@ -15,7 +17,7 @@ const corsHeaders = {
 };
 
 // Types
-export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica';
+export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica' | 'proposta-ass-anual' | 'proposta-ass-pontual';
 
 export interface PDFGenerationRequest {
   tipo: PDFType;
@@ -108,6 +110,12 @@ Deno.serve(async (req) => {
           break;
         case 'visita-tecnica':
           result = await handleVisitaTecnicaGeneration(supabase, osId, dados);
+          break;
+        case 'proposta-ass-anual':
+          result = await handlePropostaAssAnualGeneration(supabase, osId, dados);
+          break;
+        case 'proposta-ass-pontual':
+          result = await handlePropostaAssPontualGeneration(supabase, osId, dados);
           break;
         default:
           return new Response(

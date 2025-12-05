@@ -1,0 +1,285 @@
+/**
+ * Slider Component Styles - Radix UI
+ *
+ * Estilos específicos para garantir que o slider renderize corretamente.
+ * Prioriza a funcionalidade visual: range (preenchimento) deve ser sempre visível.
+ *
+ * @see src/components/ui/slider.tsx
+ */
+
+/* ==========================================
+ * SLIDER ROOT
+ * data-slot="slider"
+ * Container principal do slider
+ * ========================================== */
+
+[data-slot='slider'] {
+  /* Layout base */
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  /* User interaction */
+  touch-action: none;
+  user-select: none;
+  cursor: pointer;
+}
+
+/* Orientação horizontal (padrão) */
+[data-slot='slider'][data-orientation='horizontal'] {
+  flex-direction: row;
+  height: auto;
+}
+
+/* Orientação vertical */
+[data-slot='slider'][data-orientation='vertical'] {
+  flex-direction: column;
+  width: auto;
+  height: 100%;
+  min-height: 11rem;  /* 176px - mínimo para ser usável */
+}
+
+/* Disabled state */
+[data-slot='slider'][data-disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ==========================================
+ * SLIDER TRACK
+ * data-slot="slider-track"
+ * A trilha de fundo (cinza)
+ * ========================================== */
+
+[data-slot='slider-track'] {
+  /* Layout - CRÍTICO: position relative para o range funcionar */
+  position: relative;
+  flex-grow: 1;
+  overflow: hidden;
+
+  /* Visual */
+  background-color: hsl(var(--muted));
+  border-radius: 9999px;
+
+  /* Transição suave */
+  transition: background-color var(--transition-base) var(--transition-timing);
+}
+
+/* Track horizontal */
+[data-slot='slider-track'][data-orientation='horizontal'] {
+  height: 1.5rem;    /* 24px - altura confortável para interação */
+  width: 100%;
+}
+
+/* Track vertical */
+[data-slot='slider-track'][data-orientation='vertical'] {
+  width: 0.5rem;     /* 8px - largura slim */
+  height: 100%;
+}
+
+/* Track hover */
+[data-slot='slider']:not([data-disabled]):hover [data-slot='slider-track'] {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+/* ==========================================
+ * SLIDER RANGE
+ * data-slot="slider-range"
+ * A porção preenchida (dourada) - CRÍTICO
+ * ========================================== */
+
+[data-slot='slider-range'] {
+  /* Layout - CRÍTICO: position absolute dentro do track */
+  position: absolute;
+
+  /* Visual - cor primária */
+  background-color: hsl(var(--primary));
+
+  /* Transição suave */
+  transition: background-color var(--transition-base) var(--transition-timing);
+}
+
+/* Range horizontal - CRÍTICO: ocupa altura total do track */
+[data-slot='slider-range'][data-orientation='horizontal'] {
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+/* Range vertical - CRÍTICO: ocupa largura total do track */
+[data-slot='slider-range'][data-orientation='vertical'] {
+  width: 100%;
+  bottom: 0;
+  left: 0;
+}
+
+/* Range hover */
+[data-slot='slider']:not([data-disabled]):hover [data-slot='slider-range'] {
+  background-color: hsl(var(--primary-hover));
+}
+
+/* ==========================================
+ * SLIDER THUMB
+ * data-slot="slider-thumb"
+ * O círculo arrastável
+ * ========================================== */
+
+[data-slot='slider-thumb'] {
+  /* Layout e dimensões */
+  display: block;
+  width: 1.25rem;    /* 20px */
+  height: 1.25rem;   /* 20px */
+  flex-shrink: 0;
+
+  /* Formato circular */
+  border-radius: 9999px;
+
+  /* Visual */
+  background-color: hsl(var(--background));
+  border: 2px solid hsl(var(--primary));
+  box-shadow: var(--shadow-sm);
+
+  /* Transições */
+  transition-property: box-shadow, transform;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Cursor */
+  cursor: grab;
+
+  /* Focus outline removido - será aplicado via ring */
+  outline: none;
+
+  /* Z-index para ficar acima do range */
+  position: relative;
+  z-index: 1;
+}
+
+/* Thumb active (dragging) */
+[data-slot='slider-thumb']:active {
+  cursor: grabbing;
+  transform: scale(1.1);
+  box-shadow: 0 0 0 6px hsl(var(--ring) / 0.5);
+}
+
+/* Thumb hover */
+[data-slot='slider-thumb']:hover:not(:disabled) {
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.5);
+}
+
+/* Thumb focus visible - acessibilidade */
+[data-slot='slider-thumb']:focus-visible {
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.5);
+  outline: none;
+}
+
+/* Thumb disabled */
+[data-slot='slider-thumb']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ==========================================
+ * MÚLTIPLOS THUMBS
+ * Para sliders com range (min/max)
+ * ========================================== */
+
+/* Garantir que thumbs não colidam visualmente */
+[data-slot='slider-thumb'] + [data-slot='slider-thumb'] {
+  margin-left: 0;  /* Reset margin entre thumbs */
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+/* Preparação para dark mode */
+@media (prefers-color-scheme: dark) {
+  [data-slot='slider-track'] {
+    background-color: hsl(var(--muted));
+  }
+
+  [data-slot='slider-range'] {
+    background-color: hsl(var(--primary));
+  }
+
+  [data-slot='slider-thumb'] {
+    background-color: hsl(var(--background));
+    border-color: hsl(var(--primary));
+  }
+}
+
+/* Reduzir animações se preferido pelo usuário */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='slider-track'],
+  [data-slot='slider-range'],
+  [data-slot='slider-thumb'] {
+    transition: none;
+  }
+}
+
+/* ==========================================
+ * SLIDER COM MARCADORES/STEPS
+ * Estilização futura se necessário
+ * ========================================== */
+
+/* Placeholder para marcadores de step */
+[data-slot='slider-mark'] {
+  position: absolute;
+  width: 2px;
+  height: 8px;
+  background-color: hsl(var(--border));
+  transform: translateX(-50%);
+}
+
+/* ==========================================
+ * VARIAÇÕES DE TAMANHO
+ * Caso necessário no futuro
+ * ========================================== */
+
+/* Slider compacto */
+[data-slot='slider'][data-size='sm'] [data-slot='slider-track'][data-orientation='horizontal'] {
+  height: 1rem;      /* 16px */
+}
+
+[data-slot='slider'][data-size='sm'] [data-slot='slider-thumb'] {
+  width: 1rem;       /* 16px */
+  height: 1rem;      /* 16px */
+}
+
+/* Slider grande */
+[data-slot='slider'][data-size='lg'] [data-slot='slider-track'][data-orientation='horizontal'] {
+  height: 2rem;      /* 32px */
+}
+
+[data-slot='slider'][data-size='lg'] [data-slot='slider-thumb'] {
+  width: 1.5rem;     /* 24px */
+  height: 1.5rem;    /* 24px */
+}
+
+/* ==========================================
+ * DEBUGGING
+ * Remover após verificação
+ * ========================================== */
+
+/* Descomentar para debug visual */
+/*
+[data-slot='slider'] {
+  outline: 2px solid purple !important;
+}
+
+[data-slot='slider-track'] {
+  outline: 2px solid red !important;
+}
+
+[data-slot='slider-range'] {
+  outline: 2px solid green !important;
+}
+
+[data-slot='slider-thumb'] {
+  outline: 2px solid blue !important;
+}
+*/

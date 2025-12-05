@@ -13,6 +13,7 @@ export interface OSDocumento {
   metadados?: Record<string, unknown>;
   uploaded_by: string;
   criado_em: string;
+  url?: string;
 }
 
 export interface UploadDocumentoParams {
@@ -72,9 +73,9 @@ export function useOSDocumentUpload(osId: string) {
 
       setUploadProgress(20);
 
-      // 2. Upload para Supabase Storage (bucket: uploads)
+      // 2. Upload para Supabase Storage (bucket: os-documents)
       const { error: uploadError } = await supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .upload(path, file, {
           contentType: file.type,
           upsert: false
@@ -89,7 +90,7 @@ export function useOSDocumentUpload(osId: string) {
 
       // 3. Obter URL pública
       const { data: urlData } = supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .getPublicUrl(path);
 
       setUploadProgress(80);
@@ -159,12 +160,12 @@ export function useOSDocumentUpload(osId: string) {
 
       // 2. Deletar do storage
       const { error: storageError } = await supabase.storage
-        .from('uploads')
+        .from('os-documents')
         .remove([documento.caminho_arquivo]);
 
       if (storageError) {
         console.warn('Erro ao deletar do storage:', storageError);
-     }
+      }
 
       // 3. Deletar do banco
       const { error: dbError } = await supabase
@@ -185,7 +186,7 @@ export function useOSDocumentUpload(osId: string) {
   /**
    * Lista todos os documentos de uma OS
    */
-  const listDocuments = async ( tipoDocumento?: string): Promise<OSDocumento[]> => {
+  const listDocuments = async (tipoDocumento?: string): Promise<OSDocumento[]> => {
     let query = supabase
       .from('os_documentos')
       .select('*')

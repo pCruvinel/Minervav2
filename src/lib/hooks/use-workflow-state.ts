@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useEtapas } from './use-etapas';
 import { toast } from '../utils/safe-toast';
 import { getStepDefaults } from '@/lib/utils/schema-defaults';
+import { logger } from '@/lib/utils/logger';
 
 export interface WorkflowStateOptions {
   osId?: string;
@@ -91,10 +92,28 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
   };
 
   // Helper: Save current step data
-  const saveStep = async (step: number, isDraft = false) => {
-    if (!osId) return false;
+  // ✅ FIX: Added explicitData parameter to bypass React state timing issues
+  const saveStep = async (
+    step: number,
+    isDraft: boolean | any = false,
+    explicitData?: any
+  ) => {
+    // Se não tem osId, permite avanço (modo demonstração/teste)
+    if (!osId) {
+      logger.log(`💾 saveStep(${step}): Sem osId - modo demonstração, permitindo avanço`);
+      return true;
+    }
 
-    const data = getStepData(step);
+    // Use explicit data if provided, otherwise read from state
+    let data: any;
+    if (explicitData !== undefined) {
+      data = explicitData;
+      logger.log(`💾 saveStep(${step}): Using explicit data (${Object.keys(data || {}).length} fields)`);
+    } else {
+      data = getStepData(step);
+      logger.log(`💾 saveStep(${step}): Using state data (${Object.keys(data || {}).length} fields)`);
+    }
+
     const etapa = etapas?.find(e => e.ordem === step);
 
     if (etapa) {
@@ -114,7 +133,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     setIsHistoricalNavigation,
     formDataByStep,
     setFormDataByStep,
-    
+
     // Derived
     completedSteps,
     isLoading: isLoadingEtapas,
@@ -124,6 +143,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     getStepData,
     setStepData,
     saveStep,
+    saveFormData, // ✅ Exposed for auto-save in useEffect
     createEtapa, // Exposed for complex workflows
     updateEtapa, // Exposed for complex workflows
     refreshEtapas: () => osId && fetchEtapas(osId)

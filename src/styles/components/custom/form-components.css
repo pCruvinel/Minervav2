@@ -1,0 +1,278 @@
+/**
+ * Form Components Styles - Custom Minerva
+ *
+ * Estilos para componentes de formulário customizados:
+ * - FormInput
+ * - FormTextarea
+ * - FormSelect
+ * - FormMaskedInput
+ * - FormError
+ *
+ * @see src/components/ui/form-*.tsx
+ */
+
+/* ==========================================
+ * FORM FIELD WRAPPER
+ * Container geral de campos de formulário
+ * ========================================== */
+
+[data-slot='form-field'] {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  width: 100%;
+}
+
+/* ==========================================
+ * FORM LABEL
+ * ========================================== */
+
+[data-slot='form-label'] {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--foreground));
+  line-height: 1;
+  user-select: none;
+}
+
+/* Label obrigatório */
+[data-slot='form-label'][data-required='true']::after {
+  content: ' *';
+  color: hsl(var(--error));
+}
+
+/* ==========================================
+ * FORM INPUT
+ * Inputs de texto, email, password, etc.
+ * ========================================== */
+
+[data-slot='form-input'] {
+  /* Layout */
+  display: flex;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+
+  /* Visual */
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+
+  /* Tipografia */
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+
+  /* Transições */
+  transition-property: border-color, box-shadow;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Remove estilos padrão */
+  outline: none;
+}
+
+/* Placeholder */
+[data-slot='form-input']::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 1;
+}
+
+/* Hover */
+[data-slot='form-input']:hover:not(:disabled) {
+  border-color: hsl(var(--ring));
+}
+
+/* Focus */
+[data-slot='form-input']:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2);
+}
+
+/* Invalid/Error state */
+[data-slot='form-input'][aria-invalid='true'] {
+  border-color: hsl(var(--error));
+}
+
+[data-slot='form-input'][aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px hsl(var(--error) / 0.2);
+}
+
+/* Disabled */
+[data-slot='form-input']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: hsl(var(--muted));
+}
+
+/* ==========================================
+ * FORM TEXTAREA
+ * Inputs de texto multi-linha
+ * ========================================== */
+
+[data-slot='form-textarea'] {
+  /* Herda todos os estilos do input */
+  display: flex;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  line-height: 1.5;
+  transition-property: border-color, box-shadow;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+  outline: none;
+
+  /* Específico para textarea */
+  min-height: 5rem;        /* 80px */
+  resize: vertical;
+}
+
+/* Estados do textarea (mesmos do input) */
+[data-slot='form-textarea']::placeholder {
+  color: hsl(var(--muted-foreground));
+  opacity: 1;
+}
+
+[data-slot='form-textarea']:hover:not(:disabled) {
+  border-color: hsl(var(--ring));
+}
+
+[data-slot='form-textarea']:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2);
+}
+
+[data-slot='form-textarea'][aria-invalid='true'] {
+  border-color: hsl(var(--error));
+}
+
+[data-slot='form-textarea'][aria-invalid='true']:focus {
+  box-shadow: 0 0 0 3px hsl(var(--error) / 0.2);
+}
+
+[data-slot='form-textarea']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: hsl(var(--muted));
+  resize: none;
+}
+
+/* ==========================================
+ * FORM SELECT
+ * Selects nativos
+ * ========================================== */
+
+[data-slot='form-select'] {
+  /* Herda estilos do input */
+  display: flex;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: hsl(var(--foreground));
+  transition-property: border-color, box-shadow;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+  outline: none;
+
+  /* Específico para select */
+  cursor: pointer;
+  padding-right: 2rem;     /* Espaço para a seta */
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2352525b' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 12px;
+}
+
+[data-slot='form-select']:hover:not(:disabled) {
+  border-color: hsl(var(--ring));
+}
+
+[data-slot='form-select']:focus {
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 3px hsl(var(--ring) / 0.2);
+}
+
+[data-slot='form-select'][aria-invalid='true'] {
+  border-color: hsl(var(--error));
+}
+
+[data-slot='form-select']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background-color: hsl(var(--muted));
+}
+
+/* ==========================================
+ * FORM ERROR
+ * Mensagens de erro
+ * ========================================== */
+
+[data-slot='form-error'] {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: hsl(var(--error));
+  margin-top: var(--spacing-xs);
+}
+
+/* ==========================================
+ * FORM DESCRIPTION
+ * Texto de ajuda
+ * ========================================== */
+
+[data-slot='form-description'] {
+  font-size: var(--font-size-xs);
+  color: hsl(var(--muted-foreground));
+  margin-top: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+/* ==========================================
+ * FORM MESSAGE
+ * Mensagens gerais (sucesso, info)
+ * ========================================== */
+
+[data-slot='form-message'] {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  margin-top: var(--spacing-xs);
+}
+
+[data-slot='form-message'][data-type='success'] {
+  color: hsl(var(--success));
+}
+
+[data-slot='form-message'][data-type='info'] {
+  color: hsl(var(--info));
+}
+
+[data-slot='form-message'][data-type='warning'] {
+  color: hsl(var(--warning));
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='form-input'],
+  [data-slot='form-textarea'],
+  [data-slot='form-select'] {
+    transition: none;
+  }
+}

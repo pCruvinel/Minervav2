@@ -37,6 +37,10 @@ export interface Agendamento {
   atualizadoEm?: string;
   canceladoEm?: string;
   canceladoMotivo?: string;
+  // Responsável pela execução (dono da agenda)
+  responsavelId?: string;
+  responsavelNome?: string;
+  // Dados legacy/enriquecidos
   usuarioNome?: string;
   osCodigo?: string;
   clienteNome?: string;
@@ -51,8 +55,14 @@ export interface AgendamentoComTurno extends Agendamento {
     cor: string;
     setores: string[];
   };
+  // Criador do agendamento (audit)
   colaborador?: {
     nome_completo?: string;
+  };
+  // Responsável pela execução (dono da agenda)
+  responsavel?: {
+    nome_completo?: string;
+    avatar_url?: string;
   };
   ordens_servico?: {
     codigo_os?: string;
@@ -87,6 +97,8 @@ export interface CreateAgendamentoInput {
   solicitanteContato?: string;
   solicitanteObservacoes?: string;
   osId?: string;
+  /** ID do responsável pela execução. Se não informado, usa o usuário logado. */
+  responsavelId?: string;
 }
 
 export interface UpdateAgendamentoInput {
@@ -136,6 +148,10 @@ const agendamentosAPI = {
         ),
         colaborador:criado_por (
           nome_completo
+        ),
+        responsavel:responsavel_id (
+          nome_completo,
+          avatar_url
         ),
         ordens_servico:os_id (
           codigo_os,
@@ -220,6 +236,10 @@ const agendamentosAPI = {
           hora_fim,
           cor,
           setores
+        ),
+        responsavel:responsavel_id (
+          nome_completo,
+          avatar_url
         )
       `)
       .eq('id', id)
@@ -250,6 +270,9 @@ const agendamentosAPI = {
       throw new Error('Não há vagas disponíveis neste horário');
     }
 
+    // Determinar responsável: usa o informado ou o usuário logado
+    const responsavelId = input.responsavelId || user.user?.id;
+
     const { data, error } = await supabase
       .from('agendamentos')
       .insert({
@@ -265,6 +288,7 @@ const agendamentosAPI = {
         solicitante_observacoes: input.solicitanteObservacoes,
         os_id: input.osId,
         criado_por: user.user?.id,
+        responsavel_id: responsavelId,
       })
       .select()
       .single();
@@ -301,23 +325,55 @@ const agendamentosAPI = {
   },
 
   /**
-   * Cancelar agendamento
-   */
-  async cancel(id: string, motivo: string): Promise<Agendamento> {
-    const { data, error } = await supabase
-      .from('agendamentos')
-      .update({
-        status: 'cancelado',
-        cancelado_em: new Date().toISOString(),
-        cancelado_motivo: motivo,
-      })
-      .eq('id', id)
-      .select()
-      .single();
+    * Cancelar agendamento
+    */
+   async cancel(id: string, motivo: string): Promise<Agendamento> {
+     // Primeiro, buscar dados do agendamento para o audit log
+     const { data: agendamentoAtual, error: errorBusca } = await supabase
+       .from('agendamentos')
+       .select('*')
+       .eq('id', id)
+       .single();
 
-    if (error) throw error;
-    return mapAgendamentoFromDB(data);
-  },
+     if (errorBusca) throw errorBusca;
+
+     // Cancelar o agendamento
+     const { data, error } = await supabase
+       .from('agendamentos')
+       .update({
+         status: 'cancelado',
+         cancelado_em: new Date().toISOString(),
+         cancelado_motivo: motivo,
+       })
+       .eq('id', id)
+       .select()
+       .single();
+
+     if (error) throw error;
+
+     // Registrar no audit_log
+     const { data: user } = await supabase.auth.getUser();
+     await supabase
+       .from('audit_log')
+       .insert({
+         usuario_id: user.user?.id,
+         acao: 'UPDATE',
+         tabela_afetada: 'agendamentos',
+         registro_id_afetado: id,
+         dados_antigos: {
+           status: agendamentoAtual.status,
+           cancelado_em: agendamentoAtual.cancelado_em,
+           cancelado_motivo: agendamentoAtual.cancelado_motivo,
+         },
+         dados_novos: {
+           status: 'cancelado',
+           cancelado_em: new Date().toISOString(),
+           cancelado_motivo: motivo,
+         },
+       });
+
+     return mapAgendamentoFromDB(data);
+   },
 
   /**
    * Marcar agendamento como realizado
@@ -358,56 +414,56 @@ const agendamentosAPI = {
  * Hook para listar agendamentos com filtros
  */
 export function useAgendamentos(filters?: AgendamentoFilters) {
-  const { data, loading, error, refetch } = useApi(
-    () => agendamentosAPI.list(filters),
-    {
-      deps: [
-        filters?.turnoId,
-        filters?.data,
-        filters?.dataInicio,
-        filters?.dataFim,
-        filters?.status,
-        filters?.setor,
-        filters?.osId,
-      ],
-      onError: (error) => {
-        console.error('❌ Erro ao carregar agendamentos:', error);
-        toast.error(`Erro ao carregar agendamentos: ${error.message}`);
-      },
-    }
-  );
+   const { data, loading, error, refetch } = useApi(
+     () => agendamentosAPI.list(filters),
+     {
+       deps: [
+         filters?.turnoId,
+         filters?.data,
+         filters?.dataInicio,
+         filters?.dataFim,
+         filters?.status,
+         filters?.setor,
+         filters?.osId,
+       ],
+       onError: (error) => {
+         console.error('❌ Erro ao carregar agendamentos:', error);
+         toast.error(`Erro ao carregar agendamentos: ${error.message}`);
+       },
+     }
+   );
 
-  const agendamentos = useMemo(() => {
-    if (!data) return [];
+   const agendamentos = useMemo(() => {
+     if (!data) return [];
 
-    return data
-      .map((agendamento) => {
-        const statusGeral =
-          agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
-        const etapasAtivas =
-          agendamento.ordens_servico?.etapas?.filter((etapa) =>
-            ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
-          ).length || agendamento.etapasAtivas || 0;
+     return data
+       .map((agendamento) => {
+         const statusGeral =
+           agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
+         const etapasAtivas =
+           agendamento.ordens_servico?.etapas?.filter((etapa) =>
+             ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
+           ).length || agendamento.etapasAtivas || 0;
 
-        return {
-          ...agendamento,
-          usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
-          osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
-          clienteNome:
-            agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
-          statusGeralOS: statusGeral,
-          etapasAtivas,
-        };
-      })
-      .filter(
-        (agendamento) =>
-          agendamento.status !== 'cancelado' &&
-          (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
-      );
-  }, [data]);
+         return {
+           ...agendamento,
+           usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
+           osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
+           clienteNome:
+             agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
+           statusGeralOS: statusGeral,
+           etapasAtivas,
+         };
+       })
+       .filter(
+         (agendamento) =>
+           agendamento.status !== 'cancelado' &&
+           (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
+       );
+   }, [data]);
 
-  return { agendamentos, loading, error, refetch };
-}
+   return { agendamentos, loading, error, refetch };
+ }
 
 /**
  * Hook para obter agendamentos de uma data específica
@@ -585,6 +641,10 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     atualizadoEm: data.atualizado_em,
     canceladoEm: data.cancelado_em,
     canceladoMotivo: data.cancelado_motivo,
+    // Responsável pela execução
+    responsavelId: data.responsavel_id,
+    responsavelNome: data.responsavel?.nome_completo,
+    // Dados legacy/enriquecidos
     usuarioNome: data.colaborador?.nome_completo,
     osCodigo: data.ordens_servico?.codigo_os,
     clienteNome: data.ordens_servico?.cliente?.nome_razao_social,
@@ -601,6 +661,14 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
       horaFim: data.turno.hora_fim,
       cor: data.turno.cor,
       setores: data.turno.setores,
+    };
+  }
+
+  // Mapear objeto responsável se existir
+  if (data.responsavel) {
+    agendamento.responsavel = {
+      nome_completo: data.responsavel.nome_completo,
+      avatar_url: data.responsavel.avatar_url,
     };
   }
 

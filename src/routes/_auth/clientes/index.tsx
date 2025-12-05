@@ -11,7 +11,6 @@ function ClientesListaRoute() {
   return (
     <ClientesListaPage
       onClienteClick={(clienteId) => router.navigate({ to: '/clientes/$clienteId', params: { clienteId } })}
-      onNovoContrato={() => router.navigate({ to: '/os/criar/start-contrato-obra' })}
     />
   )
 }

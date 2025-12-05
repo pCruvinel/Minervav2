@@ -1,0 +1,205 @@
+/**
+ * Color Selector Component Styles
+ *
+ * Estilos para o seletor de cores usado no modal de criar turno.
+ * Fix crítico: botões de cor estavam invisíveis devido a CSS forçando background branco.
+ *
+ * @see src/components/calendario/modal-criar-turno.tsx
+ */
+
+/* ==========================================
+ * COLOR SELECTOR CONTAINER
+ * ========================================== */
+
+[data-slot='color-selector'] {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ==========================================
+ * COLOR BUTTON
+ * Botões individuais de cor
+ * ========================================== */
+
+[data-slot='color-button'] {
+  /* Dimensões */
+  width: 2.5rem;         /* 40px */
+  height: 2.5rem;        /* 40px */
+
+  /* Layout */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  /* Formato circular */
+  border-radius: 9999px;
+
+  /* Border base */
+  border: 2px solid transparent;
+
+  /* Cursor */
+  cursor: pointer;
+
+  /* Transições */
+  transition-property: transform, box-shadow, border-color;
+  transition-duration: var(--transition-base);
+  transition-timing-function: var(--transition-timing);
+
+  /* Remove estilos padrão de button */
+  background: none;
+  padding: 0;
+  outline: none;
+}
+
+/* ==========================================
+ * COLOR BUTTON STATES
+ * ========================================== */
+
+/* Hover */
+[data-slot='color-button']:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 4px hsl(var(--ring) / 0.2);
+}
+
+/* Focus visible - acessibilidade */
+[data-slot='color-button']:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Selected/Active state */
+[data-slot='color-button'][data-state='selected'],
+[data-slot='color-button'][aria-selected='true'] {
+  border-color: hsl(var(--foreground));
+  box-shadow: 0 0 0 2px hsl(var(--background));
+  transform: scale(1.05);
+}
+
+/* Disabled */
+[data-slot='color-button']:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ==========================================
+ * COLOR BUTTON - SWATCH INTERNO
+ * O círculo colorido dentro do botão
+ * ========================================== */
+
+[data-slot='color-swatch'] {
+  /* Dimensões - ligeiramente menor que o botão */
+  width: 2rem;           /* 32px */
+  height: 2rem;          /* 32px */
+
+  /* Formato circular */
+  border-radius: 9999px;
+
+  /* A cor é aplicada via style inline ou variável */
+  /* ex: style="background-color: var(--primary)" */
+
+  /* Border sutil para contraste */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+
+  /* Transição suave */
+  transition: transform var(--transition-base) var(--transition-timing);
+}
+
+/* Swatch hover */
+[data-slot='color-button']:hover [data-slot='color-swatch'] {
+  transform: scale(1.1);
+}
+
+/* ==========================================
+ * CORES ESPECÍFICAS MINERVA
+ * Classes utilitárias para as cores do sistema
+ * ========================================== */
+
+/* Primary - Dourado */
+.color-primary {
+  background-color: hsl(var(--primary));
+}
+
+/* Secondary - Dourado Claro */
+.color-secondary {
+  background-color: hsl(var(--secondary));
+}
+
+/* Success - Verde */
+.color-success {
+  background-color: hsl(var(--success));
+}
+
+/* Warning - Amarelo/Amber */
+.color-warning {
+  background-color: hsl(var(--warning));
+}
+
+/* Error - Vermelho */
+.color-error {
+  background-color: hsl(var(--error));
+}
+
+/* Info - Azul */
+.color-info {
+  background-color: hsl(var(--info));
+}
+
+/* ==========================================
+ * VARIAÇÕES DE LAYOUT
+ * ========================================== */
+
+/* Seletor compacto */
+[data-slot='color-selector'][data-size='sm'] [data-slot='color-button'] {
+  width: 2rem;           /* 32px */
+  height: 2rem;          /* 32px */
+}
+
+[data-slot='color-selector'][data-size='sm'] [data-slot='color-swatch'] {
+  width: 1.5rem;         /* 24px */
+  height: 1.5rem;        /* 24px */
+}
+
+/* Seletor grande */
+[data-slot='color-selector'][data-size='lg'] [data-slot='color-button'] {
+  width: 3rem;           /* 48px */
+  height: 3rem;          /* 48px */
+}
+
+[data-slot='color-selector'][data-size='lg'] [data-slot='color-swatch'] {
+  width: 2.5rem;         /* 40px */
+  height: 2.5rem;        /* 40px */
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+/* Reduzir animações se preferido */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='color-button'],
+  [data-slot='color-swatch'] {
+    transition: none;
+  }
+}
+
+/* ==========================================
+ * DEBUGGING
+ * ========================================== */
+
+/* Descomentar para debug visual */
+/*
+[data-slot='color-selector'] {
+  outline: 2px solid purple !important;
+}
+
+[data-slot='color-button'] {
+  outline: 2px solid red !important;
+}
+
+[data-slot='color-swatch'] {
+  outline: 2px solid blue !important;
+}
+*/

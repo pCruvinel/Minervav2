@@ -1,0 +1,76 @@
+/**
+ * Dialog Component Styles - Radix UI
+ *
+ * Estilos para modais e dialogs.
+ * Dialog já funciona bem com Tailwind, este arquivo é para ajustes específicos.
+ *
+ * @see src/components/ui/dialog.tsx
+ */
+
+/* ==========================================
+ * DIALOG OVERLAY
+ * Backdrop escuro atrás do modal
+ * ========================================== */
+
+[data-slot='dialog-overlay'] {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-backdrop);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+
+  /* Animação de entrada */
+  animation: dialog-overlay-fade-in var(--transition-base) var(--transition-timing);
+}
+
+@keyframes dialog-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ==========================================
+ * DIALOG CONTENT
+ * O modal em si
+ * ========================================== */
+
+[data-slot='dialog-content'] {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: var(--z-modal);
+
+  /* Visual */
+  background-color: hsl(var(--card));
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl);
+
+  /* Animação de entrada */
+  animation: dialog-content-zoom-in var(--transition-base) var(--transition-timing);
+}
+
+@keyframes dialog-content-zoom-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='dialog-overlay'],
+  [data-slot='dialog-content'] {
+    animation: none;
+  }
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,17 +18,84 @@ import {
   Clock,
   User,
   ExternalLink,
+  Loader2,
 } from "lucide-react";
-import Link from "next/link";
-import { mockEventosAgenda } from "@/lib/mock-data-colaborador";
+import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/lib/contexts/auth-context";
+import { supabase } from "@/lib/supabase-client";
+import { toast } from "sonner";
 
-// Mock de dados - substituir por API real
-const mockEventos = mockEventosAgenda;
+interface Agendamento {
+  id: string;
+  titulo: string;
+  data: string;
+  hora_inicio: string;
+  hora_fim: string;
+  tipo: string;
+  endereco: string;
+  os_id: string;
+  cliente_id: string;
+  responsavel_id: string;
+  ordens_servico?: {
+    codigo_os: string;
+  };
+  clientes?: {
+    nome_razao_social: string;
+  };
+}
 
 export default function AgendaColaboradorPage() {
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 10, 17)); // 17/11/2025
-  const [selectedEvento, setSelectedEvento] = useState<(typeof mockEventos)[0] | null>(null);
+  const { currentUser, isLoading: authLoading } = useAuth();
+  const [agendamentos, setAgendamentos] = useState<Agendamento[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedEvento, setSelectedEvento] = useState<Agendamento | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  // Carregar agendamentos do colaborador autenticado
+  useEffect(() => {
+    if (currentUser?.id) {
+      fetchAgendamentos();
+    }
+  }, [currentUser?.id]);
+
+  const fetchAgendamentos = async () => {
+    try {
+      setLoading(true);
+
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .select(`
+          id,
+          titulo,
+          data,
+          hora_inicio,
+          hora_fim,
+          tipo,
+          endereco,
+          os_id,
+          cliente_id,
+          responsavel_id,
+          ordens_servico (
+            codigo_os
+          ),
+          clientes (
+            nome_razao_social
+          )
+        `)
+        .eq('responsavel_id', currentUser?.id)
+        .order('data', { ascending: true });
+
+      if (error) throw error;
+
+      setAgendamentos(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error);
+      toast.error('Erro ao carregar agendamentos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const daysInMonth = new Date(
     currentDate.getFullYear(),
@@ -72,10 +139,10 @@ export default function AgendaColaboradorPage() {
     const dateStr = `${currentDate.getFullYear()}-${String(
       currentDate.getMonth() + 1
     ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-    return mockEventos.filter((e) => e.data === dateStr);
+    return agendamentos.filter((e) => e.data === dateStr);
   };
 
-  const handleEventoClick = (evento: (typeof mockEventos)[0]) => {
+  const handleEventoClick = (evento: Agendamento) => {
     setSelectedEvento(evento);
     setIsDialogOpen(true);
   };
@@ -93,6 +160,26 @@ export default function AgendaColaboradorPage() {
     }
   };
 
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-muted-foreground">Carregando...</span>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Acesso negado</h2>
+          <p className="text-muted-foreground">Você precisa estar logado para acessar esta página.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -108,7 +195,7 @@ export default function AgendaColaboradorPage() {
             <div className="flex items-center gap-2 text-muted-foreground">
               <CalendarIcon className="w-5 h-5" />
               <span className="text-black">
-                {mockEventos.length} compromissos este mês
+                {agendamentos.length} compromissos este mês
               </span>
             </div>
           </div>
@@ -185,16 +272,14 @@ export default function AgendaColaboradorPage() {
                 return (
                   <div
                     key={day}
-                    className={`aspect-square border rounded-lg p-2 ${
-                      isToday
-                        ? "border-[var(--primary)] bg-[var(--primary)]/5"
-                        : "border-border"
-                    }`}
+                    className={`aspect-square border rounded-lg p-2 ${isToday
+                      ? "border-[var(--primary)] bg-[var(--primary)]/5"
+                      : "border-border"
+                      }`}
                   >
                     <div
-                      className={`text-right mb-1 ${
-                        isToday ? "text-[var(--primary)]" : "text-muted-foreground"
-                      }`}
+                      className={`text-right mb-1 ${isToday ? "text-[var(--primary)]" : "text-muted-foreground"
+                        }`}
                     >
                       {day}
                     </div>
@@ -205,7 +290,7 @@ export default function AgendaColaboradorPage() {
                           onClick={() => handleEventoClick(evento)}
                           className="w-full text-left px-2 py-1 text-xs rounded bg-[var(--primary)] text-black hover:bg-[var(--primary)]/80 transition-colors truncate"
                         >
-                          {evento.horaInicio} - {evento.tipo}
+                          {evento.hora_inicio} - {evento.tipo}
                         </button>
                       ))}
                     </div>
@@ -240,7 +325,7 @@ export default function AgendaColaboradorPage() {
             <h2 className="text-black">Próximos Compromissos</h2>
           </div>
           <div className="divide-y divide-gray-200">
-            {mockEventos
+            {agendamentos
               .sort((a, b) => new Date(a.data).getTime() - new Date(b.data).getTime())
               .slice(0, 5)
               .map((evento) => (
@@ -262,7 +347,7 @@ export default function AgendaColaboradorPage() {
                           variant="outline"
                           className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                         >
-                          {evento.osCodigo}
+                          {evento.ordens_servico?.codigo_os || 'N/A'}
                         </Badge>
                       </div>
                       <h3 className="text-black mb-2">{evento.titulo}</h3>
@@ -276,7 +361,7 @@ export default function AgendaColaboradorPage() {
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4" />
                           <span>
-                            {evento.horaInicio} - {evento.horaFim}
+                            {evento.hora_inicio} - {evento.hora_fim}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -316,7 +401,7 @@ export default function AgendaColaboradorPage() {
                     variant="outline"
                     className="border-[var(--primary)] text-black bg-[var(--primary)]/10"
                   >
-                    {selectedEvento.osCodigo}
+                    {selectedEvento.ordens_servico?.codigo_os || 'N/A'}
                   </Badge>
                 </div>
               </div>
@@ -340,7 +425,7 @@ export default function AgendaColaboradorPage() {
                   <div>
                     <p className="text-muted-foreground mb-1">Horário</p>
                     <p className="text-black">
-                      {selectedEvento.horaInicio} - {selectedEvento.horaFim}
+                      {selectedEvento.hora_inicio} - {selectedEvento.hora_fim}
                     </p>
                   </div>
                 </div>
@@ -349,7 +434,7 @@ export default function AgendaColaboradorPage() {
                   <User className="w-5 h-5 text-muted-foreground mt-0.5" />
                   <div>
                     <p className="text-muted-foreground mb-1">Cliente</p>
-                    <p className="text-black">{selectedEvento.cliente}</p>
+                    <p className="text-black">{selectedEvento.clientes?.nome_razao_social || 'N/A'}</p>
                   </div>
                 </div>
 
@@ -363,7 +448,7 @@ export default function AgendaColaboradorPage() {
               </div>
 
               <div className="pt-4 border-t border-border">
-                <Link href={`/colaborador/minhas-os/${selectedEvento.osId}`}>
+                <Link to={`/colaborador/minhas-os/${selectedEvento.os_id}`}>
                   <Button className="w-full bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-black">
                     <ExternalLink className="w-4 h-4 mr-2" />
                     Abrir Ordem de Serviço

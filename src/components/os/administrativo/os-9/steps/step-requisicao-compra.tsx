@@ -1,0 +1,601 @@
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertCircle, Plus, Package, Loader2, Trash2 } from 'lucide-react';
+import { FormMaskedInput } from '@/components/ui/form-masked-input';
+import { RequisitionItemCard } from '../components';
+import { useRequisitionItems, useCreateRequisitionItem, useDeleteRequisitionItem } from '@/lib/hooks/use-requisition-items';
+import { useViaCEP } from '@/lib/hooks/use-viacep';
+import { useCentrosCusto } from '@/lib/hooks/use-os-workflows';
+import type { ItemRequisicao, DadosRequisicaoOS } from '@/lib/types';
+import { PRAZOS_NECESSIDADE } from '@/lib/types';
+import { logger } from '@/lib/utils/logger';
+
+interface StepRequisicaoCompraProps {
+  data: Record<string, any>;
+  onDataChange: (data: any) => void;
+  readOnly?: boolean;
+  etapaId?: string;
+}
+
+/**
+ * StepRequisicaoCompra - Etapa 1 da OS-09 (Requisição de Compra)
+ *
+ * Permite gerenciar requisição de compra com dados em nível de OS
+ * (endereço de entrega e prazo) e múltiplos itens.
+ *
+ * Features:
+ * - Dados de OS: Endereço de Entrega (ViaCEP) + Prazo de Necessidade
+ * - Array dinâmico de itens (Material, Ferramenta, Equipamento, Logística, Documentação)
+ * - Integração com useRequisitionItems (CRUD no Supabase)
+ * - Cálculo de valor total da requisição
+ * - Empty state quando sem itens
+ * - Modo readOnly para navegação histórica
+ *
+ * @example
+ * ```tsx
+ * <StepRequisicaoCompra
+ *   data={etapa1Data}
+ *   onDataChange={setEtapa1Data}
+ *   etapaId={etapaId}
+ *   readOnly={false}
+ * />
+ * ```
+ */
+export function StepRequisicaoCompra({
+  data,
+  onDataChange,
+  readOnly,
+  etapaId
+}: StepRequisicaoCompraProps) {
+  // Estado local para dados da OS (endereço + prazo)
+  const [dadosOS, setDadosOS] = useState<Partial<DadosRequisicaoOS>>({
+    centro_custo_id: data.centro_custo_id || undefined,
+    prazo_necessidade: data.prazo_necessidade || undefined,
+    cep: data.cep || '',
+    logradouro: data.logradouro || '',
+    numero: data.numero || '',
+    complemento: data.complemento || '',
+    bairro: data.bairro || '',
+    cidade: data.cidade || '',
+    uf: data.uf || ''
+  });
+
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Estado local para itens (enquanto edita, antes de salvar no banco)
+  const [localItems, setLocalItems] = useState<Partial<ItemRequisicao>[]>([]);
+
+  // Hooks de integração com Supabase e ViaCEP
+  const { items: savedItems, loading, refetch } = useRequisitionItems(etapaId);
+  const { mutate: createItem, loading: creating } = useCreateRequisitionItem();
+  const { mutate: deleteItem, loading: deleting } = useDeleteRequisitionItem();
+  const { fetchCEP, loading: cepLoading } = useViaCEP();
+  const { centrosCusto, loading: loadingCC } = useCentrosCusto();
+
+  // Combinar itens salvos + itens locais (novos)
+  const allItems = [...savedItems, ...localItems];
+
+  const handleAddItem = () => {
+    if (readOnly) return;
+
+    const newItem: Partial<ItemRequisicao> = {
+      tipo: undefined,
+      sub_tipo: undefined,
+      descricao: '',
+      quantidade: 0,
+      unidade_medida: undefined,
+      preco_unitario: 0,
+      link_produto: '',
+      observacao: ''
+    };
+
+    setLocalItems([...localItems, newItem]);
+  };
+
+  const handleUpdateLocalItem = (index: number, updates: Partial<ItemRequisicao>) => {
+    if (readOnly) return;
+
+    const adjustedIndex = index - savedItems.length;
+    if (adjustedIndex < 0) return; // Item salvo, não local
+
+    const updatedLocalItems = [...localItems];
+    updatedLocalItems[adjustedIndex] = { ...updatedLocalItems[adjustedIndex], ...updates };
+    setLocalItems(updatedLocalItems);
+  };
+
+  const handleRemoveLocalItem = async (index: number) => {
+    if (readOnly) return;
+
+    const adjustedIndex = index - savedItems.length;
+    if (adjustedIndex < 0) {
+      // Item salvo no banco - deletar via API
+      const itemToDelete = savedItems[index];
+      if (itemToDelete.id) {
+        try {
+          await deleteItem(itemToDelete.id);
+          logger.log(`✅ Item ${itemToDelete.id} deletado com sucesso`);
+          await refetch();
+        } catch (error) {
+          logger.error('Erro ao deletar item:', error);
+        }
+      }
+    } else {
+      // Item local - remover do array
+      const updatedLocalItems = localItems.filter((_, i) => i !== adjustedIndex);
+      setLocalItems(updatedLocalItems);
+    }
+  };
+
+  const handleSaveLocalItems = async () => {
+    if (!etapaId || readOnly) return;
+
+    logger.log(`💾 Salvando ${localItems.length} itens locais...`);
+
+    for (const item of localItems) {
+      // Validar campos obrigatórios do item
+      if (
+        !item.tipo ||
+        !item.descricao ||
+        !item.quantidade ||
+        !item.unidade_medida ||
+        item.preco_unitario === undefined
+      ) {
+        logger.error('Item com campos obrigatórios faltando:', item);
+        continue;
+      }
+
+      // Validar sub_tipo se necessário
+      if ((item.tipo === 'Ferramenta' || item.tipo === 'Equipamento') && !item.sub_tipo) {
+        logger.error('Sub-tipo obrigatório para Ferramenta/Equipamento:', item);
+        continue;
+      }
+
+      try {
+        await createItem({
+          etapaId,
+          item: item as Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'created_at' | 'updated_at'>
+        });
+        logger.log(`✅ Item salvo com sucesso`);
+      } catch (error) {
+        logger.error('Erro ao salvar item:', error);
+      }
+    }
+
+    // Limpar itens locais e refetch do banco
+    setLocalItems([]);
+    await refetch();
+  };
+
+  // Handlers para dados da OS
+  const handleOSFieldChange = (field: keyof DadosRequisicaoOS, value: any) => {
+    if (readOnly) return;
+    setDadosOS({ ...dadosOS, [field]: value });
+  };
+
+  const handleCEPBlur = async () => {
+    if (readOnly || !dadosOS.cep) return;
+
+    setTouched({ ...touched, cep: true });
+
+    const endereco = await fetchCEP(dadosOS.cep);
+    if (endereco) {
+      setDadosOS({
+        ...dadosOS,
+        logradouro: endereco.logradouro,
+        bairro: endereco.bairro,
+        cidade: endereco.localidade,
+        uf: endereco.uf,
+        complemento: endereco.complemento || dadosOS.complemento
+      });
+    }
+  };
+
+  // Cálculo de resumo
+  const totalItems = allItems.length;
+  const valorTotalRequisicao = allItems.reduce(
+    (sum, item) => sum + (item.quantidade || 0) * (item.preco_unitario || 0),
+    0
+  );
+
+  // Validação dos dados da OS
+  const dadosOSCompletos = !!(
+    dadosOS.centro_custo_id &&
+    dadosOS.prazo_necessidade &&
+    dadosOS.cep &&
+    dadosOS.logradouro &&
+    dadosOS.numero &&
+    dadosOS.bairro &&
+    dadosOS.cidade &&
+    dadosOS.uf
+  );
+
+  // Fluxo progressivo: CC + Prazo devem ser preenchidos primeiro
+  const camposPrincipaisPreenchidos = Boolean(
+    dadosOS.centro_custo_id &&
+    dadosOS.prazo_necessidade
+  );
+
+  // Sincronizar com parent component para validação de completude
+  React.useEffect(() => {
+    onDataChange({
+      totalItems,
+      valorTotal: valorTotalRequisicao,
+      hasItems: totalItems > 0,
+      dadosOSCompletos,
+      ...dadosOS
+    });
+  }, [totalItems, valorTotalRequisicao, dadosOS, dadosOSCompletos]);
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h2 className="text-xl mb-1">Requisição de Compra</h2>
+        <p className="text-sm text-muted-foreground">
+          Preencha os dados da requisição e adicione os itens necessários
+        </p>
+      </div>
+
+      {/* Dados da Requisição (OS Level) */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Dados da Requisição</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {/* Centro de Custo */}
+          <div className="space-y-2">
+            <Label htmlFor="centro-custo">
+              Centro de Custo <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={dadosOS.centro_custo_id || ''}
+              onValueChange={(value) => handleOSFieldChange('centro_custo_id', value)}
+              disabled={readOnly || loadingCC}
+            >
+              <SelectTrigger id="centro-custo">
+                <SelectValue placeholder={
+                  loadingCC ? 'Carregando centros de custo...' : 'Selecione o centro de custo'
+                } />
+              </SelectTrigger>
+              <SelectContent>
+                {centrosCusto?.map((cc) => (
+                  <SelectItem key={cc.id} value={cc.id}>
+                    <div className="flex items-center gap-2">
+                      <span>{cc.nome}</span>
+                      {cc.cliente?.nome_razao_social && (
+                        <span className="text-xs text-muted-foreground">
+                          ({cc.cliente.nome_razao_social})
+                        </span>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {!dadosOS.centro_custo_id && touched.centro_custo_id && (
+              <p className="text-sm text-destructive flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                Centro de custo é obrigatório
+              </p>
+            )}
+          </div>
+
+          {/* Prazo de Necessidade */}
+          <div className="space-y-2">
+            <Label htmlFor="prazo-necessidade">
+              Prazo de Necessidade <span className="text-destructive">*</span>
+            </Label>
+            <Select
+              value={dadosOS.prazo_necessidade}
+              onValueChange={(value) => handleOSFieldChange('prazo_necessidade', value)}
+              disabled={readOnly}
+            >
+              <SelectTrigger id="prazo-necessidade">
+                <SelectValue placeholder="Selecione o prazo" />
+              </SelectTrigger>
+              <SelectContent>
+                {PRAZOS_NECESSIDADE.map((prazo) => (
+                  <SelectItem key={prazo.value} value={prazo.value}>
+                    {prazo.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Endereço de Entrega - Só aparece após selecionar CC + Prazo */}
+          {camposPrincipaisPreenchidos && (
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
+                Endereço de Entrega
+              </h4>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="cep">
+                  CEP <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <FormMaskedInput
+                    id="cep"
+                    maskType="cep"
+                    value={dadosOS.cep || ''}
+                    onChange={(e) => handleOSFieldChange('cep', e.target.value)}
+                    onBlur={handleCEPBlur}
+                    placeholder="00000-000"
+                    disabled={readOnly}
+                  />
+                  {cepLoading && (
+                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="logradouro">
+                  Logradouro <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="logradouro"
+                  value={dadosOS.logradouro || ''}
+                  onChange={(e) => handleOSFieldChange('logradouro', e.target.value)}
+                  placeholder="Rua, Avenida, etc."
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="numero">
+                  Número <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="numero"
+                  value={dadosOS.numero || ''}
+                  onChange={(e) => handleOSFieldChange('numero', e.target.value)}
+                  placeholder="123"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="complemento">Complemento</Label>
+                <Input
+                  id="complemento"
+                  value={dadosOS.complemento || ''}
+                  onChange={(e) => handleOSFieldChange('complemento', e.target.value)}
+                  placeholder="Apto, Bloco, etc."
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bairro">
+                  Bairro <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="bairro"
+                  value={dadosOS.bairro || ''}
+                  onChange={(e) => handleOSFieldChange('bairro', e.target.value)}
+                  placeholder="Bairro"
+                  disabled={readOnly}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cidade">
+                  Cidade <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="cidade"
+                  value={dadosOS.cidade || ''}
+                  onChange={(e) => handleOSFieldChange('cidade', e.target.value)}
+                  placeholder="Cidade"
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="uf">
+                  UF <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="uf"
+                  value={dadosOS.uf || ''}
+                  onChange={(e) => handleOSFieldChange('uf', e.target.value.toUpperCase())}
+                  placeholder="SP"
+                  maxLength={2}
+                  disabled={readOnly}
+                />
+              </div>
+            </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Seção de Itens - Só aparece após selecionar CC + Prazo */}
+      {camposPrincipaisPreenchidos && (
+        <>
+          {/* Botão Adicionar */}
+          {!readOnly && (
+            <Button
+              onClick={handleAddItem}
+              disabled={loading || creating || deleting}
+              className="w-full md:w-auto"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Adicionar Item
+            </Button>
+          )}
+
+      {/* Tabela de Itens Salvos */}
+      {savedItems.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Itens da Requisição</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-border">
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">#</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Tipo</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Descrição</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Qtd</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Un.</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Preço Unit.</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                    {!readOnly && <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Ações</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {savedItems.map((item, index) => {
+                    const total = (item.quantidade || 0) * (item.preco_unitario || 0);
+                    return (
+                      <tr key={item.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="py-3 px-4 text-sm font-mono text-muted-foreground">{index + 1}</td>
+                        <td className="py-3 px-4 text-sm">
+                          <div>
+                            <div className="font-medium">{item.tipo}</div>
+                            {item.sub_tipo && <div className="text-xs text-muted-foreground">{item.sub_tipo}</div>}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-sm max-w-md">
+                          <div className="truncate" title={item.descricao}>{item.descricao}</div>
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right font-medium">{item.quantidade}</td>
+                        <td className="py-3 px-4 text-sm">{item.unidade_medida}</td>
+                        <td className="py-3 px-4 text-sm text-right">
+                          R$ {(item.preco_unitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-right font-semibold">
+                          R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        {!readOnly && (
+                          <td className="py-3 px-4 text-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveLocalItem(index)}
+                              disabled={deleting}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Cards de Itens em Edição (Locais) */}
+      {localItems.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-sm font-medium text-muted-foreground">Itens em Edição</h3>
+          {localItems.map((item, localIndex) => {
+            const globalIndex = savedItems.length + localIndex;
+            return (
+              <RequisitionItemCard
+                key={`local-${localIndex}`}
+                item={item}
+                index={globalIndex}
+                onChange={(updates) => handleUpdateLocalItem(globalIndex, updates)}
+                onRemove={() => handleRemoveLocalItem(globalIndex)}
+                readOnly={readOnly}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {savedItems.length === 0 && localItems.length === 0 && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <Package className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Nenhum item adicionado</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Clique no botão "Adicionar Item" para começar
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Botão Salvar Itens Locais */}
+      {localItems.length > 0 && !readOnly && (
+        <Button
+          onClick={handleSaveLocalItems}
+          disabled={creating || !etapaId}
+          variant="default"
+          className="w-full"
+        >
+          {creating ? 'Salvando...' : `Salvar ${localItems.length} ${localItems.length === 1 ? 'Item' : 'Itens'}`}
+        </Button>
+      )}
+
+      {/* Resumo */}
+      {totalItems > 0 && (
+        <Card className="border-border">
+          <CardContent className="pt-6 pb-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between py-2 border-b border-border">
+                <span className="text-sm text-muted-foreground">Total de Itens:</span>
+                <span className="text-base font-semibold">{totalItems}</span>
+              </div>
+              <div className="flex items-center justify-between py-2">
+                <span className="text-sm text-muted-foreground">Valor Total:</span>
+                <span className="text-xl font-bold">
+                  R$ {valorTotalRequisicao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+        </>
+      )}
+
+      {/* Mensagem quando CC + Prazo não preenchidos */}
+      {!camposPrincipaisPreenchidos && (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="w-12 h-12 text-muted-foreground mb-4" />
+            <h3 className="text-lg font-medium mb-2">Campos Obrigatórios</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Selecione o Centro de Custo e o Prazo de Necessidade para prosseguir
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Aviso */}
+      {camposPrincipaisPreenchidos && (
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            {totalItems === 0
+              ? 'Adicione pelo menos 1 item para continuar.'
+              : `${totalItems} ${totalItems === 1 ? 'item adicionado' : 'itens adicionados'}. Revise os dados antes de avançar.`}
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}

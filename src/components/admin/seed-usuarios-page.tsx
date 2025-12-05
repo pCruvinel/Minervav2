@@ -8,9 +8,6 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Loader2, CheckCircle2, AlertCircle, Users, Shield, UserCog, User } from 'lucide-react';
 import { toast } from '../../lib/utils/safe-toast';
-// Credenciais do Supabase via variáveis de ambiente
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 interface SeedResultado {
   email: string;

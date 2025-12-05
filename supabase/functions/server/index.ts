@@ -503,20 +503,20 @@ app.post("/server/ordens-servico", async (c) => {
       }
     }
     
-    // Gerar código da OS automaticamente
-    const year = new Date().getFullYear();
-    const { count } = await supabase
-      .from('ordens_servico')
-      .select('*', { count: 'exact', head: true })
-      .like('codigo_os', `OS-${year}-%`);
+    // Gerar código da OS automaticamente (REMOVIDO - Trigger do banco gera automaticamente)
+    // const year = new Date().getFullYear();
+    // const { count } = await supabase
+    //   .from('ordens_servico')
+    //   .select('*', { count: 'exact', head: true })
+    //   .like('codigo_os', `OS-${year}-%`);
     
-    const nextNumber = (count || 0) + 1;
-    const codigo_os = `OS-${year}-${String(nextNumber).padStart(3, '0')}`;
+    // const nextNumber = (count || 0) + 1;
+    // const codigo_os = `OS-${year}-${String(nextNumber).padStart(3, '0')}`;
     
-    console.log(`🔢 Código gerado: ${codigo_os}`);
+    // console.log(`🔢 Código gerado: ${codigo_os}`);
     
-    const dataToInsert = { ...body, codigo_os };
-    console.log('💾 Dados a inserir:', JSON.stringify(dataToInsert, null, 2));
+    const dataToInsert = { ...body }; // Remover codigo_os manual
+    // console.log('💾 Dados a inserir:', JSON.stringify(dataToInsert, null, 2));
     
     const { data, error } = await supabase
       .from('ordens_servico')

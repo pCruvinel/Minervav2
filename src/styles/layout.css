@@ -1,0 +1,159 @@
+/**
+ * Minerva Layout System v4.0
+ * Estilos estruturais para layout de aplicação
+ * 
+ * HIERARQUIA DE CLASSES:
+ * .app-container (root)
+ *   → .main-content (área principal)
+ *     → .main-header (header fixo)
+ *     → .page-content (conteúdo scrollable)
+ *       → .content-wrapper (max-width container)
+ */
+
+/* ==========================================
+ * APP CONTAINER
+ * Container raiz da aplicação autenticada
+ * ========================================== */
+
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background-color: hsl(var(--muted));
+}
+
+/* ==========================================
+ * MAIN CONTENT AREA
+ * Área principal que compensa sidebar fixed
+ * ========================================== */
+
+.main-content {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin-left: var(--sidebar-collapsed) !important;
+  transition: margin-left var(--transition-base);
+  min-width: 0;  /* Prevent flex overflow */
+}
+
+/* Estado: Sidebar aberta */
+.sidebar-open .main-content {
+  margin-left: var(--sidebar-width) !important;
+}
+
+/* ==========================================
+ * HEADER AREA
+ * Header fixo no topo do main content
+ * ========================================== */
+
+.main-header {
+  height: 4rem;
+  background-color: hsl(var(--card));
+  border-bottom: 1px solid hsl(var(--border));
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ==========================================
+ * PAGE CONTENT AREA
+ * Área scrollable com padding padrão
+ * ========================================== */
+
+.page-content {
+  flex: 1 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden;  /* Prevent horizontal scroll */
+  padding: 1.5rem;
+  background-color: hsl(var(--muted));
+  min-height: 0;  /* Prevent flex overflow */
+}
+
+/* ==========================================
+ * CONTENT WRAPPERS
+ * Containers com max-width para diferentes contextos
+ * ========================================== */
+
+/* Container padrão - Maioria das páginas */
+.content-wrapper {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Container largo - Listas, tabelas com muitas colunas */
+.content-wrapper-wide {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* Container estreito - Formulários, detalhes */
+.content-wrapper-narrow {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Container full-width - Sem restrição */
+.content-wrapper-full {
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ==========================================
+ * SIDEBAR STATES
+ * Classes helper para sidebar
+ * ========================================== */
+
+.sidebar-component {
+  /* Reserved for future sidebar-specific styles */
+}
+
+/* ==========================================
+ * RESPONSIVE LAYOUT
+ * Mobile: Remove compensação da sidebar
+ * ========================================== */
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .sidebar-open .main-content {
+    margin-left: 0;
+  }
+  
+  .page-content {
+    padding: 1rem;
+  }
+  
+  .content-wrapper,
+  .content-wrapper-wide,
+  .content-wrapper-narrow {
+    max-width: 100%;
+    padding: 0;
+  }
+}
+
+/* Tablet: Ajustes intermediários */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .content-wrapper-wide {
+    max-width: 100%;
+  }
+}
+
+/* ==========================================
+ * UTILITY OVERRIDES
+ * Overrides para casos específicos
+ * ========================================== */
+
+/* Remover padding do page-content quando necessário */
+.page-content-no-padding {
+  padding: 0;
+}
+
+/* Remover overflow quando necessário (ex: modals full-screen) */
+.page-content-no-overflow {
+  overflow: visible;
+}

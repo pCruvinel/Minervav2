@@ -1,8 +1,9 @@
 import { createFileRoute, redirect, Outlet, useRouter } from '@tanstack/react-router'
-import { Sidebar } from '../components/layout/sidebar'
-import { SidebarProvider, useSidebarContext } from '../components/layout/sidebar-context'
-import { Header } from '../components/layout/header'
-import { useAuth } from '../lib/contexts/auth-context'
+import { Sidebar } from '@/components/layout/sidebar'
+import { SidebarProvider, useSidebarContext } from '@/components/layout/sidebar-context'
+import { Header } from '@/components/layout/header'
+import { useAuth } from '@/lib/contexts/auth-context'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_auth')({
   beforeLoad: ({ context, location }) => {
@@ -72,18 +73,13 @@ function AuthLayoutContent() {
   if (!currentUser) return null
 
   return (
-    <div className="flex min-h-screen bg-muted">
+    <div className={cn("app-container", isOpen && "sidebar-open")}>
       <Sidebar />
 
       {/* Main Content */}
-      <main
-        className="flex-1 flex flex-col transition-all duration-200"
-        style={{
-          marginLeft: isOpen ? '256px' : '64px'
-        }}
-      >
+      <main className="main-content">
         {/* Header */}
-        <header className="h-16 bg-white border-b border-border px-6 flex items-center shrink-0">
+        <header className="main-header">
           <Header
             user={currentUser}
             breadcrumbs={getBreadcrumbs()}
@@ -92,7 +88,7 @@ function AuthLayoutContent() {
         </header>
 
         {/* Page Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="page-content">
           <Outlet />
         </div>
       </main>

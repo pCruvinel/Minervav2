@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
+  Home,
   LayoutDashboard,
   FileText,
   Users,
@@ -11,7 +12,6 @@ import {
   CreditCard,
   Plus,
   Kanban,
-
   Receipt,
   TrendingUp,
   TrendingDown,
@@ -20,10 +20,13 @@ import {
   Building2,
   Shield,
   ChevronRight,
+  LayoutGrid,
+  Eye,
+  CheckCircle,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { RoleLevel } from '@/lib/types';
+import { RoleLevel, podeAcessarFinanceiro } from '@/lib/types';
 import { useSidebarContext } from './sidebar-context';
 import { cn } from '@/lib/utils';
 
@@ -32,17 +35,48 @@ import { cn } from '@/lib/utils';
 // ============================================================
 
 const visibilityByRole: Record<RoleLevel, string[]> = {
+  // Nível 10: Admin - Acesso Total
   'admin': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'diretoria': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'gestor_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
-  'gestor_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
-  'gestor_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
-  'colaborador': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'mao_de_obra': [],
+
+  // Nível 9: Diretor - Acesso Total
+  'diretor': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Nível 6: Coord. Administrativo - Acesso Total (inclui financeiro)
+  'coord_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+
+  // Nível 5: Coordenadores Setoriais - SEM acesso financeiro
+  'coord_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+  'coord_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+
+  // Nível 3: Operacionais - Básico sem financeiro
+  'operacional_admin': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_comercial': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // Nível 2: Operacionais Jr - Básico sem financeiro
+  'operacional_assessoria': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_obras': ['dashboard', 'projetos', 'clientes', 'calendario'],
+
+  // Nível 0: Colaborador Obra - Sem acesso ao sistema
+  'colaborador_obra': [],
 };
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, to: '/' },
+  {
+    id: 'home',
+    label: 'Início',
+    icon: Home,
+    to: '/'
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    submenu: [
+      { id: 'dashboard-home', label: 'Operacional', icon: PieChart, to: '/dashboard' },
+      { id: 'dashboard-kanban', label: 'Kanban', icon: Kanban, to: '/dashboard/kanban' },
+      { id: 'dashboard-executivo', label: 'Executivo', icon: Shield, to: '/dashboard/executivo' },
+    ]
+  },
   {
     id: 'projetos',
     label: 'Ordem de Serviço',
@@ -62,6 +96,7 @@ const menuItems = [
       { id: 'prestacao-contas', label: 'Prestação de Contas', icon: Receipt, to: '/financeiro/prestacao-contas' },
       { id: 'contas-pagar', label: 'Contas a Pagar', icon: TrendingDown, to: '/financeiro/contas-pagar' },
       { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
+      { id: 'aprovar-requisicoes', label: 'Aprovar Requisições', icon: CheckCircle, to: '/financeiro/requisicoes' },
     ]
   },
   {
@@ -81,7 +116,15 @@ const menuItems = [
       { id: 'clientes-lista', label: 'Meus Clientes', icon: Users, to: '/clientes' },
     ]
   },
-  { id: 'calendario', label: 'Calendário', icon: Calendar, to: '/calendario' },
+  {
+    id: 'calendario',
+    label: 'Calendário',
+    icon: Calendar,
+    submenu: [
+      { id: 'calendario-view', label: 'Visualização', icon: Eye, to: '/calendario' },
+      { id: 'calendario-painel', label: 'Painel', icon: LayoutGrid, to: '/calendario/painel' },
+    ]
+  },
   {
     id: 'configuracoes',
     label: 'Configurações',
@@ -103,9 +146,33 @@ export function Sidebar() {
   // Filtrar itens do menu baseado no perfil do usuário
   const getVisibleMenuItems = () => {
     if (!currentUser) return menuItems;
-    const roleSlug = currentUser.cargo_slug || currentUser.role_nivel || 'colaborador';
-    const visibleItemIds = visibilityByRole[roleSlug] || [];
-    return menuItems.filter(item => visibleItemIds.includes(item.id));
+
+    // Tentar obter o role de várias propriedades possíveis
+    const roleSlug = (
+      currentUser.cargo_slug ||
+      currentUser.role_nivel ||
+      currentUser.role ||
+      'colaborador_obra'
+    ) as RoleLevel;
+
+    const visibleItemIds = visibilityByRole[roleSlug];
+
+    // Se o role não foi encontrado ou retornou undefined, mostrar todos os itens
+    // (usuário logado mas com cargo não mapeado ainda)
+    if (!visibleItemIds || visibleItemIds.length === 0) {
+      console.warn(`[Sidebar] Role "${roleSlug}" não encontrado em visibilityByRole. Mostrando menu completo.`);
+      return menuItems;
+    }
+
+    // Filtrar itens base por role
+    let filteredItems = menuItems.filter(item => visibleItemIds.includes(item.id));
+
+    // 🆕 VERIFICAÇÃO DINÂMICA: Remover menu 'Financeiro' se usuário não tem acesso_financeiro
+    if (!podeAcessarFinanceiro(currentUser)) {
+      filteredItems = filteredItems.filter(item => item.id !== 'financeiro');
+    }
+
+    return filteredItems;
   };
 
   const visibleMenuItems = getVisibleMenuItems();
@@ -134,23 +201,20 @@ export function Sidebar() {
 
   return (
     <aside
-      className={cn(
-        'fixed left-0 top-0 h-screen flex flex-col transition-all ease-in-out',
-        'bg-white border-r shadow-sm',
-        isOpen ? 'w-64' : 'w-16'
-      )}
+      className="fixed left-0 top-0 h-screen flex flex-col transition-all bg-white shadow-sm sidebar-component"
       style={{
+        width: isOpen ? 'var(--sidebar-width)' : 'var(--sidebar-collapsed)',
         zIndex: 'var(--z-sticky)',
-        borderColor: 'var(--color-border-light)',
+        borderRight: '1px solid hsl(var(--border))',
         transitionDuration: 'var(--transition-base)',
       }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-center px-4 shrink-0 border-b"
+        className="flex items-center justify-center px-4 shrink-0"
         style={{
           height: 'var(--sidebar-header-height)',
-          borderColor: 'var(--color-border-light)',
+          borderBottom: '1px solid hsl(var(--border))',
         }}
       >
         {isOpen ? (
@@ -216,13 +280,13 @@ export function Sidebar() {
                   {/* Submenu */}
                   {isOpen && isExpanded && (
                     <ul
-                      className="border-l-2 flex flex-col"
+                      className="flex flex-col"
                       style={{
                         marginLeft: 'var(--spacing-md)',
                         marginTop: 'var(--spacing-xs)',
                         paddingLeft: 'var(--spacing-md)',
                         gap: 'var(--spacing-xs)',
-                        borderColor: 'var(--color-border)',
+                        borderLeft: '2px solid hsl(var(--border))',
                       }}
                     >
                       {item.submenu!.map((subItem) => {
@@ -299,53 +363,9 @@ export function Sidebar() {
       </nav>
 
       {/* Footer - User Info + Toggle Button */}
-      <div className="border-t shrink-0" style={{ borderColor: 'var(--color-border-light)' }}>
-        {/* User Info */}
-        <div style={{ padding: 'var(--spacing-md)' }}>
-          {isOpen ? (
-            <div className="flex items-center gap-3">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                style={{
-                  backgroundColor: 'var(--color-primary-100)',
-                  color: 'var(--color-primary-700)',
-                }}
-              >
-                {currentUser?.nome_completo?.substring(0, 2).toUpperCase() || 'US'}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-medium truncate"
-                  style={{ color: 'var(--color-neutral-900)' }}
-                >
-                  {currentUser?.nome_completo || 'Usuário'}
-                </p>
-                <p
-                  className="text-xs truncate capitalize"
-                  style={{ color: 'var(--color-neutral-500)' }}
-                >
-                  {currentUser?.role_nivel?.replace('_', ' ') || 'Colaborador'}
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div className="flex justify-center">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0"
-                style={{
-                  backgroundColor: 'var(--color-primary-100)',
-                  color: 'var(--color-primary-700)',
-                }}
-                title={currentUser?.nome_completo}
-              >
-                {currentUser?.nome_completo?.substring(0, 2).toUpperCase() || 'US'}
-              </div>
-            </div>
-          )}
-        </div>
-
+      <div className="shrink-0" style={{ borderTop: '1px solid hsl(var(--border))' }}>
         {/* Toggle Button */}
-        <div style={{ padding: '0 var(--spacing-md) var(--spacing-md)' }}>
+        <div style={{ padding: 'var(--spacing-md)' }}>
           <button
             onClick={toggle}
             className="w-full flex items-center justify-center rounded-lg transition-colors text-sm font-medium"

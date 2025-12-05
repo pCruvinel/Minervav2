@@ -1,0 +1,77 @@
+/**
+ * Accordion Component Styles - Radix UI
+ *
+ * Estilos para accordions expansíveis.
+ *
+ * @see src/components/ui/accordion.tsx
+ */
+
+/* ==========================================
+ * ACCORDION ITEM
+ * ========================================== */
+
+[data-slot='accordion-item'] {
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* ==========================================
+ * ACCORDION TRIGGER
+ * ========================================== */
+
+[data-slot='accordion-trigger'] {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  cursor: pointer;
+  transition: color var(--transition-base) var(--transition-timing);
+}
+
+[data-slot='accordion-trigger']:hover {
+  color: hsl(var(--primary));
+}
+
+/* ==========================================
+ * ACCORDION CONTENT
+ * ========================================== */
+
+[data-slot='accordion-content'] {
+  overflow: hidden;
+  transition: height var(--transition-base) var(--transition-timing);
+}
+
+[data-slot='accordion-content'][data-state='open'] {
+  animation: accordion-slide-down var(--transition-base) var(--transition-timing);
+}
+
+[data-slot='accordion-content'][data-state='closed'] {
+  animation: accordion-slide-up var(--transition-base) var(--transition-timing);
+}
+
+@keyframes accordion-slide-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-slide-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+/* ==========================================
+ * ACESSIBILIDADE
+ * ========================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot='accordion-content'] {
+    animation: none;
+  }
+}

@@ -4,10 +4,10 @@
  */
 
 export const colors = {
-  // Primary colors
-  primary: '#FF6B35',
-  primaryDark: '#E55A2B',
-  primaryLight: '#FF8C66',
+  // Primary colors - Gold (Minerva Brand)
+  primary: '#D3AF37',
+  primaryDark: '#B8941E',
+  primaryLight: '#E6C866',
 
   // Neutral colors
   neutral50: '#FAFAFA',
@@ -26,6 +26,10 @@ export const colors = {
   warning: '#F59E0B',
   error: '#EF4444',
   info: '#3B82F6',
+
+  // Table Header Colors (Blue)
+  tableHeaderBg: '#3B82F6',
+  tableHeaderText: '#FFFFFF',
 
   // Background
   white: '#FFFFFF',
@@ -51,15 +55,15 @@ export const fonts = {
 };
 
 export const fontSize = {
-  xs: 10,
-  sm: 11,
-  base: 12,
-  lg: 14,
-  xl: 16,
-  '2xl': 20,
-  '3xl': 24,
-  '4xl': 30,
-  '5xl': 36,
+  xs: 8,
+  sm: 9,
+  base: 10,
+  lg: 11,
+  xl: 12,
+  '2xl': 14,
+  '3xl': 16,
+  '4xl': 18,
+  '5xl': 20,
 };
 
 export const borderRadius = {
@@ -174,15 +178,15 @@ export const commonStyles = {
 
   tableHeader: {
     flexDirection: 'row' as const,
-    backgroundColor: colors.neutral100,
+    backgroundColor: colors.tableHeaderBg,
     padding: spacing.sm,
-    borderBottom: `2 solid ${colors.neutral300}`,
+    borderBottom: `2 solid ${colors.tableHeaderBg}`,
   },
 
   tableHeaderCell: {
     fontSize: fontSize.sm,
     fontFamily: fonts.bold,
-    color: colors.neutral800,
+    color: colors.tableHeaderText,
   },
 
   tableRow: {

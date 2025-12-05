@@ -7,18 +7,21 @@
 
 export type RoleLevel =
   | 'admin'
-  | 'diretoria'
-  | 'gestor_administrativo'
-  | 'gestor_assessoria'
-  | 'gestor_obras'
-  | 'colaborador'
-  | 'mao_de_obra';
+  | 'diretor'
+  | 'coord_administrativo'
+  | 'coord_assessoria'
+  | 'coord_obras'
+  | 'operacional_admin'
+  | 'operacional_comercial'
+  | 'operacional_assessoria'
+  | 'operacional_obras'
+  | 'colaborador_obra';
 
 // ============================================================
 // TIPOS DE SETORES (Baseado nos Slugs do Banco)
 // ============================================================
 
-export type SetorSlug = 'administrativo' | 'assessoria' | 'obras' | 'diretoria';
+export type SetorSlug = 'administrativo' | 'assessoria' | 'obras' | 'diretoria' | 'ti';
 
 // Alias para compatibilidade com código legado
 export type Setor = 'COM' | 'ASS' | 'OBR';
@@ -131,6 +134,9 @@ export interface OrdemServico {
   responsavel_id?: string;
   criado_por_id?: string;
   cc_id?: string;
+  
+  // 🆕 Relacionamento Hierárquico (Migration 2025-12-02)
+  parent_os_id?: string | null; // ID da OS origem/pai
 
   valor_proposta?: number;
   valor_contrato?: number;
@@ -263,13 +269,17 @@ export interface ContaReceber {
 
 export const ROLE_LABELS: Record<RoleLevel, string> = {
   'admin': 'Admin do Sistema',
-  'diretoria': 'Diretoria',
-  'gestor_administrativo': 'Gestor Administrativo',
-  'gestor_assessoria': 'Gestor Assessoria',
-  'gestor_obras': 'Gestor Obras',
-  'colaborador': 'Colaborador',
-  'mao_de_obra': 'Mão de Obra',
+  'diretor': 'Diretor',
+  'coord_administrativo': 'Coordenador Administrativo',
+  'coord_assessoria': 'Coordenador de Assessoria',
+  'coord_obras': 'Coordenador de Obras',
+  'operacional_admin': 'Operacional Administrativo',
+  'operacional_comercial': 'Operacional Comercial',
+  'operacional_assessoria': 'Operacional Assessoria',
+  'operacional_obras': 'Operacional Obras',
+  'colaborador_obra': 'Colaborador de Obra',
 };
+
 
 export const STATUS_LABELS: Record<OSStatus, string> = {
   'em_triagem': 'Em Triagem',
@@ -316,13 +326,13 @@ export const normalizeStatusOS = (status: string): OSStatus => {
  * Baseada na documentação: docs/technical/USUARIOS_SCHEMA.md
  */
 export interface Permissoes {
-  /** Nível hierárquico (10=Admin, 9=Diretoria, 5=Gestor, 1=Colaborador, 0=Sem acesso) */
+  /** Nível hierárquico (10=Admin, 9=Diretor, 6=Coord.Admin, 5=Coord.Setorial, 3=Operacional, 2=Operacional Jr, 0=Sem acesso) */
   nivel: number;
 
   /** Pode ver todas as OSs ou apenas as delegadas/responsáveis */
   pode_ver_todas_os: boolean;
 
-  /** Pode acessar módulo financeiro (contas a pagar/receber, conciliação) */
+  /** Pode acessar módulo financeiro (contas a pagar/receber, conciliação) - CAMPO DIRETO DO BANCO */
   pode_acessar_financeiro: boolean;
 
   /** Pode delegar tarefas para outros usuários */
@@ -343,6 +353,12 @@ export interface Permissoes {
   /** Setores que este cargo pode visualizar */
   setores_visiveis: SetorSlug[] | 'todos';
 
+  /** 🆕 FLAG EXPLÍCITA: Acesso ao módulo financeiro (vinda do banco) */
+  acesso_financeiro: boolean;
+
+  /** 🆕 ESCOPO DE VISÃO: Define quais dados o usuário pode ver ('global', 'setorial', 'proprio', 'nenhuma') */
+  escopo_visao: 'global' | 'setorial' | 'proprio' | 'nenhuma';
+
   /** Descrição do cargo */
   descricao: string;
 }
@@ -354,6 +370,7 @@ export interface Permissoes {
  * @see docs/technical/USUARIOS_SCHEMA.md - Seção "Matriz de Permissões"
  */
 export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
+  // ========== CARGO 1: ADMIN (TI, Nível 10) ==========
   admin: {
     nivel: 10,
     pode_ver_todas_os: true,
@@ -364,10 +381,13 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_criar_os: true,
     pode_cancelar_os: true,
     setores_visiveis: 'todos',
-    descricao: 'Acesso total ao sistema para manutenção e desenvolvimento'
+    acesso_financeiro: true,
+    escopo_visao: 'global',
+    descricao: 'Administrador do sistema com acesso total'
   },
 
-  diretoria: {
+  // ========== CARGO 2: DIRETOR (Diretoria, Nível 9) ==========
+  diretor: {
     nivel: 9,
     pode_ver_todas_os: true,
     pode_acessar_financeiro: true,
@@ -377,11 +397,14 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_criar_os: true,
     pode_cancelar_os: true,
     setores_visiveis: 'todos',
-    descricao: 'Visão estratégica completa - Acessa todos os módulos e setores'
+    acesso_financeiro: true,
+    escopo_visao: 'global',
+    descricao: 'Diretoria com visão estratégica completa'
   },
 
-  gestor_administrativo: {
-    nivel: 5,
+  // ========== CARGO 3: COORDENADOR ADMINISTRATIVO (Administrativo, Nível 6) ==========
+  coord_administrativo: {
+    nivel: 6,
     pode_ver_todas_os: true,
     pode_acessar_financeiro: true,
     pode_delegar: true,
@@ -390,25 +413,15 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_criar_os: true,
     pode_cancelar_os: true,
     setores_visiveis: 'todos',
-    descricao: 'Gerente geral - Supervisiona Financeiro, Obras e Assessoria'
+    acesso_financeiro: true,
+    escopo_visao: 'global',
+    descricao: 'Coordenador do setor administrativo com acesso financeiro'
   },
 
-  gestor_obras: {
+  // ========== CARGO 4: COORDENADOR DE ASSESSORIA (Assessoria, Nível 5) ==========
+  coord_assessoria: {
     nivel: 5,
-    pode_ver_todas_os: true, // Mas filtrado por setor no RLS
-    pode_acessar_financeiro: false,
-    pode_delegar: true,
-    pode_aprovar: true,
-    pode_gerenciar_usuarios: false,
-    pode_criar_os: true,
-    pode_cancelar_os: true,
-    setores_visiveis: ['obras'],
-    descricao: 'Gerencia execução de obras - Sem acesso financeiro'
-  },
-
-  gestor_assessoria: {
-    nivel: 5,
-    pode_ver_todas_os: true, // Mas filtrado por setor no RLS
+    pode_ver_todas_os: true, // Filtrado por setor no frontend
     pode_acessar_financeiro: false,
     pode_delegar: true,
     pode_aprovar: true,
@@ -416,11 +429,30 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_criar_os: true,
     pode_cancelar_os: true,
     setores_visiveis: ['assessoria'],
-    descricao: 'Gerencia laudos e assessoria - Sem acesso financeiro'
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Coordenador do setor de assessoria técnica'
   },
 
-  colaborador: {
-    nivel: 1,
+  // ========== CARGO 5: COORDENADOR DE OBRAS (Obras, Nível 5) ==========
+  coord_obras: {
+    nivel: 5,
+    pode_ver_todas_os: true, // Filtrado por setor no frontend
+    pode_acessar_financeiro: false,
+    pode_delegar: true,
+    pode_aprovar: true,
+    pode_gerenciar_usuarios: false,
+    pode_criar_os: true,
+    pode_cancelar_os: true,
+    setores_visiveis: ['obras'],
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Coordenador de obras e execução'
+  },
+
+  // ========== CARGO 6: OPERACIONAL ADMINISTRATIVO (Administrativo, Nível 3) ==========
+  operacional_admin: {
+    nivel: 3,
     pode_ver_todas_os: false,
     pode_acessar_financeiro: false,
     pode_delegar: false,
@@ -428,11 +460,62 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_gerenciar_usuarios: false,
     pode_criar_os: true,
     pode_cancelar_os: false,
-    setores_visiveis: [], // Vê apenas OSs delegadas ou onde é responsável
-    descricao: 'Operacional - Vê apenas tarefas delegadas ou onde é responsável'
+    setores_visiveis: ['administrativo'],
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Operacional do setor administrativo'
   },
 
-  mao_de_obra: {
+  // ========== CARGO 7: OPERACIONAL COMERCIAL (Administrativo, Nível 3) ==========
+  operacional_comercial: {
+    nivel: 3,
+    pode_ver_todas_os: false,
+    pode_acessar_financeiro: false,
+    pode_delegar: false,
+    pode_aprovar: false,
+    pode_gerenciar_usuarios: false,
+    pode_criar_os: true,
+    pode_cancelar_os: false,
+    setores_visiveis: ['administrativo'],
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Operacional comercial e vendas'
+  },
+
+  // ========== CARGO 8: OPERACIONAL ASSESSORIA (Assessoria, Nível 2) ==========
+  operacional_assessoria: {
+    nivel: 2,
+    pode_ver_todas_os: false,
+    pode_acessar_financeiro: false,
+    pode_delegar: false,
+    pode_aprovar: false,
+    pode_gerenciar_usuarios: false,
+    pode_criar_os: true,
+    pode_cancelar_os: false,
+    setores_visiveis: ['assessoria'],
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Operacional de assessoria técnica'
+  },
+
+  // ========== CARGO 9: OPERACIONAL OBRAS (Obras, Nível 2) ==========
+  operacional_obras: {
+    nivel: 2,
+    pode_ver_todas_os: false,
+    pode_acessar_financeiro: false,
+    pode_delegar: false,
+    pode_aprovar: false,
+    pode_gerenciar_usuarios: false,
+    pode_criar_os: true,
+    pode_cancelar_os: false,
+    setores_visiveis: ['obras'],
+    acesso_financeiro: false,
+    escopo_visao: 'setorial',
+    descricao: 'Operacional de obras'
+  },
+
+  // ========== CARGO 10: COLABORADOR OBRA (Obras, Nível 0) ==========
+  colaborador_obra: {
     nivel: 0,
     pode_ver_todas_os: false,
     pode_acessar_financeiro: false,
@@ -442,9 +525,12 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     pode_criar_os: false,
     pode_cancelar_os: false,
     setores_visiveis: [],
-    descricao: 'Sem acesso ao sistema - Usado apenas para presença e custos'
+    acesso_financeiro: false,
+    escopo_visao: 'nenhuma',
+    descricao: 'Colaborador de obra sem acesso ao sistema'
   }
 };
+
 
 // ============================================================
 // FUNÇÕES HELPER DE PERMISSÕES
@@ -457,11 +543,11 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
  */
 export function getPermissoes(user: User | null): Permissoes {
   if (!user) {
-    return PERMISSOES_POR_ROLE.mao_de_obra; // Sem permissões
+    return PERMISSOES_POR_ROLE.colaborador_obra; // Sem permissões
   }
 
-  const role = user.cargo_slug || user.role_nivel || 'colaborador';
-  return PERMISSOES_POR_ROLE[role] || PERMISSOES_POR_ROLE.colaborador;
+  const role = user.cargo_slug || user.role_nivel || 'colaborador_obra';
+  return PERMISSOES_POR_ROLE[role] || PERMISSOES_POR_ROLE.colaborador_obra;
 }
 
 /**
@@ -663,13 +749,17 @@ export interface HistoricoItem {
 
 export const ROLE_PARA_NIVEL: Record<RoleLevel, NivelHierarquico> = {
   'admin': 10,
-  'diretoria': 9,
-  'gestor_administrativo': 5,
-  'gestor_assessoria': 5,
-  'gestor_obras': 5,
-  'colaborador': 1,
-  'mao_de_obra': 0,
+  'diretor': 9,
+  'coord_administrativo': 6,
+  'coord_assessoria': 5,
+  'coord_obras': 5,
+  'operacional_admin': 3,
+  'operacional_comercial': 3,
+  'operacional_assessoria': 2,
+  'operacional_obras': 2,
+  'colaborador_obra': 0,
 };
+
 
 export const SETOR_NAMES: Record<Setor, string> = {
   'COM': 'Comercial',
@@ -736,7 +826,7 @@ export const PERMISSOES_POR_ROLE_LEGADO: Record<RoleLevel, PermissoesLegadas> = 
 // TIPOS PARA GERAÇÃO DE PDFs
 // ============================================================
 
-export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica';
+export type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst' | 'parecer-reforma' | 'visita-tecnica' | 'laudo-tecnico';
 
 export interface PDFGenerationRequest {
   tipo: PDFType;
@@ -754,3 +844,98 @@ export interface PDFGenerationResponse {
     tipo: PDFType;
   };
 }
+
+// ============================================================
+// OS-09: REQUISITION ITEMS
+// ============================================================
+
+export type ItemTipo =
+  | 'Material'
+  | 'Ferramenta'
+  | 'Equipamento'
+  | 'Logística'
+  | 'Documentação';
+
+export type ItemSubTipo =
+  | 'Locação'
+  | 'Aquisição';
+
+export type UnidadeMedida =
+  | 'UN' | 'KG' | 'M' | 'L' | 'CX' | 'M2' | 'M3' | 'TON';
+
+export type PrazoNecessidade =
+  | 'Imediato' | '2 dias' | '7 dias' | '15 dias' | '30 dias';
+
+export interface ItemRequisicao {
+  id?: string;
+  os_etapa_id?: string;
+  tipo: ItemTipo;
+  sub_tipo?: ItemSubTipo;
+  descricao: string;
+  quantidade: number;
+  unidade_medida: UnidadeMedida;
+  preco_unitario: number;
+  link_produto?: string;
+  observacao?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Dados em nível de OS para Requisição de Compra (OS-09)
+ * Campos que aplicam-se à requisição inteira, não a itens individuais
+ */
+export interface DadosRequisicaoOS {
+  centro_custo_id?: string;
+  prazo_necessidade: PrazoNecessidade;
+  cep: string;
+  logradouro: string;
+  numero: string;
+  complemento?: string;
+  bairro: string;
+  cidade: string;
+  uf: string;
+}
+
+export interface ViaCEPResponse {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+}
+
+// Constantes para OS-09
+export const TIPOS_ITEM: { value: ItemTipo; label: string }[] = [
+  { value: 'Material', label: 'Material' },
+  { value: 'Ferramenta', label: 'Ferramenta' },
+  { value: 'Equipamento', label: 'Equipamento' },
+  { value: 'Logística', label: 'Logística' },
+  { value: 'Documentação', label: 'Documentação' }
+];
+
+export const SUB_TIPOS_ITEM: { value: ItemSubTipo; label: string }[] = [
+  { value: 'Locação', label: 'Locação' },
+  { value: 'Aquisição', label: 'Aquisição' }
+];
+
+export const UNIDADES_MEDIDA: { value: UnidadeMedida; label: string }[] = [
+  { value: 'UN', label: 'Unidade (UN)' },
+  { value: 'KG', label: 'Quilograma (KG)' },
+  { value: 'M', label: 'Metro (M)' },
+  { value: 'L', label: 'Litro (L)' },
+  { value: 'CX', label: 'Caixa (CX)' },
+  { value: 'M2', label: 'Metro Quadrado (M²)' },
+  { value: 'M3', label: 'Metro Cúbico (M³)' },
+  { value: 'TON', label: 'Tonelada (TON)' }
+];
+
+export const PRAZOS_NECESSIDADE: { value: PrazoNecessidade; label: string }[] = [
+  { value: 'Imediato', label: 'Imediato' },
+  { value: '2 dias', label: '2 dias' },
+  { value: '7 dias', label: '7 dias' },
+  { value: '15 dias', label: '15 dias' },
+  { value: '30 dias', label: '30 dias' }
+];

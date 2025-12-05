@@ -16,6 +16,7 @@ import {
   XCircle,
   TrendingUp,
 } from 'lucide-react';
+import { CadastrarLead, FormDataCompleto } from '../os/shared/steps/cadastrar-lead';
 import { cn } from '../ui/utils';
 import { useClientes } from '../../lib/hooks/use-clientes';
 
@@ -35,10 +36,10 @@ interface Cliente {
 
 interface ClientesListaPageProps {
   onClienteClick?: (clienteId: string) => void;
-  onNovoContrato?: () => void;
+  onClienteClick?: (clienteId: string) => void;
 }
 
-export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesListaPageProps) {
+export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
   // Carregar clientes do backend - filtrando apenas clientes ativos (não leads)
   const { clientes: clientesBackend } = useClientes('CLIENTE_ATIVO');
 
@@ -59,6 +60,34 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
   const [filtro, setFiltro] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<string>('');
   const [filtroStatus, setFiltroStatus] = useState<string>('');
+
+  // Estado para o componente CadastrarLead
+  const [isCadastroOpen, setIsCadastroOpen] = useState(false);
+  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
+  const [showCombobox, setShowCombobox] = useState(false);
+  const [formData, setFormData] = useState<FormDataCompleto>({
+    nome: '',
+    cpfCnpj: '',
+    tipo: '',
+    nomeResponsavel: '',
+    cargoResponsavel: '',
+    telefone: '',
+    email: '',
+    tipoEdificacao: '',
+    qtdUnidades: '',
+    qtdBlocos: '',
+    qtdPavimentos: '',
+    tipoTelhado: '',
+    possuiElevador: false,
+    possuiPiscina: false,
+    cep: '',
+    endereco: '',
+    numero: '',
+    complemento: '',
+    bairro: '',
+    cidade: '',
+    estado: '',
+  });
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -137,11 +166,7 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
     }
   };
 
-  const handleNovoContrato = () => {
-    if (onNovoContrato) {
-      onNovoContrato();
-    }
-  };
+
 
   return (
     <div className="p-6 space-y-6 bg-background min-h-screen">
@@ -153,10 +178,24 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
             Contratos ativos e centros de custo
           </p>
         </div>
-        <Button onClick={handleNovoContrato}>
+        <Button variant="outline" onClick={() => setIsCadastroOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Novo Contrato / Cliente
+          Cadastrar
         </Button>
+      </div>
+
+      {/* Componente CadastrarLead (Oculto, mas renderiza o Dialog quando isCadastroOpen é true) */}
+      <div className="hidden">
+        <CadastrarLead
+          selectedLeadId={selectedLeadId}
+          onSelectLead={(id) => setSelectedLeadId(id)}
+          showCombobox={showCombobox}
+          onShowComboboxChange={setShowCombobox}
+          showNewLeadDialog={isCadastroOpen}
+          onShowNewLeadDialogChange={setIsCadastroOpen}
+          formData={formData}
+          onFormDataChange={setFormData}
+        />
       </div>
 
       {/* KPIs */}
@@ -354,6 +393,6 @@ export function ClientesListaPage({ onClienteClick, onNovoContrato }: ClientesLi
           )}
         </CardContent>
       </Card>
-    </div>
+    </div >
   );
 }
