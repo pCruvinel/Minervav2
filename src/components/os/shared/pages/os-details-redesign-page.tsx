@@ -304,6 +304,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [newComment, setNewComment] = useState('');
     const [isNavigating, setIsNavigating] = useState(false);
+    const [activeTab, setActiveTab] = useState('overview');
 
     // Pagination and filtering states
     const [commentsPage, setCommentsPage] = useState(1);

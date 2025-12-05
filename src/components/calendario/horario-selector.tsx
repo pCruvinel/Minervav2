@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 interface HorarioSelectorProps {
   slots: HorarioSlot[];
   horarioSelecionado: string | null;
-  onSelect: (hora: string) => void;
+  onSelect: (horario: string) => void;
 }
 
 /**
@@ -54,17 +54,17 @@ export function HorarioSelector({
 
                 // Estado selecionado
                 ehSelecionado && [
-                  'border-primary bg-primary/10',
+                  'border-primary bg-primary/5',
                   'ring-2 ring-primary ring-offset-2',
                 ],
 
                 // Estado disponível (não selecionado)
                 ehDisponivel &&
-                  !ehSelecionado && [
-                    'border-border bg-card',
-                    'hover:border-primary hover:bg-primary/5',
-                    'cursor-pointer',
-                  ],
+                !ehSelecionado && [
+                  'border-border bg-card',
+                  'hover:border-primary hover:bg-primary/3',
+                  'cursor-pointer',
+                ],
 
                 // Estado ocupado
                 !ehDisponivel && [

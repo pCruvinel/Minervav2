@@ -311,13 +311,32 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                 />
 
                 <div className="space-y-6 p-6">
+                    {/* Informações do Turno */}
+                    <div className="bg-muted/30 rounded-xl p-4 space-y-2 border border-border/50">
+                        <div className="flex items-center gap-2 text-sm">
+                            <Briefcase className="h-4 w-4 text-muted-foreground" />
+                            <span>Turno ID: {turno.id}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <Clock className="h-4 w-4 text-muted-foreground" />
+                            <span>Horário: {turno.horaInicio} - {turno.horaFim}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm">
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                            <span>Vagas: {turno.vagasTotal}</span>
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                            Recorrência: {turno.tipoRecorrencia === 'todos' ? 'Todos os dias' : turno.tipoRecorrencia === 'uteis' ? 'Dias úteis' : 'Personalizada'}
+                        </div>
+                    </div>
+
                     {/* Botões de Ação (apenas visualização) */}
                     {!modoEdicao && (
                         <div className="flex gap-3 justify-end">
                             <Button
                                 variant="outline"
                                 onClick={() => setModoEdicao(true)}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 hover:bg-muted/50"
                             >
                                 <Edit className="h-4 w-4" />
                                 Editar Turno
@@ -339,10 +358,10 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                     )}
 
                     {/* Horários */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                            <Clock className="h-5 w-5 text-primary" />
-                            <span>Horários</span>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-primary" />
+                            <Label className="font-medium">Horários</Label>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
@@ -397,10 +416,10 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                     </div>
 
                     {/* Recorrência */}
-                    <div className="space-y-4">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                            <Calendar className="h-5 w-5 text-primary" />
-                            <span>Recorrência</span>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Calendar className="h-4 w-4 text-primary" />
+                            <Label className="font-medium">Recorrência</Label>
                         </div>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -539,11 +558,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                     </div>
 
                     {/* Número de Vagas */}
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                                <Users className="h-5 w-5 text-primary" />
-                                <span>Número de Vagas</span>
+                            <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4 text-primary" />
+                                <Label className="font-medium">Número de Vagas</Label>
                             </div>
                             <span className="text-lg font-semibold text-primary">{numeroVagas[0]}</span>
                         </div>
@@ -576,10 +595,10 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                     </div>
 
                     {/* Cor do Turno */}
-                    <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                            <Palette className="h-5 w-5 text-primary" />
-                            <span>Cor do Turno</span>
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Palette className="h-4 w-4 text-primary" />
+                            <Label className="font-medium">Cor do Turno</Label>
                         </div>
                         <div className="flex gap-3 flex-wrap">
                             {coresTurno.map((cor) => (
@@ -589,17 +608,17 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                     onClick={() => setCorSelecionada(cor.classe)}
                                     disabled={!modoEdicao}
                                     className={`
-                    relative w-12 h-12 rounded-full transition-all
-                    hover:scale-110 shadow-sm border-2
-                    ${cor.classe}
-                    ${corSelecionada === cor.classe ? 'ring-2 ring-offset-2 ring-primary scale-110 border-transparent' : 'border-border'}
+                    relative w-12 h-12 rounded-full transition-all duration-200
+                    hover:scale-105 shadow-sm border-2
+                    ${cor.classe} opacity-90 hover:opacity-100
+                    ${corSelecionada === cor.classe ? 'ring-2 ring-offset-2 ring-primary scale-105 border-transparent shadow-md' : 'border-border opacity-70'}
                     ${!modoEdicao ? 'cursor-not-allowed opacity-60' : ''}
                   `}
                                     title={cor.nome}
                                 >
                                     {corSelecionada === cor.classe && (
                                         <div className="absolute inset-0 flex items-center justify-center">
-                                            <div className="w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-sm">
+                                            <div className="w-6 h-6 bg-white/95 rounded-full flex items-center justify-center shadow-sm border border-white/20">
                                                 <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                                 </svg>
@@ -611,11 +630,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                         </div>
                     </div>
 
-                    {/* Limitar Setores */}
-                    <div className={`space-y-4 p-5 rounded-xl ${errors.setores ? 'bg-destructive/10 border-2 border-destructive/20' : 'bg-muted border border-border'}`}>
-                        <div className="flex items-center gap-2 text-sm font-semibold text-muted-foreground">
-                            <Briefcase className={`h-5 w-5 ${errors.setores ? 'text-destructive' : 'text-primary'}`} />
-                            <span className={errors.setores ? 'text-destructive' : ''}>Setores</span>
+                    {/* Setores */}
+                    <div className={`space-y-2 ${errors.setores ? 'p-4 rounded-xl bg-destructive/5 border border-destructive/20' : ''}`}>
+                        <div className="flex items-center gap-2">
+                            <Briefcase className={`h-4 w-4 ${errors.setores ? 'text-destructive' : 'text-primary'}`} />
+                            <Label className={`font-medium ${errors.setores ? 'text-destructive' : ''}`}>Setores</Label>
                         </div>
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
@@ -673,25 +692,19 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                     </div>
                 </div>
 
-                <DialogFooter className="p-6 bg-muted/50 border-t">
+                <DialogFooter className="p-6 bg-muted/30 border-t border-border/50">
                     <Button
                         variant="outline"
                         onClick={onClose}
                         disabled={atualizando}
-                        className="px-6 hover:bg-muted"
+                        className="px-6 hover:bg-muted/50"
                     >
                         {modoEdicao ? 'Cancelar' : 'Fechar'}
                     </Button>
                     {modoEdicao && (
                         <Button
                             onClick={handleSalvar}
-                            className="
-                bg-primary hover:bg-primary/90
-                text-primary-foreground px-8
-                shadow-lg hover:shadow-xl
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200
-              "
+                            className="px-8 bg-primary hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200"
                             disabled={atualizando || !isFormValid}
                             title={!isFormValid ? 'Corrija os erros antes de salvar' : ''}
                         >

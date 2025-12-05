@@ -99,14 +99,6 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
     );
   }, [categoria, setor, horarioSelecionado, turno]);
 
-  const formatarData = (data: Date) => {
-    return data.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit'
-    });
-  };
-
   const formatarDataCompleta = (data: Date) => {
     return data.toLocaleDateString('pt-BR', {
       weekday: 'long',
@@ -204,7 +196,7 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
         <div className="space-y-6 p-6">
           {/* Informações do Turno */}
-          <div className="bg-muted/50 rounded-xl p-4 space-y-2">
+          <div className="bg-muted/30 rounded-xl p-4 space-y-2 border border-border/50">
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span>
@@ -288,9 +280,9 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
 
           {/* Resumo do Agendamento */}
           {horarioSelecionado && categoria && (
-            <div className="bg-primary/10 border border-primary/20 rounded-xl p-4">
+            <div className="bg-primary/5 border border-primary/10 rounded-xl p-4">
               <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4 text-primary" />
                 Resumo do Agendamento
               </h4>
               <div className="space-y-1 text-sm">
@@ -313,18 +305,18 @@ export function ModalNovoAgendamento({ open, onClose, turno, dia, onSuccess }: M
           )}
         </div>
 
-        <DialogFooter className="p-6 bg-muted/50 border-t">
+        <DialogFooter className="p-6 bg-muted/30 border-t border-border/50">
           <Button
             variant="outline"
             onClick={handleFechar}
             disabled={criando}
-            className="px-6"
+            className="px-6 hover:bg-muted/50"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleConfirmar}
-            className="px-8"
+            className="px-8 bg-primary hover:bg-primary/90 shadow-sm hover:shadow-md transition-all duration-200"
             disabled={criando || !isFormValid}
             title={!isFormValid ? 'Preencha todos os campos obrigatórios' : ''}
           >
