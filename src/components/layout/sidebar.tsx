@@ -22,7 +22,7 @@ import {
   ChevronRight,
   LayoutGrid,
   Eye,
-  CheckCircle,
+  ShoppingCart,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -83,7 +83,6 @@ const menuItems = [
     icon: FileText,
     submenu: [
       { id: 'os-criar', label: 'Nova OS', icon: Plus, to: '/os/criar' },
-      { id: 'os-list', label: 'Painel', icon: Kanban, to: '/os' },
     ]
   },
   {
@@ -96,15 +95,15 @@ const menuItems = [
       { id: 'prestacao-contas', label: 'Prestação de Contas', icon: Receipt, to: '/financeiro/prestacao-contas' },
       { id: 'contas-pagar', label: 'Contas a Pagar', icon: TrendingDown, to: '/financeiro/contas-pagar' },
       { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
-      { id: 'aprovar-requisicoes', label: 'Aprovar Requisições', icon: CheckCircle, to: '/financeiro/requisicoes' },
+      { id: 'aprovar-requisicoes', label: 'Compras', icon: ShoppingCart, to: '/financeiro/requisicoes' },
     ]
   },
   {
     id: 'colaboradores',
-    label: 'Colaboradores',
+    label: 'Recursos Humanos',
     icon: Users,
     submenu: [
-      { id: 'colaboradores-lista', label: 'Gestão de Colaboradores', icon: UserCog, to: '/colaboradores' },
+      { id: 'colaboradores-lista', label: 'Colaboradores', icon: UserCog, to: '/colaboradores' },
       { id: 'controle-presenca', label: 'Controle de Presença', icon: ClipboardCheck, to: '/colaboradores/presenca-tabela' },
     ]
   },
