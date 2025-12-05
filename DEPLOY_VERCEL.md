@@ -77,10 +77,12 @@ vercel
 ## 🔧 Configurações Técnicas
 
 ### Build Settings
-- **Framework:** Vite
+- **Framework:** Vite (configurado como `null` para controle manual)
 - **Node Version:** 18.17.0 (especificado em `.nvmrc`)
 - **Build Command:** `npm run build`
-- **Output Directory:** `build/`
+- **Output Directory:** `build/` (configurado explicitamente)
+- **Install Command:** `npm install`
+- **SPA Routing:** Configurado via `vercel.json` e `_redirects`
 
 ### Environment Variables
 ```env
@@ -131,6 +133,25 @@ npm run build
 - Verifique se o domínio do Vercel está na allowlist do Supabase
 - URL típica: `https://minerva-v2-[hash].vercel.app`
 
+### 4. Erro "No Output Directory named 'dist' found"
+**Sintomas:** `Error: No Output Directory named "dist" found after the Build completed. Configure the Output Directory in your Project Settings. Alternatively, configure vercel.json#outputDirectory.`
+
+**Causa:** Vercel detecta automaticamente framework Vite e assume "dist" como diretório padrão, ignorando a configuração do `vite.config.ts`.
+
+**Solução Aplicada:**
+```json
+{
+  "framework": null,
+  "outputDirectory": "build",
+  "buildCommand": "npm run build"
+}
+```
+
+**Verificação:**
+- ✅ Build local gera arquivos em `build/`
+- ✅ `vercel.json` configurado com `framework: null`
+- ✅ Output directory explicitamente definido como "build"
+
 ## 📈 Pós-Deploy
 
 ### Verificações
@@ -152,12 +173,14 @@ npm run build
 ## 🎯 Status do Deploy
 
 - ✅ **Build:** Testado e funcionando
-- ✅ **Configurações:** Completas
+- ✅ **Configurações:** Completas e corrigidas
+- ✅ **Output Directory:** Problema "dist vs build" resolvido
+- ✅ **SPA Routing:** Configurado via `vercel.json` e `_redirects`
 - ✅ **Variáveis:** Documentadas
 - ✅ **Segurança:** Headers configurados
 - ✅ **Performance:** Otimizada
 
-**🎉 Pronto para deploy!**
+**🚀 PRONTO PARA DEPLOY - Problema do Output Directory CORRIGIDO!**
 
 ---
 
