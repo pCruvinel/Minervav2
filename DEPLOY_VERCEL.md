@@ -31,7 +31,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...[sua-chave]
 
 ✅ **Build local bem-sucedido:**
 - Comando: `npm run build`
-- Output directory: `build/`
+- Output directory: `dist/`
 - Bundle size: ~2.1MB (chunk principal)
 - Status: **Build OK**
 
@@ -48,7 +48,7 @@ VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...[sua-chave]
    - **Framework Preset:** `Vite`
    - **Root Directory:** `./` (raiz do projeto)
    - **Build Command:** `npm run build` (já configurado)
-   - **Output Directory:** `build` (já configurado)
+   - **Output Directory:** `dist` (já configurado)
 
 3. **Configurar variáveis de ambiente:**
    - Vá para Settings → Environment Variables
@@ -80,7 +80,7 @@ vercel
 - **Framework:** Vite (configurado como `null` para controle manual)
 - **Node Version:** 18.17.0 (especificado em `.nvmrc`)
 - **Build Command:** `npm run build`
-- **Output Directory:** `build/` (configurado explicitamente)
+- **Output Directory:** `dist/` (configurado explicitamente)
 - **Install Command:** `npm install`
 - **SPA Routing:** Configurado via `vercel.json` e `_redirects`
 
@@ -134,23 +134,29 @@ npm run build
 - URL típica: `https://minerva-v2-[hash].vercel.app`
 
 ### 4. Erro "No Output Directory named 'dist' found"
-**Sintomas:** `Error: No Output Directory named "dist" found after the Build completed. Configure the Output Directory in your Project Settings. Alternatively, configure vercel.json#outputDirectory.`
+**Sintomas:** `Error: No Output Directory named "dist" found after the Build completed.`
 
-**Causa:** Vercel detecta automaticamente framework Vite e assume "dist" como diretório padrão, ignorando a configuração do `vite.config.ts`.
+**Causa:** Vercel procura pelo diretório padrão `dist/` que é o padrão do Vite.
 
 **Solução Aplicada:**
 ```json
+// vercel.json
 {
-  "framework": null,
-  "outputDirectory": "build",
-  "buildCommand": "npm run build"
+  "outputDirectory": "dist"
+}
+
+// vite.config.ts
+{
+  build: {
+    outDir: 'dist'
+  }
 }
 ```
 
 **Verificação:**
-- ✅ Build local gera arquivos em `build/`
-- ✅ `vercel.json` configurado com `framework: null`
-- ✅ Output directory explicitamente definido como "build"
+- ✅ Build local gera arquivos em `dist/`
+- ✅ `vercel.json` configurado com `outputDirectory: "dist"`
+- ✅ `vite.config.ts` configurado com `outDir: 'dist'`
 
 ## 📈 Pós-Deploy
 
@@ -174,7 +180,7 @@ npm run build
 
 - ✅ **Build:** Testado e funcionando
 - ✅ **Configurações:** Completas e corrigidas
-- ✅ **Output Directory:** Problema "dist vs build" resolvido
+- ✅ **Output Directory:** Configurado para `dist/` (padrão Vite)
 - ✅ **SPA Routing:** Configurado via `vercel.json` e `_redirects`
 - ✅ **Variáveis:** Documentadas
 - ✅ **Segurança:** Headers configurados
