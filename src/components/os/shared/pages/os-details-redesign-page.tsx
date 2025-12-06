@@ -1076,12 +1076,6 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                                                 {comment.etapa_nome}
                                                                             </Badge>
                                                                         )}
-                                                                        <Badge
-                                                                            variant={comment.tipo === 'sistema' ? 'secondary' : 'default'}
-                                                                            className="text-xs"
-                                                                        >
-                                                                            {comment.tipo}
-                                                                        </Badge>
                                                                     </div>
                                                                     <p className="text-sm text-muted-foreground whitespace-pre-wrap">{comment.comentario}</p>
                                                                 </div>
