@@ -16,7 +16,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { ModalHeaderPadrao } from '@/components/ui/modal-header-padrao';
-import { useCargos } from '@/lib/hooks/use-os-workflows';
+import { useCargos, Cargo } from '@/lib/hooks/use-os-workflows';
 import { Briefcase, Loader2 } from 'lucide-react';
 import type { VagaRecrutamento } from './vaga-card';
 
@@ -39,7 +39,7 @@ const CARGOS_FILTRADOS = ['admin', 'diretor'];
  * - Perfil Comportamental (Textarea)
  */
 export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionarVagaProps) {
-    const { data: cargos, isLoading: cargosLoading } = useCargos();
+    const { cargos, loading: cargosLoading } = useCargos();
 
     // Estado do formulário
     const [cargoId, setCargoId] = useState('');
@@ -49,9 +49,9 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
     const [perfil, setPerfil] = useState('');
 
     // Filtrar cargos para remover admin e diretor
-    const cargosFiltrados = cargos?.filter(
-        (cargo) => !CARGOS_FILTRADOS.includes(cargo.slug)
-    ) || [];
+    const cargosFiltrados = cargos.filter(
+        (cargo: Cargo) => !CARGOS_FILTRADOS.includes(cargo.slug)
+    );
 
     // Reset form quando fecha
     useEffect(() => {
@@ -66,7 +66,7 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
 
     const handleCargoChange = (value: string) => {
         setCargoId(value);
-        const cargoSelecionado = cargosFiltrados.find((c) => c.id === value);
+        const cargoSelecionado = cargosFiltrados.find((c: Cargo) => c.id === value);
         if (cargoSelecionado) {
             setCargoNome(cargoSelecionado.nome);
         }
@@ -122,7 +122,7 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
                                     <SelectValue placeholder="Selecione o cargo" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {cargosFiltrados.map((cargo) => (
+                                    {cargosFiltrados.map((cargo: Cargo) => (
                                         <SelectItem key={cargo.id} value={cargo.id}>
                                             {cargo.nome}
                                         </SelectItem>

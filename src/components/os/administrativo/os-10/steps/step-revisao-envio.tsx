@@ -12,7 +12,7 @@ import {
     AlertCircle,
     Briefcase
 } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
 import { logger } from '@/lib/utils/logger';
 import { useNavigate } from '@tanstack/react-router';
@@ -264,7 +264,7 @@ export function StepRevisaoEnvio({
                         <p className="text-muted-foreground text-sm">Nenhuma vaga adicionada</p>
                     ) : (
                         <div className="space-y-3">
-                            {vagas.map((vaga, index) => (
+                            {vagas.map((vaga) => (
                                 <div
                                     key={vaga.id}
                                     className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
