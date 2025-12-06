@@ -267,8 +267,8 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
     }
 
     return (
-        <div>
-            <div className="bg-white border-b border-border -mx-6 -mt-6">
+        <div className="min-h-screen bg-background">
+            <div className="bg-white border-b border-border">
                 <div className="px-6 py-4">
                     <div className="flex items-center gap-4">
                         {onBack && (

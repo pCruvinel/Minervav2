@@ -1,5 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { useNavigate } from '@tanstack/react-router';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
@@ -41,7 +40,6 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   // Estado interno para osId (para auto-criação)
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
   const finalOsId = propOsId || internalOsId;
-  const navigate = useNavigate();
 
   // Refs para validação imperativa de steps
   const stepAgendarVisitaRef = useRef<any>(null);
@@ -231,9 +229,9 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   }
 
   return (
-    <div>
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-border -mx-6 -mt-6">
+      <div className="bg-white border-b border-border">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             {onBack && (
