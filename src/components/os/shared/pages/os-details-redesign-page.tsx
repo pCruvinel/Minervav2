@@ -828,7 +828,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         {/* Progress Card */}
                         <Card className="border-border rounded-lg shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-lg font-semibold">Progresso da OS</CardTitle>
+                                <CardTitle className="text-lg font-semibold">Progresso</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div>
@@ -859,7 +859,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         {/* OS Information */}
                         <Card className="border-border rounded-lg shadow-sm">
                             <CardHeader>
-                                <CardTitle className="text-xl font-semibold">Informações da OS</CardTitle>
+                                <CardTitle className="text-xl font-semibold">Informações</CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">

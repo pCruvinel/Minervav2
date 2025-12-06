@@ -7,6 +7,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle } from 'lucide-react';
 
+// Função para formatar valores monetários no padrão brasileiro (R$ 30.000,00)
+const formatarMoeda = (valor: number): string => {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(valor);
+};
+
 interface SubEtapa {
   nome: string;
   m2: string;
@@ -111,7 +121,7 @@ export function StepPrecificacao({
         <Input
           id="custoBase"
           type="text"
-          value={`R$ ${calcularCustoBase().toFixed(2).replace('.', ',')}`}
+          value={formatarMoeda(calcularCustoBase())}
           disabled
           className="bg-muted text-lg"
         />
@@ -175,7 +185,7 @@ export function StepPrecificacao({
             <Input
               id="valorAtual"
               type="text"
-              value={`R$ ${calcularValorAtual().toFixed(2).replace('.', ',')}`}
+              value={formatarMoeda(calcularValorAtual())}
               disabled
               className="bg-success/5 border-success/20 text-lg font-medium"
             />
@@ -223,7 +233,7 @@ export function StepPrecificacao({
             <Input
               id="valorEntrada"
               type="text"
-              value={`R$ ${calcularValorEntrada().toFixed(2).replace('.', ',')}`}
+              value={formatarMoeda(calcularValorEntrada())}
               disabled
               className="bg-muted"
             />
@@ -234,7 +244,7 @@ export function StepPrecificacao({
             <Input
               id="valorParcela"
               type="text"
-              value={`R$ ${calcularValorParcela().toFixed(2).replace('.', ',')}`}
+              value={formatarMoeda(calcularValorParcela())}
               disabled
               className="bg-muted"
             />
@@ -251,21 +261,21 @@ export function StepPrecificacao({
         <CardContent className="space-y-2">
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Custo Base:</span>
-            <span className="text-sm font-medium">R$ {calcularCustoBase().toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-medium">{formatarMoeda(calcularCustoBase())}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Valor Total da Proposta:</span>
-            <span className="text-sm font-medium">R$ {calcularValorAtual().toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-medium">{formatarMoeda(calcularValorAtual())}</span>
           </div>
           <Separator />
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Entrada:</span>
-            <span className="text-sm font-medium">R$ {calcularValorEntrada().toFixed(2).replace('.', ',')}</span>
+            <span className="text-sm font-medium">{formatarMoeda(calcularValorEntrada())}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-sm text-muted-foreground">Parcelas:</span>
             <span className="text-sm font-medium">
-              {data.numeroParcelas || 1}x de R$ {calcularValorParcela().toFixed(2).replace('.', ',')}
+              {data.numeroParcelas || 1}x de {formatarMoeda(calcularValorParcela())}
             </span>
           </div>
         </CardContent>

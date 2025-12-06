@@ -92,7 +92,7 @@ export default function ColaboradorDashboardPage() {
   );
 
   const kpis = useMemo(() => ({
-    osEmAberto: minhasOS.filter((os) => os.status_geral !== "concluida").length,
+    osEmAberto: minhasOS.filter((os) => os.status_geral !== "concluido").length,
     tarefasHoje: minhasOS.filter((os) => {
       const hoje = new Date().toISOString().split("T")[0];
       return os.data_prazo.split("T")[0] === hoje;
@@ -100,7 +100,7 @@ export default function ColaboradorDashboardPage() {
     prazosVencidos: minhasOS.filter((os) => {
       const hoje = new Date();
       const prazo = new Date(os.data_prazo);
-      return prazo < hoje && os.status_geral !== "concluida";
+      return prazo < hoje && os.status_geral !== "concluido";
     }).length,
   }), [minhasOS]);
 

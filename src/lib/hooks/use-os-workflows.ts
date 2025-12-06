@@ -263,7 +263,7 @@ const workflowAPI = {
         tipo_os_id: tipoOS.id,
         responsavel_id: responsavelId,
         criado_por_id: user?.id,
-        cc_id: ccId,
+        cc_id: ccId || null, // Tratar string vazia como null
         status_geral: 'em_triagem',
         descricao,
         metadata,

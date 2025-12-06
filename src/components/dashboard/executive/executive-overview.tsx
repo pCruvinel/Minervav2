@@ -176,10 +176,10 @@ export function ExecutiveOverview() {
                         <div>
                             <CardTitle className="flex items-center gap-2">
                                 <BarChart3 className="h-5 w-5" />
-                                Evolução de Ordens de Serviço
+                                Evolução de Contratos
                             </CardTitle>
                             <CardDescription>
-                                Novas OS vs Concluídas nos últimos 6 meses
+                                Quantidade e valor total nos últimos 6 meses
                             </CardDescription>
                         </div>
                     </div>
@@ -195,9 +195,19 @@ export function ExecutiveOverview() {
                                     tickLine={false}
                                 />
                                 <YAxis
+                                    yAxisId="left"
                                     tick={{ fontSize: 12 }}
                                     tickLine={false}
                                     axisLine={false}
+                                    label={{ value: 'Quantidade', angle: -90, position: 'insideLeft', style: { fontSize: 11 } }}
+                                />
+                                <YAxis
+                                    yAxisId="right"
+                                    orientation="right"
+                                    tick={{ fontSize: 12 }}
+                                    tickLine={false}
+                                    axisLine={false}
+                                    label={{ value: 'Valor (R$ mil)', angle: 90, position: 'insideRight', style: { fontSize: 11 } }}
                                 />
                                 <Tooltip
                                     contentStyle={{
@@ -205,23 +215,31 @@ export function ExecutiveOverview() {
                                         border: '1px solid hsl(var(--border))',
                                         borderRadius: '8px'
                                     }}
+                                    formatter={(value: any, name: string) => {
+                                        if (name === 'Valor Total') {
+                                            return [`R$ ${value}k`, name];
+                                        }
+                                        return [value, name];
+                                    }}
                                 />
                                 <Legend />
                                 <Line
+                                    yAxisId="left"
                                     type="monotone"
-                                    dataKey="novas"
+                                    dataKey="quantidade"
                                     stroke="hsl(var(--primary))"
                                     strokeWidth={2}
                                     dot={{ fill: 'hsl(var(--primary))' }}
-                                    name="Novas OS"
+                                    name="Qtd Contratos"
                                 />
                                 <Line
+                                    yAxisId="right"
                                     type="monotone"
-                                    dataKey="concluidas"
+                                    dataKey="valorTotal"
                                     stroke="#10b981"
                                     strokeWidth={2}
                                     dot={{ fill: '#10b981' }}
-                                    name="Concluídas"
+                                    name="Valor Total"
                                 />
                             </LineChart>
                         </ResponsiveContainer>

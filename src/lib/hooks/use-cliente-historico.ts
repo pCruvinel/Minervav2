@@ -136,8 +136,8 @@ const fetchResumoCliente = async (clienteId: string): Promise<ResumoCliente> => 
   const resumo: ResumoCliente = {
     totalOS: oss?.length || 0,
     osAtivas: oss?.filter((os: any) => os.status_geral === 'em_andamento').length || 0,
-    osConcluidas: oss?.filter((os: any) => os.status_geral === 'concluida').length || 0,
-    osCanceladas: oss?.filter((os: any) => os.status_geral === 'cancelada').length || 0,
+    osConcluidas: oss?.filter((os: any) => os.status_geral === 'concluido').length || 0,
+    osCanceladas: oss?.filter((os: any) => os.status_geral === 'cancelado').length || 0,
     valorTotalContratos: contratos?.reduce((sum: number, ctr: any) => sum + (ctr.valor_total || 0), 0) || 0,
     ultimoContato,
     totalDocumentos: totalDocumentos || 0,

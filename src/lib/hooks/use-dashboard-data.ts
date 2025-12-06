@@ -129,7 +129,7 @@ export function useDashboardData(): DashboardData {
     if (!ordensServico) return [];
     
     return ordensServico
-      .filter(os => os.status_geral !== 'cancelada' && os.status_geral !== 'concluida')
+      .filter(os => os.status_geral !== 'cancelado' && os.status_geral !== 'concluido')
       .map((os: any) => {
         const dadosEtapa = extrairDadosEtapaAtual(os);
         const setorOS = normalizarSetor(os.tipos_os?.setores?.slug || os.setor_nome);

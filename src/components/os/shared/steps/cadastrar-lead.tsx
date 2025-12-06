@@ -67,6 +67,7 @@ export interface CadastrarLeadHandle {
   validate: () => boolean;
   isFormValid: () => boolean;
   saveEdificacaoData: () => Promise<boolean>;
+  saveData: () => Promise<string | null>;
 }
 
 export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>(
@@ -250,8 +251,38 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
           toast.error('Erro ao salvar dados da edificação');
           return false;
         }
+      },
+      saveData: async () => {
+        // Validar antes de salvar
+        if (!validateAll({ leadId: selectedLeadId, ...formData })) {
+          logger.error('❌ saveData: Validação falhou');
+          return null;
+        }
+
+        try {
+          setIsSaving(true);
+          logger.log('💾 saveData: Salvando dados do lead e criando OS...');
+
+          if (!selectedLeadId) {
+            logger.error('❌ saveData: Nenhum lead selecionado');
+            toast.error('Selecione um lead antes de continuar');
+            return null;
+          }
+
+          // Nota: O método saveData em CadastrarLead retorna o leadId
+          // A criação da OS será feita no componente pai que chama este método
+          // Este método serve para validar e confirmar que temos um lead selecionado
+          logger.log('✅ saveData: Lead validado:', selectedLeadId);
+          return selectedLeadId;
+        } catch (error) {
+          logger.error('❌ saveData: Erro ao salvar:', error);
+          toast.error('Erro ao salvar dados');
+          return null;
+        } finally {
+          setIsSaving(false);
+        }
       }
-    }), [markAllTouched, validateAll, formData, errors]);
+    }), [markAllTouched, validateAll, formData, errors, selectedLeadId]);
 
     const selectedLead = leads?.find(l => l.id === selectedLeadId);
 

@@ -23,7 +23,9 @@ import {
   Users,
   DollarSign,
   ChevronDown,
-  Loader2
+  Loader2,
+  PieChart,
+  AlertTriangle
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { format, subDays } from 'date-fns';
@@ -47,6 +49,19 @@ interface RegistroPresenca {
   confirmedBy?: string;
 }
 
+// Interface para rateio de CC
+interface RateioCC {
+  ccId: string;
+  ccNome: string;
+  percentual: number;
+}
+
+interface ColaboradorRateio {
+  colaboradorId: string;
+  colaboradorNome: string;
+  centrosCusto: RateioCC[];
+}
+
 export function ControlePresencaTabelaPage() {
   const { currentUser } = useAuth();
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
@@ -56,11 +71,13 @@ export function ControlePresencaTabelaPage() {
   const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
   const [modalJustificativaOpen, setModalJustificativaOpen] = useState(false);
   const [modalConfirmacaoOpen, setModalConfirmacaoOpen] = useState(false);
+  const [modalRateioOpen, setModalRateioOpen] = useState(false);
   const [colaboradorAtual, setColaboradorAtual] = useState<string | null>(null);
   const [tipoJustificativa, setTipoJustificativa] = useState<'STATUS' | 'PERFORMANCE'>('STATUS');
   const [setorFiltro, setSetorFiltro] = useState<string>('todos');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [colaboradoresRateio, setColaboradoresRateio] = useState<ColaboradorRateio[]>([]);
 
   // Carregar dados iniciais (Colaboradores e Centros de Custo)
   useEffect(() => {
@@ -324,16 +341,16 @@ export function ControlePresencaTabelaPage() {
       if (!registro) return;
 
       if (col.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0) {
-        erros.push(`${col.nome} precisa ter pelo menos 1 Centro de Custo`);
+        erros.push(`${col.nome_completo} precisa ter pelo menos 1 Centro de Custo`);
       }
       if ((registro.status === 'FALTA' || registro.status === 'ATRASADO') && !registro.justificativaStatus) {
-        erros.push(`${col.nome} precisa ter justificativa de ${registro.status === 'FALTA' ? 'falta' : 'atraso'}`);
+        erros.push(`${col.nome_completo} precisa ter justificativa de ${registro.status === 'FALTA' ? 'falta' : 'atraso'}`);
       }
       if (registro.performance === 'RUIM' && !registro.justificativaPerformance) {
-        erros.push(`${col.nome} precisa ter justificativa de performance ruim`);
+        erros.push(`${col.nome_completo} precisa ter justificativa de performance ruim`);
       }
       if (registro.status === 'ATRASADO' && !registro.minutosAtraso) {
-        erros.push(`${col.nome} precisa informar os minutos de atraso`);
+        erros.push(`${col.nome_completo} precisa informar os minutos de atraso`);
       }
     });
 
@@ -342,7 +359,39 @@ export function ControlePresencaTabelaPage() {
       return;
     }
 
-    // Abrir modal de confirmação
+    // Identificar colaboradores com múltiplos CCs (precisam de rateio)
+    const colabsComMultiplosCCs: ColaboradorRateio[] = [];
+    
+    colaboradores.forEach(col => {
+      const registro = registros[col.id];
+      if (!registro || registro.status === 'FALTA') return;
+      
+      // Só precisa de rateio se tiver mais de 1 CC
+      if (registro.centrosCusto.length > 1) {
+        const percentualIgual = Math.round(100 / registro.centrosCusto.length);
+        colabsComMultiplosCCs.push({
+          colaboradorId: col.id,
+          colaboradorNome: col.nome_completo || '',
+          centrosCusto: registro.centrosCusto.map((ccId, index) => ({
+            ccId,
+            ccNome: getCentroCustoNome(ccId),
+            // Último CC pega o resto para garantir soma = 100
+            percentual: index === registro.centrosCusto.length - 1 
+              ? 100 - (percentualIgual * (registro.centrosCusto.length - 1))
+              : percentualIgual
+          }))
+        });
+      }
+    });
+
+    // Se tem colaboradores com múltiplos CCs, mostrar modal de rateio primeiro
+    if (colabsComMultiplosCCs.length > 0) {
+      setColaboradoresRateio(colabsComMultiplosCCs);
+      setModalRateioOpen(true);
+      return;
+    }
+
+    // Se não tem rateio para fazer, ir direto para confirmação
     setModalConfirmacaoOpen(true);
   };
 
@@ -375,19 +424,97 @@ export function ControlePresencaTabelaPage() {
         };
       });
 
-      const { error } = await supabase
+      // 1. Salvar registros de presença
+      const { data: registrosSalvos, error } = await supabase
         .from('registros_presenca')
         .upsert(upsertData, {
           onConflict: 'colaborador_id,data',
           ignoreDuplicates: false
-        });
+        })
+        .select('id, colaborador_id');
 
       if (error) throw error;
 
+      // 2. Preparar dados de alocação por CC (para tabela alocacao_horas_cc)
+      const alocacoesParaSalvar: Array<{
+        registro_presenca_id: string;
+        cc_id: string;
+        percentual: number;
+      }> = [];
+
+      // Criar mapa de colaborador_id -> registro_presenca_id
+      const registroIdMap = new Map<string, string>();
+      
+      // Buscar IDs dos registros criados/atualizados
+      const { data: registrosComIds } = await supabase
+        .from('registros_presenca')
+        .select('id, colaborador_id')
+        .eq('data', dateStr);
+
+      registrosComIds?.forEach(r => {
+        registroIdMap.set(r.colaborador_id, r.id);
+      });
+
+      // Montar alocações
+      colaboradores.forEach(col => {
+        const reg = registros[col.id];
+        if (!reg || reg.status === 'FALTA' || reg.centrosCusto.length === 0) return;
+
+        const registroPresencaId = registroIdMap.get(col.id);
+        if (!registroPresencaId) return;
+
+        // Verificar se tem rateio definido
+        const rateioDefinido = colaboradoresRateio.find(cr => cr.colaboradorId === col.id);
+
+        if (rateioDefinido) {
+          // Usar percentuais definidos no modal
+          rateioDefinido.centrosCusto.forEach(cc => {
+            alocacoesParaSalvar.push({
+              registro_presenca_id: registroPresencaId,
+              cc_id: cc.ccId,
+              percentual: cc.percentual
+            });
+          });
+        } else {
+          // CC único = 100%
+          reg.centrosCusto.forEach(ccId => {
+            alocacoesParaSalvar.push({
+              registro_presenca_id: registroPresencaId,
+              cc_id: ccId,
+              percentual: reg.centrosCusto.length === 1 ? 100 : Math.round(100 / reg.centrosCusto.length)
+            });
+          });
+        }
+      });
+
+      // 3. Deletar alocações antigas do dia e inserir novas
+      if (alocacoesParaSalvar.length > 0) {
+        // Buscar IDs de registros do dia para deletar alocações antigas
+        const registroIds = Array.from(registroIdMap.values());
+        
+        // Deletar alocações existentes
+        await supabase
+          .from('alocacao_horas_cc')
+          .delete()
+          .in('registro_presenca_id', registroIds);
+
+        // Inserir novas alocações
+        const { error: alocError } = await supabase
+          .from('alocacao_horas_cc')
+          .insert(alocacoesParaSalvar);
+
+        if (alocError) {
+          console.error('Erro ao salvar alocações:', alocError);
+          // Não falhar toda operação, só logar
+        }
+      }
+
       toast.success(`✅ Presença registrada para ${format(dataSelecionada, 'dd/MM/yyyy', { locale: ptBR })}!`);
 
-      // Fechar modal e recarregar
+      // Fechar modais e recarregar
       setModalConfirmacaoOpen(false);
+      setModalRateioOpen(false);
+      setColaboradoresRateio([]);
       fetchRegistrosDoDia(dataSelecionada);
 
     } catch (error: any) {
@@ -847,6 +974,21 @@ export function ControlePresencaTabelaPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Modal de Rateio de Centros de Custo */}
+        <ModalRateioCC
+          open={modalRateioOpen}
+          onClose={() => {
+            setModalRateioOpen(false);
+            setColaboradoresRateio([]);
+          }}
+          colaboradores={colaboradoresRateio}
+          onConfirmar={(rateiosAtualizados) => {
+            setColaboradoresRateio(rateiosAtualizados);
+            setModalRateioOpen(false);
+            setModalConfirmacaoOpen(true);
+          }}
+        />
+
         {/* Modal de Justificativa */}
         <ModalJustificativa
           open={modalJustificativaOpen}
@@ -856,7 +998,7 @@ export function ControlePresencaTabelaPage() {
           }}
           onSalvar={handleSalvarJustificativa}
           tipo={tipoJustificativa}
-          colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome || ''}
+          colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome_completo || ''}
           status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
         />
       </div>
@@ -946,6 +1088,225 @@ function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, st
           </Button>
           <Button onClick={handleSalvar}>
             Salvar Justificativa
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Modal de Rateio de Centros de Custo
+interface ModalRateioCCProps {
+  open: boolean;
+  onClose: () => void;
+  colaboradores: ColaboradorRateio[];
+  onConfirmar: (rateios: ColaboradorRateio[]) => void;
+}
+
+function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRateioCCProps) {
+  const [rateiosLocal, setRateiosLocal] = useState<ColaboradorRateio[]>([]);
+  const [erros, setErros] = useState<Record<string, string>>({});
+
+  // Sincronizar estado local quando modal abre
+  React.useEffect(() => {
+    if (open && colaboradores.length > 0) {
+      setRateiosLocal([...colaboradores]);
+      setErros({});
+    }
+  }, [open, colaboradores]);
+
+  const handlePercentualChange = (colaboradorId: string, ccId: string, novoValor: string) => {
+    const valor = parseInt(novoValor) || 0;
+    
+    setRateiosLocal(prev => prev.map(colab => {
+      if (colab.colaboradorId !== colaboradorId) return colab;
+      
+      return {
+        ...colab,
+        centrosCusto: colab.centrosCusto.map(cc => 
+          cc.ccId === ccId ? { ...cc, percentual: valor } : cc
+        )
+      };
+    }));
+
+    // Limpar erro desse colaborador
+    setErros(prev => {
+      const novos = { ...prev };
+      delete novos[colaboradorId];
+      return novos;
+    });
+  };
+
+  const validarRateios = (): boolean => {
+    const novosErros: Record<string, string> = {};
+    
+    rateiosLocal.forEach(colab => {
+      const soma = colab.centrosCusto.reduce((acc, cc) => acc + cc.percentual, 0);
+      
+      if (soma !== 100) {
+        novosErros[colab.colaboradorId] = `Soma deve ser 100% (atual: ${soma}%)`;
+      }
+
+      // Verificar se algum CC tem 0%
+      const temZero = colab.centrosCusto.some(cc => cc.percentual <= 0);
+      if (temZero) {
+        novosErros[colab.colaboradorId] = 'Todos os CCs devem ter percentual maior que 0';
+      }
+    });
+
+    setErros(novosErros);
+    return Object.keys(novosErros).length === 0;
+  };
+
+  const handleConfirmar = () => {
+    if (validarRateios()) {
+      onConfirmar(rateiosLocal);
+    }
+  };
+
+  const getSomaPercentual = (colaboradorId: string): number => {
+    const colab = rateiosLocal.find(c => c.colaboradorId === colaboradorId);
+    if (!colab) return 0;
+    return colab.centrosCusto.reduce((acc, cc) => acc + cc.percentual, 0);
+  };
+
+  const distribuirIgualmente = (colaboradorId: string) => {
+    setRateiosLocal(prev => prev.map(colab => {
+      if (colab.colaboradorId !== colaboradorId) return colab;
+      
+      const qtdCCs = colab.centrosCusto.length;
+      const percentualBase = Math.floor(100 / qtdCCs);
+      const resto = 100 - (percentualBase * qtdCCs);
+      
+      return {
+        ...colab,
+        centrosCusto: colab.centrosCusto.map((cc, idx) => ({
+          ...cc,
+          percentual: idx === 0 ? percentualBase + resto : percentualBase
+        }))
+      };
+    }));
+
+    // Limpar erro
+    setErros(prev => {
+      const novos = { ...prev };
+      delete novos[colaboradorId];
+      return novos;
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <PieChart className="h-5 w-5 text-primary" />
+            Definir Rateio de Centros de Custo
+          </DialogTitle>
+          <DialogDescription>
+            Os colaboradores abaixo estão alocados em mais de um Centro de Custo.
+            Defina o percentual de cada CC (a soma deve ser 100%).
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto py-4 space-y-6">
+          {rateiosLocal.map((colab) => {
+            const soma = getSomaPercentual(colab.colaboradorId);
+            const temErro = !!erros[colab.colaboradorId];
+            const somaCorreta = soma === 100;
+
+            return (
+              <div 
+                key={colab.colaboradorId} 
+                className={cn(
+                  "p-4 rounded-lg border transition-all",
+                  temErro ? "border-destructive bg-destructive/5" : 
+                  somaCorreta ? "border-success/50 bg-success/5" : "border-border"
+                )}
+              >
+                {/* Header do Colaborador */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <span className="font-medium">{colab.colaboradorNome}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {colab.centrosCusto.length} CCs
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => distribuirIgualmente(colab.colaboradorId)}
+                      className="text-xs"
+                    >
+                      Distribuir igual
+                    </Button>
+                    <Badge 
+                      variant={somaCorreta ? "default" : "destructive"}
+                      className={cn(
+                        "text-xs font-mono",
+                        somaCorreta && "bg-success hover:bg-success"
+                      )}
+                    >
+                      {soma}%
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Inputs de Percentual */}
+                <div className="grid gap-2">
+                  {colab.centrosCusto.map((cc) => (
+                    <div 
+                      key={cc.ccId} 
+                      className="flex items-center gap-3 p-2 rounded bg-muted/50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium truncate block">
+                          {cc.ccNome}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="100"
+                          value={cc.percentual}
+                          onChange={(e) => handlePercentualChange(
+                            colab.colaboradorId, 
+                            cc.ccId, 
+                            e.target.value
+                          )}
+                          className="w-20 text-center font-mono"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Erro */}
+                {temErro && (
+                  <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
+                    <AlertTriangle className="h-4 w-4" />
+                    {erros[colab.colaboradorId]}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <DialogFooter className="border-t pt-4">
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={handleConfirmar}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Confirmar Rateio e Registrar
           </Button>
         </DialogFooter>
       </DialogContent>

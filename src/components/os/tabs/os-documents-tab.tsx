@@ -206,7 +206,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
             <Card className="border-border rounded-lg shadow-sm">
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <CardTitle className="text-xl font-semibold">Drive da OS ({documents.length})</CardTitle>
+                        <CardTitle className="text-xl font-semibold">Drive</CardTitle>
 
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Input

@@ -34,8 +34,8 @@ export interface ExecutiveMetrics {
 
 export interface OSEvolution {
   mes: string;
-  novas: number;
-  concluidas: number;
+  quantidade: number;
+  valorTotal: number;
 }
 
 interface UseExecutiveMetricsReturn {
@@ -85,13 +85,14 @@ export function useExecutiveMetrics(): UseExecutiveMetricsReturn {
 
       if (osError) throw osError;
 
-      // 2. Buscar OSs dos últimos 6 meses para evolução
+      // 2. Buscar contratos dos últimos 6 meses para evolução
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
       const { data: osTotal, error: totalError } = await supabase
         .from('ordens_servico')
-        .select('id, status_geral, data_entrada, data_conclusao')
+        .select('id, status_geral, data_entrada, valor_contrato, is_contract_active')
+        .eq('is_contract_active', true)
         .gte('data_entrada', sixMonthsAgo.toISOString());
 
       if (totalError) throw totalError;
@@ -169,7 +170,7 @@ export function useExecutiveMetrics(): UseExecutiveMetricsReturn {
     };
   }, [rawData]);
 
-  // Calcular evolução (últimos 6 meses)
+  // Calcular evolução de contratos (últimos 6 meses)
   const evolution = useMemo<OSEvolution[]>(() => {
     const { osTotal } = rawData;
     const meses: OSEvolution[] = [];
@@ -182,18 +183,20 @@ export function useExecutiveMetrics(): UseExecutiveMetricsReturn {
       const inicioMes = new Date(data.getFullYear(), data.getMonth(), 1);
       const fimMes = new Date(data.getFullYear(), data.getMonth() + 1, 0);
 
-      const novas = osTotal.filter(os => {
+      // Filtrar contratos criados neste mês
+      const contratosMes = osTotal.filter(os => {
         const dataEntrada = os.data_entrada ? new Date(os.data_entrada) : null;
         return dataEntrada && dataEntrada >= inicioMes && dataEntrada <= fimMes;
-      }).length;
+      });
 
-      const concluidas = osTotal.filter(os => {
-        if (!os.data_conclusao) return false;
-        const concluded = new Date(os.data_conclusao);
-        return concluded >= inicioMes && concluded <= fimMes;
-      }).length;
+      const quantidade = contratosMes.length;
+      const valorTotal = contratosMes.reduce((sum, os) => sum + (os.valor_contrato || 0), 0);
 
-      meses.push({ mes: mesLabel.replace('.', ''), novas, concluidas });
+      meses.push({ 
+        mes: mesLabel.replace('.', ''), 
+        quantidade, 
+        valorTotal: Math.round(valorTotal / 1000) // Converter para milhares
+      });
     }
 
     return meses;

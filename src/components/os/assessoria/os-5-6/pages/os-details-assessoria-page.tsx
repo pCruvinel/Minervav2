@@ -36,7 +36,7 @@ import { StepMemorialEscopo, type StepMemorialEscopoHandle } from '@/components/
 
 // Definição das 12 etapas do fluxo OS 05-06
 const steps: WorkflowStep[] = [
-  { id: 1, title: 'Identificação do Cliente/Lead', short: 'Lead', responsible: 'ADM' },
+  { id: 1, title: 'Identifique o Lead', short: 'Lead', responsible: 'ADM' },
   { id: 2, title: 'Seleção do Tipo de OS', short: 'Tipo OS', responsible: 'ADM' },
   { id: 3, title: 'Follow-up 1 (Entrevista Inicial)', short: 'Follow-up 1', responsible: 'ADM' },
   { id: 4, title: 'Formulário Memorial (Escopo e Prazos)', short: 'Escopo', responsible: 'Assessoria' },
@@ -64,8 +64,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const osId = osIdProp || internalOsId;
 
   // Hooks de integração
-  const { os, loading: loadingOS } = useOS(osId);
-  const { mutate: createOSWorkflow, isLoading: isCreatingOS } = useCreateOSWorkflow();
+  const { os } = useOS(osId || undefined);
+  const createOSMutationHook = useCreateOSWorkflow();
 
   // Hook de Estado do Workflow
   const {
@@ -201,23 +201,60 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
         return;
       }
 
-      // Salvar dados e criar OS
-      logger.log('💾 Salvando dados do Lead e criando OS...');
-      const savedOsId = await stepLeadRef.current.saveData();
+      // Salvar dados do lead (validação)
+      logger.log('💾 Validando dados do Lead...');
+      const leadId = await stepLeadRef.current.saveData();
 
-      if (!savedOsId) {
-        logger.error('❌ Falha ao criar OS na Etapa 1');
-        toast.error('Não foi possível criar a Ordem de Serviço. Tente novamente.');
+      if (!leadId) {
+        logger.error('❌ Falha ao validar Lead na Etapa 1');
+        toast.error('Selecione um lead antes de continuar.');
         return;
       }
 
-      logger.log('✅ OS criada com sucesso. ID:', savedOsId);
+      logger.log('✅ Lead validado:', leadId);
 
-      // Atualizar estado interno com o novo ID
-      if (savedOsId && savedOsId !== internalOsId) {
-        setInternalOsId(savedOsId);
+      // Criar a OS vinculada ao lead
+      // Nota: O tipo de OS será definido na Etapa 2, então criamos com um tipo padrão (OS-05)
+      logger.log('🔧 Criando OS para o lead...');
+      const tipoOS = etapa2Data.tipoOS || 'OS-05';
+      
+      try {
+        // Buscar o usuário atual para definir como responsável
+        const user = (await supabase.auth.getUser()).data.user;
+        const responsavelId = user?.id || null;
+
+        // Criar a OS usando o mutation hook
+        const result = await createOSMutationHook.mutate({
+          tipoOSCodigo: tipoOS,
+          clienteId: leadId,
+          ccId: '', // Será definido depois
+          responsavelId: responsavelId,
+          descricao: `${tipoOS === 'OS-05' ? 'Assessoria Técnica' : 'Assessoria Pericial'} - Lead em análise`,
+          metadata: {
+            leadId: leadId,
+            origem: 'workflow_assessoria'
+          },
+          etapas: steps.map((step, index) => ({
+            nome_etapa: step.title,
+            ordem: index + 1,
+            dados_etapa: {}
+          }))
+        });
+
+        if (!result?.os?.id) {
+          throw new Error('OS criada mas sem ID retornado');
+        }
+
+        logger.log('✅ OS criada com sucesso. ID:', result.os.id);
+
+        // Atualizar estado interno com o novo ID
+        setInternalOsId(result.os.id as string);
         // Pequeno delay para garantir que o estado atualizou
         await new Promise(resolve => window.setTimeout(resolve, 100));
+      } catch (error) {
+        logger.error('❌ Erro ao criar OS:', error);
+        toast.error('Não foi possível criar a Ordem de Serviço. Tente novamente.');
+        return;
       }
 
       // Salvar etapa no banco (marcar como concluída)
@@ -410,7 +447,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
       // 7. Criar OS filha
       logger.log(`🔗 Criando ${osFilhaCodigo} vinculada à ${codigoOS}...`);
 
-      createOSWorkflow(
+      createOSMutationHook.mutate(
         {
           tipoOSCodigo: osFilhaCodigo,
           clienteId,
@@ -512,9 +549,6 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>{steps[currentStep - 1].title}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Responsável: {steps[currentStep - 1].responsible}
-                  </p>
                 </div>
                 <Badge variant="outline" className="border-primary text-primary">
                   Etapa {currentStep} de {steps.length}
@@ -656,8 +690,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
               onReturnToActive={handleReturnToActive}
               isFormInvalid={isCurrentStepInvalid}
               invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
-              isLoading={isSaving || isLoadingData || isCreatingOS}
-              loadingText={isCreatingOS ? "Criando OS filha..." : "Salvando..."}
+              isLoading={isSaving || isLoadingData}
+              loadingText={isSaving ? "Salvando..." : "Processando..."}
             />
           </Card>
         </div>

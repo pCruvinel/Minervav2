@@ -93,8 +93,8 @@ export function useCoordinatorsWorkload(): UseCoordinatorsWorkloadReturn {
           data_prazo,
           data_entrada,
           responsavel_id,
-          clientes(nome_razao_social),
-          tipos_os(nome),
+          clientes!cliente_id(nome_razao_social),
+          tipos_os!tipo_os_id(nome),
           os_etapas(
             nome_etapa,
             status,

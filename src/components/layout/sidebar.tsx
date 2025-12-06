@@ -109,6 +109,7 @@ const menuItems = [
     submenu: [
       { id: 'colaboradores-lista', label: 'Colaboradores', icon: UserCog, to: '/colaboradores' },
       { id: 'controle-presenca', label: 'Controle de Presença', icon: ClipboardCheck, to: '/colaboradores/presenca-tabela' },
+      { id: 'recrutamento', label: 'Recrutamento', icon: Briefcase, to: '/colaboradores/recrutamento' },
     ]
   },
   {

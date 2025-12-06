@@ -7,7 +7,7 @@ import { Badge } from './badge';
 import {
     FileText,
     Image as ImageIcon,
-    Download,
+    ExternalLink,
     Trash2,
     Edit3,
     Check,
@@ -51,22 +51,51 @@ const DEFAULT_ACCEPTED_TYPES = [
 
 const DEFAULT_ACCEPTED_EXTENSIONS = '.pdf,.docx,.jpg,.jpeg,.png';
 
+// Helper: Infere o MIME type baseado na extensão do arquivo
+function inferMimeType(filename: string, url?: string): string {
+    const name = filename || url || '';
+    const extension = name.toLowerCase().split('.').pop() || '';
+    
+    const mimeTypes: Record<string, string> = {
+        'pdf': 'application/pdf',
+        'doc': 'application/msword',
+        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'svg': 'image/svg+xml',
+        'bmp': 'image/bmp',
+    };
+    
+    return mimeTypes[extension] || '';
+}
+
 // Helper: Converte formato do schema { id?, url, nome, tamanho? } para FileWithComment
 function normalizeFileFromSchema(file: any): FileWithComment {
-    // Se já é FileWithComment (tem name, size, type), retorna como está
-    if (file.name && file.type !== undefined) {
+    // Se já é FileWithComment (tem name, size, type preenchido), retorna como está
+    if (file.name && file.type) {
         return file;
     }
+    
+    // Nome do arquivo (pode vir como 'name' ou 'nome')
+    const fileName = file.name || file.nome || '';
+    const fileUrl = file.url || '';
+    
+    // Inferir tipo baseado na extensão
+    const inferredType = file.type || inferMimeType(fileName, fileUrl);
+    
     // Se é formato do schema, converte para FileWithComment
     return {
         id: file.id || Date.now().toString() + Math.random().toString(36).substring(2),
-        name: file.nome || '',
-        url: file.url || '',
-        path: '',
-        size: file.tamanho || 0,
-        type: '', // Não temos o tipo original no schema
-        uploadedAt: new Date().toISOString(),
-        comentario: file.comentario || ''
+        name: fileName,
+        url: fileUrl,
+        path: file.path || '',
+        size: file.tamanho || file.size || 0,
+        type: inferredType,
+        uploadedAt: file.uploadedAt || new Date().toISOString(),
+        comentario: file.comentario || file.comment || ''
     };
 }
 
@@ -220,23 +249,63 @@ export function FileUploadUnificado({
     };
 
     const getFilePreview = (file: FileWithComment) => {
+        // Preview para imagens (PNG, JPEG, GIF, WebP)
         if (file.type.startsWith('image/')) {
             return (
                 <img
                     src={file.url}
                     alt={file.name}
                     className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => handleDownload(file)}
+                    onClick={() => window.open(file.url, '_blank')}
                 />
             );
         }
 
+        // Preview para PDFs
+        if (file.type === 'application/pdf') {
+            return (
+                <div 
+                    className="w-full h-32 relative rounded overflow-hidden cursor-pointer group"
+                    onClick={() => window.open(file.url, '_blank')}
+                >
+                    {/* Embed do PDF como preview */}
+                    <object
+                        data={`${file.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                        type="application/pdf"
+                        className="w-full h-full pointer-events-none"
+                    >
+                        {/* Fallback se o browser não suportar object */}
+                        <div className="w-full h-full bg-red-50 flex items-center justify-center">
+                            <FileText className="h-10 w-10 text-red-500" />
+                        </div>
+                    </object>
+                    {/* Overlay para indicar que é clicável */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                            <FileText className="h-5 w-5 text-red-600" />
+                        </div>
+                    </div>
+                    {/* Badge PDF no canto */}
+                    <Badge 
+                        variant="secondary" 
+                        className="absolute top-1 left-1 text-[10px] px-1 py-0 bg-red-100 text-red-700 border-red-200"
+                    >
+                        PDF
+                    </Badge>
+                </div>
+            );
+        }
+
+        // Fallback para outros tipos de arquivo
         return (
             <div
-                className="w-full h-32 bg-muted rounded flex items-center justify-center cursor-pointer hover:bg-muted transition-colors"
-                onClick={() => handleDownload(file)}
+                className="w-full h-32 bg-muted rounded flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => window.open(file.url, '_blank')}
             >
                 {getFileIcon(file.type)}
+                <span className="text-xs text-muted-foreground mt-2">
+                    {file.name.split('.').pop()?.toUpperCase()}
+                </span>
             </div>
         );
     };
@@ -366,9 +435,9 @@ export function FileUploadUnificado({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDownload(file)}
-                                                title="Download"
+                                                title="Abrir em nova aba"
                                             >
-                                                <Download className="h-4 w-4" />
+                                                <ExternalLink className="h-4 w-4" />
                                             </Button>
                                             {!disabled && (
                                                 <Button

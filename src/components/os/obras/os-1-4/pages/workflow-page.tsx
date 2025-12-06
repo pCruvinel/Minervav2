@@ -593,7 +593,7 @@ export function OSWorkflowPage({ onBack }: OSWorkflowPageProps) {
           {/* Card: Informações da OS */}
           <Card className="border-border rounded-lg shadow-sm">
             <CardHeader>
-              <CardTitle>Informações da OS</CardTitle>
+              <CardTitle>Informações</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>

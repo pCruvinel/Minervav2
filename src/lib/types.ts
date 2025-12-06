@@ -36,8 +36,8 @@ export type OSStatus =
   | 'em_triagem'
   | 'em_andamento'
   | 'aguardando_aprovacao'
-  | 'concluida'
-  | 'cancelada';
+  | 'concluido'
+  | 'cancelado';
 
 export type EtapaStatus =
   | 'pendente'
@@ -284,8 +284,8 @@ export const ROLE_LABELS: Record<RoleLevel, string> = {
 export const STATUS_LABELS: Record<OSStatus, string> = {
   'em_triagem': 'Em Triagem',
   'em_andamento': 'Em Andamento',
-  'concluida': 'Concluída',
-  'cancelada': 'Cancelada',
+  'concluido': 'Concluído',
+  'cancelado': 'Cancelado',
   'aguardando_aprovacao': 'Aguardando Aprovação',
 };
 
@@ -311,8 +311,8 @@ export const normalizeStatusOS = (status: string): OSStatus => {
   const s = status.toLowerCase();
   if (s.includes('triagem')) return 'em_triagem';
   if (s.includes('andamento')) return 'em_andamento';
-  if (s.includes('conclui') || s.includes('concluida')) return 'concluida';
-  if (s.includes('cancel')) return 'cancelada';
+  if (s.includes('conclui')) return 'concluido';
+  if (s.includes('cancel')) return 'cancelado';
   if (s.includes('aguardando')) return 'aguardando_aprovacao';
   return 'em_triagem'; // Default seguro
 };

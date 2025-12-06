@@ -133,18 +133,18 @@ export function WorkflowFooterWithDelegation({
 
     /**
      * Handler após delegação bem sucedida
+     * Nota: NÃO chamamos onNextStep() aqui porque a verificação de delegação
+     * já aconteceu no handleNextClick. O onDelegationComplete do pai é responsável
+     * por avançar a etapa diretamente (setCurrentStep).
      */
     const handleDelegationComplete = useCallback((newOwnerId: string) => {
         // Fechar modal
         setIsDelegationModalOpen(false);
         setPendingHandoff(null);
 
-        // Notificar componente pai
+        // Notificar componente pai - ele deve avançar a etapa diretamente
         onDelegationComplete?.(newOwnerId);
-
-        // Avançar para próxima etapa
-        onNextStep();
-    }, [onDelegationComplete, onNextStep]);
+    }, [onDelegationComplete]);
 
     /**
      * Handler para fechar modal sem delegar

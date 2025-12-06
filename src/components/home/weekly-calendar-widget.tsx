@@ -21,12 +21,13 @@ import { ptBR } from 'date-fns/locale';
 
 interface Agendamento {
     id: string;
-    data_agendamento: string;
-    hora_inicio: string;
-    hora_fim?: string;
-    titulo: string;
+    data: string;
+    horario_inicio: string;
+    horario_fim?: string;
+    categoria: string;
+    setor: string;
     cliente_nome?: string;
-    tipo: string;
+    codigo_os?: string;
 }
 
 // ============================================================
@@ -51,18 +52,22 @@ export function WeeklyCalendarWidget() {
                     .from('agendamentos')
                     .select(`
             id,
-            data_agendamento,
-            hora_inicio,
-            hora_fim,
-            titulo,
-            tipo,
-            clientes(nome_razao_social)
+            data,
+            horario_inicio,
+            horario_fim,
+            categoria,
+            setor,
+            ordens_servico:os_id(
+              codigo_os,
+              clientes:cliente_id(nome_razao_social)
+            )
           `)
                     .eq('responsavel_id', currentUser.id)
-                    .gte('data_agendamento', inicioSemana.toISOString())
-                    .lte('data_agendamento', fimSemana.toISOString())
-                    .order('data_agendamento', { ascending: true })
-                    .order('hora_inicio', { ascending: true })
+                    .gte('data', inicioSemana.toISOString().split('T')[0])
+                    .lte('data', fimSemana.toISOString().split('T')[0])
+                    .in('status', ['confirmado', 'realizado'])
+                    .order('data', { ascending: true })
+                    .order('horario_inicio', { ascending: true })
                     .limit(10);
 
                 if (error) throw error;
@@ -70,7 +75,8 @@ export function WeeklyCalendarWidget() {
                 setAgendamentos(
                     (data || []).map((a: any) => ({
                         ...a,
-                        cliente_nome: a.clientes?.nome_razao_social
+                        cliente_nome: a.ordens_servico?.clientes?.nome_razao_social,
+                        codigo_os: a.ordens_servico?.codigo_os
                     }))
                 );
             } catch (err) {
@@ -122,7 +128,7 @@ export function WeeklyCalendarWidget() {
                 ) : (
                     <div className="space-y-2">
                         {agendamentos.map((ag) => {
-                            const dataAg = new Date(ag.data_agendamento);
+                            const dataAg = new Date(ag.data + 'T00:00:00');
                             const isHoje = isToday(dataAg);
 
                             return (
@@ -140,16 +146,21 @@ export function WeeklyCalendarWidget() {
                                                 {format(dataAg, 'EEE', { locale: ptBR })}
                                             </div>
                                             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-                                            <span className="text-sm">{ag.hora_inicio?.slice(0, 5)}</span>
+                                            <span className="text-sm">{ag.horario_inicio?.slice(0, 5)}</span>
                                         </div>
                                     </div>
                                     <div className="mt-1.5 text-sm font-medium truncate">
-                                        {ag.titulo || ag.tipo}
+                                        {ag.categoria} - {ag.setor}
                                     </div>
                                     {ag.cliente_nome && (
                                         <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
                                             <User className="h-3 w-3" />
                                             <span className="truncate">{ag.cliente_nome}</span>
+                                        </div>
+                                    )}
+                                    {ag.codigo_os && (
+                                        <div className="text-xs text-muted-foreground mt-0.5">
+                                            {ag.codigo_os}
                                         </div>
                                     )}
                                 </div>

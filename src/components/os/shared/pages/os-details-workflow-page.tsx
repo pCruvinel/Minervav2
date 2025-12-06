@@ -677,8 +677,17 @@ export function OSDetailsWorkflowPage({
     estado: '',
   });
 
-
-
+  // ✅ FIX: Wrapper para sincronizar formData com formDataByStep[1]
+  // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
+  const handleFormDataChange = (newFormData: typeof formData) => {
+    setFormData(newFormData);
+    
+    // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
+    setEtapa1Data({
+      ...newFormData,
+      leadId: selectedLeadId || (formDataByStep[1] as any)?.leadId || '',
+    });
+  };
 
   const handleSelectLead = async (leadId: string, leadData?: {
     nome_razao_social?: string;
@@ -1453,9 +1462,6 @@ export function OSDetailsWorkflowPage({
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle>{steps[currentStep - 1].title}</CardTitle>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Responsável: {steps[currentStep - 1].responsible}
-                  </p>
                 </div>
                 <Badge variant="outline" className="border-primary text-primary">
                   Etapa {currentStep} de {steps.length}
@@ -1478,7 +1484,7 @@ export function OSDetailsWorkflowPage({
                     showNewLeadDialog={showNewLeadDialog}
                     onShowNewLeadDialogChange={setShowNewLeadDialog}
                     formData={formData}
-                    onFormDataChange={setFormData}
+                    onFormDataChange={handleFormDataChange}
                     readOnly={isHistoricalNavigation}
                   />
                 </ErrorBoundary>
@@ -1809,6 +1815,11 @@ export function OSDetailsWorkflowPage({
                 currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
                 onDelegationComplete={() => {
                   toast.success('Responsabilidade transferida com sucesso!');
+                  
+                  // Avançar para próxima etapa após delegar
+                  setCurrentStep(prev => prev + 1);
+                  setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+                  
                   // Refresh para atualizar responsavel_id
                   refreshEtapas?.();
                 }}

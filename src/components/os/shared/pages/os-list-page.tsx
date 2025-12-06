@@ -96,7 +96,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
       total: myOS.length,
       actionNeeded: myOS.filter(os => ['aguardando_aprovacao', 'atrasada'].includes(os.status_geral)).length,
       inProgress: myOS.filter(os => os.status_geral === 'em_andamento').length,
-      completed: myOS.filter(os => os.status_geral === 'concluida').length
+      completed: myOS.filter(os => os.status_geral === 'concluido').length
     };
   }, [ordensServicoFromAPI, currentUser.id]);
 

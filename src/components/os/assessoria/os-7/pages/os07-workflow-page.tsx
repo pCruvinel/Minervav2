@@ -214,7 +214,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
             <span className="text-lg font-semibold text-primary">1</span>
           </div>
           <div>
-            <CardTitle>Identificação do Cliente/Lead</CardTitle>
+            <CardTitle>Identifique o Lead</CardTitle>
             <p className="text-sm text-muted-foreground mt-1">
               Selecione o condomínio ou cliente que solicitará a reforma
             </p>

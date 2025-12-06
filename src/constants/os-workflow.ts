@@ -5,7 +5,7 @@ import { WorkflowStep } from '../components/os/workflow-stepper';
  * Cada etapa representa uma fase do processo comercial
  */
 export const OS_WORKFLOW_STEPS: WorkflowStep[] = [
-  { id: 1, title: 'Identificação do Cliente', short: 'Lead', responsible: 'Administrativo', status: 'active' },
+  { id: 1, title: 'Identifique o Lead', short: 'Lead', responsible: 'Administrativo', status: 'active' },
   { id: 2, title: 'Seleção do Tipo de OS', short: 'Tipo OS', responsible: 'Administrativo', status: 'pending' },
   { id: 3, title: 'Follow-up 1 (Entrevista Inicial)', short: 'Follow-up 1', responsible: 'Administrativo', status: 'pending' },
   { id: 4, title: 'Agendar Visita Técnica', short: 'Agendar', responsible: 'Administrativo', status: 'pending' },

@@ -282,7 +282,7 @@ export default function DetalhesOSExecucaoPage() {
           {/* Sidebar - Informações da OS */}
           <div className="space-y-6">
             <Card className="p-6 border-border">
-              <h3 className="text-black mb-4">Informações da OS</h3>
+              <h3 className="text-black mb-4">Informações</h3>
               <div className="space-y-4">
                 <div>
                   <p className="text-muted-foreground mb-1">Tipo de OS</p>

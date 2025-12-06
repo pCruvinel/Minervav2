@@ -201,7 +201,7 @@ export function ClienteHistoricoCompleto({
                                         <div className="flex items-center gap-2">
                                             <Badge variant={
                                                 os.status_geral === 'em_andamento' ? 'default' :
-                                                    os.status_geral === 'concluida' ? 'secondary' :
+                                                    os.status_geral === 'concluido' ? 'secondary' :
                                                         'destructive'
                                             }>
                                                 {os.status_geral}

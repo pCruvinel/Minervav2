@@ -42,7 +42,8 @@ export async function handlePropostaGeneration(
           cpf_cnpj,
           email,
           telefone,
-          endereco
+          endereco,
+          nome_responsavel
         )
       `)
       .eq('id', osId)
@@ -68,12 +69,12 @@ export async function handlePropostaGeneration(
       );
     }
 
-    // 2. Buscar etapas específicas (7 = Memorial, 8 = Precificação)
+    // 2. Buscar etapas específicas (1 = Lead, 7 = Memorial, 8 = Precificação)
     const { data: etapas, error: etapasError } = await supabase
       .from('os_etapas')
       .select('*')
       .eq('os_id', osId)
-      .in('ordem', [7, 8])
+      .in('ordem', [1, 7, 8])
       .order('ordem');
 
     if (etapasError) {
@@ -81,8 +82,12 @@ export async function handlePropostaGeneration(
     }
 
     // Separar etapas
+    const etapaLead = etapas?.find(e => e.ordem === 1);
     const etapaMemorial = etapas?.find(e => e.ordem === 7);
     const etapaPrecificacao = etapas?.find(e => e.ordem === 8);
+    
+    // Dados da etapa 1 (Lead) - contém informações adicionais do cliente
+    const dadosLead = (etapaLead?.dados_etapa as any) || {};
 
     if (!etapaMemorial?.dados_etapa?.etapasPrincipais) {
       throw new Error('Memorial descritivo não preenchido (Etapa 7)');
@@ -119,19 +124,19 @@ export async function handlePropostaGeneration(
       objetivo: dadosMemorial.objetivo || os.descricao,
       tituloProposta: dadosMemorial.tituloProposta,
 
-      // Cliente
-      clienteNome: clienteData.nome_razao_social,
+      // Cliente - usa dados da etapa 1 (dadosLead) como fallback para dados do cliente
+      clienteNome: clienteData.nome_razao_social || dadosLead.nome || '',
       // ✅ FIX: Usar dados do parâmetro 'dados' que vem do frontend
-      clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj,
-      clienteEmail: clienteData.email,
-      clienteTelefone: clienteData.telefone,
-      clienteEndereco: endereco.logradouro,
-      clienteBairro: endereco.bairro,
-      clienteCidade: endereco.cidade,
-      clienteEstado: endereco.estado,
-      clienteResponsavel: undefined, // Campo não existe na tabela clientes
-      quantidadeUnidades: parseInt(endereco.qtd_unidades || '0') || undefined,
-      quantidadeBlocos: parseInt(endereco.qtd_blocos || '0') || undefined,
+      clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj || dadosLead.cpfCnpj || '',
+      clienteEmail: clienteData.email || dadosLead.email || '',
+      clienteTelefone: clienteData.telefone || dadosLead.telefone || '',
+      clienteEndereco: endereco.logradouro || endereco.rua || dadosLead.endereco || '',
+      clienteBairro: endereco.bairro || dadosLead.bairro || '',
+      clienteCidade: endereco.cidade || dadosLead.cidade || '',
+      clienteEstado: endereco.estado || dadosLead.estado || '',
+      clienteResponsavel: clienteData.nome_responsavel || dadosLead.nomeResponsavel || endereco.cargo_responsavel || '',
+      quantidadeUnidades: parseInt(endereco.qtd_unidades || dadosLead.qtdUnidades || '0') || undefined,
+      quantidadeBlocos: parseInt(endereco.qtd_blocos || dadosLead.qtdBlocos || '0') || undefined,
 
       // Cronograma
       dadosCronograma: {

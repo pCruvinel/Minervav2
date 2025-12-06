@@ -128,7 +128,8 @@ export function transformFormToCliente(formData: any) {
     telefone: formData.telefone || '',
     cpf_cnpj: formData.cpf || formData.cnpj || formData.cpfCnpj || '',
     status: 'lead', // CORRIGIDO: De 'tipo': 'LEAD' para 'status': 'lead'
-    // tipo_cliente: formData.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA', // REMOVIDO: Coluna não existe no banco
+    nome_responsavel: formData.nomeResponsavel || '', // Nome do responsável pelo cliente
+    tipo_cliente: formData.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA',
     endereco: enderecoJson,
     observacoes: formData.observacoes || '',
     responsavel_id: formData.responsavel_id // Opcional, se houver

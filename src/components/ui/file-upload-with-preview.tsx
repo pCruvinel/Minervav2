@@ -8,7 +8,7 @@ import {
     Upload,
     FileText,
     Image as ImageIcon,
-    Download,
+    ExternalLink,
     Trash2,
     Edit3,
     Check,
@@ -133,12 +133,8 @@ export function FileUploadWithPreview({
     };
 
     const handleDownload = (file: FileWithComment) => {
-        const link = document.createElement('a');
-        link.href = file.url;
-        link.download = file.name;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Abrir em nova aba para visualização
+        window.open(file.url, '_blank');
     };
 
     const handleDelete = async (fileToDelete: FileWithComment) => {
@@ -186,23 +182,63 @@ export function FileUploadWithPreview({
     };
 
     const getFilePreview = (file: FileWithComment) => {
+        // Preview para imagens (PNG, JPEG, GIF, WebP)
         if (file.type.startsWith('image/')) {
             return (
                 <img
                     src={file.url}
                     alt={file.name}
                     className="w-full h-32 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => handleDownload(file)}
+                    onClick={() => window.open(file.url, '_blank')}
                 />
             );
         }
 
+        // Preview para PDFs
+        if (file.type === 'application/pdf') {
+            return (
+                <div 
+                    className="w-full h-32 relative rounded overflow-hidden cursor-pointer group"
+                    onClick={() => window.open(file.url, '_blank')}
+                >
+                    {/* Embed do PDF como preview */}
+                    <object
+                        data={`${file.url}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+                        type="application/pdf"
+                        className="w-full h-full pointer-events-none"
+                    >
+                        {/* Fallback se o browser não suportar object */}
+                        <div className="w-full h-full bg-red-50 flex items-center justify-center">
+                            <FileText className="h-10 w-10 text-red-500" />
+                        </div>
+                    </object>
+                    {/* Overlay para indicar que é clicável */}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2">
+                            <FileText className="h-5 w-5 text-red-600" />
+                        </div>
+                    </div>
+                    {/* Badge PDF no canto */}
+                    <Badge 
+                        variant="secondary" 
+                        className="absolute top-1 left-1 text-[10px] px-1 py-0 bg-red-100 text-red-700 border-red-200"
+                    >
+                        PDF
+                    </Badge>
+                </div>
+            );
+        }
+
+        // Fallback para outros tipos de arquivo
         return (
             <div
-                className="w-full h-32 bg-muted rounded flex items-center justify-center cursor-pointer hover:bg-muted transition-colors"
-                onClick={() => handleDownload(file)}
+                className="w-full h-32 bg-muted rounded flex flex-col items-center justify-center cursor-pointer hover:bg-muted/80 transition-colors"
+                onClick={() => window.open(file.url, '_blank')}
             >
                 {getFileIcon(file.type)}
+                <span className="text-xs text-muted-foreground mt-2">
+                    {file.name.split('.').pop()?.toUpperCase()}
+                </span>
             </div>
         );
     };
@@ -294,9 +330,9 @@ export function FileUploadWithPreview({
                                                 variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleDownload(file)}
-                                                title="Download"
+                                                title="Abrir em nova aba"
                                             >
-                                                <Download className="h-4 w-4" />
+                                                <ExternalLink className="h-4 w-4" />
                                             </Button>
                                             {!disabled && (
                                                 <Button

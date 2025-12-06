@@ -224,7 +224,7 @@ export function useDelegation(): UseDelegationReturn {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Tentar inserir na tabela de histórico (os_historico ou delegacoes)
+      // Tentar inserir na tabela de histórico (delegacoes)
       const { data: historicoData, error: historicoError } = await supabase
         .from('delegacoes')
         .insert({
@@ -234,13 +234,13 @@ export function useDelegation(): UseDelegationReturn {
           descricao_tarefa: description,
           observacoes: historicoDescricao,
           status_delegacao: 'aceita', // Já aceita ao delegar via handoff
-          data_criacao: new Date().toISOString(),
-          created_by: user?.id
+          delegante_nome: oldOwner?.nome_completo || 'Não definido',
+          delegado_nome: newOwner?.nome_completo || 'Desconhecido',
         })
         .select('id')
         .single();
 
-      // Se a tabela delegacoes não existir, não é erro crítico
+      // Se houver erro na tabela delegacoes, não é erro crítico
       if (historicoError) {
         logger.warn('⚠️ Não foi possível registrar histórico:', historicoError);
       }
