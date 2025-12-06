@@ -134,7 +134,7 @@ export function AnaliseReformas() {
               reformasTemp.push({
                 id: etapaOS07.id,
                 os_id: os.id,
-                codigo: os.codigo_os || `OS-${os.id.substring(0, 8)}`,
+                codigo: os.codigo_os || `OS-${os.id?.substring(0, 8) || 'N/A'}`,
                 condominio: dados.condominio || 'N/A',
                 unidade: dados.unidade || 'N/A',
                 responsavel: dados.nomeSolicitante || 'N/A',

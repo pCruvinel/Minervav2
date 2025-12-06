@@ -522,7 +522,7 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
                           >
                             <Avatar className="h-8 w-8">
                               <AvatarFallback>
-                                {lead.nome_razao_social.substring(0, 2).toUpperCase()}
+                                {lead.nome_razao_social?.substring(0, 2).toUpperCase() || '??'}
                               </AvatarFallback>
                             </Avatar>
                             <div className="flex-1 min-w-0">

@@ -105,7 +105,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         // 1. Upload de fotos (se houver)
         const fotosUrls: string[] = [];
         const colaboradorId = currentUser?.id || 'sistema';
-        const osNumero = `os-${osId.substring(0, 8)}`;
+        const osNumero = `os-${osId?.substring(0, 8) || 'draft'}`;
 
         if (fotosFiles.length > 0) {
           toast.info(`Fazendo upload de ${fotosFiles.length} foto(s)...`);

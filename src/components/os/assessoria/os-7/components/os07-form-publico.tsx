@@ -281,7 +281,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
       let projetoUrl = '';
 
       const colaboradorId = currentUser?.id || 'publico'; // ID genérico para formulários públicos
-      const osNumero = `os-${osId.substring(0, 8)}`; // Usar primeiros 8 chars do osId
+      const osNumero = `os-${osId?.substring(0, 8) || 'draft'}`; // Usar primeiros 8 chars do osId
 
       toast.info('Fazendo upload dos arquivos...');
 

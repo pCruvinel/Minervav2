@@ -95,7 +95,7 @@ const menuItems = [
       { id: 'prestacao-contas', label: 'Prestação de Contas', icon: Receipt, to: '/financeiro/prestacao-contas' },
       { id: 'contas-pagar', label: 'Contas a Pagar', icon: TrendingDown, to: '/financeiro/contas-pagar' },
       { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
-      { id: 'aprovar-requisicoes', label: 'Compras', icon: ShoppingCart, to: '/financeiro/requisicoes' },
+      { id: 'aprovar-requisicoes', label: 'Gestão de Compras', icon: ShoppingCart, to: '/financeiro/requisicoes' },
     ]
   },
   {

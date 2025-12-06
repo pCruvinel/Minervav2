@@ -1064,13 +1064,13 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                         <div key={comment.id} className="flex gap-3 animate-in fade-in-50 duration-300">
                                                             <Avatar className="w-8 h-8 flex-shrink-0">
                                                                 <AvatarFallback className="bg-primary text-white text-xs font-medium">
-                                                                    {comment.usuario_nome.substring(0, 2).toUpperCase()}
+                                                                    {comment.usuario_nome?.substring(0, 2).toUpperCase() || '??'}
                                                                 </AvatarFallback>
                                                             </Avatar>
                                                             <div className="flex-1">
                                                                 <div className="bg-background rounded-md p-3 border border-border hover:bg-muted transition-colors">
                                                                     <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="text-xs font-medium">{comment.usuario_nome}</p>
+                                                                        <p className="text-xs font-medium">{comment.usuario_nome || 'Usuário'}</p>
                                                                         {comment.etapa_nome && (
                                                                             <Badge variant="outline" className="text-xs">
                                                                                 {comment.etapa_nome}

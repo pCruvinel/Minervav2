@@ -121,7 +121,7 @@ export function StepGerarProposta({
   };
 
   // Nome do arquivo para download
-  const filename = `proposta-${osId.substring(0, 8)}.pdf`;
+  const filename = `proposta-${osId?.substring(0, 8) || 'draft'}.pdf`;
 
   return (
     <div className="space-y-4">
@@ -220,7 +220,7 @@ export function StepGerarProposta({
           </summary>
           <pre className="mt-2 p-3 bg-muted rounded-md overflow-x-auto">
             {JSON.stringify({
-              osId: osId.substring(0, 8) + '...',
+              osId: (osId?.substring(0, 8) || 'N/A') + '...',
               clienteCpfCnpj: cpfCnpjLimpo ? `***${cpfCnpjLimpo.slice(-4)}` : 'N/A',
               valorTotal,
               valorEntrada,
