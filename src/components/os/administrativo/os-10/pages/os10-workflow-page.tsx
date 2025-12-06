@@ -6,9 +6,8 @@ import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/
 import {
     StepAberturaSolicitacao,
     StepSelecaoCentroCusto,
-    StepSelecaoColaborador,
-    StepDetalhesVaga,
-    StepRequisicaoMultipla
+    StepGerenciadorVagas,
+    StepRevisaoEnvio,
 } from '@/components/os/administrativo/os-10/steps';
 import { ChevronLeft, Info } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
@@ -20,9 +19,8 @@ import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Abertura da Solicitação', short: 'Abertura', responsible: 'Solicitante', status: 'active' },
     { id: 2, title: 'Seleção do Centro de Custo', short: 'Centro Custo', responsible: 'RH', status: 'pending' },
-    { id: 3, title: 'Seleção do Colaborador', short: 'Tipo/Cargo', responsible: 'RH', status: 'pending' },
-    { id: 4, title: 'Detalhes da Vaga', short: 'Detalhes', responsible: 'RH', status: 'pending' },
-    { id: 5, title: 'Requisição Múltipla', short: 'Múltipla', responsible: 'RH', status: 'pending' },
+    { id: 3, title: 'Gerenciador de Vagas', short: 'Vagas', responsible: 'RH', status: 'pending' },
+    { id: 4, title: 'Revisão e Envio', short: 'Envio', responsible: 'RH', status: 'pending' },
 ];
 
 interface OS10WorkflowPageProps {
@@ -85,45 +83,22 @@ export function OS10WorkflowPage({ onBack, osId }: OS10WorkflowPageProps) {
         obraVinculada: '',
     };
 
-    // Etapa 3: Seleção do Colaborador
+    // Etapa 3: Gerenciador de Vagas
     const etapa3Data = formDataByStep[3] || {
-        tipoColaborador: '',
-        cargo: '',
-        funcao: '',
-        acessoSistema: true,
-    };
-
-    // Etapa 4: Detalhes da Vaga
-    const etapa4Data = formDataByStep[4] || {
-        habilidadesNecessarias: [],
-        experienciaMinima: '',
-        escolaridade: '',
-        salarioPrevisto: '',
-        beneficios: [],
-        observacoes: '',
-        dataInicioDesejada: '',
-    };
-
-    // Etapa 5: Requisição Múltipla
-    const etapa5Data = formDataByStep[5] || {
-        colaboradoresAdicionais: [],
-        totalVagas: 1,
+        vagas: [],
     };
 
     // Setters wrappers
     const setEtapa1Data = (data: any) => setStepData(1, data);
     const setEtapa2Data = (data: any) => setStepData(2, data);
     const setEtapa3Data = (data: any) => setStepData(3, data);
-    const setEtapa4Data = (data: any) => setStepData(4, data);
-    const setEtapa5Data = (data: any) => setStepData(5, data);
 
     // Regras de completude
     const completionRules = useMemo(() => ({
         1: (data: any) => !!(data.solicitante && data.departamento && data.justificativa),
         2: (data: any) => !!(data.centroCusto),
-        3: (data: any) => !!(data.tipoColaborador && data.cargo && data.funcao),
-        4: (data: any) => !!(data.experienciaMinima && data.escolaridade),
-        5: () => true, // Opcional - múltipla requisição
+        3: (data: any) => !!(data.vagas && data.vagas.length > 0),
+        4: () => true, // Revisão - sempre válido
     }), []);
 
     const { completedSteps } = useWorkflowCompletion({
@@ -231,32 +206,22 @@ export function OS10WorkflowPage({ onBack, osId }: OS10WorkflowPageProps) {
                             />
                         )}
 
-                        {/* ETAPA 3: Seleção do Colaborador */}
+                        {/* ETAPA 3: Gerenciador de Vagas */}
                         {currentStep === 3 && (
-                            <StepSelecaoColaborador
+                            <StepGerenciadorVagas
                                 data={etapa3Data}
                                 onDataChange={setEtapa3Data}
                                 readOnly={isHistoricalNavigation}
                             />
                         )}
 
-                        {/* ETAPA 4: Detalhes da Vaga */}
+                        {/* ETAPA 4: Revisão e Envio */}
                         {currentStep === 4 && (
-                            <StepDetalhesVaga
-                                data={etapa4Data}
-                                onDataChange={setEtapa4Data}
+                            <StepRevisaoEnvio
+                                etapa1Data={etapa1Data}
+                                etapa2Data={etapa2Data}
+                                etapa3Data={etapa3Data}
                                 readOnly={isHistoricalNavigation}
-                            />
-                        )}
-
-                        {/* ETAPA 5: Requisição Múltipla */}
-                        {currentStep === 5 && (
-                            <StepRequisicaoMultipla
-                                data={etapa5Data}
-                                onDataChange={setEtapa5Data}
-                                readOnly={isHistoricalNavigation}
-                                colaboradorBase={etapa3Data}
-                                centroCusto={etapa2Data.centroCustoNome}
                             />
                         )}
                     </div>

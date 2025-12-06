@@ -1,10 +1,8 @@
-import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Users } from 'lucide-react';
+import { Users } from 'lucide-react';
 
 const DEPARTAMENTOS = [
     'Obras',
@@ -153,13 +151,6 @@ export function StepAberturaSolicitacao({ data, onDataChange, readOnly }: StepAb
                 </div>
             </div>
 
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                    Esta solicitação será encaminhada ao RH para processamento.
-                    Todos os campos marcados com <span className="text-destructive">*</span> são obrigatórios.
-                </AlertDescription>
-            </Alert>
         </div>
     );
 }
