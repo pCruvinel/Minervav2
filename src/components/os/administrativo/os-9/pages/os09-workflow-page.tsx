@@ -243,39 +243,9 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
             lastActiveStep={lastActiveStep || undefined}
           />
 
-          {/* Botão de retorno rápido */}
-          {isHistoricalNavigation && lastActiveStep && (
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-              <button
-                onClick={handleReturnToActive}
-                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
-                title="Voltar para a etapa em que estava trabalhando"
-              >
-                <ChevronLeft className="w-4 h-4 rotate-180" />
-                <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Banner de navegação histórica */}
-      {isHistoricalNavigation && (
-        <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 mx-6 rounded-r-lg flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-primary text-sm">
-              Modo de Visualização Histórica
-            </h4>
-            <p className="text-primary text-sm">
-              Você está visualizando dados de uma etapa já concluída.
-              {lastActiveStep && (
-                <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Conteúdo das Etapas */}
       <div className="px-6 py-6">

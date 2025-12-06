@@ -56,7 +56,13 @@ interface OSDetailsAssessoriaPageProps {
   osId?: string; // ID da OS para persistência
 }
 
-export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDetailsAssessoriaPageProps) {
+export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdProp }: OSDetailsAssessoriaPageProps) {
+  // Estado interno para armazenar osId criada dinamicamente
+  const [internalOsId, setInternalOsId] = useState<string | null>(null);
+  
+  // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
+  const osId = osIdProp || internalOsId;
+
   // Hooks de integração
   const { os, loading: loadingOS } = useOS(osId);
   const { mutate: createOSWorkflow, isLoading: isCreatingOS } = useCreateOSWorkflow();
@@ -79,11 +85,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
     totalSteps: steps.length
   });
 
-  // Hook de Navegação
+  // Hook de Navegação (SEM handleNextStep automático)
   const {
     handleStepClick,
     handleReturnToActive,
-    handleNextStep,
     handlePrevStep
   } = useWorkflowNavigation({
     totalSteps: steps.length,
@@ -93,7 +98,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
     setLastActiveStep,
     isHistoricalNavigation,
     setIsHistoricalNavigation,
-    onSaveStep: (step) => saveStep(step, false) // Salvar como concluído ao avançar
+    // ❌ NÃO usar onSaveStep aqui - vamos implementar handleNextStep customizado
   });
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
@@ -168,6 +173,101 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
   const setEtapa9Data = (data: any) => setStepData(9, data);
   const setEtapa10Data = (data: any) => setStepData(10, data);
   const setEtapa11Data = (data: any) => setStepData(11, data);
+
+  // ============================================================================
+  // HANDLER CUSTOMIZADO: Criar OS obrigatória na Etapa 1
+  // ============================================================================
+  const handleNextStep = async () => {
+    logger.log('🔍 [Assessoria] handleNextStep chamado', { 
+      currentStep, 
+      osId, 
+      hasLeadId: !!etapa1Data.leadId 
+    });
+
+    // ETAPA 1: VALIDAR E CRIAR OS OBRIGATORIAMENTE
+    if (currentStep === 1) {
+      logger.log('✅ Etapa 1 detectada - Criação de OS obrigatória');
+
+      // Validar que o lead foi selecionado
+      if (!stepLeadRef.current) {
+        toast.error('Erro: Componente de cadastro não inicializado');
+        return;
+      }
+
+      // Validar formulário
+      const isValid = stepLeadRef.current.validate();
+      if (!isValid) {
+        toast.error('Preencha todos os campos obrigatórios antes de continuar');
+        return;
+      }
+
+      // Salvar dados e criar OS
+      logger.log('💾 Salvando dados do Lead e criando OS...');
+      const savedOsId = await stepLeadRef.current.saveData();
+
+      if (!savedOsId) {
+        logger.error('❌ Falha ao criar OS na Etapa 1');
+        toast.error('Não foi possível criar a Ordem de Serviço. Tente novamente.');
+        return;
+      }
+
+      logger.log('✅ OS criada com sucesso. ID:', savedOsId);
+
+      // Atualizar estado interno com o novo ID
+      if (savedOsId && savedOsId !== internalOsId) {
+        setInternalOsId(savedOsId);
+        // Pequeno delay para garantir que o estado atualizou
+        await new Promise(resolve => window.setTimeout(resolve, 100));
+      }
+
+      // Salvar etapa no banco (marcar como concluída)
+      try {
+        await saveStep(1, false);
+        logger.log('✅ Etapa 1 salva no banco');
+      } catch (error) {
+        logger.error('❌ Erro ao salvar etapa:', error);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        return;
+      }
+    }
+    
+    // ETAPAS 2-12: Validação específica por etapa
+    else {
+      // Etapa 3: Validar Follow-up 1
+      if (currentStep === 3 && stepFollowup1Ref.current) {
+        if (!stepFollowup1Ref.current.isFormValid()) {
+          toast.error('Preencha todos os campos obrigatórios do Follow-up 1');
+          return;
+        }
+      }
+
+      // Etapa 4: Validar Memorial de Escopo
+      if (currentStep === 4 && stepMemorialRef.current) {
+        if (!stepMemorialRef.current.isFormValid()) {
+          toast.error('Preencha todos os campos obrigatórios do Memorial de Escopo');
+          return;
+        }
+      }
+
+      // Salvar etapa atual
+      try {
+        await saveStep(currentStep, false);
+        logger.log(`✅ Etapa ${currentStep} salva no banco`);
+      } catch (error) {
+        logger.error(`❌ Erro ao salvar etapa ${currentStep}:`, error);
+        toast.error('Erro ao salvar dados. Tente novamente.');
+        return;
+      }
+    }
+
+    // Avançar para próxima etapa
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+      setLastActiveStep(currentStep + 1);
+      logger.log('✅ Avançado para etapa:', currentStep + 1);
+      toast.success('Etapa concluída!', { icon: '✅' });
+    }
+  };
 
   // Estado do formulário de novo lead
   const [formData, setFormData] = useState({
@@ -402,19 +502,6 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
           lastActiveStep={lastActiveStep || undefined}
         />
 
-        {/* Botão de Retorno Rápido */}
-        {isHistoricalNavigation && lastActiveStep && (
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-            <button
-              onClick={handleReturnToActive}
-              className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
-              title="Voltar para a etapa em que estava trabalhando"
-            >
-              <ChevronLeft className="w-4 h-4 rotate-180" />
-              <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main Content Area */}
@@ -434,23 +521,6 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId }: OSDe
                 </Badge>
               </div>
 
-              {/* Banner de Modo Histórico */}
-              {isHistoricalNavigation && (
-                <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg flex items-start gap-3">
-                  <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-primary text-sm">
-                      Modo de Visualização Histórica
-                    </h4>
-                    <p className="text-primary text-sm">
-                      Você está visualizando dados de uma etapa já concluída.
-                      {lastActiveStep && (
-                        <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              )}
             </CardHeader>
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
 

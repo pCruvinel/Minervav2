@@ -98,22 +98,6 @@ export function HorarioSelector({
           );
         })}
       </div>
-
-      {/* Legenda */}
-      <div className="flex items-center gap-4 text-xs text-muted-foreground mt-2 flex-wrap">
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
-          <span>Selecionado</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded border-2 border-border bg-card" />
-          <span>Disponível</span>
-        </div>
-        <div className="flex items-center gap-1">
-          <div className="w-3 h-3 rounded border-2 border-border bg-muted/50 opacity-50" />
-          <span>Ocupado</span>
-        </div>
-      </div>
     </div>
   );
 }

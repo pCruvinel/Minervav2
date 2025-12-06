@@ -250,7 +250,7 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
               </>
             ) : (
               <>
-                Criar OS e Gerar Formulário
+                Gerar Formulário
                 <CheckCircle2 className="w-4 h-4 ml-2" />
               </>
             )}
@@ -473,31 +473,29 @@ export function OS07WorkflowPage({ onBack }: OS07WorkflowPageProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center">
-              <LinkIcon className="w-6 h-6 text-info" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-semibold">OS 07: Termo de Comunicação de Reforma</h1>
-              <p className="text-muted-foreground mt-1">
-                Fluxo de análise e aprovação de reformas em unidades
-              </p>
-            </div>
+    <div className="max-w-4xl mx-auto py-6">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-12 bg-info/10 rounded-lg flex items-center justify-center">
+            <LinkIcon className="w-6 h-6 text-info" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-semibold">OS 07: Termo de Comunicação de Reforma</h1>
+            <p className="text-muted-foreground mt-1">
+              Fluxo de análise e aprovação de reformas em unidades
+            </p>
           </div>
         </div>
-
-        {/* Timeline */}
-        {renderTimeline()}
-
-        {/* Conteúdo da Etapa */}
-        {etapaAtual === 'identificacao' && renderEtapaIdentificacao()}
-        {etapaAtual === 'aguardando_cliente' && renderEtapaAguardandoCliente()}
-        {etapaAtual === 'analise' && renderEtapaAnalise()}
       </div>
+
+      {/* Timeline */}
+      {renderTimeline()}
+
+      {/* Conteúdo da Etapa */}
+      {etapaAtual === 'identificacao' && renderEtapaIdentificacao()}
+      {etapaAtual === 'aguardando_cliente' && renderEtapaAguardandoCliente()}
+      {etapaAtual === 'analise' && renderEtapaAnalise()}
     </div>
   );
 }

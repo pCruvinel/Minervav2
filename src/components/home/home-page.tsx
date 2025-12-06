@@ -37,7 +37,7 @@ export function HomePage() {
             {/* Header */}
             <div>
                 <h1 className="text-3xl font-semibold">
-                    Olá, {currentUser?.nome_completo?.split(' ')[0] || 'Usuário'}! 👋
+                    Olá, {currentUser?.nome_completo?.split(' ')[0] || 'Usuário'}!
                 </h1>
                 <p className="text-muted-foreground mt-1">
                     Bem-vindo ao Minerva ERP - Seu painel de informações

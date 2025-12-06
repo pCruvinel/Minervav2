@@ -1,9 +1,21 @@
 import { StrictMode, useMemo } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { routeTree } from './routeTree.gen'
 import { AuthProvider, useAuth } from './lib/contexts/auth-context'
 import './index.css'
+
+// Create a QueryClient instance
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutos
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+})
 
 // Create a new router instance
 const router = createRouter({
@@ -32,9 +44,11 @@ function InnerApp() {
 
 function App() {
   return (
-    <AuthProvider>
-      <InnerApp />
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <InnerApp />
+      </AuthProvider>
+    </QueryClientProvider>
   )
 }
 

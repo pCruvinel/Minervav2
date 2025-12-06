@@ -23,6 +23,8 @@ import {
   LayoutGrid,
   Eye,
   ShoppingCart,
+  UserPlus,
+  Briefcase,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -36,25 +38,25 @@ import { cn } from '@/lib/utils';
 
 const visibilityByRole: Record<RoleLevel, string[]> = {
   // Nível 10: Admin - Acesso Total
-  'admin': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'admin': ['home', 'dashboard', 'comercial', 'financeiro', 'colaboradores', 'calendario', 'configuracoes'],
 
   // Nível 9: Diretor - Acesso Total
-  'diretor': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'diretor': ['home', 'dashboard', 'comercial', 'financeiro', 'colaboradores', 'calendario', 'configuracoes'],
 
   // Nível 6: Coord. Administrativo - Acesso Total (inclui financeiro)
-  'coord_administrativo': ['dashboard', 'projetos', 'financeiro', 'colaboradores', 'clientes', 'calendario', 'configuracoes'],
+  'coord_administrativo': ['home', 'dashboard', 'comercial', 'financeiro', 'colaboradores', 'calendario', 'configuracoes'],
 
   // Nível 5: Coordenadores Setoriais - SEM acesso financeiro
-  'coord_assessoria': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
-  'coord_obras': ['dashboard', 'projetos', 'colaboradores', 'clientes', 'calendario'],
+  'coord_assessoria': ['home', 'dashboard', 'colaboradores', 'calendario'],
+  'coord_obras': ['home', 'dashboard', 'colaboradores', 'calendario'],
 
   // Nível 3: Operacionais - Básico sem financeiro
-  'operacional_admin': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'operacional_comercial': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_admin': ['home', 'dashboard', 'calendario'],
+  'operacional_comercial': ['home', 'dashboard', 'comercial', 'calendario'],
 
   // Nível 2: Operacionais Jr - Básico sem financeiro
-  'operacional_assessoria': ['dashboard', 'projetos', 'clientes', 'calendario'],
-  'operacional_obras': ['dashboard', 'projetos', 'clientes', 'calendario'],
+  'operacional_assessoria': ['home', 'dashboard', 'calendario'],
+  'operacional_obras': ['home', 'dashboard', 'calendario'],
 
   // Nível 0: Colaborador Obra - Sem acesso ao sistema
   'colaborador_obra': [],
@@ -63,7 +65,7 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 const menuItems = [
   {
     id: 'home',
-    label: 'Início',
+    label: 'Home',
     icon: Home,
     to: '/'
   },
@@ -78,11 +80,13 @@ const menuItems = [
     ]
   },
   {
-    id: 'projetos',
-    label: 'Ordem de Serviço',
-    icon: FileText,
+    id: 'comercial',
+    label: 'Comercial',
+    icon: Briefcase,
     submenu: [
-      { id: 'os-criar', label: 'Nova OS', icon: Plus, to: '/os/criar' },
+      { id: 'comercial-novo-lead', label: 'Novo Lead', icon: UserPlus, to: '/comercial/novo-lead' },
+      { id: 'comercial-clientes', label: 'Clientes', icon: Users, to: '/clientes' },
+      { id: 'comercial-contratos', label: 'Contratos', icon: FileText, to: '/comercial/contratos' },
     ]
   },
   {
@@ -105,14 +109,6 @@ const menuItems = [
     submenu: [
       { id: 'colaboradores-lista', label: 'Colaboradores', icon: UserCog, to: '/colaboradores' },
       { id: 'controle-presenca', label: 'Controle de Presença', icon: ClipboardCheck, to: '/colaboradores/presenca-tabela' },
-    ]
-  },
-  {
-    id: 'clientes',
-    label: 'Clientes',
-    icon: Building2,
-    submenu: [
-      { id: 'clientes-lista', label: 'Meus Clientes', icon: Users, to: '/clientes' },
     ]
   },
   {
@@ -217,7 +213,7 @@ export function Sidebar() {
         }}
       >
         {isOpen ? (
-          <MinervaLogo variant="full" className="h-14" />
+          <MinervaLogo variant="full" className="h-[67px]" />
         ) : (
           <MinervaLogo variant="icon" className="h-10 w-10" />
         )}
