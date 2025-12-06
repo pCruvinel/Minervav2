@@ -170,9 +170,8 @@ export function DelegationModal({
                     <Alert>
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                            A próxima etapa pertence ao cargo de{' '}
-                            <strong>{getCargoNomeAmigavel(handoff.toCargo)}</strong>.
-                            Selecione um colaborador para assumir a responsabilidade.
+                            A próxima etapa pertence ao{' '}
+                            <strong>{getCargoNomeAmigavel(handoff.toCargo)}</strong>
                         </AlertDescription>
                     </Alert>
 

@@ -1,4 +1,5 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
@@ -12,12 +13,14 @@ import {
   StepGerarDocumento,
   StepEnviarDocumento
 } from '@/components/os/assessoria/os-8/steps';
-import { ChevronLeft, Info } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { CargoSlug } from '@/lib/constants/os-ownership-rules';
+import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { logger } from '@/lib/utils/logger';
 
 const steps: WorkflowStep[] = [
   { id: 1, title: 'Identificação do Solicitante', short: 'Solicitante', responsible: 'ADM', status: 'active' },
@@ -34,12 +37,51 @@ interface OS08WorkflowPageProps {
   osId?: string;
 }
 
-export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
+export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPageProps) {
+  // Estado interno para osId (para auto-criação)
+  const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
+  const finalOsId = propOsId || internalOsId;
+  const navigate = useNavigate();
+
   // Refs para validação imperativa de steps
   const stepAgendarVisitaRef = useRef<any>(null);
 
   // Obter usuário atual para delegação
   const { currentUser } = useAuth();
+
+  // Hook de Auto-Criação de OS
+  const {
+    createOSWithFirstStep,
+    isCreating: isCreatingOS,
+    createdOsId
+  } = useAutoCreateOS({
+    tipoOS: 'OS-08',
+    nomeEtapa1: 'Identificação do Solicitante',
+    enabled: !finalOsId
+  });
+
+  // Auto-criar OS na montagem (se não tiver osId)
+  useEffect(() => {
+    if (!finalOsId && !isCreatingOS) {
+      logger.log('[OS08WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
+      createOSWithFirstStep().catch((err) => {
+        logger.error('[OS08WorkflowPage] ❌ Erro na auto-criação:', err);
+      });
+    }
+  }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
+
+  // Atualizar estado quando OS for criada
+  useEffect(() => {
+    if (createdOsId && !finalOsId) {
+      logger.log(`[OS08WorkflowPage] ✅ OS criada: ${createdOsId}`);
+      setInternalOsId(createdOsId);
+    }
+  }, [createdOsId, finalOsId]);
+
+  // Atualizar internalOsId se prop mudar
+  useEffect(() => {
+    if (propOsId) setInternalOsId(propOsId);
+  }, [propOsId]);
 
   // Hook de Estado do Workflow
   const {
@@ -55,7 +97,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
     completedSteps: completedStepsFromHook,
     isLoading: isLoadingData
   } = useWorkflowState({
-    osId,
+    osId: finalOsId,
     totalSteps: steps.length
   });
 
@@ -171,10 +213,27 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
     }
   };
 
+  // Loading state enquanto cria OS
+  if (!finalOsId || isCreatingOS) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md p-8">
+          <div className="flex flex-col items-center gap-4 text-center">
+            <Loader2 className="w-12 h-12 animate-spin text-primary" />
+            <h2 className="text-xl font-semibold">Preparando Visita Técnica...</h2>
+            <p className="text-sm text-muted-foreground">
+              Isso levará apenas alguns segundos
+            </p>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-background">
+    <div>
       {/* Header */}
-      <div className="bg-white border-b border-border">
+      <div className="bg-white border-b border-border -mx-6 -mt-6">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             {onBack && (
@@ -188,7 +247,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             )}
             <div>
               <h1 className="text-2xl">OS-08: Visita Técnica / Parecer Técnico</h1>
-              {osId && <p className="text-muted-foreground">OS #{osId}</p>}
+              {finalOsId && <p className="text-muted-foreground">OS #{finalOsId}</p>}
             </div>
           </div>
         </div>
@@ -203,39 +262,9 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             lastActiveStep={lastActiveStep || undefined}
           />
 
-          {/* Botão de retorno rápido */}
-          {isHistoricalNavigation && lastActiveStep && (
-            <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-              <button
-                onClick={handleReturnToActive}
-                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
-                title="Voltar para a etapa em que estava trabalhando"
-              >
-                <ChevronLeft className="w-4 h-4 rotate-180" />
-                <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Banner de navegação histórica */}
-      {isHistoricalNavigation && (
-        <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 mx-6 rounded-r-lg flex items-start gap-3">
-          <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h4 className="font-semibold text-primary text-sm">
-              Modo de Visualização Histórica
-            </h4>
-            <p className="text-primary text-sm">
-              Você está visualizando dados de uma etapa já concluída.
-              {lastActiveStep && (
-                <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
-              )}
-            </p>
-          </div>
-        </div>
-      )}
 
       {/* Conteúdo das Etapas */}
       <div className="px-6 py-6">
@@ -260,10 +289,10 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             )}
 
             {/* ETAPA 3: Agendar Visita */}
-            {currentStep === 3 && osId && (
+            {currentStep === 3 && finalOsId && (
               <StepAgendarVisita
                 ref={stepAgendarVisitaRef}
-                osId={osId}
+                osId={finalOsId}
                 data={etapa3Data}
                 onDataChange={setEtapa3Data}
                 readOnly={isHistoricalNavigation}
@@ -291,7 +320,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
             {/* ETAPA 6: Gerar Documento */}
             {currentStep === 6 && (
               <StepGerarDocumento
-                osId={osId || ''}
+                osId={finalOsId}
                 data={etapa6Data}
                 onDataChange={setEtapa6Data}
                 readOnly={isHistoricalNavigation}
@@ -324,7 +353,7 @@ export function OS08WorkflowPage({ onBack, osId }: OS08WorkflowPageProps) {
         invalidFormMessage="Por favor, selecione um horário no calendário para continuar"
         // Props de delegação
         osType="OS-08"
-        osId={osId}
+        osId={finalOsId}
         currentOwnerId={currentUser?.id}
         currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
         onDelegationComplete={() => {

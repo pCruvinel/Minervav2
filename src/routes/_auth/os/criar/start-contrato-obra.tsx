@@ -5,6 +5,7 @@ export const Route = createFileRoute('/_auth/os/criar/start-contrato-obra')({
   validateSearch: (search: Record<string, unknown>) => {
     return {
       parentOSId: search.parentOSId as string | undefined,
+      clienteId: search.clienteId as string | undefined,
     }
   },
   component: StartContratoObraRoute,
@@ -12,12 +13,13 @@ export const Route = createFileRoute('/_auth/os/criar/start-contrato-obra')({
 
 function StartContratoObraRoute() {
   const router = useRouter()
-  const { parentOSId } = Route.useSearch()
+  const { parentOSId, clienteId } = Route.useSearch()
 
   return (
     <OS13WorkflowPage
       onBack={() => router.history.back()}
       parentOSId={parentOSId}
+      clienteId={clienteId}
     />
   )
 }

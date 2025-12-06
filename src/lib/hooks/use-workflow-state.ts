@@ -98,10 +98,11 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     isDraft: boolean | any = false,
     explicitData?: any
   ) => {
-    // Se não tem osId, permite avanço (modo demonstração/teste)
+    // ❌ CORREÇÃO CRÍTICA: Não permitir avanço sem OS ID
+    // A OS deve ser criada obrigatoriamente na Etapa 1 antes de avançar
     if (!osId) {
-      logger.log(`💾 saveStep(${step}): Sem osId - modo demonstração, permitindo avanço`);
-      return true;
+      logger.warn(`⚠️ saveStep(${step}): Sem osId - impossível salvar etapa. A OS deve ser criada primeiro!`);
+      return false; // ✅ Bloquear avanço ao invés de permitir "modo demonstração"
     }
 
     // Use explicit data if provided, otherwise read from state
@@ -120,6 +121,8 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
       await saveFormData(etapa.id, data, !isDraft);
       return true;
     }
+    
+    logger.warn(`⚠️ saveStep(${step}): Etapa não encontrada no banco. Verifique se a OS foi criada corretamente.`);
     return false;
   };
 

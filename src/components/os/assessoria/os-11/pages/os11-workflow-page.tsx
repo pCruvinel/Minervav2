@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
@@ -9,12 +9,14 @@ import { StepRealizarVisita } from '@/components/os/assessoria/os-11/steps/step-
 import { StepAnexarRT } from '@/components/os/assessoria/os-11/steps/step-anexar-rt';
 import { StepGerarDocumento } from '@/components/os/assessoria/os-11/steps/step-gerar-documento';
 import { StepEnviarCliente } from '@/components/os/assessoria/os-11/steps/step-enviar-cliente';
-import { ChevronLeft, Info } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { CargoSlug } from '@/lib/constants/os-ownership-rules';
+import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { logger } from '@/lib/utils/logger';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastrar Cliente', short: 'Cliente', responsible: 'Assessoria', status: 'active' },
@@ -30,7 +32,11 @@ interface OS11WorkflowPageProps {
     osId?: string;
 }
 
-export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
+export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPageProps) {
+    // Estado interno para osId (para auto-criação)
+    const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
+    const finalOsId = propOsId || internalOsId;
+
     // Refs para validação imperativa de steps
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stepAgendarVisitaRef = useRef<any>(null);
@@ -42,6 +48,40 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
 
     // Obter usuário atual para delegação
     const { currentUser } = useAuth();
+
+    // Hook de Auto-Criação de OS
+    const {
+        createOSWithFirstStep,
+        isCreating: isCreatingOS,
+        createdOsId
+    } = useAutoCreateOS({
+        tipoOS: 'OS-11',
+        nomeEtapa1: 'Cadastrar Cliente',
+        enabled: !finalOsId
+    });
+
+    // Auto-criar OS na montagem (se não tiver osId)
+    useEffect(() => {
+        if (!finalOsId && !isCreatingOS) {
+            logger.log('[OS11WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
+            createOSWithFirstStep().catch((err) => {
+                logger.error('[OS11WorkflowPage] ❌ Erro na auto-criação:', err);
+            });
+        }
+    }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
+
+    // Atualizar estado quando OS for criada
+    useEffect(() => {
+        if (createdOsId && !finalOsId) {
+            logger.log(`[OS11WorkflowPage] ✅ OS criada: ${createdOsId}`);
+            setInternalOsId(createdOsId);
+        }
+    }, [createdOsId, finalOsId]);
+
+    // Atualizar internalOsId se prop mudar
+    useEffect(() => {
+        if (propOsId) setInternalOsId(propOsId);
+    }, [propOsId]);
 
     const {
         currentStep,
@@ -56,7 +96,7 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
         completedSteps: completedStepsFromHook,
         isLoading: isLoadingData
     } = useWorkflowState({
-        osId,
+        osId: finalOsId,
         totalSteps: steps.length
     });
 
@@ -209,9 +249,26 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
         }
     };
 
+    // Loading state enquanto cria OS
+    if (!finalOsId || isCreatingOS) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center">
+                <Card className="w-full max-w-md p-8">
+                    <div className="flex flex-col items-center gap-4 text-center">
+                        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                        <h2 className="text-xl font-semibold">Preparando Laudo Pontual...</h2>
+                        <p className="text-sm text-muted-foreground">
+                            Isso levará apenas alguns segundos
+                        </p>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-background">
-            <div className="bg-white border-b border-border">
+        <div>
+            <div className="bg-white border-b border-border -mx-6 -mt-6">
                 <div className="px-6 py-4">
                     <div className="flex items-center gap-4">
                         {onBack && (
@@ -225,7 +282,7 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                         )}
                         <div>
                             <h1 className="text-2xl">OS-11: Laudo Pontual Assessoria</h1>
-                            {osId && <p className="text-muted-foreground">OS #{osId}</p>}
+                            {finalOsId && <p className="text-muted-foreground">OS #{finalOsId}</p>}
                             <p className="text-sm text-muted-foreground">Emissão de Laudo Técnico Pontual</p>
                         </div>
                     </div>
@@ -240,32 +297,9 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                         lastActiveStep={lastActiveStep || undefined}
                     />
 
-                    {isHistoricalNavigation && lastActiveStep && (
-                        <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-                            <button
-                                onClick={handleReturnToActive}
-                                className="bg-warning hover:bg-warning text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 transition-all hover:shadow-xl font-medium"
-                            >
-                                <ChevronLeft className="w-4 h-4 rotate-180" />
-                                <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 
-            {isHistoricalNavigation && (
-                <div className="mt-4 bg-primary/5 border-l-4 border-primary p-4 mx-6 rounded-r-lg flex items-start gap-3">
-                    <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                        <h4 className="font-semibold text-primary text-sm">Modo de Visualização Histórica</h4>
-                        <p className="text-primary text-sm">
-                            Você está visualizando dados de uma etapa já concluída.
-                            {lastActiveStep && <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>}
-                        </p>
-                    </div>
-                </div>
-            )}
 
             <div className="px-6 py-6">
                 <Card className="max-w-5xl mx-auto">
@@ -287,8 +321,8 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                                 readOnly={isHistoricalNavigation}
                             />
                         )}
-                        {currentStep === 2 && osId && (
-                            <StepAgendarVisita ref={stepAgendarVisitaRef} osId={osId} data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />
+                        {currentStep === 2 && finalOsId && (
+                            <StepAgendarVisita ref={stepAgendarVisitaRef} osId={finalOsId} data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />
                         )}
                         {currentStep === 3 && (
                             <StepRealizarVisita data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} />
@@ -332,7 +366,7 @@ export function OS11WorkflowPage({ onBack, osId }: OS11WorkflowPageProps) {
                 invalidFormMessage="Por favor, selecione um horário no calendário e um técnico responsável para continuar"
                 // Props de delegação
                 osType="OS-11"
-                osId={osId}
+                osId={finalOsId}
                 currentOwnerId={currentUser?.id}
                 currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
                 onDelegationComplete={() => {

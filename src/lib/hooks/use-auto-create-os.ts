@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
 export const GENERIC_CLIENT_ID = 'c0000000-0000-0000-0000-000000000001';
 
 interface UseAutoCreateOSOptions {
-  tipoOS: 'OS-09' | 'OS-10' | 'OS-11' | 'OS-12';
+  tipoOS: 'OS-08' | 'OS-09' | 'OS-10' | 'OS-11' | 'OS-12';
   nomeEtapa1: string;
   enabled: boolean;
 }

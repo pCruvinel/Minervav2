@@ -57,6 +57,7 @@ export interface CadastrarClienteObraProps {
   readOnly?: boolean;
   osId?: string;
   parentOSId?: string;
+  clienteId?: string;
 }
 
 export interface CadastrarClienteObraHandle {
@@ -65,7 +66,7 @@ export interface CadastrarClienteObraHandle {
 }
 
 export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, CadastrarClienteObraProps>(
-  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId, parentOSId }, ref) {
+  function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId, parentOSId, clienteId }, ref) {
     // Estados locais
     const [showCombobox, setShowCombobox] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -89,6 +90,16 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
     // Cliente selecionado
     const selectedLead = leads.find(l => l.id === data.clienteId);
+
+    // Pré-selecionar cliente quando clienteId é fornecido via prop (vindo de OS pai)
+    useEffect(() => {
+      if (clienteId && !data.clienteId && leads.length > 0) {
+        const cliente = leads.find(l => l.id === clienteId);
+        if (cliente) {
+          onDataChange({ ...data, clienteId });
+        }
+      }
+    }, [clienteId, data, onDataChange, leads]);
 
     // ... (generatePassword and validate functions remain the same) ...
 

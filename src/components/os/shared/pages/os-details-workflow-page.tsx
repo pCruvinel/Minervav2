@@ -1025,21 +1025,30 @@ export function OSDetailsWorkflowPage({
 
       setIsCreatingOS(true);
 
-      // Atualizar OS para status "concluído"
+      // Marcar etapa 15 como concluída no workflow
+      try {
+        await saveStep(15, true);
+        logger.log('✅ Etapa 15 marcada como concluída no workflow');
+      } catch (error) {
+        logger.warn('⚠️ Erro ao marcar etapa 15 como concluída:', error);
+        // Continuar mesmo se falhar
+      }
+
+      // Atualizar OS para status "concluido" (enum correto sem acento)
       await ordensServicoAPI.update(osId, {
-        status_geral: 'concluído',
+        status_geral: 'concluido',
         data_conclusao: new Date().toISOString(),
       });
 
       logger.log('✅ OS marcada como concluída:', osId);
 
-      // Se houver cliente, converter de lead para cliente (se aplicável)
+      // Se houver cliente, converter de lead para ativo (enum correto: 'status', não 'tipo')
       if (os?.cliente_id) {
         try {
           await clientesAPI.update(os.cliente_id, {
-            tipo: 'cliente', // Converter de 'lead' para 'cliente'
+            status: 'ativo', // Converter de 'lead' para 'ativo'
           });
-          logger.log('✅ Cliente atualizado:', os.cliente_id);
+          logger.log('✅ Cliente convertido para status ativo:', os.cliente_id);
         } catch (error) {
           logger.warn('⚠️ Erro ao atualizar cliente:', error);
           // Continuar mesmo se falhar
@@ -1048,10 +1057,11 @@ export function OSDetailsWorkflowPage({
 
       toast.success('OS concluída com sucesso! Nova OS-13 será criada para o time de execução.');
 
-      // Redirecionar para criação de OS-13 (Start de Contrato) com parentOSId
+      // Redirecionar para criação de OS-13 (Start de Contrato) com parentOSId e clienteId
       setTimeout(() => {
-        // Navegar para a rota de criação de OS-13 passando o ID da OS atual como pai
-        window.location.href = `/os/criar/start-contrato-obra?parentOSId=${osId}`;
+        // Navegar para a rota de criação de OS-13 passando o ID da OS atual como pai e o cliente
+        const clienteId = os?.cliente_id || '';
+        window.location.href = `/os/criar/start-contrato-obra?parentOSId=${osId}&clienteId=${clienteId}`;
       }, 2000);
 
     } catch (error) {
@@ -1061,6 +1071,32 @@ export function OSDetailsWorkflowPage({
       setIsCreatingOS(false);
     }
   };
+
+  // Auto-concluir etapa 15 quando ela for carregada
+  const hasAutoCompletedStep15 = useRef(false);
+  useEffect(() => {
+    // Só executar se:
+    // 1. Estamos na etapa 15
+    // 2. Não está em modo histórico
+    // 3. Tem osId
+    // 4. Não está processando
+    // 5. Ainda não foi auto-concluída
+    if (
+      currentStep === 15 &&
+      !isHistoricalNavigation &&
+      osId &&
+      !isCreatingOS &&
+      !hasAutoCompletedStep15.current
+    ) {
+      logger.log('🎯 Etapa 15 detectada - Iniciando conclusão automática...');
+      hasAutoCompletedStep15.current = true;
+      handleConcluirOS().catch((error) => {
+        logger.error('❌ Erro na conclusão automática da etapa 15:', error);
+        hasAutoCompletedStep15.current = false; // Reset para tentar novamente se necessário
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep, isHistoricalNavigation, osId, isCreatingOS]);
 
   /**
    * Avançar para próxima etapa (com validação e salvamento)
@@ -1407,26 +1443,6 @@ export function OSDetailsWorkflowPage({
         />
 
         {/* Botão de retorno rápido - posicionado absolutamente no canto direito */}
-        {isHistoricalNavigation && lastActiveStep && (
-          <div className="absolute right-6 top-1/2 -translate-y-1/2 z-10">
-            <button
-              onClick={handleReturnToActive}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg transition-all shadow-lg whitespace-nowrap animate-pulse"
-              style={{ backgroundColor: '#f97316', color: 'white' }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#ea580c';
-                e.currentTarget.classList.remove('animate-pulse');
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f97316';
-                e.currentTarget.classList.add('animate-pulse');
-              }}
-            >
-              <ChevronLeft className="w-4 h-4 rotate-180" />
-              <span className="font-semibold text-sm">Voltar para Etapa {lastActiveStep}</span>
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Main Content Area */}
@@ -1447,29 +1463,6 @@ export function OSDetailsWorkflowPage({
               </div>
             </CardHeader>
 
-            {/* Banner de Modo de Visualização Histórica */}
-            {isHistoricalNavigation && (
-              <div className="mx-6 mt-4 bg-primary/5 border-l-4 border-primary p-4 rounded-r-lg flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <h4 className="text-primary font-semibold mb-1">
-                    Modo de Visualização Histórica
-                  </h4>
-                  <p className="text-primary text-sm">
-                    Você está visualizando dados de uma etapa já concluída.
-                    {lastActiveStep && (
-                      <> Você estava trabalhando na <strong>Etapa {lastActiveStep}</strong>.</>
-                    )}
-                  </p>
-                </div>
-                <button
-                  onClick={handleReturnToActive}
-                  className="text-primary hover:text-primary font-medium text-sm underline whitespace-nowrap"
-                >
-                  Voltar agora
-                </button>
-              </div>
-            )}
 
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
 
@@ -1515,9 +1508,6 @@ export function OSDetailsWorkflowPage({
                   </Alert>
 
                   <div className="space-y-2">
-                    <Label htmlFor="tipoOS">
-                      Selecione o Tipo de OS <span className="text-destructive">*</span>
-                    </Label>
                     <Select
                       value={etapa2Data.tipoOS}
                       onValueChange={(value: string) => setEtapa2Data({ tipoOS: value })}
@@ -1735,30 +1725,30 @@ export function OSDetailsWorkflowPage({
 
                   <div className="flex flex-col items-center justify-center py-12 gap-6">
                     <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
-                      <Send className="h-10 w-10 text-success" />
+                      {isCreatingOS ? (
+                        <Loader2 className="h-10 w-10 text-success animate-spin" />
+                      ) : (
+                        <Send className="h-10 w-10 text-success" />
+                      )}
                     </div>
                     <div className="text-center">
-                      <h3 className="font-medium mb-2">Concluir OS e Gerar OS-13</h3>
+                      <h3 className="font-medium mb-2">Start de Contrato</h3>
                       <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                        Ao clicar no botão abaixo, esta OS será marcada como concluída, o lead será convertido em cliente e uma nova OS do tipo 13 (Contrato de Obra) será criada automaticamente para o time interno.
+                        {isCreatingOS 
+                          ? 'Concluindo OS automaticamente e iniciando Start de Obra...'
+                          : 'Sucesso! Contrato assinado e Start de Obra iniciada. O status do cliente foi atualizado para \'Ativo\'.'
+                        }
                       </p>
-                      <PrimaryButton
-                        size="lg"
-                        disabled={isHistoricalNavigation || isCreatingOS}
-                        onClick={handleConcluirOS}
-                      >
-                        {isCreatingOS ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Processando...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="h-4 w-4 mr-2" />
-                            Concluir OS e Gerar OS-13
-                          </>
-                        )}
-                      </PrimaryButton>
+                      {!isCreatingOS && (
+                        <PrimaryButton
+                          size="lg"
+                          disabled={isHistoricalNavigation}
+                          onClick={handleConcluirOS}
+                        >
+                          <Send className="h-4 w-4 mr-2" />
+                          Concluir Manualmente (Fallback)
+                        </PrimaryButton>
+                      )}
                     </div>
                   </div>
 
@@ -1796,31 +1786,34 @@ export function OSDetailsWorkflowPage({
             </CardContent>
 
             {/* Footer com botões de navegação e delegação */}
-            <WorkflowFooterWithDelegation
-              currentStep={currentStep}
-              totalSteps={TOTAL_WORKFLOW_STEPS}
-              onPrevStep={handlePrevStep}
-              onNextStep={handleNextStep}
-              onSaveDraft={handleSaveRascunho}
-              showDraftButton={DRAFT_ENABLED_STEPS.includes(currentStep)}
-              disableNext={isLoading}
-              isLoading={isCreatingOS}
-              loadingText={currentStep === 2 ? 'Criando OS no Supabase...' : 'Processando...'}
-              readOnlyMode={isHistoricalNavigation}
-              onReturnToActive={handleReturnToActive}
-              isFormInvalid={isCurrentStepInvalid}
-              invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
-              // Props de delegação - habilitam verificação automática de handoff
-              osType={os?.tipo_os_codigo || mapearTipoOSParaCodigo(etapa2Data.tipoOS || '')}
-              osId={osId || undefined}
-              currentOwnerId={os?.responsavel_id}
-              currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-              onDelegationComplete={() => {
-                toast.success('Responsabilidade transferida com sucesso!');
-                // Refresh para atualizar responsavel_id
-                refreshEtapas?.();
-              }}
-            />
+            {/* Ocultar footer na etapa 15 pois já tem o botão "Start de Contrato" dedicado */}
+            {currentStep !== 15 && (
+              <WorkflowFooterWithDelegation
+                currentStep={currentStep}
+                totalSteps={TOTAL_WORKFLOW_STEPS}
+                onPrevStep={handlePrevStep}
+                onNextStep={handleNextStep}
+                onSaveDraft={handleSaveRascunho}
+                showDraftButton={DRAFT_ENABLED_STEPS.includes(currentStep)}
+                disableNext={isLoading}
+                isLoading={isCreatingOS}
+                loadingText={currentStep === 2 ? 'Criando OS no Supabase...' : 'Processando...'}
+                readOnlyMode={isHistoricalNavigation}
+                onReturnToActive={handleReturnToActive}
+                isFormInvalid={isCurrentStepInvalid}
+                invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
+                // Props de delegação - habilitam verificação automática de handoff
+                osType={os?.tipo_os_codigo || mapearTipoOSParaCodigo(etapa2Data.tipoOS || '')}
+                osId={osId || undefined}
+                currentOwnerId={os?.responsavel_id}
+                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
+                onDelegationComplete={() => {
+                  toast.success('Responsabilidade transferida com sucesso!');
+                  // Refresh para atualizar responsavel_id
+                  refreshEtapas?.();
+                }}
+              />
+            )}
           </Card>
         </div>
       </div>

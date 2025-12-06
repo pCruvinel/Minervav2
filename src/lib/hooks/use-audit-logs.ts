@@ -160,24 +160,24 @@ export function useAuditLogs(): UseAuditLogsReturn {
           .from('os_atividades')
           .select(`
             id,
-            created_at,
+            criado_em,
             usuario_id,
-            tipo_atividade,
+            tipo,
             descricao,
-            dados_adicionais,
+            metadados,
             os_id,
             colaboradores!os_atividades_usuario_id_fkey(nome_completo, avatar_url),
             ordens_servico!os_atividades_os_id_fkey(codigo_os)
           `, { count: 'exact' })
-          .order('created_at', { ascending: false })
+          .order('criado_em', { ascending: false })
           .range(offset, offset + PAGE_SIZE - 1);
 
         // Aplicar filtros
         if (filters.start_date) {
-          atividadesQuery = atividadesQuery.gte('created_at', filters.start_date);
+          atividadesQuery = atividadesQuery.gte('criado_em', filters.start_date);
         }
         if (filters.end_date) {
-          atividadesQuery = atividadesQuery.lte('created_at', filters.end_date);
+          atividadesQuery = atividadesQuery.lte('criado_em', filters.end_date);
         }
         if (filters.user_id) {
           atividadesQuery = atividadesQuery.eq('usuario_id', filters.user_id);
@@ -189,16 +189,16 @@ export function useAuditLogs(): UseAuditLogsReturn {
           atividadesData.forEach(entry => {
             allLogs.push({
               id: `ativ-${entry.id}`,
-              timestamp: entry.created_at,
+              timestamp: entry.criado_em,
               user_id: entry.usuario_id,
               user_nome: entry.colaboradores?.nome_completo || 'Sistema',
               user_avatar: entry.colaboradores?.avatar_url,
-              action: mapAtividadeAction(entry.tipo_atividade),
-              action_label: entry.descricao || entry.tipo_atividade,
+              action: mapAtividadeAction(entry.tipo),
+              action_label: entry.descricao || entry.tipo,
               entity_type: 'os',
               entity_id: entry.os_id,
               entity_label: entry.ordens_servico?.codigo_os || `OS ${entry.os_id.slice(0, 8)}`,
-              details: entry.dados_adicionais,
+              details: entry.metadados,
               source: 'os_atividades'
             });
           });

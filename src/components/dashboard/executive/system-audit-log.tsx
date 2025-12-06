@@ -142,10 +142,8 @@ export function SystemAuditLog() {
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="w-[160px]">Data/Hora</TableHead>
-                                        <TableHead className="w-[200px]">Usuário</TableHead>
-                                        <TableHead className="w-[120px]">Ação</TableHead>
-                                        <TableHead>Entidade</TableHead>
-                                        <TableHead className="w-[80px]">Fonte</TableHead>
+                                        <TableHead className="w-[220px]">Usuário</TableHead>
+                                        <TableHead>Ação</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -165,37 +163,25 @@ export function SystemAuditLog() {
                                                             {log.user_nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
                                                         </AvatarFallback>
                                                     </Avatar>
-                                                    <span className="text-sm truncate max-w-[140px]">
+                                                    <span className="text-sm truncate max-w-[180px]">
                                                         {log.user_nome}
                                                     </span>
                                                 </div>
                                             </TableCell>
 
-                                            {/* Ação */}
+                                            {/* Ação (com mais espaço e incluindo entidade inline) */}
                                             <TableCell>
-                                                <ActionBadge action={log.action} label={log.action_label} />
-                                            </TableCell>
-
-                                            {/* Entidade */}
-                                            <TableCell>
-                                                <div className="flex items-center gap-2">
-                                                    <Badge variant="outline" className="text-xs">
-                                                        {log.entity_type}
-                                                    </Badge>
-                                                    <span className="font-mono text-xs text-primary">
-                                                        {log.entity_label}
-                                                    </span>
+                                                <div className="flex flex-col gap-1">
+                                                    <ActionBadge action={log.action} label={log.action_label} />
+                                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                                        <Badge variant="outline" className="text-[10px]">
+                                                            {log.entity_type}
+                                                        </Badge>
+                                                        <span className="font-mono">
+                                                            {log.entity_label}
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                            </TableCell>
-
-                                            {/* Fonte */}
-                                            <TableCell>
-                                                <Badge
-                                                    variant="secondary"
-                                                    className="text-[10px] font-normal"
-                                                >
-                                                    {log.source === 'audit_log' ? 'Audit' : 'OS'}
-                                                </Badge>
                                             </TableCell>
                                         </TableRow>
                                     ))}
@@ -376,7 +362,7 @@ function ActionBadge({ action, label }: ActionBadgeProps) {
     return (
         <Badge variant={getVariant()} className="gap-1 text-xs">
             {getIcon()}
-            <span className="max-w-[80px] truncate">{label}</span>
+            <span>{label}</span>
         </Badge>
     );
 }

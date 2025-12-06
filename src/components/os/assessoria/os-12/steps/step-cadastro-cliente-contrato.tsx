@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,7 @@ import { AlertCircle, Calendar as CalendarIcon, Building2 } from 'lucide-react';
 import { format, addMonths, addYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/components/ui/utils';
+import { CadastrarLead, type CadastrarLeadHandle, type FormDataCompleto } from '@/components/os/shared/steps/cadastrar-lead';
 
 const TIPOS_CONTRATO = [
     { value: 'mensal', label: 'Mensal', duracao: 1 },
@@ -18,14 +19,14 @@ const TIPOS_CONTRATO = [
     { value: 'anual', label: 'Anual', duracao: 12 },
 ];
 
+export interface StepCadastroClienteContratoHandle {
+    validate: () => boolean;
+}
+
 interface StepCadastroClienteContratoProps {
     data: {
-        clienteId: string;
-        nomeCliente: string;
-        cpfCnpj: string;
-        email: string;
-        telefone: string;
-        endereco: string;
+        leadId?: string;
+        clienteId?: string;
         tipoContrato: string;
         dataInicioContrato: string;
         dataFimContrato: string;
@@ -35,11 +36,56 @@ interface StepCadastroClienteContratoProps {
     readOnly?: boolean;
 }
 
-export function StepCadastroClienteContrato({ data, onDataChange, readOnly }: StepCadastroClienteContratoProps) {
-    const handleInputChange = (field: string, value: any) => {
-        if (readOnly) return;
-        onDataChange({ ...data, [field]: value });
-    };
+export const StepCadastroClienteContrato = forwardRef<StepCadastroClienteContratoHandle, StepCadastroClienteContratoProps>(
+    ({ data, onDataChange, readOnly }, ref) => {
+        const leadRef = React.useRef<CadastrarLeadHandle>(null);
+        const [selectedLeadId, setSelectedLeadId] = useState<string>(data.leadId || data.clienteId || '');
+        const [showCombobox, setShowCombobox] = useState(false);
+        const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
+        // Estado do formulário de lead (compatível com CadastrarLead)
+        const [formData, setFormData] = useState<FormDataCompleto>({
+            nome: '',
+            cpfCnpj: '',
+            tipo: '',
+            tipoEmpresa: '',
+            nomeResponsavel: '',
+            cargoResponsavel: '',
+            telefone: '',
+            email: '',
+            tipoEdificacao: '',
+            qtdUnidades: '',
+            qtdBlocos: '',
+            qtdPavimentos: '',
+            tipoTelhado: '',
+            possuiElevador: false,
+            possuiPiscina: false,
+            cep: '',
+            endereco: '',
+            numero: '',
+            complemento: '',
+            bairro: '',
+            cidade: '',
+            estado: '',
+        });
+
+        // Expor método de validação
+        useImperativeHandle(ref, () => ({
+            validate: () => {
+                if (!leadRef.current) return false;
+                return leadRef.current.validate();
+            }
+        }));
+
+        const handleSelectLead = (leadId: string, leadData?: any) => {
+            setSelectedLeadId(leadId);
+            onDataChange({ ...data, leadId, clienteId: leadId });
+        };
+
+        const handleInputChange = (field: string, value: any) => {
+            if (readOnly) return;
+            onDataChange({ ...data, [field]: value });
+        };
 
     const handleTipoContratoChange = (tipo: string) => {
         if (readOnly) return;
@@ -95,70 +141,19 @@ export function StepCadastroClienteContrato({ data, onDataChange, readOnly }: St
                 </div>
             </div>
 
-            {/* Dados do Cliente */}
-            <div className="space-y-4">
-                <h3 className="text-base border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
-                    Dados do Cliente
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="nomeCliente">Nome/Razão Social <span className="text-destructive">*</span></Label>
-                        <Input
-                            id="nomeCliente"
-                            value={data.nomeCliente}
-                            onChange={(e) => handleInputChange('nomeCliente', e.target.value)}
-                            placeholder="Nome completo ou razão social"
-                            disabled={readOnly}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="cpfCnpj">CPF/CNPJ <span className="text-destructive">*</span></Label>
-                        <Input
-                            id="cpfCnpj"
-                            value={data.cpfCnpj}
-                            onChange={(e) => handleInputChange('cpfCnpj', e.target.value)}
-                            placeholder="000.000.000-00"
-                            disabled={readOnly}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="email">E-mail <span className="text-destructive">*</span></Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            value={data.email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
-                            placeholder="email@cliente.com"
-                            disabled={readOnly}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="telefone">Telefone <span className="text-destructive">*</span></Label>
-                        <Input
-                            id="telefone"
-                            value={data.telefone}
-                            onChange={(e) => handleInputChange('telefone', e.target.value)}
-                            placeholder="(00) 00000-0000"
-                            disabled={readOnly}
-                        />
-                    </div>
-
-                    <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="endereco">Endereço Completo <span className="text-destructive">*</span></Label>
-                        <Input
-                            id="endereco"
-                            value={data.endereco}
-                            onChange={(e) => handleInputChange('endereco', e.target.value)}
-                            placeholder="Rua, número, bairro, cidade - UF"
-                            disabled={readOnly}
-                        />
-                    </div>
-                </div>
-            </div>
+            {/* Componente CadastrarLead Reutilizável */}
+            <CadastrarLead
+                ref={leadRef}
+                selectedLeadId={selectedLeadId}
+                onSelectLead={handleSelectLead}
+                showCombobox={showCombobox}
+                onShowComboboxChange={setShowCombobox}
+                showNewLeadDialog={showNewLeadDialog}
+                onShowNewLeadDialogChange={setShowNewLeadDialog}
+                formData={formData}
+                onFormDataChange={setFormData}
+                readOnly={readOnly}
+            />
 
             {/* Configuração do Contrato */}
             <div className="space-y-4">
@@ -243,4 +238,6 @@ export function StepCadastroClienteContrato({ data, onDataChange, readOnly }: St
             </Alert>
         </div>
     );
-}
+});
+
+StepCadastroClienteContrato.displayName = 'StepCadastroClienteContrato';

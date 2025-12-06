@@ -180,7 +180,7 @@ export function ControlePresencaTabelaPage() {
 
       const { data, error } = await supabase
         .from('registros_presenca')
-        .select('colaborador_id, centros_custo')
+        .select('colaborador_id, centros_custo, status, performance')
         .eq('data', dateStr);
 
       if (error) throw error;
@@ -197,13 +197,19 @@ export function ControlePresencaTabelaPage() {
             novos[reg.colaborador_id] = {
               ...novos[reg.colaborador_id],
               centrosCusto: reg.centros_custo || [],
+              status: reg.status || 'OK',
+              performance: reg.performance || 'BOA',
+              // Limpar justificativas do dia anterior (não devem ser copiadas)
+              justificativaStatus: undefined,
+              justificativaPerformance: undefined,
+              minutosAtraso: undefined,
             };
           }
         });
         return novos;
       });
 
-      toast.success(`Alocação de ${format(ontem, 'dd/MM')} replicada!`);
+      toast.success(`✅ Presença de ${format(ontem, 'dd/MM')} copiada com sucesso!`);
     } catch (error) {
       console.error('Erro ao replicar alocação:', error);
       toast.error('Erro ao buscar dados do dia anterior.');

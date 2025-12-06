@@ -5,9 +5,11 @@
  * - Colunas representam coordenadores
  * - Cards são as OSs sob responsabilidade de cada um
  * - Destaque visual para OSs atrasadas
+ * - Filtro de coordenadores selecionáveis
  */
 'use client';
 
+import { useState, useMemo } from 'react';
 import { useCoordinatorsWorkload, WorkloadOS, CoordinatorWorkload } from '@/lib/hooks/use-coordinators-workload';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,13 +17,19 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Link } from '@tanstack/react-router';
 import {
     AlertTriangle,
     Clock,
     User,
     Building2,
-    ArrowRight
+    ArrowRight,
+    Filter,
+    Check,
+    X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,6 +39,35 @@ import { cn } from '@/lib/utils';
 
 export function WorkloadKanban() {
     const { workloads, loading, error } = useCoordinatorsWorkload();
+    
+    // Estado: IDs dos coordenadores selecionados (todos por padrão)
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+    // Inicializar selectedIds com todos os coordenadores quando carregar
+    useMemo(() => {
+        if (workloads.length > 0 && selectedIds.length === 0) {
+            setSelectedIds(workloads.map(w => w.coordenador_id));
+        }
+    }, [workloads]);
+
+    // Filtrar workloads baseado nos IDs selecionados
+    const filteredWorkloads = useMemo(() => {
+        return workloads.filter(w => selectedIds.includes(w.coordenador_id));
+    }, [workloads, selectedIds]);
+
+    // Toggle de seleção
+    const toggleCoordinator = (id: string) => {
+        setSelectedIds(prev => 
+            prev.includes(id) 
+                ? prev.filter(existingId => existingId !== id)
+                : [...prev, id]
+        );
+    };
+
+    // Remover coordenador
+    const removeCoordinator = (id: string) => {
+        setSelectedIds(prev => prev.filter(existingId => existingId !== id));
+    };
 
     if (loading) {
         return <WorkloadKanbanSkeleton />;
@@ -62,21 +99,153 @@ export function WorkloadKanban() {
 
     return (
         <div className="space-y-4">
-            {/* Header */}
-            <div className="flex items-center justify-between">
+            {/* Header com Filtro */}
+            <div className="flex items-center justify-between flex-wrap gap-3">
                 <h3 className="text-lg font-semibold">Carga de Trabalho por Coordenador</h3>
-                <Badge variant="outline" className="text-muted-foreground">
-                    {workloads.reduce((sum, w) => sum + w.total, 0)} OS ativas no total
-                </Badge>
+                <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-muted-foreground">
+                        {workloads.reduce((sum, w) => sum + w.total, 0)} OS ativas no total
+                    </Badge>
+                    <CoordinatorFilter 
+                        coordinators={workloads}
+                        selectedIds={selectedIds}
+                        onToggle={toggleCoordinator}
+                    />
+                </div>
             </div>
 
-            {/* Kanban Board */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {workloads.map(workload => (
-                    <WorkloadColumn key={workload.coordenador_id} workload={workload} />
-                ))}
-            </div>
+            {/* Badges Removíveis */}
+            {selectedIds.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                    {selectedIds.map(id => {
+                        const coord = workloads.find(w => w.coordenador_id === id);
+                        if (!coord) return null;
+                        return (
+                            <Badge 
+                                key={id} 
+                                variant="secondary" 
+                                className="pl-2 pr-1 py-1 flex items-center gap-2 transition-all hover:bg-secondary/80"
+                            >
+                                <Avatar className="h-4 w-4">
+                                    <AvatarImage src={coord.avatar_url} />
+                                    <AvatarFallback className="text-[10px]">
+                                        {coord.coordenador_nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <span className="text-xs">{coord.coordenador_nome}</span>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-4 w-4 p-0 hover:bg-destructive/20"
+                                    onClick={() => removeCoordinator(id)}
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            </Badge>
+                        );
+                    })}
+                </div>
+            )}
+
+            {/* Feedback de Estado Vazio */}
+            {selectedIds.length === 0 ? (
+                <Card>
+                    <CardContent className="pt-12 pb-12 text-center">
+                        <Filter className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-30" />
+                        <h4 className="text-lg font-medium mb-2">Nenhum coordenador selecionado</h4>
+                        <p className="text-muted-foreground text-sm">
+                            Selecione pelo menos um coordenador no filtro acima para visualizar a carga de trabalho.
+                        </p>
+                    </CardContent>
+                </Card>
+            ) : (
+                // Kanban Board Dinâmico
+                <div className="flex gap-6 overflow-x-auto pb-4">
+                    {filteredWorkloads.map((workload, index) => (
+                        <div 
+                            key={workload.coordenador_id}
+                            className="flex-shrink-0 w-[350px] animate-in slide-in-from-left duration-300"
+                            style={{ animationDelay: `${index * 50}ms` }}
+                        >
+                            <WorkloadColumn workload={workload} />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
+    );
+}
+
+// ============================================================
+// FILTRO DE COORDENADORES
+// ============================================================
+
+interface CoordinatorFilterProps {
+    coordinators: CoordinatorWorkload[];
+    selectedIds: string[];
+    onToggle: (id: string) => void;
+}
+
+function CoordinatorFilter({ coordinators, selectedIds, onToggle }: CoordinatorFilterProps) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-2 font-normal"
+                >
+                    <Filter className="h-4 w-4" />
+                    <span className="hidden sm:inline">Filtrar Coordenadores</span>
+                    <span className="sm:hidden">Filtrar</span>
+                    <Badge variant="secondary" className="ml-1 h-5 min-w-5 rounded-full px-1.5 text-xs">
+                        {selectedIds.length}
+                    </Badge>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0" align="end">
+                <Command>
+                    <CommandInput placeholder="Buscar coordenador..." />
+                    <CommandList>
+                        <CommandEmpty>Nenhum coordenador encontrado.</CommandEmpty>
+                        <CommandGroup>
+                            {coordinators.map(coord => {
+                                const isSelected = selectedIds.includes(coord.coordenador_id);
+                                return (
+                                    <CommandItem
+                                        key={coord.coordenador_id}
+                                        onSelect={() => onToggle(coord.coordenador_id)}
+                                        className="cursor-pointer"
+                                    >
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <Avatar className="h-8 w-8">
+                                                <AvatarImage src={coord.avatar_url} />
+                                                <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                                    {coord.coordenador_nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium truncate">
+                                                    {coord.coordenador_nome}
+                                                </p>
+                                                <p className="text-xs text-muted-foreground truncate">
+                                                    {coord.setor_nome}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {isSelected && (
+                                            <Check className="h-4 w-4 text-primary" />
+                                        )}
+                                    </CommandItem>
+                                );
+                            })}
+                        </CommandGroup>
+                    </CommandList>
+                </Command>
+            </PopoverContent>
+        </Popover>
     );
 }
 

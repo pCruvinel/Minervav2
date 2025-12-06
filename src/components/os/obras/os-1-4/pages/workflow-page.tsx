@@ -580,7 +580,7 @@ export function OSWorkflowPage({ onBack }: OSWorkflowPageProps) {
               </p>
               <Button className="w-full" disabled>
                 <Check className="h-4 w-4 mr-2" />
-                Concluir OS e Gerar OS-13 (Start de Obra)
+                Start de Contrato
               </Button>
             </div>
           </StepWrapper>
