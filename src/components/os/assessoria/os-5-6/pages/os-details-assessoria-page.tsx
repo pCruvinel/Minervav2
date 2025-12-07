@@ -4,10 +4,6 @@ import { logger } from '@/lib/utils/logger';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ChevronLeft, AlertCircle, Info } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { toast } from '@/lib/utils/safe-toast';
@@ -245,25 +241,39 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
           throw new Error('OS criada mas sem ID retornado');
         }
 
-        logger.log('✅ OS criada com sucesso. ID:', result.os.id);
+        const newOsId = result.os.id as string;
+        logger.log('✅ OS criada com sucesso. ID:', newOsId);
+
+        // Marcar etapa 1 como concluída diretamente (não depender do estado React)
+        const etapa1 = (result.etapas as Array<{ id: string; ordem: number }>)?.find(e => e.ordem === 1);
+        if (etapa1?.id) {
+          logger.log('📝 Marcando etapa 1 como concluída...');
+          const { error: updateError } = await supabase
+            .from('os_etapas')
+            .update({
+              status: 'concluida',
+              dados_etapa: {
+                leadId: leadId,
+                ...formDataByStep[1]
+              },
+              data_conclusao: new Date().toISOString()
+            })
+            .eq('id', etapa1.id);
+
+          if (updateError) {
+            logger.error('❌ Erro ao marcar etapa 1 como concluída:', updateError);
+          } else {
+            logger.log('✅ Etapa 1 marcada como concluída');
+          }
+        }
 
         // Atualizar estado interno com o novo ID
-        setInternalOsId(result.os.id as string);
+        setInternalOsId(newOsId);
         // Pequeno delay para garantir que o estado atualizou
         await new Promise(resolve => window.setTimeout(resolve, 100));
       } catch (error) {
         logger.error('❌ Erro ao criar OS:', error);
         toast.error('Não foi possível criar a Ordem de Serviço. Tente novamente.');
-        return;
-      }
-
-      // Salvar etapa no banco (marcar como concluída)
-      try {
-        await saveStep(1, false);
-        logger.log('✅ Etapa 1 salva no banco');
-      } catch (error) {
-        logger.error('❌ Erro ao salvar etapa:', error);
-        toast.error('Erro ao salvar dados. Tente novamente.');
         return;
       }
     }
@@ -331,6 +341,18 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     estado: '',
   });
 
+  // ✅ FIX: Wrapper para sincronizar formData com formDataByStep[1]
+  // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
+  const handleFormDataChange = (newFormData: typeof formData) => {
+    setFormData(newFormData);
+    
+    // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
+    setEtapa1Data({
+      ...newFormData,
+      leadId: selectedLeadId || etapa1Data?.leadId || '',
+    });
+  };
+
   // Sincronizar selectedLeadId com etapa1Data
   useEffect(() => {
     if (etapa1Data.leadId && etapa1Data.leadId !== selectedLeadId) {
@@ -382,13 +404,6 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const handleSelectLead = (leadId: string) => {
     setSelectedLeadId(leadId);
     setEtapa1Data({ ...etapa1Data, leadId });
-  };
-
-  const handleSaveNewLead = () => {
-    logger.log('Salvando novo lead:', formData);
-    setShowNewLeadDialog(false);
-    setSelectedLeadId('NEW');
-    setEtapa1Data({ ...etapa1Data, leadId: 'NEW' });
   };
 
   // Handler para finalizar etapa e criar OS filha
@@ -491,6 +506,19 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     toast.success('Rascunho salvo com sucesso!');
   };
 
+  // ✅ Calcular valores financeiros da etapa 5 (Precificação)
+  const valoresFinanceiros = useMemo(() => {
+    const precoFinal = parseFloat(etapa5Data?.precoFinal || etapa5Data?.valorBase || '0');
+    const percentualEntrada = parseFloat(etapa5Data?.percentualEntrada || '0');
+    const numeroParcelas = parseFloat(etapa5Data?.numeroParcelas || '1') || 1;
+    
+    const valorTotal = precoFinal;
+    const valorEntrada = valorTotal * (percentualEntrada / 100);
+    const valorParcela = numeroParcelas > 0 ? (valorTotal - valorEntrada) / numeroParcelas : 0;
+    
+    return { valorTotal, valorEntrada, valorParcela };
+  }, [etapa5Data]);
+
   // ✅ FIX: Enriquecer dados da Step 6 (Proposta) com dados de etapas anteriores
   const etapa6DataEnriquecido = useMemo(() => ({
     ...etapa6Data,
@@ -501,8 +529,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     clienteEmail: formDataByStep[1]?.email || os?.cliente?.email || '',
     clienteTelefone: formDataByStep[1]?.telefone || os?.cliente?.telefone || '',
     descricaoServico: formDataByStep[4]?.descricaoServico || '',
-    valorProposta: parseFloat(formDataByStep[5]?.valorBase || '0'),
-  }), [etapa6Data, osId, os, formDataByStep]);
+    valorProposta: valoresFinanceiros.valorTotal,
+  }), [etapa6Data, osId, os, formDataByStep, valoresFinanceiros]);
 
   // ✅ FIX: Enriquecer dados da Step 10 (Contrato) com dados compilados
   const etapa10DataEnriquecido = useMemo(() => ({
@@ -519,15 +547,6 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
   return (
     <div className="h-screen flex flex-col bg-background">
-      {/* Botão Voltar */}
-      {onBack && (
-        <div className="border-b border-border px-6 py-3 bg-white">
-          <Button variant="ghost" onClick={onBack} className="gap-2">
-            <ChevronLeft className="h-4 w-4" />
-            Voltar ao Hub de Criação
-          </Button>
-        </div>
-      )}
 
       {/* Stepper Horizontal */}
       <div className="relative">
@@ -569,8 +588,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
                   showNewLeadDialog={showNewLeadDialog}
                   onShowNewLeadDialogChange={setShowNewLeadDialog}
                   formData={formData}
-                  onFormDataChange={setFormData}
-                  onSaveNewLead={handleSaveNewLead}
+                  onFormDataChange={handleFormDataChange}
                   readOnly={isHistoricalNavigation}
                 />
               )}
@@ -616,8 +634,17 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
               {/* ETAPA 6: Gerar Proposta Comercial */}
               {currentStep === 6 && (
                 <StepGerarProposta
+                  osId={osId || ''}
+                  etapa1Data={formDataByStep[1] || {}}
+                  etapa2Data={formDataByStep[2] || {}}
+                  etapa7Data={etapa4Data} // Memorial de Escopo (etapa 4)
+                  etapa8Data={etapa5Data} // Precificação (etapa 5)
+                  valorTotal={valoresFinanceiros.valorTotal}
+                  valorEntrada={valoresFinanceiros.valorEntrada}
+                  valorParcela={valoresFinanceiros.valorParcela}
                   data={etapa6DataEnriquecido}
                   onDataChange={setEtapa6Data}
+                  readOnly={isHistoricalNavigation}
                 />
               )}
 

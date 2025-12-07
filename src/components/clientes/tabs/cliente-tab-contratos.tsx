@@ -148,7 +148,7 @@ export function ClienteTabContratos({ clienteId }: ClienteTabContratosProps) {
 
       {/* Contracts Table */}
       {contratos.length === 0 ? (
-        <EmptyContratos onNovoContrato={() => handleNovoContrato('assessoria')} />
+        <EmptyContratos />
       ) : (
         <Card>
           <Table>
@@ -231,7 +231,7 @@ function ContratosLoading() {
   );
 }
 
-function EmptyContratos({ onNovoContrato }: { onNovoContrato: () => void }) {
+function EmptyContratos() {
   return (
     <Card>
       <CardContent className="py-12">
@@ -245,10 +245,6 @@ function EmptyContratos({ onNovoContrato }: { onNovoContrato: () => void }) {
               Este cliente ainda não possui contratos registrados.
             </p>
           </div>
-          <Button onClick={onNovoContrato}>
-            <Plus className="mr-2 h-4 w-4" />
-            Criar Primeiro Contrato
-          </Button>
         </div>
       </CardContent>
     </Card>

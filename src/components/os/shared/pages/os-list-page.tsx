@@ -13,49 +13,6 @@ import { useOrdensServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { toast } from '@/lib/utils/safe-toast';
 
-// Mock data para fallback (caso API falhe)
-const mockOrdensServico: any[] = [
-  {
-    id: '1',
-    codigo_os: 'OS-2025-001',
-    descricao: 'Perícia de Fachada - Edifício Central',
-    status_geral: 'em_andamento',
-    cliente_nome: 'Construtora ABC Ltda',
-    tipo_os_nome: 'OS 01: Perícia de Fachada',
-    responsavel_nome: 'João Silva',
-    responsavel_id: '1',
-    data_prazo: '2025-01-30',
-    created_at: '2025-01-10',
-    data_entrada: '2025-01-10'
-  },
-  {
-    id: '2',
-    codigo_os: 'OS-2025-002',
-    descricao: 'Revitalização de Fachada - Condomínio Solar',
-    status_geral: 'aguardando_aprovacao',
-    cliente_nome: 'Incorporadora XYZ',
-    tipo_os_nome: 'OS 02: Revitalização de Fachada',
-    responsavel_nome: 'Pedro Oliveira',
-    responsavel_id: '3',
-    data_prazo: '2025-02-15',
-    created_at: '2025-01-12',
-    data_entrada: '2025-01-12'
-  },
-  {
-    id: '3',
-    codigo_os: 'OS-2025-003',
-    descricao: 'Assessoria Técnica - Shopping Norte',
-    status_geral: 'atrasada',
-    cliente_nome: 'Grupo Omega',
-    tipo_os_nome: 'OS 05: Assessoria técnica mensal',
-    responsavel_nome: 'Maria Santos',
-    responsavel_id: '2',
-    data_prazo: '2025-01-15',
-    created_at: '2025-01-05',
-    data_entrada: '2025-01-05'
-  }
-];
-
 interface OSListPageProps {
   currentUser: User;
 }
@@ -87,24 +44,27 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   });
 
   // Calcular estatísticas para os cards
+  // Admin e Diretoria veem todas as OS, demais veem apenas suas
+  const isAdminOrDiretoria = ['admin', 'diretoria'].includes(currentUser.role_nivel || '');
+
   const stats = useMemo(() => {
     const data = ordensServicoFromAPI || [];
-    // Filtrar apenas OS onde o usuário é responsável para os cards de "Minha Atuação"
-    const myOS = data.filter(os => os.responsavel_id === currentUser.id);
+    const osParaContagem = isAdminOrDiretoria
+      ? data
+      : data.filter(os => os.responsavel_id === currentUser.id);
 
     return {
-      total: myOS.length,
-      actionNeeded: myOS.filter(os => ['aguardando_aprovacao', 'atrasada'].includes(os.status_geral)).length,
-      inProgress: myOS.filter(os => os.status_geral === 'em_andamento').length,
-      completed: myOS.filter(os => os.status_geral === 'concluido').length
+      total: osParaContagem.length,
+      actionNeeded: osParaContagem.filter(os => ['aguardando_aprovacao', 'atrasada'].includes(os.status_geral)).length,
+      inProgress: osParaContagem.filter(os => os.status_geral === 'em_andamento').length,
+      completed: osParaContagem.filter(os => os.status_geral === 'concluido').length
     };
-  }, [ordensServicoFromAPI, currentUser.id]);
+  }, [ordensServicoFromAPI, currentUser.id, isAdminOrDiretoria]);
 
   // Filtrar OS baseado em filtros de UI
   // NOTA: A segurança real (RLS) é aplicada no banco de dados via Supabase Row Level Security
-  // Este código é apenas para filtros de UI e fallback de exibição
   const ordensServico = useMemo(() => {
-    let filtered = error ? [...mockOrdensServico] : [...(ordensServicoFromAPI || [])];
+    let filtered = [...(ordensServicoFromAPI || [])];
 
     logger.log('🔍 [FILTROS-DEBUG] Total de OS recebidas:', filtered.length);
 
@@ -148,7 +108,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
 
     logger.log(`✅ [FINAL] Total de OS exibidas: ${filtered.length}`);
     return filtered;
-  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, currentUser, ordensServicoFromAPI, error]);
+  }, [searchTerm, statusFilter, tipoOSFilter, setorFilter, responsavelFilter, currentUser, ordensServicoFromAPI]);
 
   // Função para exportar dados
   const handleExport = () => {
@@ -184,12 +144,14 @@ export function OSListPage({ currentUser }: OSListPageProps) {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Alocadas</CardTitle>
+              <CardTitle className="text-sm font-medium">Total de OS</CardTitle>
               <ClipboardList className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stats.total}</div>
-              <p className="text-xs text-muted-foreground">Sob sua responsabilidade</p>
+              <p className="text-xs text-muted-foreground">
+                {isAdminOrDiretoria ? 'Todas as ordens' : 'Sob sua responsabilidade'}
+              </p>
             </CardContent>
           </Card>
           <Card>
@@ -243,9 +205,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              <strong>Erro ao conectar com banco de dados:</strong> {error.message}
-              <br />
-              <span className="text-xs">Exibindo dados de exemplo (mock). </span>
+              <strong>Erro ao carregar ordens de serviço:</strong> {error.message}
               <Button
                 variant="ghost"
                 size="sm"

@@ -246,3 +246,4 @@ SELECT * FROM get_lucratividade_cc('uuid-do-cc');
 **Criado por:** Claude (Arquiteto de Software)  
 **Revisado em:** 2025-12-06
 
+

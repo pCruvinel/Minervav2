@@ -218,3 +218,4 @@ Criar uma "casa própria" para o módulo Comercial no menu lateral e simplificar
 
 **Desenvolvido por:** Claude Sonnet 4.5  
 **Projeto:** Minerva v2 - Sistema de Gestão Empresarial
+

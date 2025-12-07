@@ -215,3 +215,4 @@ Usuários que tinham `/os/criar` nos favoritos do navegador podem precisar atual
 
 **Desenvolvido por:** Claude Sonnet 4.5  
 **Projeto:** Minerva v2 - Sistema de Gestão Empresarial
+

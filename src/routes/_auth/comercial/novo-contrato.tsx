@@ -154,3 +154,4 @@ function NovoContratoPage() {
     </div>
   )
 }
+

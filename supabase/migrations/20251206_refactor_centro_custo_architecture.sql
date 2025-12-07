@@ -550,3 +550,4 @@ CREATE INDEX IF NOT EXISTS idx_registros_presenca_data ON public.registros_prese
 -- FIM DA MIGRATION
 -- =============================================================================
 
+

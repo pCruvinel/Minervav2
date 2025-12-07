@@ -251,3 +251,4 @@ O usuário pode copiar rapidamente toda a presença do dia anterior e fazer apen
 
 **Desenvolvido por:** Claude Sonnet 4.5  
 **Projeto:** Minerva v2 - Sistema de Gestão Empresarial
+
