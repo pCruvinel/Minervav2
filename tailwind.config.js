@@ -33,6 +33,16 @@ module.exports = {
           800: "#7E6921",
           900: "#544616",
         },
+        // Paleta Minerva Gold - Efeito metálico dourado luxuoso
+        minerva: {
+          gold: {
+            light: '#FCE38A',  // O ponto de luz mais brilhante (reflexo)
+            DEFAULT: '#D4AF37', // O tom médio dourado clássico
+            dark: '#AA8C2C',    // As áreas de sombra do metal
+            shadow: 'rgba(212, 175, 55, 0.5)', // Uma sombra dourada translúcida
+            foreground: '#3E2F0A', // Um marrom/preto profundo para o texto (melhor contraste)
+          }
+        },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
           foreground: "hsl(var(--secondary-foreground))",
