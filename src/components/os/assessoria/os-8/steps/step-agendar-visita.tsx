@@ -17,6 +17,10 @@ interface StepAgendarVisitaProps {
   data: {
     dataAgendamento?: string;
     agendamentoId?: string;
+    horarioInicio?: string;
+    horarioFim?: string;
+    duracaoHoras?: number;
+    turnoId?: string;
   };
   onDataChange: (newData: any) => void;
   readOnly?: boolean;
@@ -77,8 +81,19 @@ export const StepAgendarVisita = forwardRef<
         ? {
           agendamentoId: agendamento.id,
           dataAgendamento: agendamento.data,
+          horarioInicio: agendamento.horarioInicio,
+          horarioFim: agendamento.horarioFim,
+          duracaoHoras: agendamento.duracaoHoras,
+          turnoId: agendamento.turnoId,
         }
-        : { agendamentoId: undefined };
+        : { 
+          agendamentoId: undefined,
+          dataAgendamento: undefined,
+          horarioInicio: undefined,
+          horarioFim: undefined,
+          duracaoHoras: undefined,
+          turnoId: undefined,
+        };
 
       onDataChange({
         ...data,
@@ -113,15 +128,16 @@ export const StepAgendarVisita = forwardRef<
           osId={osId}
           categoria="visita"
           setorSlug={setorSlug}
+          setorFiltro={setorSlug}
           agendamentoExistente={
             data.agendamentoId
               ? {
                 id: data.agendamentoId,
                 data: data.dataAgendamento || '',
-                horarioInicio: '',
-                horarioFim: '',
-                duracaoHoras: 0,
-                turnoId: '',
+                horarioInicio: data.horarioInicio || '',
+                horarioFim: data.horarioFim || '',
+                duracaoHoras: data.duracaoHoras || 0,
+                turnoId: data.turnoId || '',
                 categoria: 'Vistoria Técnica',
                 setor: setorSlug,
                 status: 'confirmado',

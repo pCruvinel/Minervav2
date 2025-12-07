@@ -16,8 +16,9 @@ import { useUpdateTurno, useDeleteTurno } from '../../lib/hooks/use-turnos';
 import { useSetores } from '../../lib/hooks/use-setores';
 import { logger } from '../../lib/utils/logger';
 import { Turno } from '../../lib/hooks/use-turnos';
-import { AlertCircle, Clock, Calendar, Users, Palette, Briefcase, Edit, Trash2, Loader2, Check, Info, Eye } from 'lucide-react';
+import { AlertCircle, Clock, Calendar, Users, Briefcase, Edit, Trash2, Loader2, Check, Info, Eye } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { getSetorColor } from '../../lib/design-tokens';
 
 interface ModalDetalhesTurnoProps {
     open: boolean;
@@ -25,12 +26,6 @@ interface ModalDetalhesTurnoProps {
     turno: Turno | null;
     onSuccess?: () => void;
 }
-
-const coresTurno = [
-    { nome: 'Verde', classe: 'bg-success', valor: 'verde', ring: 'ring-success' },
-    { nome: 'Vermelho', classe: 'bg-destructive', valor: 'verm', ring: 'ring-destructive' },
-    { nome: 'Azul', classe: 'bg-info', valor: 'azul', ring: 'ring-info' }
-];
 
 // Dias da semana começando por Segunda (padrão iOS/Android)
 const diasSemanaConfig = [
@@ -56,12 +51,11 @@ interface ValidationErrors {
 export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDetalhesTurnoProps) {
     const [horaInicio, setHoraInicio] = useState('09:00');
     const [horaFim, setHoraFim] = useState('11:00');
-    const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'custom'>('uteis');
+    const [disponibilidade, setDisponibilidade] = useState<'uteis' | 'recorrente' | 'custom'>('uteis');
     const [dataInicio, setDataInicio] = useState('');
     const [dataFim, setDataFim] = useState('');
     const [diasSemana, setDiasSemana] = useState<number[]>([]);
     const [numeroVagas, setNumeroVagas] = useState([5]);
-    const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
     const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
     const [todosSetores, setTodosSetores] = useState(false);
     const [errors, setErrors] = useState<ValidationErrors>({});
@@ -76,12 +70,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
         if (turno && open) {
             setHoraInicio(turno.horaInicio);
             setHoraFim(turno.horaFim);
-            setRecorrencia(turno.tipoRecorrencia);
+            setDisponibilidade(turno.tipoRecorrencia as 'uteis' | 'recorrente' | 'custom');
             setDataInicio(turno.dataInicio || '');
             setDataFim(turno.dataFim || '');
             setDiasSemana(turno.diasSemana || []);
             setNumeroVagas([turno.vagasTotal]);
-            setCorSelecionada(turno.cor || 'verde');
             setSetoresSelecionados(turno.setores);
             setTodosSetores(turno.setores.length === setoresDisponiveis.length);
             setErrors({});
@@ -137,9 +130,9 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
         return Object.keys(erros).length === 0;
     };
 
-    // Validar datas (se recorrência = custom)
+    // Validar datas (se disponibilidade = custom)
     const validarDatas = (): boolean => {
-        if (recorrencia !== 'custom') return true;
+        if (disponibilidade !== 'custom') return true;
 
         const erros: ValidationErrors = {};
         const hoje = new Date().toISOString().split('T')[0];
@@ -198,11 +191,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
         return Object.keys(erros).length === 0;
     };
 
-    // Validar dias da semana (para recorrência custom)
+    // Validar dias da semana (para recorrente e custom)
     const validarDiasSemana = (): boolean => {
         const erros: ValidationErrors = {};
 
-        if (recorrencia === 'custom' && diasSemana.length === 0) {
+        if (disponibilidade === 'recorrente' && diasSemana.length === 0) {
             erros.diasSemana = 'Selecione ao menos um dia da semana';
         }
 
@@ -227,12 +220,16 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
         const camposPreenchidos =
             horaInicio && horaFim && numeroVagas.length > 0 && (todosSetores || setoresSelecionados.length > 0);
 
-        if (recorrencia === 'custom') {
-            return camposPreenchidos && dataInicio && dataFim && diasSemana.length > 0 && !temErros;
+        if (disponibilidade === 'recorrente') {
+            return camposPreenchidos && diasSemana.length > 0 && !temErros;
+        }
+
+        if (disponibilidade === 'custom') {
+            return camposPreenchidos && dataInicio && dataFim && !temErros;
         }
 
         return camposPreenchidos && !temErros;
-    }, [horaInicio, horaFim, numeroVagas, setoresSelecionados, todosSetores, dataInicio, dataFim, recorrencia, diasSemana, errors]);
+    }, [horaInicio, horaFim, numeroVagas, setoresSelecionados, todosSetores, dataInicio, dataFim, disponibilidade, diasSemana, errors]);
 
     const handleToggleSetor = (setor: string) => {
         if (setoresSelecionados.includes(setor)) {
@@ -279,11 +276,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                 horaFim,
                 vagasTotal: numeroVagas[0],
                 setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
-                cor: corSelecionada,
-                tipoRecorrencia: recorrencia,
-                dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
-                dataFim: recorrencia === 'custom' ? dataFim : undefined,
-                diasSemana: recorrencia === 'custom' ? diasSemana : undefined,
+                cor: 'verde',
+                tipoRecorrencia: disponibilidade,
+                dataInicio: disponibilidade === 'custom' ? dataInicio : undefined,
+                dataFim: disponibilidade === 'custom' ? dataFim : undefined,
+                diasSemana: disponibilidade === 'recorrente' ? diasSemana : undefined,
             });
 
             setModoEdicao(false);
@@ -321,16 +318,20 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
         }
     };
 
-    const getRecorrenciaLabel = () => {
-        switch (recorrencia) {
-            case 'todos': return 'Todos os dias';
+    const getDisponibilidadeLabel = () => {
+        switch (disponibilidade) {
             case 'uteis': return 'Dias úteis (Seg-Sex)';
-            case 'custom': return 'Personalizada';
+            case 'recorrente': 
+                const diasNomes = diasSemana
+                    .sort()
+                    .map(d => diasSemanaConfig.find(c => c.value === d)?.fullLabel || '')
+                    .filter(Boolean);
+                return diasNomes.length > 0 ? diasNomes.join(', ') : 'Recorrente';
+            case 'custom': return 'Período personalizado';
             default: return '';
         }
     };
 
-    const corAtual = coresTurno.find(c => c.valor === corSelecionada);
     const duracao = calcularDuracao();
 
     if (!turno) return null;
@@ -365,8 +366,8 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                             <Calendar className="h-5 w-5 text-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-muted-foreground">Recorrência</p>
-                                            <p className="font-semibold">{getRecorrenciaLabel()}</p>
+                                            <p className="text-xs text-muted-foreground">Disponibilidade</p>
+                                            <p className="font-semibold">{getDisponibilidadeLabel()}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -381,26 +382,34 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", corAtual?.classe || 'bg-primary')}>
-                                            <Palette className="h-5 w-5 text-white" />
+                                        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                            <Briefcase className="h-5 w-5 text-primary" />
                                         </div>
                                         <div>
-                                            <p className="text-xs text-muted-foreground">Cor</p>
-                                            <p className="font-semibold">{corAtual?.nome || 'Verde'}</p>
+                                            <p className="text-xs text-muted-foreground">Setores</p>
+                                            <p className="font-semibold">{turno.setores.length} setor{turno.setores.length !== 1 ? 'es' : ''}</p>
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Setores */}
+                            {/* Setores com cores */}
                             {turno.setores.length > 0 && (
                                 <div className="mt-4 pt-4 border-t border-border/50">
-                                    <p className="text-xs text-muted-foreground mb-2">Setores</p>
+                                    <p className="text-xs text-muted-foreground mb-2">Setores autorizados</p>
                                     <div className="flex flex-wrap gap-2">
                                         {turno.setores.map(slug => {
                                             const setor = setoresDisponiveis.find(s => s.slug === slug);
+                                            const corSetor = getSetorColor(slug);
                                             return (
-                                                <Badge key={slug} variant="secondary">
+                                                <Badge 
+                                                    key={slug} 
+                                                    style={{
+                                                        backgroundColor: corSetor.badge.bg,
+                                                        color: corSetor.badge.text,
+                                                        borderColor: corSetor.badge.border,
+                                                    }}
+                                                >
                                                     {setor?.nome || slug}
                                                 </Badge>
                                             );
@@ -517,38 +526,43 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                 )}
                             </div>
 
-                            {/* Seção: Recorrência */}
+                            {/* Seção: Disponibilidade */}
                             <div className="space-y-4">
                                 <div className="flex items-center gap-2 pb-2 border-b border-border/50">
                                     <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                                         <Calendar className="h-4 w-4 text-primary" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-sm">Recorrência</h3>
+                                        <h3 className="font-semibold text-sm">Disponibilidade</h3>
                                         <p className="text-xs text-muted-foreground">Quando o turno estará disponível</p>
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { id: 'todos', label: 'Todos os dias', desc: 'Dom a Sáb' },
                                         { id: 'uteis', label: 'Dias úteis', desc: 'Seg a Sex' },
-                                        { id: 'custom', label: 'Personalizado', desc: 'Escolher dias' },
+                                        { id: 'recorrente', label: 'Recorrência', desc: 'Escolher dias' },
+                                        { id: 'custom', label: 'Personalizado', desc: 'Período específico' },
                                     ].map((option) => (
                                         <button
                                             key={option.id}
                                             type="button"
-                                            onClick={() => setRecorrencia(option.id as typeof recorrencia)}
+                                            onClick={() => {
+                                                setDisponibilidade(option.id as typeof disponibilidade);
+                                                if (option.id === 'uteis') {
+                                                    setDiasSemana([]);
+                                                }
+                                            }}
                                             className={cn(
                                                 "p-4 rounded-xl border-2 text-left transition-all duration-200",
-                                                recorrencia === option.id
+                                                disponibilidade === option.id
                                                     ? "border-primary bg-primary/5 shadow-sm"
                                                     : "border-border hover:border-primary/50 hover:bg-muted/50"
                                             )}
                                         >
                                             <div className="flex items-center justify-between mb-1">
                                                 <span className="font-medium text-sm">{option.label}</span>
-                                                {recorrencia === option.id && (
+                                                {disponibilidade === option.id && (
                                                     <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                                                         <Check className="h-3 w-3 text-primary-foreground" />
                                                     </div>
@@ -559,8 +573,41 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                     ))}
                                 </div>
 
-                                {/* Campos de datas para recorrência personalizada */}
-                                {recorrencia === 'custom' && (
+                                {/* Seleção de Dias da Semana para Recorrência */}
+                                {disponibilidade === 'recorrente' && (
+                                    <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/50">
+                                        <Label className="text-sm font-medium">Selecione os dias da semana</Label>
+                                        <p className="text-xs text-muted-foreground">O turno estará disponível toda semana nesses dias</p>
+                                        <div className="flex gap-2 justify-center">
+                                            {diasSemanaConfig.map((dia) => (
+                                                <button
+                                                    key={dia.value}
+                                                    type="button"
+                                                    onClick={() => handleToggleDia(dia.value)}
+                                                    title={dia.fullLabel}
+                                                    className={cn(
+                                                        "h-11 w-11 rounded-full font-semibold text-sm transition-all duration-200",
+                                                        "border-2",
+                                                        diasSemana.includes(dia.value)
+                                                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                            : "bg-background border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40"
+                                                    )}
+                                                >
+                                                    {dia.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        {errors.diasSemana && (
+                                            <p className="text-xs text-destructive flex items-center gap-1">
+                                                <AlertCircle className="h-3 w-3" />
+                                                {errors.diasSemana}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Campos de datas para período personalizado */}
+                                {disponibilidade === 'custom' && (
                                     <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-border/50">
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-2">
@@ -630,36 +677,6 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                                 )}
                                             </div>
                                         </div>
-
-                                        {/* Seleção de Dias da Semana - Estilo iOS/Android */}
-                                        <div className="space-y-3">
-                                            <Label className="text-sm text-muted-foreground">Dias da Semana</Label>
-                                            <div className="flex gap-2">
-                                                {diasSemanaConfig.map((dia) => (
-                                                    <button
-                                                        key={dia.value}
-                                                        type="button"
-                                                        onClick={() => handleToggleDia(dia.value)}
-                                                        title={dia.fullLabel}
-                                                        className={cn(
-                                                            "h-10 w-10 rounded-full font-semibold text-sm transition-all duration-200",
-                                                            "border-2",
-                                                            diasSemana.includes(dia.value)
-                                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                                                : "bg-background border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40"
-                                                        )}
-                                                    >
-                                                        {dia.label}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            {errors.diasSemana && (
-                                                <p className="text-xs text-destructive flex items-center gap-1">
-                                                    <AlertCircle className="h-3 w-3" />
-                                                    {errors.diasSemana}
-                                                </p>
-                                            )}
-                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -708,43 +725,6 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                         {errors.numeroVagas}
                                     </p>
                                 )}
-                            </div>
-
-                            {/* Seção: Cor do Turno */}
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-                                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                                        <Palette className="h-4 w-4 text-primary" />
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-sm">Cor do Turno</h3>
-                                        <p className="text-xs text-muted-foreground">Para identificação visual no calendário</p>
-                                    </div>
-                                </div>
-
-                                <div className="flex gap-4">
-                                    {coresTurno.map((cor) => (
-                                        <button
-                                            key={cor.valor}
-                                            type="button"
-                                            onClick={() => setCorSelecionada(cor.valor)}
-                                            className={cn(
-                                                "flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200",
-                                                corSelecionada === cor.valor
-                                                    ? `border-current ${cor.ring} ring-2 ring-offset-2 bg-muted/50`
-                                                    : "border-border hover:border-muted-foreground"
-                                            )}
-                                        >
-                                            <div className={cn("w-8 h-8 rounded-full shadow-sm", cor.classe)} />
-                                            <span className={cn(
-                                                "font-medium text-sm",
-                                                corSelecionada === cor.valor ? "text-foreground" : "text-muted-foreground"
-                                            )}>
-                                                {cor.nome}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
                             </div>
 
                             {/* Seção: Setores */}
@@ -853,12 +833,11 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                     if (turno) {
                                         setHoraInicio(turno.horaInicio);
                                         setHoraFim(turno.horaFim);
-                                        setRecorrencia(turno.tipoRecorrencia);
+                                        setDisponibilidade(turno.tipoRecorrencia as 'uteis' | 'recorrente' | 'custom');
                                         setDataInicio(turno.dataInicio || '');
                                         setDataFim(turno.dataFim || '');
                                         setDiasSemana(turno.diasSemana || []);
                                         setNumeroVagas([turno.vagasTotal]);
-                                        setCorSelecionada(turno.cor || 'verde');
                                         setSetoresSelecionados(turno.setores);
                                         setErrors({});
                                     }

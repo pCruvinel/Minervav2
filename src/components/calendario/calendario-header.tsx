@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Lock, Plus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { dateStringToSaoPaulo, TIMEZONE_SP } from '@/lib/utils/timezone';
 
@@ -8,17 +8,25 @@ interface CalendarioHeaderProps {
     onSemanaAnterior: () => void;
     onProximaSemana: () => void;
     onHoje: () => void;
+    onCriarBloqueio?: () => void;
+    onCriarTurno?: () => void;
+    ehAdmin?: boolean;
 }
 
 /**
  * CalendarioHeader - Navegação de semana
+ * 
+ * v2.0: Inclui botões para criar bloqueios e turnos (admin)
  */
 export function CalendarioHeader({
     dataInicio,
     dataFim,
     onSemanaAnterior,
     onProximaSemana,
-    onHoje
+    onHoje,
+    onCriarBloqueio,
+    onCriarTurno,
+    ehAdmin = false
 }: CalendarioHeaderProps) {
     // Formatar período da semana no timezone de São Paulo
     const formatarPeriodo = () => {
@@ -55,6 +63,38 @@ export function CalendarioHeader({
             </div>
 
             <div className="flex items-center gap-2">
+                {/* Botões de Admin */}
+                {ehAdmin && (
+                    <>
+                        {onCriarTurno && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={onCriarTurno}
+                                className="h-9 gap-1.5"
+                            >
+                                <Plus className="h-4 w-4" />
+                                <span className="hidden sm:inline">Turno</span>
+                            </Button>
+                        )}
+                        
+                        {onCriarBloqueio && (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={onCriarBloqueio}
+                                className="h-9 gap-1.5 text-destructive hover:text-destructive"
+                            >
+                                <Lock className="h-4 w-4" />
+                                <span className="hidden sm:inline">Bloquear</span>
+                            </Button>
+                        )}
+                        
+                        <div className="w-px h-6 bg-border mx-1" />
+                    </>
+                )}
+                
+                {/* Navegação */}
                 <Button
                     variant="outline"
                     size="sm"

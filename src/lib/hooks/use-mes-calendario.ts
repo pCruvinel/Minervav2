@@ -3,6 +3,8 @@
  *
  * Busca e processa dados de um mês inteiro do calendário.
  * Retorna 42 células (6 semanas × 7 dias) para cobrir qualquer mês.
+ * 
+ * v2.0: Inclui aniversários de colaboradores e clientes
  */
 
 import { useMemo } from 'react';
@@ -11,6 +13,7 @@ import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { dateStringToSaoPaulo, todayInSaoPaulo } from '@/lib/utils/timezone';
 import { TurnoProcessado, AgendamentoProcessado } from './use-semana-calendario';
+import type { AniversarioCalendario } from '@/lib/types';
 
 // =====================================================
 // TYPES
@@ -20,6 +23,7 @@ export interface CelulaDia {
   data: string;             // "2025-12-15"
   turnos: TurnoProcessado[];
   agendamentos: AgendamentoProcessado[];
+  aniversarios: AniversarioCalendario[];  // v2.0
   isOutsideMonth: boolean;  // Dia pertence ao mês anterior/próximo
   isToday: boolean;
 }
@@ -29,6 +33,7 @@ export interface MesData {
   celulas: CelulaDia[];     // 42 células (6 semanas)
   turnos: Map<string, TurnoProcessado[]>;
   agendamentos: Map<string, AgendamentoProcessado[]>;
+  aniversarios: Map<string, AniversarioCalendario[]>;  // v2.0: key = "MM-DD"
 }
 
 // =====================================================
@@ -88,6 +93,15 @@ const mesAPI = {
       .in('status', ['confirmado', 'realizado']);
 
     if (errorAgendamentos) throw errorAgendamentos;
+
+    // 2.1 v2.0: Buscar aniversários de colaboradores
+    const { data: colaboradores, error: errorColabs } = await supabase
+      .from('colaboradores')
+      .select('id, nome_completo, data_nascimento, avatar_url, funcao')
+      .eq('ativo', true)
+      .not('data_nascimento', 'is', null);
+
+    if (errorColabs) throw errorColabs;
 
     // 3. Gerar array de 42 datas
     const datas: string[] = [];
@@ -172,6 +186,34 @@ const mesAPI = {
       });
     });
 
+    // 6.1 v2.0: Processar aniversários
+    const aniversariosPorDia = new Map<string, AniversarioCalendario[]>();
+
+    (colaboradores || []).forEach(colab => {
+      if (!colab.data_nascimento) return;
+
+      // Extrair mês e dia da data de nascimento
+      const dataNasc = new Date(colab.data_nascimento + 'T00:00:00');
+      const mesNasc = dataNasc.getMonth() + 1;
+      const diaNasc = dataNasc.getDate();
+
+      const chaveDia = `${String(mesNasc).padStart(2, '0')}-${String(diaNasc).padStart(2, '0')}`;
+
+      const aniversario: AniversarioCalendario = {
+        id: colab.id,
+        nome: colab.nome_completo || 'Colaborador',
+        tipo: 'colaborador',
+        data: chaveDia,
+        dataCompleta: colab.data_nascimento,
+        avatarUrl: colab.avatar_url,
+        cargo: colab.funcao,
+      };
+
+      const lista = aniversariosPorDia.get(chaveDia) || [];
+      lista.push(aniversario);
+      aniversariosPorDia.set(chaveDia, lista);
+    });
+
     // 7. Criar células do mês
     const hoje = todayInSaoPaulo();
     const mesAtual = primeiroDiaMes.getMonth();
@@ -179,13 +221,19 @@ const mesAPI = {
     const celulas: CelulaDia[] = datas.map(dataStr => {
       const data = dateStringToSaoPaulo(dataStr);
       const mesData = data.getMonth();
+      const diaMes = data.getDate();
       const isOutsideMonth = mesData !== mesAtual;
       const isToday = dataStr === hoje;
+
+      // v2.0: Buscar aniversários do dia
+      const chaveDia = `${String(mesData + 1).padStart(2, '0')}-${String(diaMes).padStart(2, '0')}`;
+      const aniversariosDoDia = aniversariosPorDia.get(chaveDia) || [];
 
       return {
         data: dataStr,
         turnos: turnosPorDia.get(dataStr) || [],
         agendamentos: agendamentosPorDia.get(dataStr) || [],
+        aniversarios: aniversariosDoDia,
         isOutsideMonth,
         isToday,
       };
@@ -196,6 +244,7 @@ const mesAPI = {
       celulas,
       turnos: turnosPorDia,
       agendamentos: agendamentosPorDia,
+      aniversarios: aniversariosPorDia,
     };
   },
 };

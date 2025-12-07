@@ -225,24 +225,32 @@ export function useDelegation(): UseDelegationReturn {
       const { data: { user } } = await supabase.auth.getUser();
 
       // Tentar inserir na tabela de histórico (delegacoes)
-      const { data: historicoData, error: historicoError } = await supabase
-        .from('delegacoes')
-        .insert({
-          os_id: osId,
-          delegante_id: oldOwnerId,
-          delegado_id: newOwnerId,
-          descricao_tarefa: description,
-          observacoes: historicoDescricao,
-          status_delegacao: 'aceita', // Já aceita ao delegar via handoff
-          delegante_nome: oldOwner?.nome_completo || 'Não definido',
-          delegado_nome: newOwner?.nome_completo || 'Desconhecido',
-        })
-        .select('id')
-        .single();
+      // Só registra se delegante e delegado forem diferentes
+      let historicoData = null;
+      if (oldOwnerId && newOwnerId && oldOwnerId !== newOwnerId) {
+        const { data: histData, error: historicoError } = await supabase
+          .from('delegacoes')
+          .insert({
+            os_id: osId,
+            delegante_id: oldOwnerId,
+            delegado_id: newOwnerId,
+            descricao_tarefa: description,
+            observacoes: historicoDescricao,
+            status_delegacao: 'aceita', // Já aceita ao delegar via handoff
+            delegante_nome: oldOwner?.nome_completo || 'Não definido',
+            delegado_nome: newOwner?.nome_completo || 'Desconhecido',
+          })
+          .select('id')
+          .single();
 
-      // Se houver erro na tabela delegacoes, não é erro crítico
-      if (historicoError) {
-        logger.warn('⚠️ Não foi possível registrar histórico:', historicoError);
+        historicoData = histData;
+
+        // Se houver erro na tabela delegacoes, não é erro crítico
+        if (historicoError) {
+          logger.warn('⚠️ Não foi possível registrar histórico:', historicoError);
+        }
+      } else {
+        logger.log('ℹ️ Delegação não registrada: delegante igual ao delegado ou IDs inválidos');
       }
 
       // 4. Enviar Notificação para o Novo Responsável

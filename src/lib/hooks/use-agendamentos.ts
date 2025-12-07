@@ -99,6 +99,8 @@ export interface CreateAgendamentoInput {
   osId?: string;
   /** ID do responsável pela execução. Se não informado, usa o usuário logado. */
   responsavelId?: string;
+  /** IDs dos participantes do agendamento (colaboradores adicionais) */
+  participantes?: string[];
 }
 
 export interface UpdateAgendamentoInput {
@@ -272,6 +274,12 @@ const agendamentosAPI = {
 
     // Determinar responsável: usa o informado ou o usuário logado
     const responsavelId = input.responsavelId || user.user?.id;
+
+    // TODO: Criar tabela agendamento_participantes para relação N:N
+    // Por enquanto, participantes será armazenado nos metadados ou ignorado
+    if (input.participantes && input.participantes.length > 0) {
+      console.log('📋 Participantes do agendamento:', input.participantes);
+    }
 
     const { data, error } = await supabase
       .from('agendamentos')

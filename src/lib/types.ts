@@ -939,3 +939,200 @@ export const PRAZOS_NECESSIDADE: { value: PrazoNecessidade; label: string }[] = 
   { value: '15 dias', label: '15 dias' },
   { value: '30 dias', label: '30 dias' }
 ];
+
+// ============================================================
+// TIPOS PARA CALENDÁRIO - Sistema de Capacidade v2.0
+// ============================================================
+
+/**
+ * Motivos de bloqueio do calendário
+ */
+export type BloqueioMotivo = 
+  | 'feriado' 
+  | 'manutencao' 
+  | 'evento' 
+  | 'ferias_coletivas' 
+  | 'outro';
+
+/**
+ * Interface para bloqueios do calendário
+ */
+export interface CalendarioBloqueio {
+  id: string;
+  dataInicio: string;        // YYYY-MM-DD
+  dataFim: string;           // YYYY-MM-DD
+  horaInicio?: string;       // HH:MM - null = dia inteiro
+  horaFim?: string;          // HH:MM - null = dia inteiro
+  setorId?: string;          // null = todos os setores
+  setorSlug?: string;        // Preenchido via join
+  motivo: BloqueioMotivo;
+  descricao?: string;
+  cor?: string;
+  ativo: boolean;
+  diaInteiro: boolean;
+  criadoPor?: string;
+  criadoPorNome?: string;    // Preenchido via join
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/**
+ * Input para criar bloqueio
+ */
+export interface CreateBloqueioInput {
+  dataInicio: string;
+  dataFim: string;
+  horaInicio?: string;
+  horaFim?: string;
+  setorId?: string;          // null = bloqueia todos os setores
+  motivo: BloqueioMotivo;
+  descricao?: string;
+  cor?: string;
+  diaInteiro?: boolean;
+}
+
+/**
+ * Vagas por setor em um turno
+ * Estrutura: { "obras": 1, "assessoria": 2 }
+ */
+export type VagasPorSetor = Record<string, number>;
+
+/**
+ * Interface estendida de Turno com vagas por setor
+ */
+export interface TurnoCapacidade {
+  id: string;
+  horaInicio: string;
+  horaFim: string;
+  vagasTotal: number;                   // Total de vagas (fallback)
+  vagasPorSetor: VagasPorSetor;         // Vagas específicas por setor
+  setores: string[];                    // Slugs dos setores permitidos
+  cor: string;
+  tipoRecorrencia: 'todos' | 'uteis' | 'custom';
+  dataInicio?: string;
+  dataFim?: string;
+  diasSemana?: number[];
+  ativo: boolean;
+  criadoPor?: string;
+  criadoEm?: string;
+  atualizadoEm?: string;
+}
+
+/**
+ * Informação de capacidade de um turno para uma data específica
+ */
+export interface TurnoCapacidadeInfo {
+  turnoId: string;
+  horaInicio: string;
+  horaFim: string;
+  cor: string;
+  
+  // Capacidade por setor
+  capacidade: {
+    setor: string;
+    vagasTotal: number;
+    vagasOcupadas: number;
+    vagasDisponiveis: number;
+    percentualOcupado: number;
+  }[];
+  
+  // Resumo geral
+  totalVagas: number;
+  totalOcupadas: number;
+  totalDisponiveis: number;
+  
+  // Flags
+  bloqueado: boolean;
+  motivoBloqueio?: BloqueioMotivo;
+}
+
+/**
+ * Time Block para visualização contínua (estilo Google Calendar)
+ */
+export interface TimeBlock {
+  id: string;                           // turno_id + data
+  turnoId: string;
+  data: string;                         // YYYY-MM-DD
+  horaInicio: string;                   // HH:MM
+  horaFim: string;                      // HH:MM
+  duracaoMinutos: number;
+  
+  // Capacidade
+  capacidadePorSetor: TurnoCapacidadeInfo['capacidade'];
+  
+  // Agendamentos dentro deste bloco
+  agendamentos: TimeBlockAgendamento[];
+  
+  // Visual
+  cor: string;
+  bloqueado: boolean;
+  motivoBloqueio?: BloqueioMotivo;
+  
+  // Posicionamento no grid (para renderização)
+  topPercent: number;                   // Posição Y em %
+  heightPercent: number;                // Altura em %
+}
+
+/**
+ * Agendamento dentro de um TimeBlock
+ */
+export interface TimeBlockAgendamento {
+  id: string;
+  setor: string;
+  categoria: string;
+  horarioInicio: string;
+  horarioFim: string;
+  duracaoHoras: number;
+  
+  // Solicitante
+  solicitanteNome?: string;
+  responsavelNome?: string;
+  
+  // OS vinculada
+  osId?: string;
+  osCodigo?: string;
+  clienteNome?: string;
+  
+  // Status
+  status: 'confirmado' | 'cancelado' | 'realizado' | 'ausente';
+  
+  // Posicionamento horizontal no time block (para slots paralelos)
+  slotIndex: number;                    // 0, 1, 2... para agendamentos paralelos
+  totalSlots: number;                   // Quantos slots paralelos existem
+}
+
+/**
+ * Dados de aniversário para calendário mensal
+ */
+export interface AniversarioCalendario {
+  id: string;
+  nome: string;
+  tipo: 'colaborador' | 'cliente';
+  data: string;                         // Dia e mês (MM-DD)
+  dataCompleta?: string;                // Data de nascimento completa
+  avatarUrl?: string;
+  cargo?: string;                       // Para colaboradores
+  empresa?: string;                     // Para clientes
+}
+
+/**
+ * Labels para motivos de bloqueio
+ */
+export const BLOQUEIO_MOTIVO_LABELS: Record<BloqueioMotivo, string> = {
+  feriado: 'Feriado',
+  manutencao: 'Manutenção',
+  evento: 'Evento',
+  ferias_coletivas: 'Férias Coletivas',
+  outro: 'Outro'
+};
+
+/**
+ * Opções de motivos de bloqueio para selects
+ */
+export const BLOQUEIO_MOTIVO_OPTIONS: { value: BloqueioMotivo; label: string }[] = [
+  { value: 'feriado', label: 'Feriado' },
+  { value: 'manutencao', label: 'Manutenção' },
+  { value: 'evento', label: 'Evento' },
+  { value: 'ferias_coletivas', label: 'Férias Coletivas' },
+  { value: 'outro', label: 'Outro' }
+];

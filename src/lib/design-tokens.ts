@@ -159,3 +159,181 @@ export const categoryColors = {
     text: designTokens.colors.events.pink.text
   }
 };
+
+// =====================================================
+// CORES POR SETOR - Sistema de Capacidade v2.0
+// =====================================================
+
+/**
+ * Cores para agendamentos por setor (Color Coding rigoroso)
+ * Usado para diferenciar visualmente agendamentos de diferentes setores
+ */
+export const setorColors = {
+  obras: {
+    bg: 'rgba(146, 64, 14, 0.15)',       // Marrom amber-800 com transparência
+    bgSolid: '#92400E',                   // bg-amber-800
+    border: '#78350F',                    // border-amber-900
+    text: '#451A03',                      // text-amber-950
+    badge: {
+      bg: '#92400E',
+      text: '#FFFFFF',
+      border: '#78350F'
+    }
+  },
+  assessoria: {
+    bg: 'rgba(37, 99, 235, 0.15)',        // Azul blue-600 com transparência
+    bgSolid: '#2563EB',                   // bg-blue-600
+    border: '#1D4ED8',                    // border-blue-700
+    text: '#1E3A8A',                      // text-blue-900
+    badge: {
+      bg: '#2563EB',
+      text: '#FFFFFF',
+      border: '#1D4ED8'
+    }
+  },
+  comercial: {
+    bg: 'rgba(220, 38, 38, 0.15)',        // Vermelho red-600 com transparência
+    bgSolid: '#DC2626',                   // bg-red-600
+    border: '#B91C1C',                    // border-red-700
+    text: '#7F1D1D',                      // text-red-900
+    badge: {
+      bg: '#DC2626',
+      text: '#FFFFFF',
+      border: '#B91C1C'
+    }
+  },
+  administrativo: {
+    bg: 'rgba(22, 163, 74, 0.15)',        // Verde green-600 com transparência
+    bgSolid: '#16A34A',                   // bg-green-600
+    border: '#15803D',                    // border-green-700
+    text: '#14532D',                      // text-green-900
+    badge: {
+      bg: '#16A34A',
+      text: '#FFFFFF',
+      border: '#15803D'
+    }
+  },
+  diretoria: {
+    bg: 'rgba(124, 58, 237, 0.15)',       // Roxo violet-600 com transparência
+    bgSolid: '#7C3AED',                   // bg-violet-600
+    border: '#6D28D9',                    // border-violet-700
+    text: '#4C1D95',                      // text-violet-900
+    badge: {
+      bg: '#7C3AED',
+      text: '#FFFFFF',
+      border: '#6D28D9'
+    }
+  },
+  ti: {
+    bg: 'rgba(14, 116, 144, 0.15)',       // Ciano cyan-700 com transparência
+    bgSolid: '#0E7490',                   // bg-cyan-700
+    border: '#0E7490',                    // border-cyan-700
+    text: '#164E63',                      // text-cyan-900
+    badge: {
+      bg: '#0E7490',
+      text: '#FFFFFF',
+      border: '#0E7490'
+    }
+  }
+} as const;
+
+/**
+ * Tipo para slugs de setor
+ */
+export type SetorColorKey = keyof typeof setorColors;
+
+/**
+ * Cores para bloqueios do calendário
+ */
+export const bloqueioColors = {
+  feriado: {
+    bg: 'rgba(239, 68, 68, 0.1)',         // Vermelho suave
+    bgSolid: '#EF4444',                    // Vermelho sólido
+    border: '#FCA5A5',
+    text: '#7F1D1D',
+    pattern: 'striped',                    // Padrão hachurado
+    icon: '🎉',
+    badge: {
+      bg: '#EF4444',
+      text: '#FFFFFF',
+      border: '#DC2626'
+    }
+  },
+  manutencao: {
+    bg: 'rgba(156, 163, 175, 0.2)',       // Cinza
+    bgSolid: '#6B7280',                    // Cinza sólido
+    border: '#9CA3AF',
+    text: '#374151',
+    pattern: 'solid',
+    icon: '🔧',
+    badge: {
+      bg: '#6B7280',
+      text: '#FFFFFF',
+      border: '#4B5563'
+    }
+  },
+  evento: {
+    bg: 'rgba(168, 85, 247, 0.1)',        // Roxo suave
+    bgSolid: '#A855F7',                    // Roxo sólido
+    border: '#C084FC',
+    text: '#581C87',
+    pattern: 'solid',
+    icon: '📅',
+    badge: {
+      bg: '#A855F7',
+      text: '#FFFFFF',
+      border: '#9333EA'
+    }
+  },
+  ferias_coletivas: {
+    bg: 'rgba(251, 191, 36, 0.15)',       // Amarelo suave
+    bgSolid: '#F59E0B',                    // Amarelo sólido
+    border: '#FCD34D',
+    text: '#78350F',
+    pattern: 'striped',
+    icon: '🏖️',
+    badge: {
+      bg: '#F59E0B',
+      text: '#FFFFFF',
+      border: '#D97706'
+    }
+  },
+  outro: {
+    bg: 'rgba(156, 163, 175, 0.15)',      // Cinza neutro
+    bgSolid: '#9CA3AF',                    // Cinza neutro sólido
+    border: '#D1D5DB',
+    text: '#374151',
+    pattern: 'solid',
+    icon: '⛔',
+    badge: {
+      bg: '#9CA3AF',
+      text: '#FFFFFF',
+      border: '#6B7280'
+    }
+  }
+} as const;
+
+/**
+ * Tipo para motivos de bloqueio
+ */
+export type BloqueioMotivoKey = keyof typeof bloqueioColors;
+
+/**
+ * Helper para obter cor do setor com fallback
+ */
+export function getSetorColor(setor: string | undefined | null) {
+  if (!setor) return setorColors.administrativo;
+  
+  const normalizado = setor.toLowerCase().trim();
+  return setorColors[normalizado as SetorColorKey] || setorColors.administrativo;
+}
+
+/**
+ * Helper para obter cor do bloqueio
+ */
+export function getBloqueioColor(motivo: string | undefined | null) {
+  if (!motivo) return bloqueioColors.outro;
+  
+  const normalizado = motivo.toLowerCase().trim();
+  return bloqueioColors[normalizado as BloqueioMotivoKey] || bloqueioColors.outro;
+}

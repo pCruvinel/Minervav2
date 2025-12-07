@@ -1,18 +1,25 @@
 import { useState, Suspense, lazy, memo } from 'react';
 import { CalendarioHeader } from './calendario-header';
-import { CalendarioGrid } from './calendario-grid';
-import { useSemanaCalendario, CelulaData } from '@/lib/hooks/use-semana-calendario';
+import { CalendarioGridV2 } from './calendario-grid-v2';
+import { useSemanaCalendario, TurnoProcessado, AgendamentoProcessado } from '@/lib/hooks/use-semana-calendario';
+import { useBloqueiosPorPeriodo } from '@/lib/hooks/use-bloqueios';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { PermissaoUtil } from '@/lib/auth-utils';
 import { Loader2 } from 'lucide-react';
 import { nowInSaoPaulo, toSaoPauloTime } from '@/lib/utils/timezone';
 
 // Lazy load modals
-const ModalDetalhesCelula = lazy(() => import('./modal-detalhes-celula').then(m => ({ default: m.ModalDetalhesCelula })));
+const ModalNovoAgendamentoV2 = lazy(() => import('./modal-novo-agendamento-v2').then(m => ({ default: m.ModalNovoAgendamentoV2 })));
+const ModalCriarBloqueio = lazy(() => import('./modal-criar-bloqueio').then(m => ({ default: m.ModalCriarBloqueio })));
+const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
 
 interface CalendarioSemanaCustomProps {
     dataInicial?: Date;
     onRefresh?: () => void;
+    /** Filtro de setor para restringir vagas (usado em OS) */
+    setorFiltro?: string;
+    /** Callback chamado quando um agendamento é criado com sucesso */
+    onAgendamentoCriado?: (agendamento: any) => void;
 }
 
 /**
@@ -21,11 +28,19 @@ interface CalendarioSemanaCustomProps {
  * Grid semanal (Dom-Sáb) com turnos e agendamentos.
  * Desenvolvido do zero em React + CSS Grid.
  */
-function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioSemanaCustomProps) {
+function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, onAgendamentoCriado }: CalendarioSemanaCustomProps) {
     const { currentUser } = useAuth();
     const [dataAtual, setDataAtual] = useState(dataInicial || new Date());
-    const [modalDetalhesCelula, setModalDetalhesCelula] = useState(false);
-    const [celulaSelecionada, setCelulaSelecionada] = useState<CelulaData | null>(null);
+    
+    // v2.0: Estados para modal de agendamento (com turno selecionado)
+    const [modalNovoAgendamento, setModalNovoAgendamento] = useState(false);
+    const [turnoSelecionado, setTurnoSelecionado] = useState<TurnoProcessado | null>(null);
+    const [dataSelecionada, setDataSelecionada] = useState<string>('');
+    const [agendamentosDoTurno, setAgendamentosDoTurno] = useState<AgendamentoProcessado[]>([]);
+    
+    // v2.0: Estados para modais de admin
+    const [modalCriarBloqueio, setModalCriarBloqueio] = useState(false);
+    const [modalCriarTurno, setModalCriarTurno] = useState(false);
 
     const ehAdmin = currentUser && PermissaoUtil.ehDiretoria(currentUser);
 
@@ -51,6 +66,9 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
     // Carregar dados da semana
     const { semanaData, loading, error, refetch } = useSemanaCalendario(dataInicio, dataFim);
 
+    // v2.1: Carregar bloqueios da semana
+    const { bloqueios, refetch: refetchBloqueios } = useBloqueiosPorPeriodo(dataInicio, dataFim);
+
     // Handlers de navegação
     const handleSemanaAnterior = () => {
         const nova = new Date(dataAtual);
@@ -68,15 +86,17 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
         setDataAtual(nowInSaoPaulo());
     };
 
-    // Handler de clique em célula - agora abre modal de detalhes
-    const handleClickCelula = (celula: CelulaData) => {
-        // Abrir modal de detalhes da célula (mostra turnos disponíveis)
-        setCelulaSelecionada(celula);
-        setModalDetalhesCelula(true);
+    // v2.0: Handler de clique em turno - abre modal de novo agendamento
+    const handleClickTurno = (turno: TurnoProcessado, data: string, agendamentos: AgendamentoProcessado[]) => {
+        setTurnoSelecionado(turno);
+        setDataSelecionada(data);
+        setAgendamentosDoTurno(agendamentos);
+        setModalNovoAgendamento(true);
     };
 
     const handleRefetchCompleto = () => {
         refetch();
+        refetchBloqueios();
         onRefresh?.();
     };
 
@@ -123,28 +143,62 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh }: CalendarioS
                 onSemanaAnterior={handleSemanaAnterior}
                 onProximaSemana={handleProximaSemana}
                 onHoje={handleHoje}
-            />
-
-            {/* Grid do calendário */}
-            <CalendarioGrid
-                dias={semanaData.dias}
-                celulas={semanaData.celulas}
-                onClickCelula={handleClickCelula}
+                onCriarBloqueio={() => setModalCriarBloqueio(true)}
+                onCriarTurno={() => setModalCriarTurno(true)}
                 ehAdmin={!!ehAdmin}
             />
 
-            {/* Modal de detalhes da célula */}
+            {/* Grid do calendário v2 - Blocos de Turno */}
+            <CalendarioGridV2
+                semanaData={semanaData}
+                bloqueios={bloqueios}
+                onClickTurno={handleClickTurno}
+                ehAdmin={!!ehAdmin}
+            />
+
+            {/* Modal de novo agendamento v2 */}
             <Suspense fallback={null}>
-                <ModalDetalhesCelula
-                    open={modalDetalhesCelula}
+                <ModalNovoAgendamentoV2
+                    open={modalNovoAgendamento}
                     onClose={() => {
-                        setModalDetalhesCelula(false);
-                        setCelulaSelecionada(null);
+                        setModalNovoAgendamento(false);
+                        setTurnoSelecionado(null);
+                        setDataSelecionada('');
+                        setAgendamentosDoTurno([]);
                     }}
-                    celula={celulaSelecionada || undefined}
-                    onSuccess={handleRefetchCompleto}
+                    turno={turnoSelecionado}
+                    data={dataSelecionada}
+                    agendamentosExistentes={agendamentosDoTurno}
+                    setorFiltro={setorFiltro}
+                    onSuccess={(agendamento) => {
+                        handleRefetchCompleto();
+                        onAgendamentoCriado?.(agendamento);
+                    }}
                 />
             </Suspense>
+
+            {/* v2.0: Modal de criar bloqueio (Admin) */}
+            {ehAdmin && (
+                <Suspense fallback={null}>
+                    <ModalCriarBloqueio
+                        open={modalCriarBloqueio}
+                        onClose={() => setModalCriarBloqueio(false)}
+                        onSuccess={handleRefetchCompleto}
+                        dataInicial={dataInicio}
+                    />
+                </Suspense>
+            )}
+
+            {/* v2.0: Modal de criar turno (Admin) */}
+            {ehAdmin && (
+                <Suspense fallback={null}>
+                    <ModalCriarTurno
+                        open={modalCriarTurno}
+                        onClose={() => setModalCriarTurno(false)}
+                        onSuccess={handleRefetchCompleto}
+                    />
+                </Suspense>
+            )}
         </div>
     );
 }

@@ -22,6 +22,7 @@ export interface TurnoProcessado {
   horaFim: string;         // "12:00"
   vagasTotal: number;
   vagasOcupadas: number;
+  vagasPorSetor: Record<string, number>;  // { "Obras": 2, "Assessoria": 1 }
   setores: string[];
   cor: 'verde' | 'verm' | 'azul';
   ativo: boolean;
@@ -117,10 +118,10 @@ const semanaAPI = {
 
       const turnosDoDia = turnosDB
         .filter(turno => {
-          // Validar recorrência
-          if (turno.tipo_recorrencia === 'todos') return true;
+          // Validar disponibilidade
           if (turno.tipo_recorrencia === 'uteis' && diaSemana >= 1 && diaSemana <= 5) return true;
-          if (turno.tipo_recorrencia === 'custom' && turno.dias_semana?.includes(diaSemana)) return true;
+          if (turno.tipo_recorrencia === 'recorrente' && turno.dias_semana?.includes(diaSemana)) return true;
+          if (turno.tipo_recorrencia === 'custom') return true; // Custom = período específico, válido em qualquer dia do range
           return false;
         })
         .filter(turno => {
@@ -135,6 +136,7 @@ const semanaAPI = {
           horaFim: turno.hora_fim.slice(0, 5),
           vagasTotal: turno.vagas_total,
           vagasOcupadas: 0, // Será calculado com agendamentos
+          vagasPorSetor: turno.vagas_por_setor || {}, // Vagas específicas por setor
           setores: turno.setores,
           cor: turno.cor,
           ativo: turno.ativo,

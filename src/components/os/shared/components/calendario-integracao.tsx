@@ -31,6 +31,7 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useEffect,
 } from 'react';
 import { CalendarioSemanaCustom } from '@/components/calendario/calendario-semana-custom';
 import { Card, CardContent } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import {
   Clock,
   MapPin,
   AlertCircle,
+  CheckCircle2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
@@ -89,6 +91,8 @@ export interface CalendarioIntegracaoProps {
   onAgendamentoChange?: (agendamento: Agendamento | null) => void;
   readOnly?: boolean;
   dataInicial?: Date;
+  /** Filtro de setor para restringir vagas disponíveis (usado em OS) */
+  setorFiltro?: string;
 }
 
 // =====================================================
@@ -108,6 +112,7 @@ export const CalendarioIntegracao = forwardRef<
       onAgendamentoChange,
       readOnly = false,
       dataInicial,
+      setorFiltro,
     },
     ref
   ) => {
@@ -117,6 +122,22 @@ export const CalendarioIntegracao = forwardRef<
 
     // Ref do calendário para triggerar refresh
     const calendarioRef = useRef<HTMLDivElement>(null);
+
+    // =====================================================
+    // EFEITOS
+    // =====================================================
+
+    // Sincronizar com agendamentoExistente quando ele mudar
+    useEffect(() => {
+      if (agendamentoExistente?.id) {
+        logger.log('📅 CalendarioIntegracao: Carregando agendamento existente:', {
+          id: agendamentoExistente.id,
+          data: agendamentoExistente.data,
+          horario: `${agendamentoExistente.horarioInicio} - ${agendamentoExistente.horarioFim}`,
+        });
+        setAgendamentoSelecionado(agendamentoExistente);
+      }
+    }, [agendamentoExistente?.id]);
 
     // =====================================================
     // HANDLERS
@@ -189,11 +210,16 @@ export const CalendarioIntegracao = forwardRef<
               </div>
 
               <div className="flex-1">
-                <h3 className="text-base font-medium mb-2">
-                  {agendamentoSelecionado
-                    ? 'Agendamento Selecionado'
-                    : 'Agendamento Pendente'}
-                </h3>
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-base font-medium">
+                    {agendamentoSelecionado
+                      ? 'Agendamento Confirmado'
+                      : 'Agendamento Pendente'}
+                  </h3>
+                  {agendamentoSelecionado && (
+                    <CheckCircle2 className="h-5 w-5 text-success" />
+                  )}
+                </div>
 
                 {agendamentoSelecionado ? (
                   <div className="space-y-2">
@@ -222,7 +248,13 @@ export const CalendarioIntegracao = forwardRef<
 
                     <div className="flex items-center gap-2 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{agendamentoSelecionado.setor}</span>
+                      <span className="font-medium">{agendamentoSelecionado.setor}</span>
+                    </div>
+
+                    <div className="mt-3 pt-3 border-t border-success/20">
+                      <p className="text-xs text-success font-medium">
+                        ✓ Agendamento concluído com sucesso! Você pode avançar para a próxima etapa.
+                      </p>
                     </div>
                   </div>
                 ) : (
@@ -240,7 +272,11 @@ export const CalendarioIntegracao = forwardRef<
         {!readOnly && (
           <Card className="border-border">
             <CardContent className="p-6">
-              <CalendarioSemanaCustom dataInicial={dataInicial} />
+              <CalendarioSemanaCustom 
+                dataInicial={dataInicial} 
+                setorFiltro={setorFiltro}
+                onAgendamentoCriado={handleAgendamentoChange}
+              />
             </CardContent>
           </Card>
         )}

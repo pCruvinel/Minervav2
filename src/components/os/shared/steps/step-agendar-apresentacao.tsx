@@ -16,6 +16,10 @@ interface StepAgendarApresentacaoProps {
   data: {
     dataAgendamento?: string;
     agendamentoId?: string;
+    horarioInicio?: string;
+    horarioFim?: string;
+    duracaoHoras?: number;
+    turnoId?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
@@ -76,8 +80,19 @@ export const StepAgendarApresentacao = forwardRef<
         ? {
           agendamentoId: agendamento.id,
           dataAgendamento: agendamento.data,
+          horarioInicio: agendamento.horarioInicio,
+          horarioFim: agendamento.horarioFim,
+          duracaoHoras: agendamento.duracaoHoras,
+          turnoId: agendamento.turnoId,
         }
-        : { agendamentoId: null };
+        : { 
+          agendamentoId: null,
+          dataAgendamento: undefined,
+          horarioInicio: undefined,
+          horarioFim: undefined,
+          duracaoHoras: undefined,
+          turnoId: undefined,
+        };
 
       onDataChange({
         ...data,
@@ -104,15 +119,16 @@ export const StepAgendarApresentacao = forwardRef<
           osId={osId}
           categoria="apresentacao"
           setorSlug={setorSlug}
+          setorFiltro={setorSlug}
           agendamentoExistente={
             data.agendamentoId
               ? {
                 id: data.agendamentoId,
                 data: data.dataAgendamento || '',
-                horarioInicio: '',
-                horarioFim: '',
-                duracaoHoras: 0,
-                turnoId: '',
+                horarioInicio: data.horarioInicio || '',
+                horarioFim: data.horarioFim || '',
+                duracaoHoras: data.duracaoHoras || 0,
+                turnoId: data.turnoId || '',
                 categoria: 'Apresentação de Proposta',
                 setor: setorSlug,
                 status: 'confirmado',

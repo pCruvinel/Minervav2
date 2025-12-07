@@ -17,6 +17,10 @@ export interface StepAgendarVisitaFinalProps {
   data: {
     dataVisitaFinal?: string;
     agendamentoId?: string;
+    horarioInicio?: string;
+    horarioFim?: string;
+    duracaoHoras?: number;
+    turnoId?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
@@ -77,8 +81,19 @@ export const StepAgendarVisitaFinal = forwardRef<
         ? {
           agendamentoId: agendamento.id,
           dataVisitaFinal: agendamento.data,
+          horarioInicio: agendamento.horarioInicio,
+          horarioFim: agendamento.horarioFim,
+          duracaoHoras: agendamento.duracaoHoras,
+          turnoId: agendamento.turnoId,
         }
-        : { agendamentoId: null };
+        : { 
+          agendamentoId: null,
+          dataVisitaFinal: undefined,
+          horarioInicio: undefined,
+          horarioFim: undefined,
+          duracaoHoras: undefined,
+          turnoId: undefined,
+        };
 
       onDataChange({
         ...data,
@@ -113,15 +128,16 @@ export const StepAgendarVisitaFinal = forwardRef<
           osId={osId}
           categoria="visita"
           setorSlug={setorSlug}
+          setorFiltro={setorSlug}
           agendamentoExistente={
             data.agendamentoId
               ? {
                 id: data.agendamentoId,
                 data: data.dataVisitaFinal || '',
-                horarioInicio: '',
-                horarioFim: '',
-                duracaoHoras: 0,
-                turnoId: '',
+                horarioInicio: data.horarioInicio || '',
+                horarioFim: data.horarioFim || '',
+                duracaoHoras: data.duracaoHoras || 0,
+                turnoId: data.turnoId || '',
                 categoria: 'Vistoria Final',
                 setor: setorSlug,
                 status: 'confirmado',

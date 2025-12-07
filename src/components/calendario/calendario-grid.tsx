@@ -1,23 +1,54 @@
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { CelulaData } from '@/lib/hooks/use-semana-calendario';
 import { CelulaCalendario } from './celula-calendario';
 import { cn } from '@/lib/utils';
 import { nowInSaoPaulo, dateStringToSaoPaulo } from '@/lib/utils/timezone';
+import type { CalendarioBloqueio } from '@/lib/types';
 
 interface CalendarioGridProps {
     dias: string[];          // 7 datas ["2025-12-01", ...]
     celulas: Map<string, CelulaData>;
     onClickCelula: (celula: CelulaData) => void;
     ehAdmin: boolean;
+    bloqueios?: CalendarioBloqueio[];  // v2.1: Lista de bloqueios
 }
 
 /**
  * CalendarioGrid - Grid semanal do calendário
  * 
+ * v2.1: Suporte a bloqueios com cinza apagado
+ * 
  * Layout: 8 colunas (horários + 7 dias) x 16 linhas (header + 15 horas)
  */
-function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: CalendarioGridProps) {
+function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin, bloqueios = [] }: CalendarioGridProps) {
     const horas = Array.from({ length: 15 }, (_, i) => i + 6); // 6-20
+
+    // v2.1: Verificar se uma célula está bloqueada
+    const verificarBloqueio = useMemo(() => {
+        return (data: string, hora: number): boolean => {
+            const horaStr = `${String(hora).padStart(2, '0')}:00`;
+            const horaFimStr = `${String(hora).padStart(2, '0')}:59`;
+            
+            return bloqueios.some(bloqueio => {
+                // Verificar se a data está no período do bloqueio
+                if (data < bloqueio.dataInicio || data > bloqueio.dataFim) {
+                    return false;
+                }
+                
+                // Se é dia inteiro, está bloqueado
+                if (bloqueio.diaInteiro) {
+                    return true;
+                }
+                
+                // Verificar se o horário está no período do bloqueio
+                if (bloqueio.horaInicio && bloqueio.horaFim) {
+                    return horaStr >= bloqueio.horaInicio && horaFimStr <= bloqueio.horaFim;
+                }
+                
+                return false;
+            });
+        };
+    }, [bloqueios]);
 
     // Verificar se uma data é hoje
     const ehHoje = (data: string): boolean => {
@@ -112,6 +143,9 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                                     );
                                 }
 
+                                // v2.1: Verificar se a célula está bloqueada
+                                const estaBloqueada = verificarBloqueio(dataStr, hora);
+
                                 return (
                                     <CelulaCalendario
                                         key={chaveCelula}
@@ -119,6 +153,7 @@ function CalendarioGridComponent({ dias, celulas, onClickCelula, ehAdmin }: Cale
                                         onClick={onClickCelula}
                                         ehAdmin={ehAdmin}
                                         ehFimDeSemana={nome === 'Sáb' || nome === 'Dom'}
+                                        bloqueado={estaBloqueada}
                                     />
                                 );
                             })}

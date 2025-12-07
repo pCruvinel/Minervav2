@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,27 +8,22 @@ import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Slider } from '../ui/slider';
 import { Switch } from '../ui/switch';
 import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { useCreateTurno } from '../../lib/hooks/use-turnos';
-import { Loader2, AlertCircle, Clock, Calendar, Users, Palette, Briefcase, Check, Info } from 'lucide-react';
+import { Loader2, AlertCircle, Clock, Calendar, Users, Briefcase, Check, Info, Minus, Plus } from 'lucide-react';
 import { useSetores } from '../../lib/hooks/use-setores';
 import { logger } from '../../lib/utils/logger';
 import { cn } from '../../lib/utils';
+import { getSetorColor } from '../../lib/design-tokens';
+import type { VagasPorSetor } from '../../lib/types';
 
 interface ModalCriarTurnoProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
 }
-
-const coresTurno = [
-  { nome: 'Verde', classe: 'bg-success', valor: 'verde', ring: 'ring-success' },
-  { nome: 'Vermelho', classe: 'bg-destructive', valor: 'verm', ring: 'ring-destructive' },
-  { nome: 'Azul', classe: 'bg-info', valor: 'azul', ring: 'ring-info' }
-];
 
 // Dias da semana começando por Segunda (padrão iOS/Android)
 const diasSemanaConfig = [
@@ -54,15 +49,16 @@ interface ValidationErrors {
 export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoProps) {
   const [horaInicio, setHoraInicio] = useState('09:00');
   const [horaFim, setHoraFim] = useState('11:00');
-  const [recorrencia, setRecorrencia] = useState<'todos' | 'uteis' | 'custom'>('uteis');
+  const [disponibilidade, setDisponibilidade] = useState<'uteis' | 'recorrente' | 'custom'>('uteis');
   const [dataInicio, setDataInicio] = useState('');
   const [dataFim, setDataFim] = useState('');
   const [diasSemana, setDiasSemana] = useState<number[]>([]);
-  const [numeroVagas, setNumeroVagas] = useState([5]);
-  const [corSelecionada, setCorSelecionada] = useState(coresTurno[0].valor);
   const [setoresSelecionados, setSetoresSelecionados] = useState<string[]>([]);
   const [todosSetores, setTodosSetores] = useState(false);
   const [errors, setErrors] = useState<ValidationErrors>({});
+  
+  // v2.0: Vagas por setor
+  const [vagasPorSetor, setVagasPorSetor] = useState<VagasPorSetor>({});
 
   const { mutate: criarTurno, loading: criando } = useCreateTurno();
   const { setores: setoresDisponiveis, loading: loadingSetores } = useSetores();
@@ -115,9 +111,9 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     return Object.keys(erros).length === 0;
   };
 
-  // Validar datas (se recorrência = custom)
+  // Validar datas (apenas para personalizado)
   const validarDatas = (): boolean => {
-    if (recorrencia !== 'custom') return true;
+    if (disponibilidade !== 'custom') return true;
 
     const erros: ValidationErrors = {};
     const hoje = new Date().toISOString().split('T')[0];
@@ -145,24 +141,36 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     return Object.keys(erros).length === 0;
   };
 
-  // Validar número de vagas
+  // Validar número de vagas por setor
   const validarVagas = (): boolean => {
     const erros: ValidationErrors = {};
 
-    if (!numeroVagas || numeroVagas.length === 0) {
-      erros.numeroVagas = 'Número de vagas é obrigatório';
-    } else {
-      const vagas = numeroVagas[0];
-      if (vagas <= 0) {
-        erros.numeroVagas = 'Deve ser um número positivo';
-      } else if (vagas > 10) {
-        erros.numeroVagas = 'Máximo 10 vagas';
+    // Se nenhum setor selecionado, não precisa validar vagas
+    if (setoresSelecionados.length === 0) {
+      return true;
+    }
+
+    // Verificar se todos os setores selecionados têm vagas configuradas
+    for (const setor of setoresSelecionados) {
+      const vagas = vagasPorSetor[setor];
+      if (!vagas || vagas <= 0) {
+        erros.numeroVagas = `Configure as vagas para ${setor}`;
+        break;
+      }
+      if (vagas > 10) {
+        erros.numeroVagas = `Máximo 10 vagas por setor`;
+        break;
       }
     }
 
     setErrors((prev) => ({ ...prev, ...erros }));
     return Object.keys(erros).length === 0;
   };
+
+  // Calcular total de vagas
+  const totalVagas = useMemo(() => {
+    return Object.values(vagasPorSetor).reduce((sum, v) => sum + v, 0);
+  }, [vagasPorSetor]);
 
   // Validar setores
   const validarSetores = (): boolean => {
@@ -176,11 +184,11 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     return Object.keys(erros).length === 0;
   };
 
-  // Validar dias da semana (para recorrência custom)
+  // Validar dias da semana (para recorrente e personalizado)
   const validarDiasSemana = (): boolean => {
     const erros: ValidationErrors = {};
 
-    if (recorrencia === 'custom' && diasSemana.length === 0) {
+    if ((disponibilidade === 'recorrente' || disponibilidade === 'custom') && diasSemana.length === 0) {
       erros.diasSemana = 'Selecione ao menos um dia da semana';
     }
 
@@ -202,21 +210,32 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   // Verificar se formulário está válido
   const isFormValid = useMemo(() => {
     const temErros = Object.keys(errors).length > 0;
-    const camposPreenchidos =
-      horaInicio && horaFim && numeroVagas.length > 0 && (todosSetores || setoresSelecionados.length > 0);
+    const temSetores = todosSetores || setoresSelecionados.length > 0;
+    const temVagas = Object.keys(vagasPorSetor).length > 0 && Object.values(vagasPorSetor).every(v => v > 0);
+    const camposPreenchidos = horaInicio && horaFim && temSetores && temVagas;
 
-    if (recorrencia === 'custom') {
-      return camposPreenchidos && dataInicio && dataFim && diasSemana.length > 0 && !temErros;
+    if (disponibilidade === 'recorrente') {
+      return camposPreenchidos && diasSemana.length > 0 && !temErros;
+    }
+
+    if (disponibilidade === 'custom') {
+      return camposPreenchidos && dataInicio && dataFim && !temErros;
     }
 
     return camposPreenchidos && !temErros;
-  }, [horaInicio, horaFim, numeroVagas, setoresSelecionados, todosSetores, dataInicio, dataFim, recorrencia, diasSemana, errors]);
+  }, [horaInicio, horaFim, vagasPorSetor, setoresSelecionados, todosSetores, dataInicio, dataFim, disponibilidade, diasSemana, errors]);
 
   const handleToggleSetor = (setor: string) => {
     if (setoresSelecionados.includes(setor)) {
       setSetoresSelecionados(setoresSelecionados.filter(s => s !== setor));
+      // Remover do vagasPorSetor
+      const novasVagas = { ...vagasPorSetor };
+      delete novasVagas[setor];
+      setVagasPorSetor(novasVagas);
     } else {
       setSetoresSelecionados([...setoresSelecionados, setor]);
+      // Adicionar ao vagasPorSetor com valor padrão
+      setVagasPorSetor({ ...vagasPorSetor, [setor]: 1 });
     }
     setTodosSetores(false);
   };
@@ -224,10 +243,40 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
   const handleTodosSetores = (checked: boolean) => {
     setTodosSetores(checked);
     if (checked) {
-      setSetoresSelecionados(setoresDisponiveis.map(s => s.slug));
+      const todosSlugss = setoresDisponiveis.map(s => s.slug);
+      setSetoresSelecionados(todosSlugss);
+      // Inicializar vagas para todos os setores
+      const novasVagas: VagasPorSetor = {};
+      todosSlugss.forEach(slug => {
+        novasVagas[slug] = 1;
+      });
+      setVagasPorSetor(novasVagas);
     } else {
       setSetoresSelecionados([]);
+      setVagasPorSetor({});
     }
+  };
+
+  // Handler para alterar vagas de um setor específico
+  const handleVagasSetor = (setor: string, delta: number) => {
+    const vagasAtuais = vagasPorSetor[setor] || 1;
+    const novoValor = Math.max(1, Math.min(10, vagasAtuais + delta));
+    setVagasPorSetor({ ...vagasPorSetor, [setor]: novoValor });
+    setErrors(prev => {
+      const novo = { ...prev };
+      delete novo.numeroVagas;
+      return novo;
+    });
+  };
+
+  const handleSetVagasSetor = (setor: string, valor: number) => {
+    const novoValor = Math.max(1, Math.min(10, valor));
+    setVagasPorSetor({ ...vagasPorSetor, [setor]: novoValor });
+    setErrors(prev => {
+      const novo = { ...prev };
+      delete novo.numeroVagas;
+      return novo;
+    });
   };
 
   const handleToggleDia = (dia: number) => {
@@ -250,27 +299,29 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     }
 
     try {
+      const setoresFinais = todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados;
+      
       await criarTurno({
         horaInicio,
         horaFim,
-        vagasTotal: numeroVagas[0],
-        setores: todosSetores ? setoresDisponiveis.map(s => s.slug) : setoresSelecionados,
-        cor: corSelecionada,
-        tipoRecorrencia: recorrencia,
-        dataInicio: recorrencia === 'custom' ? dataInicio : undefined,
-        dataFim: recorrencia === 'custom' ? dataFim : undefined,
-        diasSemana: recorrencia === 'custom' ? diasSemana : undefined,
+        vagasTotal: totalVagas,
+        vagasPorSetor,
+        setores: setoresFinais,
+        cor: 'verde',
+        tipoRecorrencia: disponibilidade,
+        dataInicio: disponibilidade === 'custom' ? dataInicio : undefined,
+        dataFim: disponibilidade === 'custom' ? dataFim : undefined,
+        diasSemana: (disponibilidade === 'recorrente' || disponibilidade === 'custom') ? diasSemana : undefined,
       });
 
       // Resetar formulário
       setHoraInicio('09:00');
       setHoraFim('11:00');
-      setRecorrencia('uteis');
+      setDisponibilidade('uteis');
       setDataInicio('');
       setDataFim('');
       setDiasSemana([]);
-      setNumeroVagas([5]);
-      setCorSelecionada(coresTurno[0].valor);
+      setVagasPorSetor({});
       setSetoresSelecionados([]);
       setTodosSetores(false);
       setErrors({});
@@ -290,16 +341,20 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
     }
   };
 
-  const getRecorrenciaLabel = () => {
-    switch (recorrencia) {
-      case 'todos': return 'Todos os dias';
+  const getDisponibilidadeLabel = () => {
+    switch (disponibilidade) {
       case 'uteis': return 'Dias úteis (Seg-Sex)';
-      case 'custom': return 'Personalizada';
+      case 'recorrente': 
+        const diasNomes = diasSemana
+          .sort()
+          .map(d => diasSemanaConfig.find(c => c.value === d)?.fullLabel || '')
+          .filter(Boolean);
+        return diasNomes.length > 0 ? diasNomes.join(', ') : 'Recorrente';
+      case 'custom': return 'Período personalizado';
       default: return '';
     }
   };
 
-  const corAtual = coresTurno.find(c => c.valor === corSelecionada);
   const duracao = calcularDuracao();
 
   return (
@@ -390,38 +445,44 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
             )}
           </div>
 
-          {/* Seção: Recorrência */}
+          {/* Seção: Disponibilidade */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-border/50">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Calendar className="h-4 w-4 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-sm">Recorrência</h3>
+                <h3 className="font-semibold text-sm">Disponibilidade</h3>
                 <p className="text-xs text-muted-foreground">Quando o turno estará disponível</p>
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-3">
               {[
-                { id: 'todos', label: 'Todos os dias', desc: 'Dom a Sáb' },
                 { id: 'uteis', label: 'Dias úteis', desc: 'Seg a Sex' },
-                { id: 'custom', label: 'Personalizado', desc: 'Escolher dias' },
+                { id: 'recorrente', label: 'Recorrência', desc: 'Escolher dias' },
+                { id: 'custom', label: 'Personalizado', desc: 'Período específico' },
               ].map((option) => (
                 <button
                   key={option.id}
                   type="button"
-                  onClick={() => setRecorrencia(option.id as typeof recorrencia)}
+                  onClick={() => {
+                    setDisponibilidade(option.id as typeof disponibilidade);
+                    // Limpar dias da semana ao trocar de opção
+                    if (option.id === 'uteis') {
+                      setDiasSemana([]);
+                    }
+                  }}
                   className={cn(
                     "p-4 rounded-xl border-2 text-left transition-all duration-200",
-                    recorrencia === option.id
+                    disponibilidade === option.id
                       ? "border-primary bg-primary/5 shadow-sm"
                       : "border-border hover:border-primary/50 hover:bg-muted/50"
                   )}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-medium text-sm">{option.label}</span>
-                    {recorrencia === option.id && (
+                    {disponibilidade === option.id && (
                       <div className="w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                         <Check className="h-3 w-3 text-primary-foreground" />
                       </div>
@@ -432,8 +493,41 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
               ))}
             </div>
 
-            {/* Campos de datas para recorrência personalizada */}
-            {recorrencia === 'custom' && (
+            {/* Seleção de Dias da Semana para Recorrência */}
+            {disponibilidade === 'recorrente' && (
+              <div className="space-y-3 p-4 bg-muted/30 rounded-xl border border-border/50">
+                <Label className="text-sm font-medium">Selecione os dias da semana</Label>
+                <p className="text-xs text-muted-foreground">O turno estará disponível toda semana nesses dias</p>
+                <div className="flex gap-2 justify-center">
+                  {diasSemanaConfig.map((dia) => (
+                    <button
+                      key={dia.value}
+                      type="button"
+                      onClick={() => handleToggleDia(dia.value)}
+                      title={dia.fullLabel}
+                      className={cn(
+                        "h-11 w-11 rounded-full font-semibold text-sm transition-all duration-200",
+                        "border-2",
+                        diasSemana.includes(dia.value)
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40"
+                      )}
+                    >
+                      {dia.label}
+                    </button>
+                  ))}
+                </div>
+                {errors.diasSemana && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {errors.diasSemana}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Campos de datas para período personalizado */}
+            {disponibilidade === 'custom' && (
               <div className="space-y-4 p-4 bg-muted/30 rounded-xl border border-border/50">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
@@ -503,121 +597,111 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                     )}
                   </div>
                 </div>
-
-                {/* Seleção de Dias da Semana - Estilo iOS/Android */}
-                <div className="space-y-3">
-                  <Label className="text-sm text-muted-foreground">Dias da Semana</Label>
-                  <div className="flex gap-2">
-                    {diasSemanaConfig.map((dia) => (
-                      <button
-                        key={dia.value}
-                        type="button"
-                        onClick={() => handleToggleDia(dia.value)}
-                        title={dia.fullLabel}
-                        className={cn(
-                          "h-10 w-10 rounded-full font-semibold text-sm transition-all duration-200",
-                          "border-2",
-                          diasSemana.includes(dia.value)
-                            ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                            : "bg-background border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40"
-                        )}
-                      >
-                        {dia.label}
-                      </button>
-                    ))}
-                  </div>
-                  {errors.diasSemana && (
-                    <p className="text-xs text-destructive flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      {errors.diasSemana}
-                    </p>
-                  )}
-                </div>
               </div>
             )}
           </div>
 
-          {/* Seção: Vagas */}
+          {/* Seção: Vagas por Setor - v2.0 */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 pb-2 border-b border-border/50">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
                 <Users className="h-4 w-4 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-sm">Número de Vagas</h3>
-                <p className="text-xs text-muted-foreground">Quantos agendamentos simultâneos</p>
+                <h3 className="font-semibold text-sm">Vagas por Setor</h3>
+                <p className="text-xs text-muted-foreground">Defina quantos agendamentos simultâneos por setor</p>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
-                <span className="text-2xl font-bold text-primary">{numeroVagas[0]}</span>
-                <span className="text-xs text-muted-foreground">vagas</span>
-              </div>
+              {totalVagas > 0 && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-lg">
+                  <span className="text-2xl font-bold text-primary">{totalVagas}</span>
+                  <span className="text-xs text-muted-foreground">total</span>
+                </div>
+              )}
             </div>
 
-            <div className="px-2">
-              <Slider
-                value={numeroVagas}
-                onValueChange={(value) => {
-                  setNumeroVagas(value);
-                  setErrors((prev) => {
-                    const novo = { ...prev };
-                    delete novo.numeroVagas;
-                    return novo;
-                  });
-                }}
-                min={1}
-                max={10}
-                step={1}
-                className="py-4"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground px-1">
-                <span>1</span>
-                <span>5</span>
-                <span>10</span>
+            {setoresSelecionados.length === 0 ? (
+              <div className="p-4 text-center text-muted-foreground bg-muted/30 rounded-lg">
+                <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Selecione os setores abaixo para configurar as vagas</p>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-3">
+                {setoresSelecionados.map(slug => {
+                  const setor = setoresDisponiveis.find(s => s.slug === slug);
+                  const vagas = vagasPorSetor[slug] || 1;
+                  const corSetor = getSetorColor(slug);
+                  
+                  return (
+                    <div 
+                      key={slug} 
+                      className="flex items-center justify-between p-3 rounded-lg border"
+                      style={{ 
+                        backgroundColor: corSetor.bg,
+                        borderColor: corSetor.border 
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div 
+                          className="w-3 h-8 rounded-full"
+                          style={{ backgroundColor: corSetor.bgSolid }}
+                        />
+                        <span className="font-medium text-sm" style={{ color: corSetor.text }}>
+                          {setor?.nome || slug}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleVagasSetor(slug, -1)}
+                          disabled={vagas <= 1}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                            "bg-white/80 hover:bg-white border shadow-sm",
+                            vagas <= 1 && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </button>
+                        
+                        <input
+                          type="number"
+                          min={1}
+                          max={10}
+                          value={vagas}
+                          onChange={(e) => handleSetVagasSetor(slug, parseInt(e.target.value) || 1)}
+                          className="w-12 h-8 text-center font-bold text-lg bg-white/80 border rounded-md"
+                        />
+                        
+                        <button
+                          type="button"
+                          onClick={() => handleVagasSetor(slug, 1)}
+                          disabled={vagas >= 10}
+                          className={cn(
+                            "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                            "bg-white/80 hover:bg-white border shadow-sm",
+                            vagas >= 10 && "opacity-50 cursor-not-allowed"
+                          )}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </button>
+                        
+                        <span className="text-xs text-muted-foreground ml-1 w-10">
+                          vaga{vagas !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            
             {errors.numeroVagas && (
               <p className="text-xs text-destructive flex items-center gap-1">
                 <AlertCircle className="h-3 w-3" />
                 {errors.numeroVagas}
               </p>
             )}
-          </div>
-
-          {/* Seção: Cor do Turno */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-border/50">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Palette className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm">Cor do Turno</h3>
-                <p className="text-xs text-muted-foreground">Para identificação visual no calendário</p>
-              </div>
-            </div>
-
-            <div className="flex gap-4">
-              {coresTurno.map((cor) => (
-                <button
-                  key={cor.valor}
-                  type="button"
-                  onClick={() => setCorSelecionada(cor.valor)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-xl border-2 transition-all duration-200",
-                    corSelecionada === cor.valor
-                      ? `border-current ${cor.ring} ring-2 ring-offset-2 bg-muted/50`
-                      : "border-border hover:border-muted-foreground"
-                  )}
-                >
-                  <div className={cn("w-8 h-8 rounded-full shadow-sm", cor.classe)} />
-                  <span className={cn(
-                    "font-medium text-sm",
-                    corSelecionada === cor.valor ? "text-foreground" : "text-muted-foreground"
-                  )}>
-                    {cor.nome}
-                  </span>
-                </button>
-              ))}
-            </div>
           </div>
 
           {/* Seção: Setores */}
@@ -724,30 +808,41 @@ export function ModalCriarTurno({ open, onClose, onSuccess }: ModalCriarTurnoPro
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{getRecorrenciaLabel()}</span>
+                    <span>{getDisponibilidadeLabel()}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span>{numeroVagas[0]} vaga{numeroVagas[0] !== 1 ? 's' : ''}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-3.5 h-3.5 rounded-full", corAtual?.classe)} />
-                    <span>{corAtual?.nome}</span>
+                    <span>{totalVagas} vaga{totalVagas !== 1 ? 's' : ''} total</span>
                   </div>
                 </div>
               </div>
+              {/* v2.0: Mostrar vagas por setor */}
               {setoresSelecionados.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-border/50">
-                  {setoresSelecionados.map(slug => {
-                    const setor = setoresDisponiveis.find(s => s.slug === slug);
-                    return (
-                      <Badge key={slug} variant="outline" className="text-xs">
-                        {setor?.nome || slug}
-                      </Badge>
-                    );
-                  })}
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground mb-2">Capacidade por setor:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {setoresSelecionados.map(slug => {
+                      const setor = setoresDisponiveis.find(s => s.slug === slug);
+                      const vagas = vagasPorSetor[slug] || 1;
+                      const corSetor = getSetorColor(slug);
+                      return (
+                        <Badge 
+                          key={slug} 
+                          variant="outline" 
+                          className="text-xs px-2 py-1"
+                          style={{ 
+                            backgroundColor: corSetor.bg,
+                            borderColor: corSetor.border,
+                            color: corSetor.text
+                          }}
+                        >
+                          {setor?.nome || slug}: {vagas} vaga{vagas !== 1 ? 's' : ''}
+                        </Badge>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>

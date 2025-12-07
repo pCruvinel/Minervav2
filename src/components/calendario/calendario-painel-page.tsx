@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Plus, Calendar, Clock, Users, Briefcase, Edit, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Clock, Users, Briefcase, Edit, Trash2, Loader2, Lock, Ban } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import {
@@ -15,13 +15,17 @@ import { Badge } from '../ui/badge';
 import { toast } from 'sonner';
 import { useTurnos, useDeleteTurno, useTurnosPorSemana, Turno } from '../../lib/hooks/use-turnos';
 import { useAgendamentos, useCancelarAgendamento } from '../../lib/hooks/use-agendamentos';
+import { useBloqueios, useDeleteBloqueio } from '../../lib/hooks/use-bloqueios';
 import { useAuth } from '../../lib/contexts/auth-context';
 import { PermissaoUtil } from '../../lib/auth-utils';
+import { getBloqueioColor } from '../../lib/design-tokens';
+import { BLOQUEIO_MOTIVO_LABELS } from '../../lib/types';
 
 // Lazy load modals
 const ModalCriarTurno = lazy(() => import('./modal-criar-turno').then(m => ({ default: m.ModalCriarTurno })));
 const ModalDetalhesTurno = lazy(() => import('./modal-detalhes-turno').then(m => ({ default: m.ModalDetalhesTurno })));
 const ModalNovoAgendamento = lazy(() => import('./modal-novo-agendamento').then(m => ({ default: m.ModalNovoAgendamento })));
+const ModalCriarBloqueio = lazy(() => import('./modal-criar-bloqueio').then(m => ({ default: m.ModalCriarBloqueio })));
 
 /**
  * CalendarioPainelPage - Painel Administrativo do Calendário
@@ -35,6 +39,7 @@ export function CalendarioPainelPage() {
     const [modalCriarTurno, setModalCriarTurno] = useState(false);
     const [modalDetalhesTurno, setModalDetalhesTurno] = useState(false);
     const [modalNovoAgendamento, setModalNovoAgendamento] = useState(false);
+    const [modalCriarBloqueio, setModalCriarBloqueio] = useState(false);
     const [turnoSelecionado, setTurnoSelecionado] = useState<Turno | null>(null);
 
     // Verificar se usuário pode acessar esta página (admin/diretoria)
@@ -70,12 +75,20 @@ export function CalendarioPainelPage() {
 
     const { refetch: refetchTurnosSemana } = useTurnosPorSemana(dataInicio, dataFim);
 
+    // v2.0: Buscar bloqueios
+    const { bloqueios, loading: loadingBloqueios, refetch: refetchBloqueios } = useBloqueios({
+        dataInicio,
+        dataFim
+    });
+    const { mutate: deletarBloqueio, loading: deletandoBloqueio } = useDeleteBloqueio();
+
     // Refetch unificado
     const handleRefetch = useCallback(() => {
         refetchTurnos();
         refetchAgendamentos();
         refetchTurnosSemana();
-    }, [refetchTurnos, refetchAgendamentos, refetchTurnosSemana]);
+        refetchBloqueios();
+    }, [refetchTurnos, refetchAgendamentos, refetchTurnosSemana, refetchBloqueios]);
 
     // Handler para editar turno
     const handleEditarTurno = (turno: Turno) => {
@@ -101,21 +114,54 @@ export function CalendarioPainelPage() {
 
     // Handler para cancelar agendamento
     const handleCancelarAgendamento = async (agendamento: any) => {
-        const motivo = prompt('Digite o motivo do cancelamento:');
-        if (!motivo) return;
+        const confirmado = window.confirm(
+            `Tem certeza que deseja cancelar o agendamento?\n\n` +
+            `Colaborador: ${agendamento.usuarioNome || 'N/A'}\n` +
+            `Data: ${formatarData(agendamento.data)}\n` +
+            `Horário: ${agendamento.horarioInicio} - ${agendamento.horarioFim}\n\n` +
+            `Esta ação não pode ser desfeita.`
+        );
+
+        if (!confirmado) return;
+
+        const motivo = prompt('Digite o motivo do cancelamento (obrigatório):');
+        if (!motivo || motivo.trim() === '') {
+            toast.error('O motivo do cancelamento é obrigatório');
+            return;
+        }
 
         try {
             await cancelarAgendamento(
-                { id: agendamento.id, motivo },
+                { id: agendamento.id, motivo: motivo.trim() },
                 {
                     onSuccess: () => {
                         toast.success('Agendamento cancelado com sucesso!');
                         handleRefetch();
                     },
+                    onError: (error: any) => {
+                        toast.error(`Erro ao cancelar agendamento: ${error.message || 'Erro desconhecido'}`);
+                    }
                 }
             );
+        } catch (error: any) {
+            toast.error(`Erro ao cancelar agendamento: ${error.message || 'Erro desconhecido'}`);
+        }
+    };
+
+    // v2.0: Handler para deletar bloqueio
+    const handleDeletarBloqueio = async (bloqueioId: string) => {
+        const confirmado = window.confirm(
+            'Tem certeza que deseja remover este bloqueio?\n\nEsta ação não pode ser desfeita.'
+        );
+
+        if (!confirmado) return;
+
+        try {
+            await deletarBloqueio(bloqueioId);
+            toast.success('Bloqueio removido com sucesso!');
+            handleRefetch();
         } catch {
-            toast.error('Erro ao cancelar agendamento');
+            toast.error('Erro ao remover bloqueio');
         }
     };
 
@@ -172,6 +218,14 @@ export function CalendarioPainelPage() {
                             Criar Turno
                         </Button>
                         <Button
+                            onClick={() => setModalCriarBloqueio(true)}
+                            variant="outline"
+                            className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                        >
+                            <Lock className="h-4 w-4 mr-2" />
+                            Bloquear Horário
+                        </Button>
+                        <Button
                             onClick={() => setModalNovoAgendamento(true)}
                             variant="outline"
                         >
@@ -182,7 +236,7 @@ export function CalendarioPainelPage() {
                 </div>
 
                 {/* Cards de Resumo */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <Card>
                         <CardHeader className="pb-2">
                             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -222,6 +276,22 @@ export function CalendarioPainelPage() {
                                 <Users className="h-5 w-5 text-info" />
                                 <span className="text-2xl font-bold">
                                     {turnos.reduce((acc, t) => acc + t.vagasTotal, 0)}
+                                </span>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-sm font-medium text-muted-foreground">
+                                Bloqueios Ativos
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-center gap-2">
+                                <Ban className="h-5 w-5 text-destructive" />
+                                <span className="text-2xl font-bold">
+                                    {bloqueios.filter(b => b.ativo).length}
                                 </span>
                             </div>
                         </CardContent>
@@ -408,6 +478,102 @@ export function CalendarioPainelPage() {
                         )}
                     </CardContent>
                 </Card>
+
+                {/* v2.0: Tabela de Bloqueios */}
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <Lock className="h-5 w-5" />
+                            Bloqueios do Calendário
+                        </CardTitle>
+                        <CardDescription>
+                            Datas e horários bloqueados para agendamentos
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {loadingBloqueios ? (
+                            <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            </div>
+                        ) : bloqueios.length === 0 ? (
+                            <div className="text-center py-8 text-muted-foreground">
+                                Nenhum bloqueio configurado. Clique em "Bloquear Horário" para criar.
+                            </div>
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Período</TableHead>
+                                        <TableHead>Horário</TableHead>
+                                        <TableHead>Motivo</TableHead>
+                                        <TableHead>Setor</TableHead>
+                                        <TableHead>Descrição</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {bloqueios.map((bloqueio) => {
+                                        const cor = getBloqueioColor(bloqueio.motivo);
+                                        return (
+                                            <TableRow key={bloqueio.id}>
+                                                <TableCell className="font-medium">
+                                                    {formatarData(bloqueio.dataInicio)}
+                                                    {bloqueio.dataInicio !== bloqueio.dataFim && (
+                                                        <> - {formatarData(bloqueio.dataFim)}</>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {bloqueio.diaInteiro ? (
+                                                        <Badge variant="secondary">Dia inteiro</Badge>
+                                                    ) : (
+                                                        <span className="text-sm">
+                                                            {bloqueio.horaInicio} - {bloqueio.horaFim}
+                                                        </span>
+                                                    )}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        style={{
+                                                            backgroundColor: cor.bgSolid,
+                                                            color: cor.badge.text,
+                                                            borderColor: cor.border,
+                                                        }}
+                                                    >
+                                                        {BLOQUEIO_MOTIVO_LABELS[bloqueio.motivo] || bloqueio.motivo}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {bloqueio.setorSlug || 'Todos'}
+                                                </TableCell>
+                                                <TableCell className="max-w-[200px] truncate">
+                                                    {bloqueio.descricao || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={bloqueio.ativo ? 'default' : 'secondary'}>
+                                                        {bloqueio.ativo ? 'Ativo' : 'Inativo'}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => handleDeletarBloqueio(bloqueio.id)}
+                                                        disabled={deletandoBloqueio}
+                                                        className="text-destructive hover:text-destructive"
+                                                        title="Remover bloqueio"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             {/* Modais */}
@@ -437,6 +603,15 @@ export function CalendarioPainelPage() {
                     onClose={() => setModalNovoAgendamento(false)}
                     turno={turnos[0] || null}
                     dia={new Date()}
+                    onSuccess={handleRefetch}
+                />
+            </Suspense>
+
+            {/* v2.0: Modal de criar bloqueio */}
+            <Suspense fallback={null}>
+                <ModalCriarBloqueio
+                    open={modalCriarBloqueio}
+                    onClose={() => setModalCriarBloqueio(false)}
                     onSuccess={handleRefetch}
                 />
             </Suspense>

@@ -18,14 +18,17 @@ import { toast } from 'sonner';
 // TYPES
 // =====================================================
 
+import type { VagasPorSetor, TurnoCapacidadeInfo } from '@/lib/types';
+
 export interface Turno {
   id: string;
   horaInicio: string;
   horaFim: string;
   vagasTotal: number;
+  vagasPorSetor: VagasPorSetor;  // v2.0: Vagas específicas por setor
   setores: string[];
   cor: string;
-  tipoRecorrencia: 'todos' | 'uteis' | 'custom';
+  tipoRecorrencia: 'uteis' | 'recorrente' | 'custom';
   dataInicio?: string;
   dataFim?: string;
   diasSemana?: number[];
@@ -37,16 +40,34 @@ export interface Turno {
 
 export interface TurnoComVagas extends Turno {
   vagasOcupadas: number;
-  agendamentos?: any[];
+  // v2.0: Capacidade detalhada por setor
+  capacidadePorSetor?: {
+    setor: string;
+    vagasTotal: number;
+    vagasOcupadas: number;
+    vagasDisponiveis: number;
+  }[];
+  agendamentos?: AgendamentoResumo[];
+}
+
+export interface AgendamentoResumo {
+  id: string;
+  setor: string;
+  categoria: string;
+  horarioInicio: string;
+  horarioFim: string;
+  status: string;
+  responsavelNome?: string;
 }
 
 export interface CreateTurnoInput {
   horaInicio: string;
   horaFim: string;
   vagasTotal: number;
+  vagasPorSetor?: VagasPorSetor;  // v2.0: Opcional, se não informado usa vagasTotal
   setores: string[];
   cor: string;
-  tipoRecorrencia: 'todos' | 'uteis' | 'custom';
+  tipoRecorrencia: 'uteis' | 'recorrente' | 'custom';
   dataInicio?: string;
   dataFim?: string;
   diasSemana?: number[];
@@ -89,12 +110,102 @@ const turnosAPI = {
       horaInicio: item.hora_inicio,
       horaFim: item.hora_fim,
       vagasTotal: item.vagas_total,
+      vagasPorSetor: item.vagas_por_setor || {},
       vagasOcupadas: Number(item.vagas_ocupadas),
       setores: item.setores,
       cor: item.cor,
       tipoRecorrencia: 'uteis' as const,
       ativo: true,
     }));
+  },
+
+  /**
+   * Verificar vagas disponíveis por setor
+   */
+  async verificarVagasSetor(
+    turnoId: string,
+    data: string,
+    setor: string,
+    horarioInicio?: string,
+    horarioFim?: string
+  ): Promise<number> {
+    const { data: result, error } = await supabase
+      .rpc('verificar_vagas_setor', {
+        p_turno_id: turnoId,
+        p_data: data,
+        p_setor: setor,
+        p_horario_inicio: horarioInicio || null,
+        p_horario_fim: horarioFim || null,
+      });
+
+    if (error) throw error;
+    return result || 0;
+  },
+
+  /**
+   * Obter capacidade completa de um turno para uma data
+   */
+  async getCapacidade(turnoId: string, data: string): Promise<TurnoCapacidadeInfo | null> {
+    // Buscar turno
+    const { data: turno, error: turnoError } = await supabase
+      .from('turnos')
+      .select('*')
+      .eq('id', turnoId)
+      .eq('ativo', true)
+      .single();
+
+    if (turnoError || !turno) return null;
+
+    // Buscar agendamentos confirmados do turno nesta data
+    const { data: agendamentos, error: agendError } = await supabase
+      .from('agendamentos')
+      .select('setor')
+      .eq('turno_id', turnoId)
+      .eq('data', data)
+      .eq('status', 'confirmado');
+
+    if (agendError) throw agendError;
+
+    // Verificar se está bloqueado
+    const { data: bloqueado } = await supabase
+      .rpc('verificar_bloqueio', {
+        p_data: data,
+        p_hora_inicio: turno.hora_inicio,
+        p_hora_fim: turno.hora_fim,
+      });
+
+    // Calcular capacidade por setor
+    const vagasPorSetor = turno.vagas_por_setor || {};
+    const setores = turno.setores || [];
+    
+    const capacidade = setores.map((setor: string) => {
+      const vagasTotal = vagasPorSetor[setor] || turno.vagas_total;
+      const vagasOcupadas = agendamentos?.filter((a: any) => a.setor === setor).length || 0;
+      const vagasDisponiveis = Math.max(0, vagasTotal - vagasOcupadas);
+      
+      return {
+        setor,
+        vagasTotal,
+        vagasOcupadas,
+        vagasDisponiveis,
+        percentualOcupado: vagasTotal > 0 ? Math.round((vagasOcupadas / vagasTotal) * 100) : 0,
+      };
+    });
+
+    const totalVagas = capacidade.reduce((sum, c) => sum + c.vagasTotal, 0);
+    const totalOcupadas = capacidade.reduce((sum, c) => sum + c.vagasOcupadas, 0);
+
+    return {
+      turnoId,
+      horaInicio: turno.hora_inicio,
+      horaFim: turno.hora_fim,
+      cor: turno.cor,
+      capacidade,
+      totalVagas,
+      totalOcupadas,
+      totalDisponiveis: totalVagas - totalOcupadas,
+      bloqueado: bloqueado === true,
+    };
   },
 
   /**
@@ -139,17 +250,26 @@ const turnosAPI = {
           if (turno.data_inicio && dataStr < turno.data_inicio) return false;
           if (turno.data_fim && dataStr > turno.data_fim) return false;
 
-          // Verificar recorrência
-          if (turno.tipo_recorrencia === 'todos') return true;
+          // Verificar disponibilidade
           if (turno.tipo_recorrencia === 'uteis' && diaSemana >= 1 && diaSemana <= 5) return true;
-          if (turno.tipo_recorrencia === 'custom' && turno.dias_semana?.includes(diaSemana)) return true;
+          if (turno.tipo_recorrencia === 'recorrente' && turno.dias_semana?.includes(diaSemana)) return true;
+          if (turno.tipo_recorrencia === 'custom') return true; // Custom = período específico, sempre válido no range
 
           return false;
         })
-        .map(turno => ({
-          ...mapTurnoFromDB(turno),
-          vagasOcupadas: 0 // Será calculado depois com agendamentos
-        }));
+        .map(turno => {
+          const mapped = mapTurnoFromDB(turno);
+          return {
+            ...mapped,
+            vagasOcupadas: 0, // Será calculado depois com agendamentos
+            capacidadePorSetor: mapped.setores.map(setor => ({
+              setor,
+              vagasTotal: mapped.vagasPorSetor[setor] || mapped.vagasTotal,
+              vagasOcupadas: 0,
+              vagasDisponiveis: mapped.vagasPorSetor[setor] || mapped.vagasTotal,
+            })),
+          };
+        });
 
       if (turnosDoDia.length > 0) {
         turnosPorDia.set(dataStr, turnosDoDia);
@@ -166,12 +286,23 @@ const turnosAPI = {
   async create(input: CreateTurnoInput): Promise<Turno> {
     const { data: user } = await supabase.auth.getUser();
 
+    // Se vagasPorSetor não foi informado, criar baseado em vagasTotal
+    let vagasPorSetor = input.vagasPorSetor;
+    if (!vagasPorSetor || Object.keys(vagasPorSetor).length === 0) {
+      // Distribuir vagas igualmente entre setores ou usar vagasTotal para cada um
+      vagasPorSetor = {};
+      for (const setor of input.setores) {
+        vagasPorSetor[setor] = Math.ceil(input.vagasTotal / input.setores.length);
+      }
+    }
+
     const { data, error } = await supabase
       .from('turnos')
       .insert({
         hora_inicio: input.horaInicio,
         hora_fim: input.horaFim,
         vagas_total: input.vagasTotal,
+        vagas_por_setor: vagasPorSetor,
         setores: input.setores,
         cor: input.cor,
         tipo_recorrencia: input.tipoRecorrencia,
@@ -196,6 +327,7 @@ const turnosAPI = {
     if (input.horaInicio) updateData.hora_inicio = input.horaInicio;
     if (input.horaFim) updateData.hora_fim = input.horaFim;
     if (input.vagasTotal) updateData.vagas_total = input.vagasTotal;
+    if (input.vagasPorSetor) updateData.vagas_por_setor = input.vagasPorSetor;
     if (input.setores) updateData.setores = input.setores;
     if (input.cor) updateData.cor = input.cor;
     if (input.tipoRecorrencia) updateData.tipo_recorrencia = input.tipoRecorrencia;
@@ -386,6 +518,51 @@ export function useVerificarDisponibilidade() {
   );
 }
 
+/**
+ * Hook para verificar vagas por setor
+ */
+export function useVerificarVagasSetor() {
+  return useCallback(
+    async (
+      turnoId: string,
+      data: string,
+      setor: string,
+      horarioInicio?: string,
+      horarioFim?: string
+    ): Promise<number> => {
+      try {
+        return await turnosAPI.verificarVagasSetor(
+          turnoId,
+          data,
+          setor,
+          horarioInicio,
+          horarioFim
+        );
+      } catch (error: any) {
+        console.error('❌ Erro ao verificar vagas do setor:', error);
+        toast.error(`Erro ao verificar vagas: ${error.message}`);
+        return 0;
+      }
+    },
+    []
+  );
+}
+
+/**
+ * Hook para obter capacidade de um turno
+ */
+export function useTurnoCapacidade(turnoId: string, data: string) {
+  return useApi(
+    () => turnosAPI.getCapacidade(turnoId, data),
+    {
+      deps: [turnoId, data],
+      onError: (error) => {
+        console.error('❌ Erro ao carregar capacidade do turno:', error);
+      },
+    }
+  );
+}
+
 // =====================================================
 // HELPER FUNCTIONS
 // =====================================================
@@ -396,6 +573,7 @@ function mapTurnoFromDB(data: any): Turno {
     horaInicio: data.hora_inicio,
     horaFim: data.hora_fim,
     vagasTotal: data.vagas_total,
+    vagasPorSetor: data.vagas_por_setor || {},
     setores: data.setores || [],
     cor: data.cor,
     tipoRecorrencia: data.tipo_recorrencia,
@@ -408,3 +586,6 @@ function mapTurnoFromDB(data: any): Turno {
     atualizadoEm: data.atualizado_em,
   };
 }
+
+// Export API para uso direto se necessário
+export { turnosAPI };
