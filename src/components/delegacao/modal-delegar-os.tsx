@@ -316,10 +316,18 @@ export function ModalDelegarOS({
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
               <Input
                 id="prazo"
-                type="date"
+                type="text"
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 value={dataPrazo}
-                onChange={(e) => setDataPrazo(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                onChange={(e) => {
+                  const masked = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/(\d{2})(\d)/, '$1/$2')
+                    .replace(/(\d{2})(\d)/, '$1/$2')
+                    .replace(/(\/\d{4})\d+?$/, '$1');
+                  setDataPrazo(masked);
+                }}
                 className="pl-10"
                 disabled={isSubmitting}
               />

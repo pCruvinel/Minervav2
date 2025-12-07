@@ -4,6 +4,23 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const app = new Hono();
 
+/**
+ * Returns the base URL for redirects based on environment.
+ * Uses SITE_URL secret in production, falls back to localhost for development.
+ */
+const getBaseUrl = (): string => {
+  const siteUrl = Deno.env.get("SITE_URL");
+  if (siteUrl) return siteUrl;
+  return "http://localhost:3000";
+};
+
+/**
+ * Default redirect URL for auth callbacks.
+ */
+const getDefaultRedirectTo = (): string => {
+  return `${getBaseUrl()}/auth/callback`;
+};
+
 // Enable CORS
 app.use(
   "/*",
@@ -42,13 +59,14 @@ app.post("/*", async (c) => {
   // Se for convite único (legado)
   if (email && !invites) {
     const inviteOptions = {
-      redirectTo: options?.redirectTo || undefined,
+      redirectTo: options?.redirectTo || getDefaultRedirectTo(),
       data: options?.data || {},
     };
 
     try {
       console.log(`📧 Sending invite to ${email}...`);
-      
+      console.log(`🔗 Redirect URL: ${inviteOptions.redirectTo}`);
+
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(
         email,
         inviteOptions
@@ -81,7 +99,9 @@ app.post("/*", async (c) => {
     return c.json({ error: "invites array is required and cannot be empty" }, 400);
   }
 
+  const defaultRedirect = getDefaultRedirectTo();
   console.log(`📧 Processing ${invites.length} invites...`);
+  console.log(`🔗 Default redirect URL: ${redirectTo || defaultRedirect}`);
 
   const results: { 
     success: Array<{ email: string; user_id: string }>;
@@ -109,7 +129,7 @@ app.post("/*", async (c) => {
       const { data, error } = await supabase.auth.admin.inviteUserByEmail(
         inviteEmail,
         {
-          redirectTo: redirectTo || undefined,
+          redirectTo: redirectTo || getDefaultRedirectTo(),
           data: userData
         }
       );

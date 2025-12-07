@@ -9,22 +9,25 @@ export interface Usuario {
   nome: string;
   nome_completo?: string;
   email?: string;
-  role_nivel: UserRole;
-  setor: UserSetor;
+  role_nivel?: UserRole;
+  setor?: UserSetor;
   telefone?: string;
   avatar?: string;
   
   // Campos adicionais para compatibilidade
   cargo_slug?: RoleLevel;
   setor_slug?: SetorSlug;
+  cargo_id?: string;
+  setor_id?: string;
   ativo?: boolean;
   data_admissao?: Date | string;
   cpf?: string;
   
   // Novos campos (Migration 20251130000008)
-  tipo_contratacao?: 'CLT' | 'PJ' | 'ESTAGIO';
+  tipo_contratacao?: 'CLT' | 'PJ' | 'ESTAGIO' | string;
   salario_base?: number;
   custo_dia?: number;
+  custo_mensal?: number;
   funcao?: string;
   avatar_url?: string;
 
@@ -44,6 +47,30 @@ export interface Usuario {
   remuneracao_contratual?: number;
   rateio_fixo?: string;
   bloqueado_sistema?: boolean;
+
+  // Campos de endereço detalhado
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
+
+  // Dados bancários
+  banco?: string;
+  agencia?: string;
+  conta?: string;
+  chave_pix?: string;
+
+  // Documentos e convite
+  documentos_obrigatorios?: Record<string, any>;
+  status_convite?: string;
+  auth_user_id?: string;
+
+  // Timestamps
+  created_at?: string;
+  updated_at?: string;
 }
 
 export type Colaborador = Usuario;

@@ -29,7 +29,9 @@ import {
     XCircle,
     Clock,
     AlertTriangle,
-    Edit
+    Edit,
+    UserCheck,
+    UserX
 } from 'lucide-react';
 import {
     BarChart,
@@ -41,6 +43,8 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
+import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 // Types
 interface Documento {
@@ -48,6 +52,7 @@ interface Documento {
     nome: string;
     url: string;
     tipo: string;
+    tipo_documento?: string; // RG, CPF, CNH, etc.
     created_at: string;
 }
 
@@ -70,6 +75,8 @@ export function ColaboradorDetalhesPage() {
     const [uploading, setUploading] = useState(false);
     const [modalEdicaoOpen, setModalEdicaoOpen] = useState(false);
     const [isResendingInvite, setIsResendingInvite] = useState(false);
+    const [isTogglingStatus, setIsTogglingStatus] = useState(false);
+    const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<string>('');
 
     // Fetch Data
     const fetchData = async () => {
@@ -127,10 +134,16 @@ export function ColaboradorDetalhesPage() {
         const file = e.target.files?.[0];
         if (!file || !colaborador) return;
 
+        if (!selectedTipoDocumento) {
+            toast.error('Selecione o tipo de documento antes de fazer upload');
+            e.target.value = ''; // Reset input
+            return;
+        }
+
         try {
             setUploading(true);
             const fileExt = file.name.split('.').pop();
-            const fileName = `${colaborador.id}/${Date.now()}.${fileExt}`;
+            const fileName = `${colaborador.id}/${selectedTipoDocumento}_${Date.now()}.${fileExt}`;
 
             // 1. Upload Storage
             const { error: uploadError } = await supabase.storage
@@ -152,6 +165,7 @@ export function ColaboradorDetalhesPage() {
                     nome: file.name,
                     url: publicUrl,
                     tipo: fileExt,
+                    tipo_documento: selectedTipoDocumento,
                     tamanho: file.size
                 })
                 .select()
@@ -160,6 +174,7 @@ export function ColaboradorDetalhesPage() {
             if (insertError) throw insertError;
 
             setDocumentos([insertData, ...documentos]);
+            setSelectedTipoDocumento(''); // Reset selection
             toast.success('Documento enviado com sucesso!');
 
         } catch (error) {
@@ -167,6 +182,7 @@ export function ColaboradorDetalhesPage() {
             toast.error('Erro ao enviar documento.');
         } finally {
             setUploading(false);
+            e.target.value = ''; // Reset input
         }
     };
 
@@ -255,6 +271,43 @@ export function ColaboradorDetalhesPage() {
             toast.error('Erro ao reenviar convite');
         } finally {
             setIsResendingInvite(false);
+        }
+    };
+
+    // Ativar/Desativar colaborador
+    const handleToggleStatus = async () => {
+        if (!colaborador) return;
+
+        const novoStatus = !colaborador.ativo;
+        const acao = novoStatus ? 'ativar' : 'desativar';
+        
+        if (!confirm(`Tem certeza que deseja ${acao} este colaborador?${!novoStatus ? '\n\nO colaborador não poderá mais acessar o sistema.' : ''}`)) {
+            return;
+        }
+
+        setIsTogglingStatus(true);
+        try {
+            const { error } = await supabase
+                .from('colaboradores')
+                .update({ 
+                    ativo: novoStatus,
+                    bloqueado_sistema: !novoStatus // Se desativar, bloqueia o sistema
+                })
+                .eq('id', colaboradorId);
+
+            if (error) throw error;
+
+            toast.success(
+                novoStatus ? 'Colaborador ativado!' : 'Colaborador desativado!',
+                { description: novoStatus ? 'O colaborador agora pode acessar o sistema.' : 'O acesso ao sistema foi bloqueado.' }
+            );
+            
+            fetchData(); // Recarregar dados
+        } catch (err) {
+            console.error('Erro ao alterar status:', err);
+            toast.error(`Erro ao ${acao} colaborador`);
+        } finally {
+            setIsTogglingStatus(false);
         }
     };
 
@@ -358,6 +411,20 @@ export function ColaboradorDetalhesPage() {
                         <Edit className="mr-2 h-4 w-4" />
                         Editar Cadastro
                     </Button>
+                    <Button 
+                        variant={colaborador.ativo ? "destructive" : "default"}
+                        onClick={handleToggleStatus}
+                        disabled={isTogglingStatus}
+                    >
+                        {isTogglingStatus ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : colaborador.ativo ? (
+                            <UserX className="mr-2 h-4 w-4" />
+                        ) : (
+                            <UserCheck className="mr-2 h-4 w-4" />
+                        )}
+                        {colaborador.ativo ? 'Desativar' : 'Ativar'}
+                    </Button>
                 </div>
             </div>
 
@@ -408,8 +475,22 @@ export function ColaboradorDetalhesPage() {
                                 </p>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-muted-foreground">Endereço</Label>
-                                <p className="font-medium truncate" title={colaborador.endereco || ''}>{colaborador.endereco || '-'}</p>
+                                <Label className="text-muted-foreground">Endereço Completo</Label>
+                                <p className="font-medium text-sm">
+                                    {colaborador.logradouro ? (
+                                        <>
+                                            {colaborador.logradouro}{colaborador.numero ? `, ${colaborador.numero}` : ''}
+                                            {colaborador.complemento ? ` - ${colaborador.complemento}` : ''}
+                                            <br />
+                                            {colaborador.bairro ? `${colaborador.bairro}, ` : ''}
+                                            {colaborador.cidade ? `${colaborador.cidade}` : ''}
+                                            {colaborador.uf ? `/${colaborador.uf}` : ''}
+                                            {colaborador.cep ? ` - CEP: ${colaborador.cep}` : ''}
+                                        </>
+                                    ) : (
+                                        colaborador.endereco || '-'
+                                    )}
+                                </p>
                             </div>
                         </CardContent>
                     </Card>
@@ -568,6 +649,31 @@ export function ColaboradorDetalhesPage() {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Dados Bancários */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Dados Bancários</CardTitle>
+                        </CardHeader>
+                        <CardContent className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">Banco</Label>
+                                <p className="font-medium">{colaborador.banco || '-'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">Agência</Label>
+                                <p className="font-medium">{colaborador.agencia || '-'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">Conta</Label>
+                                <p className="font-medium">{colaborador.conta || '-'}</p>
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">Chave PIX</Label>
+                                <p className="font-medium">{colaborador.chave_pix || '-'}</p>
+                            </div>
+                        </CardContent>
+                    </Card>
                 </TabsContent>
 
                 {/* TAB: FINANCEIRO & PRESENÇA */}
@@ -679,71 +785,177 @@ export function ColaboradorDetalhesPage() {
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
                             <CardTitle>Documentos do Colaborador</CardTitle>
-                            <div>
+                            <div className="flex items-center gap-2">
+                                <Select value={selectedTipoDocumento} onValueChange={setSelectedTipoDocumento}>
+                                    <SelectTrigger className="w-[200px]">
+                                        <SelectValue placeholder="Selecione o tipo" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {DOCUMENTOS_OBRIGATORIOS.map((doc) => (
+                                            <SelectItem key={doc.value} value={doc.value}>
+                                                {doc.label}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <input
                                     type="file"
                                     id="file-upload"
                                     className="hidden"
                                     onChange={handleFileUpload}
-                                    disabled={uploading}
+                                    disabled={uploading || !selectedTipoDocumento}
                                 />
-                                <Button asChild disabled={uploading}>
+                                <Button asChild disabled={uploading || !selectedTipoDocumento}>
                                     <label htmlFor="file-upload" className="cursor-pointer">
                                         {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                        Upload Documento
+                                        Upload
                                     </label>
                                 </Button>
                             </div>
                         </CardHeader>
                         <CardContent>
-                            {documentos.length === 0 ? (
-                                <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
-                                    <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                    <p>Nenhum documento anexado.</p>
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Nome</TableHead>
-                                            <TableHead>Tipo</TableHead>
-                                            <TableHead>Data Upload</TableHead>
-                                            <TableHead className="text-right">Ações</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {documentos.map((doc) => (
-                                            <TableRow key={doc.id}>
-                                                <TableCell className="font-medium">
-                                                    <div className="flex items-center gap-2">
-                                                        <FileText className="h-4 w-4 text-primary" />
-                                                        {doc.nome}
-                                                    </div>
-                                                </TableCell>
-                                                <TableCell className="uppercase text-xs text-muted-foreground">{doc.tipo}</TableCell>
-                                                <TableCell>{format(parseISO(doc.created_at), 'dd/MM/yyyy HH:mm')}</TableCell>
-                                                <TableCell className="text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <Button variant="ghost" size="sm" asChild>
-                                                            <a href={doc.url} target="_blank" rel="noopener noreferrer">
-                                                                <Download className="h-4 w-4" />
-                                                            </a>
-                                                        </Button>
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="sm"
-                                                            className="text-destructive hover:text-destructive hover:bg-destructive/5"
-                                                            onClick={() => handleDeleteDocumento(doc.id, doc.url)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </TableCell>
+                            {(() => {
+                                // Obter lista de documentos obrigatórios do colaborador
+                                const docsObrigatorios: string[] = colaborador.documentos_obrigatorios 
+                                    ? (Array.isArray(colaborador.documentos_obrigatorios) 
+                                        ? colaborador.documentos_obrigatorios 
+                                        : Object.keys(colaborador.documentos_obrigatorios))
+                                    : [];
+                                
+                                // Criar mapa de documentos enviados por tipo
+                                const docsEnviados = new Map<string, Documento>();
+                                documentos.forEach(doc => {
+                                    if (doc.tipo_documento) {
+                                        // Se já existe um documento deste tipo, mantém o mais recente
+                                        const existing = docsEnviados.get(doc.tipo_documento);
+                                        if (!existing || new Date(doc.created_at) > new Date(existing.created_at)) {
+                                            docsEnviados.set(doc.tipo_documento, doc);
+                                        }
+                                    }
+                                });
+
+                                // Combinar lista: documentos obrigatórios + documentos enviados que não são obrigatórios
+                                const todosDocumentos = [
+                                    // Primeiro os obrigatórios
+                                    ...docsObrigatorios.map(tipoDoc => {
+                                        const docInfo = DOCUMENTOS_OBRIGATORIOS.find(d => d.value === tipoDoc);
+                                        const docEnviado = docsEnviados.get(tipoDoc);
+                                        return {
+                                            tipo_documento: tipoDoc,
+                                            label: docInfo?.label || tipoDoc,
+                                            obrigatorio: true,
+                                            enviado: !!docEnviado,
+                                            documento: docEnviado
+                                        };
+                                    }),
+                                    // Depois documentos enviados que não são obrigatórios
+                                    ...documentos
+                                        .filter(doc => doc.tipo_documento && !docsObrigatorios.includes(doc.tipo_documento))
+                                        .reduce((acc, doc) => {
+                                            // Agrupar por tipo_documento mantendo o mais recente
+                                            const existing = acc.find(d => d.tipo_documento === doc.tipo_documento);
+                                            if (!existing) {
+                                                const docInfo = DOCUMENTOS_OBRIGATORIOS.find(d => d.value === doc.tipo_documento);
+                                                acc.push({
+                                                    tipo_documento: doc.tipo_documento!,
+                                                    label: docInfo?.label || doc.tipo_documento!,
+                                                    obrigatorio: false,
+                                                    enviado: true,
+                                                    documento: doc
+                                                });
+                                            }
+                                            return acc;
+                                        }, [] as { tipo_documento: string; label: string; obrigatorio: boolean; enviado: boolean; documento?: Documento }[]),
+                                    // Por fim, documentos sem tipo_documento (legados)
+                                    ...documentos
+                                        .filter(doc => !doc.tipo_documento)
+                                        .map(doc => ({
+                                            tipo_documento: '',
+                                            label: doc.nome,
+                                            obrigatorio: false,
+                                            enviado: true,
+                                            documento: doc
+                                        }))
+                                ];
+
+                                if (todosDocumentos.length === 0 && documentos.length === 0) {
+                                    return (
+                                        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
+                                            <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                                            <p>Nenhum documento obrigatório definido.</p>
+                                            <p className="text-sm mt-1">Configure os documentos obrigatórios no cadastro do colaborador.</p>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>Documento</TableHead>
+                                                <TableHead>Situação</TableHead>
+                                                <TableHead>Último Envio</TableHead>
+                                                <TableHead className="text-center">Download</TableHead>
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            )}
+                                        </TableHeader>
+                                        <TableBody>
+                                            {todosDocumentos.map((item, idx) => (
+                                                <TableRow key={item.tipo_documento || idx}>
+                                                    <TableCell>
+                                                        <div className="flex items-center gap-2">
+                                                            <FileText className="h-4 w-4 text-primary" />
+                                                            <span className="font-medium">{item.label}</span>
+                                                            {item.obrigatorio && (
+                                                                <Badge variant="outline" className="text-xs">Obrigatório</Badge>
+                                                            )}
+                                                        </div>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {item.enviado ? (
+                                                            <Badge className="bg-green-500/10 text-green-700 border-green-500/30">
+                                                                <CheckCircle className="h-3 w-3 mr-1" />
+                                                                Enviado
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="destructive" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+                                                                <Clock className="h-3 w-3 mr-1" />
+                                                                Pendente
+                                                            </Badge>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {item.documento?.created_at 
+                                                            ? format(parseISO(item.documento.created_at), 'dd/MM/yyyy HH:mm')
+                                                            : '-'
+                                                        }
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {item.documento ? (
+                                                            <div className="flex justify-center gap-2">
+                                                                <Button variant="ghost" size="sm" asChild>
+                                                                    <a href={item.documento.url} target="_blank" rel="noopener noreferrer">
+                                                                        <Download className="h-4 w-4" />
+                                                                    </a>
+                                                                </Button>
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="sm"
+                                                                    className="text-destructive hover:text-destructive hover:bg-destructive/5"
+                                                                    onClick={() => handleDeleteDocumento(item.documento!.id, item.documento!.url)}
+                                                                >
+                                                                    <Trash2 className="h-4 w-4" />
+                                                                </Button>
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-muted-foreground">-</span>
+                                                        )}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                    </Table>
+                                );
+                            })()}
                         </CardContent>
                     </Card>
                 </TabsContent>

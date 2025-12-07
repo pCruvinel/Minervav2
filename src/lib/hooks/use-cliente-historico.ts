@@ -28,6 +28,11 @@ export interface Cliente {
   email?: string;
   telefone?: string;
   endereco?: any;
+  observacoes?: string;
+  nome_responsavel?: string;
+  tipo_cliente?: 'PESSOA_FISICA' | 'PESSOA_JURIDICA';
+  tipo_empresa?: 'ADMINISTRADORA' | 'CONDOMINIO' | 'CONSTRUTORA' | 'INCORPORADORA' | 'INDUSTRIA' | 'COMERCIO' | 'OUTROS';
+  responsavel_id?: string;
   created_at: string;
   updated_at: string;
 }

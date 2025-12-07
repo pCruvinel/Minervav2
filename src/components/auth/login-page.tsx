@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from '@tanstack/react-router';
 import { logger } from '@/lib/utils/logger';
 import { Mail, Lock } from "lucide-react";
 import { Input } from "../ui/input";
@@ -155,18 +156,12 @@ export function LoginPage({ onLoginSuccess }: LoginPageProps) {
 
             {/* Forgot Password Link */}
             <div className="text-right">
-              <a
-                href="#"
+              <Link
+                to="/auth/forgot-password"
                 className="text-sm text-primary hover:text-primary/80 hover:underline font-medium"
-                onClick={(e) => {
-                  e.preventDefault();
-                  toast.info(
-                    "Funcionalidade em desenvolvimento",
-                  );
-                }}
               >
                 Esqueci minha senha
-              </a>
+              </Link>
             </div>
 
             {/* Submit Button */}

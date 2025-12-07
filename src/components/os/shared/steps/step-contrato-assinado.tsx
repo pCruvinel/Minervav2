@@ -46,9 +46,19 @@ export function StepContratoAssinado({ data, onDataChange, readOnly = false }: S
           <div>
             <Label>Data de Assinatura</Label>
             <Input
-              type="date"
+              type="text"
+              placeholder="dd/mm/aaaa"
+              maxLength={10}
               value={data.dataAssinatura}
-              onChange={(e) => !readOnly && onDataChange({ ...data, dataAssinatura: e.target.value })}
+              onChange={(e) => {
+                if (readOnly) return;
+                const masked = e.target.value
+                  .replace(/\D/g, '')
+                  .replace(/(\d{2})(\d)/, '$1/$2')
+                  .replace(/(\d{2})(\d)/, '$1/$2')
+                  .replace(/(\/\d{4})\d+?$/, '$1');
+                onDataChange({ ...data, dataAssinatura: masked });
+              }}
               disabled={readOnly}
             />
           </div>

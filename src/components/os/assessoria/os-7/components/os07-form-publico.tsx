@@ -600,9 +600,18 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                         <div>
                           <Label className="text-xs">Data Prevista Início *</Label>
                           <Input
-                            type="date"
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            maxLength={10}
                             value={alt.dataInicio}
-                            onChange={(e) => handleAtualizarAlteracao(alt.id, 'dataInicio', e.target.value)}
+                            onChange={(e) => {
+                              const masked = e.target.value
+                                .replace(/\D/g, '')
+                                .replace(/(\d{2})(\d)/, '$1/$2')
+                                .replace(/(\d{2})(\d)/, '$1/$2')
+                                .replace(/(\/\d{4})\d+?$/, '$1');
+                              handleAtualizarAlteracao(alt.id, 'dataInicio', masked);
+                            }}
                             className="h-9 text-sm"
                           />
                         </div>
@@ -610,9 +619,18 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
                         <div className="md:col-span-2">
                           <Label className="text-xs">Data Prevista Fim *</Label>
                           <Input
-                            type="date"
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            maxLength={10}
                             value={alt.dataFim}
-                            onChange={(e) => handleAtualizarAlteracao(alt.id, 'dataFim', e.target.value)}
+                            onChange={(e) => {
+                              const masked = e.target.value
+                                .replace(/\D/g, '')
+                                .replace(/(\d{2})(\d)/, '$1/$2')
+                                .replace(/(\d{2})(\d)/, '$1/$2')
+                                .replace(/(\/\d{4})\d+?$/, '$1');
+                              handleAtualizarAlteracao(alt.id, 'dataFim', masked);
+                            }}
                             className="h-9 text-sm"
                           />
                         </div>

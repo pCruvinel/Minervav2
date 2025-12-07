@@ -499,10 +499,12 @@
   border: none;
   width: 100%;
   text-align: left;
+  text-decoration: none;
 }
 
 .minerva-dropdown-item:hover {
   background-color: hsl(var(--neutral-100));
+  text-decoration: none;
 }
 
 .minerva-dropdown-separator {

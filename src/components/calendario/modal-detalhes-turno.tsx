@@ -32,14 +32,15 @@ const coresTurno = [
     { nome: 'Azul', classe: 'bg-info', valor: 'azul', ring: 'ring-info' }
 ];
 
+// Dias da semana começando por Segunda (padrão iOS/Android)
 const diasSemanaConfig = [
-    { label: 'Dom', value: 0, fullLabel: 'Domingo' },
-    { label: 'Seg', value: 1, fullLabel: 'Segunda' },
-    { label: 'Ter', value: 2, fullLabel: 'Terça' },
-    { label: 'Qua', value: 3, fullLabel: 'Quarta' },
-    { label: 'Qui', value: 4, fullLabel: 'Quinta' },
-    { label: 'Sex', value: 5, fullLabel: 'Sexta' },
-    { label: 'Sáb', value: 6, fullLabel: 'Sábado' },
+    { label: 'S', value: 1, fullLabel: 'Segunda' },
+    { label: 'T', value: 2, fullLabel: 'Terça' },
+    { label: 'Q', value: 3, fullLabel: 'Quarta' },
+    { label: 'Q', value: 4, fullLabel: 'Quinta' },
+    { label: 'S', value: 5, fullLabel: 'Sexta' },
+    { label: 'S', value: 6, fullLabel: 'Sábado' },
+    { label: 'D', value: 0, fullLabel: 'Domingo' },
 ];
 
 interface ValidationErrors {
@@ -566,10 +567,17 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                                 <Label htmlFor="dataInicio" className="text-sm">Data de Início</Label>
                                                 <Input
                                                     id="dataInicio"
-                                                    type="date"
+                                                    type="text"
+                                                    placeholder="dd/mm/aaaa"
+                                                    maxLength={10}
                                                     value={dataInicio}
                                                     onChange={(e) => {
-                                                        setDataInicio(e.target.value);
+                                                        const masked = e.target.value
+                                                            .replace(/\D/g, '')
+                                                            .replace(/(\d{2})(\d)/, '$1/$2')
+                                                            .replace(/(\d{2})(\d)/, '$1/$2')
+                                                            .replace(/(\/\d{4})\d+?$/, '$1');
+                                                        setDataInicio(masked);
                                                         setErrors((prev) => {
                                                             const novo = { ...prev };
                                                             delete novo.dataInicio;
@@ -592,10 +600,17 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                                 <Label htmlFor="dataFim" className="text-sm">Data de Fim</Label>
                                                 <Input
                                                     id="dataFim"
-                                                    type="date"
+                                                    type="text"
+                                                    placeholder="dd/mm/aaaa"
+                                                    maxLength={10}
                                                     value={dataFim}
                                                     onChange={(e) => {
-                                                        setDataFim(e.target.value);
+                                                        const masked = e.target.value
+                                                            .replace(/\D/g, '')
+                                                            .replace(/(\d{2})(\d)/, '$1/$2')
+                                                            .replace(/(\d{2})(\d)/, '$1/$2')
+                                                            .replace(/(\/\d{4})\d+?$/, '$1');
+                                                        setDataFim(masked);
                                                         setErrors((prev) => {
                                                             const novo = { ...prev };
                                                             delete novo.dataFim;
@@ -616,20 +631,22 @@ export function ModalDetalhesTurno({ open, onClose, turno, onSuccess }: ModalDet
                                             </div>
                                         </div>
 
-                                        {/* Seleção de Dias da Semana com Badges */}
+                                        {/* Seleção de Dias da Semana - Estilo iOS/Android */}
                                         <div className="space-y-3">
-                                            <Label className="text-sm">Dias da Semana</Label>
-                                            <div className="flex flex-wrap gap-2">
+                                            <Label className="text-sm text-muted-foreground">Dias da Semana</Label>
+                                            <div className="flex gap-2">
                                                 {diasSemanaConfig.map((dia) => (
                                                     <button
                                                         key={dia.value}
                                                         type="button"
                                                         onClick={() => handleToggleDia(dia.value)}
+                                                        title={dia.fullLabel}
                                                         className={cn(
-                                                            "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                                                            "h-10 w-10 rounded-full font-semibold text-sm transition-all duration-200",
+                                                            "border-2",
                                                             diasSemana.includes(dia.value)
-                                                                ? "bg-primary text-primary-foreground shadow-sm"
-                                                                : "bg-muted hover:bg-muted/80 text-muted-foreground hover:text-foreground"
+                                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                                : "bg-background border-muted-foreground/20 text-muted-foreground hover:bg-muted hover:border-muted-foreground/40"
                                                         )}
                                                     >
                                                         {dia.label}

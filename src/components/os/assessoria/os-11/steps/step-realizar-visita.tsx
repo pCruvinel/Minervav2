@@ -107,9 +107,18 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
                         <Label htmlFor="dataRealizacao">Data da Visita</Label>
                         <Input
                             id="dataRealizacao"
-                            type="date"
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            maxLength={10}
                             value={data.dataRealizacao}
-                            onChange={(e) => handleInputChange('dataRealizacao', e.target.value)}
+                            onChange={(e) => {
+                                const masked = e.target.value
+                                    .replace(/\D/g, '')
+                                    .replace(/(\d{2})(\d)/, '$1/$2')
+                                    .replace(/(\d{2})(\d)/, '$1/$2')
+                                    .replace(/(\/\d{4})\d+?$/, '$1');
+                                handleInputChange('dataRealizacao', masked);
+                            }}
                             disabled={readOnly}
                         />
                     </div>

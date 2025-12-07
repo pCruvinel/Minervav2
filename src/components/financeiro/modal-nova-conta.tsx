@@ -126,9 +126,18 @@ export function ModalNovaConta({ open, onClose, onSalvar }: ModalNovaContaProps)
             <div className="space-y-2">
               <Label>Vencimento *</Label>
               <Input
-                type="date"
+                type="text"
+                placeholder="dd/mm/aaaa"
+                maxLength={10}
                 value={vencimento}
-                onChange={(e) => setVencimento(e.target.value)}
+                onChange={(e) => {
+                  const masked = e.target.value
+                    .replace(/\D/g, '')
+                    .replace(/(\d{2})(\d)/, '$1/$2')
+                    .replace(/(\d{2})(\d)/, '$1/$2')
+                    .replace(/(\/\d{4})\d+?$/, '$1');
+                  setVencimento(masked);
+                }}
               />
             </div>
           </div>

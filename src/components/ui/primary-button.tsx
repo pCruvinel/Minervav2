@@ -32,19 +32,25 @@ interface PrimaryButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles = {
   primary: {
-    base: 'bg-primary text-primary-foreground hover:bg-primary/90 active:bg-primary',
-    disabled: 'disabled:bg-primary disabled:opacity-50 disabled:cursor-not-allowed',
+    base: `
+      bg-[#D4AF37] 
+      text-[#2A2005] 
+      border border-[#AA8C2C] 
+      hover:bg-[#AA8C2C] 
+      shadow-sm
+    `,
+    disabled: 'disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-200 disabled:shadow-none',
   },
   secondary: {
-    base: 'bg-secondary text-secondary-foreground hover:bg-secondary/80 active:bg-secondary/90',
+    base: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
     disabled: 'disabled:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed',
   },
   danger: {
-    base: 'bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive',
+    base: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
     disabled: 'disabled:bg-destructive disabled:opacity-50 disabled:cursor-not-allowed',
   },
   ghost: {
-    base: 'bg-transparent text-foreground border border-border hover:bg-muted active:bg-muted',
+    base: 'bg-transparent text-foreground border border-border hover:bg-muted',
     disabled: 'disabled:bg-transparent disabled:opacity-50 disabled:cursor-not-allowed',
   },
 };
@@ -104,8 +110,9 @@ export function PrimaryButton({
   return (
     <Button
       className={cn(
-        'transition-all duration-300 font-medium shadow-sm',
-        'active:scale-[0.98] active:shadow-none',
+        // Estilos Base Padrão do Shadcn
+        'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
+        // Aplicação das variantes
         variantStyle.base,
         variantStyle.disabled,
         fullWidth && 'w-full',

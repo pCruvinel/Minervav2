@@ -1,4 +1,4 @@
- simport { Hono } from "npm:hono@4.6.14";
+import { Hono } from "npm:hono@4.6.14";
 import { cors } from "npm:hono@4.6.14/cors";
 import { logger } from "npm:hono@4.6.14/logger";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -213,7 +213,7 @@ app.get("/server/debug/table-structure", async (c) => {
 
 // ==================== CLIENTES/LEADS ROUTES ====================
 
-// Listar todos os leads/clientes
+// Listar todos os leads/clientes com dados agregados
 app.get("/server/clientes", async (c) => {
   try {
     const supabase = getSupabaseClient();
@@ -221,36 +221,58 @@ app.get("/server/clientes", async (c) => {
     
     console.log('📥 GET /clientes - Filtro status recebido:', status);
     
-    // SOLUÇÃO EMERGENCIAL: Buscar TODOS os clientes SEM filtro
-    // para evitar erro de enum até que o banco seja corrigido
-    const query = supabase
-      .from('clientes')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    // NÃO aplicar filtro de status até corrigir o enum no banco
-    // if (status) {
-    //   query = query.eq('status', normalizeClienteStatus(status));
-    // }
-    
-    console.log('🔄 Executando query SEM filtro de status...');
-    const { data, error } = await query;
-    
-    if (error) {
-      console.error('❌ Erro ao buscar clientes:', error);
-      return c.json({ error: error.message }, 500);
+    // Buscar clientes com dados agregados usando SQL raw
+    const { data: clientesAgregados, error: sqlError } = await supabase.rpc('exec_sql', {
+      query: `
+        SELECT 
+          c.id,
+          c.nome_razao_social,
+          c.cpf_cnpj,
+          c.email,
+          c.telefone,
+          c.status,
+          c.responsavel_id,
+          c.endereco,
+          c.observacoes,
+          c.nome_responsavel,
+          c.tipo_cliente,
+          c.tipo_empresa,
+          c.created_at,
+          c.updated_at,
+          COALESCE((SELECT COUNT(*) FROM contratos ct WHERE ct.cliente_id = c.id AND ct.status = 'ativo'), 0)::int as qtd_contratos,
+          (SELECT MIN(f.vencimento)::text FROM faturas f WHERE f.cliente_id = c.id AND f.status = 'pendente') as proxima_fatura,
+          COALESCE((SELECT COUNT(*) FROM faturas f WHERE f.cliente_id = c.id AND f.status = 'atrasado'), 0)::int as faturas_atrasadas,
+          COALESCE((SELECT COUNT(*) FROM contas_receber cr WHERE cr.cliente_id = c.id AND cr.status = 'inadimplente'), 0)::int as contas_inadimplentes
+        FROM clientes c
+        ORDER BY c.nome_razao_social ASC
+      `
+    });
+
+    if (sqlError) {
+      console.error('❌ Erro na query agregada:', sqlError);
+      // Fallback para query simples se RPC falhar
+      const { data, error } = await supabase
+        .from('clientes')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('❌ Erro ao buscar clientes:', error);
+        return c.json({ error: error.message }, 500);
+      }
+      
+      return c.json(data);
     }
     
-    console.log(`✅ ${data?.length || 0} clientes retornados`);
+    console.log(`✅ ${clientesAgregados?.length || 0} clientes retornados com dados agregados`);
     
-    // Se um filtro de status foi solicitado, filtrar no código (temporário)
-    let filteredData = data;
-    if (status && data) {
+    // Se um filtro de status foi solicitado, filtrar no código
+    let filteredData = clientesAgregados;
+    if (status && clientesAgregados) {
       const normalizedStatus = normalizeClienteStatus(status);
       console.log(`🔍 Filtrando clientes no código: status = ${normalizedStatus}`);
       
-      filteredData = data.filter(cliente => {
-        // Comparar de forma case-insensitive e ignorando espaços
+      filteredData = clientesAgregados.filter((cliente: any) => {
         const clienteStatus = String(cliente.status || '')
           .toLowerCase()
           .trim()

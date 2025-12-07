@@ -24,6 +24,17 @@ export interface OS {
   cliente_id: string;
   criado_em: string;
   atualizado_em: string;
+  // Campos adicionais para workflow
+  cc_id?: string | null;
+  responsavel_id?: string | null;
+  criado_por_id?: string | null;
+  parent_os_id?: string | null;
+  valor_proposta?: number;
+  valor_contrato?: number;
+  data_entrada?: string;
+  data_prazo?: string;
+  data_conclusao?: string;
+  metadata?: Record<string, unknown>;
   tipo_os?: {
     id: string;
     nome: string;
@@ -38,6 +49,9 @@ export interface OS {
   cliente?: {
     id: string;
     nome_razao_social: string;
+    cpf_cnpj?: string;
+    email?: string;
+    telefone?: string;
   };
 }
 
@@ -67,7 +81,10 @@ const osAPI = {
         ),
         cliente:cliente_id (
           id,
-          nome_razao_social
+          nome_razao_social,
+          cpf_cnpj,
+          email,
+          telefone
         )
       `)
       .eq('id', osId)

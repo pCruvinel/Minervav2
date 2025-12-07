@@ -172,11 +172,18 @@ export function TabHistoricoCompras() {
                   <Label htmlFor="startDate">Data Inicial</Label>
                   <Input
                     id="startDate"
-                    type="date"
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    maxLength={10}
                     value={filters.start_date || ''}
-                    onChange={(e) =>
-                      handleFilterChange('start_date', e.target.value || undefined)
-                    }
+                    onChange={(e) => {
+                      const masked = e.target.value
+                        .replace(/\D/g, '')
+                        .replace(/(\d{2})(\d)/, '$1/$2')
+                        .replace(/(\d{2})(\d)/, '$1/$2')
+                        .replace(/(\/\d{4})\d+?$/, '$1');
+                      handleFilterChange('start_date', masked || undefined);
+                    }}
                   />
                 </div>
 
@@ -184,11 +191,18 @@ export function TabHistoricoCompras() {
                   <Label htmlFor="endDate">Data Final</Label>
                   <Input
                     id="endDate"
-                    type="date"
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    maxLength={10}
                     value={filters.end_date || ''}
-                    onChange={(e) =>
-                      handleFilterChange('end_date', e.target.value || undefined)
-                    }
+                    onChange={(e) => {
+                      const masked = e.target.value
+                        .replace(/\D/g, '')
+                        .replace(/(\d{2})(\d)/, '$1/$2')
+                        .replace(/(\d{2})(\d)/, '$1/$2')
+                        .replace(/(\/\d{4})\d+?$/, '$1');
+                      handleFilterChange('end_date', masked || undefined);
+                    }}
                   />
                 </div>
 

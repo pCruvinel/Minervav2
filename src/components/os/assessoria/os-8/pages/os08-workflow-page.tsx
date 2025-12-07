@@ -12,13 +12,14 @@ import {
   StepGerarDocumento,
   StepEnviarDocumento
 } from '@/components/os/assessoria/os-8/steps';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { CargoSlug } from '@/lib/constants/os-ownership-rules';
-import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
 const steps: WorkflowStep[] = [
@@ -37,9 +38,10 @@ interface OS08WorkflowPageProps {
 }
 
 export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPageProps) {
-  // Estado interno para osId (para auto-criação)
+  // Estado interno para osId (criado na Etapa 2 quando o cliente for atribuído)
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
   const finalOsId = propOsId || internalOsId;
+  const [isCreatingOS, setIsCreatingOS] = useState(false);
 
   // Refs para validação imperativa de steps
   const stepAgendarVisitaRef = useRef<any>(null);
@@ -47,39 +49,52 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   // Obter usuário atual para delegação
   const { currentUser } = useAuth();
 
-  // Hook de Auto-Criação de OS
-  const {
-    createOSWithFirstStep,
-    isCreating: isCreatingOS,
-    createdOsId
-  } = useAutoCreateOS({
-    tipoOS: 'OS-08',
-    nomeEtapa1: 'Identificação do Solicitante',
-    enabled: !finalOsId
-  });
-
-  // Auto-criar OS na montagem (se não tiver osId)
-  useEffect(() => {
-    if (!finalOsId && !isCreatingOS) {
-      logger.log('[OS08WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
-      createOSWithFirstStep().catch((err) => {
-        logger.error('[OS08WorkflowPage] ❌ Erro na auto-criação:', err);
-      });
-    }
-  }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
-
-  // Atualizar estado quando OS for criada
-  useEffect(() => {
-    if (createdOsId && !finalOsId) {
-      logger.log(`[OS08WorkflowPage] ✅ OS criada: ${createdOsId}`);
-      setInternalOsId(createdOsId);
-    }
-  }, [createdOsId, finalOsId]);
+  // Hook para criar OS
+  const { mutate: createOS } = useCreateOrdemServico();
 
   // Atualizar internalOsId se prop mudar
   useEffect(() => {
     if (propOsId) setInternalOsId(propOsId);
   }, [propOsId]);
+
+  // Função para criar OS quando o cliente for atribuído na Etapa 2
+  const createOSWithClient = async (clienteId: string): Promise<string | null> => {
+    if (finalOsId) return finalOsId; // Já existe uma OS
+
+    try {
+      setIsCreatingOS(true);
+      logger.log('[OS08WorkflowPage] 🔧 Criando OS com cliente:', clienteId);
+
+      // Buscar tipo de OS
+      const tiposOS = await ordensServicoAPI.getTiposOS();
+      const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-08');
+
+      if (!tipo) {
+        throw new Error('Tipo de OS OS-08 não encontrado no sistema');
+      }
+
+      // Criar OS com o cliente real
+      const osData = {
+        tipo_os_id: tipo.id,
+        status_geral: 'em_triagem' as const,
+        descricao: 'OS-08: Visita Técnica / Parecer Técnico',
+        criado_por_id: currentUser?.id,
+        cliente_id: clienteId,
+        data_entrada: new Date().toISOString()
+      };
+
+      const newOS = await createOS(osData);
+      logger.log(`[OS08WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+      setInternalOsId(newOS.id);
+      return newOS.id;
+    } catch (err) {
+      logger.error('[OS08WorkflowPage] ❌ Erro ao criar OS:', err);
+      toast.error('Erro ao criar ordem de serviço');
+      return null;
+    } finally {
+      setIsCreatingOS(false);
+    }
+  };
 
   // Hook de Estado do Workflow
   const {
@@ -204,29 +219,38 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
 
   const handleSaveStep = async () => {
     try {
-      await saveStep(currentStep, true); // Salvar como rascunho explicitamente se clicado no botão salvar
-      toast.success('Dados salvos com sucesso!');
+      if (finalOsId) {
+        await saveStep(currentStep, true); // Salvar como rascunho explicitamente se clicado no botão salvar
+        toast.success('Dados salvos com sucesso!');
+      }
     } catch (error) {
       toast.error('Erro ao salvar dados');
     }
   };
 
-  // Loading state enquanto cria OS
-  if (!finalOsId || isCreatingOS) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            <h2 className="text-xl font-semibold">Preparando Visita Técnica...</h2>
-            <p className="text-sm text-muted-foreground">
-              Isso levará apenas alguns segundos
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  // Handler customizado para o avanço da etapa 2 (criar OS com cliente)
+  const handleCustomNextStep = async () => {
+    // Na Etapa 2, precisamos criar a OS antes de avançar
+    if (currentStep === 2 && !finalOsId) {
+      const clienteId = etapa2Data.clienteId;
+      if (!clienteId) {
+        toast.error('Selecione um cliente antes de continuar');
+        return;
+      }
+
+      const newOsId = await createOSWithClient(clienteId);
+      if (!newOsId) {
+        return; // Erro na criação
+      }
+
+      // Salvar dados das etapas 1 e 2
+      await saveStep(1, true);
+      await saveStep(2, true);
+    }
+
+    // Chamar o handler normal de navegação
+    handleNextStep();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -342,14 +366,14 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
-        onNextStep={handleNextStep}
+        onNextStep={handleCustomNextStep}
         onSaveDraft={handleSaveStep}
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
-        isLoading={isLoadingData}
+        isLoading={isLoadingData || isCreatingOS}
         isFormInvalid={isCurrentStepInvalid}
         invalidFormMessage="Por favor, selecione um horário no calendário para continuar"
-        // Props de delegação
+        // Props de delegação (só funciona se já tem OS criada)
         osType="OS-08"
         osId={finalOsId}
         currentOwnerId={currentUser?.id}

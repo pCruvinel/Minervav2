@@ -64,6 +64,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const createOSMutationHook = useCreateOSWorkflow();
 
   // Hook de Estado do Workflow
+  // Converter osId de null para undefined para compatibilidade com o hook
   const {
     currentStep,
     setCurrentStep,
@@ -77,7 +78,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     completedSteps: completedStepsFromHook,
     isLoading: isLoadingData
   } = useWorkflowState({
-    osId,
+    osId: osId || undefined,
     totalSteps: steps.length
   });
 
@@ -436,8 +437,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
       // 5. Preparar dados para criação da OS filha
       const clienteId = formDataByStep[1]?.leadId || os.cliente_id;
-      const ccId = os.cc_id;
-      const responsavelId = os.responsavel_id;
+      const ccId = os.cc_id ?? null;
+      const responsavelId = os.responsavel_id ?? null;
       const codigoOS = os.codigo_os;
 
       // 6. Definir etapas iniciais da OS filha
@@ -462,11 +463,11 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
       // 7. Criar OS filha
       logger.log(`🔗 Criando ${osFilhaCodigo} vinculada à ${codigoOS}...`);
 
-      createOSMutationHook.mutate(
-        {
+      try {
+        const resultData = await createOSMutationHook.mutate({
           tipoOSCodigo: osFilhaCodigo,
           clienteId,
-          ccId,
+          ccId: ccId || '',
           responsavelId,
           descricao: `${osFilhaNome} - Gerado automaticamente a partir de ${codigoOS}`,
           metadata: {
@@ -477,19 +478,16 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
           },
           etapas: etapasFilha,
           parentOSId: osId,
-        },
-        {
-          onSuccess: (data) => {
-            logger.log(`✅ ${osFilhaCodigo} criada com sucesso:`, data);
-            toast.success(`Contrato ativado! ${osFilhaCodigo} criada automaticamente.`);
-            if (onBack) onBack();
-          },
-          onError: (error: any) => {
-            logger.error(`❌ Erro ao criar ${osFilhaCodigo}:`, error);
-            toast.error(`Erro ao criar ${osFilhaCodigo}: ${error.message}`);
-          },
-        }
-      );
+        });
+
+        logger.log(`✅ ${osFilhaCodigo} criada com sucesso:`, resultData);
+        toast.success(`Contrato ativado! ${osFilhaCodigo} criada automaticamente.`);
+        if (onBack) onBack();
+      } catch (mutationError) {
+        const errorMsg = mutationError instanceof Error ? mutationError.message : 'Erro desconhecido';
+        logger.error(`❌ Erro ao criar ${osFilhaCodigo}:`, mutationError);
+        toast.error(`Erro ao criar ${osFilhaCodigo}: ${errorMsg}`);
+      }
     } catch (error) {
       logger.error('Erro ao ativar contrato:', error);
       toast.error('Erro ao ativar contrato');

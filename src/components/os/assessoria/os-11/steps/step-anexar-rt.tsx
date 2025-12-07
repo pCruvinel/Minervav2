@@ -103,9 +103,18 @@ export function StepAnexarRT({ data, onDataChange, readOnly }: StepAnexarRTProps
                         </Label>
                         <Input
                             id="dataRT"
-                            type="date"
+                            type="text"
+                            placeholder="dd/mm/aaaa"
+                            maxLength={10}
                             value={data.dataRT}
-                            onChange={(e) => handleInputChange('dataRT', e.target.value)}
+                            onChange={(e) => {
+                                const masked = e.target.value
+                                    .replace(/\D/g, '')
+                                    .replace(/(\d{2})(\d)/, '$1/$2')
+                                    .replace(/(\d{2})(\d)/, '$1/$2')
+                                    .replace(/(\/\d{4})\d+?$/, '$1');
+                                handleInputChange('dataRT', masked);
+                            }}
                             disabled={readOnly}
                         />
                     </div>

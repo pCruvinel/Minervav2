@@ -9,13 +9,14 @@ import { StepSetupRecorrencia } from '@/components/os/assessoria/os-12/steps/ste
 import { StepAlocacaoEquipe } from '@/components/os/assessoria/os-12/steps/step-alocacao-equipe';
 import { StepConfigCalendario } from '@/components/os/assessoria/os-12/steps/step-config-calendario';
 import { StepInicioServicos } from '@/components/os/assessoria/os-12/steps/step-inicio-servicos';
-import { ChevronLeft, Loader2 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { CargoSlug } from '@/lib/constants/os-ownership-rules';
-import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
 const steps: WorkflowStep[] = [
@@ -33,9 +34,10 @@ interface OS12WorkflowPageProps {
 }
 
 export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPageProps) {
-    // Estado interno para osId (para auto-criação)
+    // Estado interno para osId (criado na Etapa 1 quando o cliente for selecionado/cadastrado)
     const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
     const finalOsId = propOsId || internalOsId;
+    const [isCreatingOS, setIsCreatingOS] = useState(false);
 
     // Ref para validação da Etapa 1
     const stepCadastroRef = useRef<StepCadastroClienteContratoHandle>(null);
@@ -43,39 +45,52 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
     // Obter usuário atual para delegação
     const { currentUser } = useAuth();
 
-    // Hook de Auto-Criação de OS
-    const {
-        createOSWithFirstStep,
-        isCreating: isCreatingOS,
-        createdOsId
-    } = useAutoCreateOS({
-        tipoOS: 'OS-12',
-        nomeEtapa1: 'Cadastro do Cliente',
-        enabled: !finalOsId
-    });
-
-    // Auto-criar OS na montagem (se não tiver osId)
-    useEffect(() => {
-        if (!finalOsId && !isCreatingOS) {
-            logger.log('[OS12WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
-            createOSWithFirstStep().catch((err) => {
-                logger.error('[OS12WorkflowPage] ❌ Erro na auto-criação:', err);
-            });
-        }
-    }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
-
-    // Atualizar estado quando OS for criada
-    useEffect(() => {
-        if (createdOsId && !finalOsId) {
-            logger.log(`[OS12WorkflowPage] ✅ OS criada: ${createdOsId}`);
-            setInternalOsId(createdOsId);
-        }
-    }, [createdOsId, finalOsId]);
+    // Hook para criar OS
+    const { mutate: createOS } = useCreateOrdemServico();
 
     // Atualizar internalOsId se prop mudar
     useEffect(() => {
         if (propOsId) setInternalOsId(propOsId);
     }, [propOsId]);
+
+    // Função para criar OS quando o cliente for selecionado na Etapa 1
+    const createOSWithClient = async (clienteId: string): Promise<string | null> => {
+        if (finalOsId) return finalOsId; // Já existe uma OS
+
+        try {
+            setIsCreatingOS(true);
+            logger.log('[OS12WorkflowPage] 🔧 Criando OS com cliente:', clienteId);
+
+            // Buscar tipo de OS
+            const tiposOS = await ordensServicoAPI.getTiposOS();
+            const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-12');
+
+            if (!tipo) {
+                throw new Error('Tipo de OS OS-12 não encontrado no sistema');
+            }
+
+            // Criar OS com o cliente real (não o genérico)
+            const osData = {
+                tipo_os_id: tipo.id,
+                status_geral: 'em_triagem' as const,
+                descricao: 'OS-12: Assessoria Técnica Mensal/Anual',
+                criado_por_id: currentUser?.id,
+                cliente_id: clienteId,
+                data_entrada: new Date().toISOString()
+            };
+
+            const newOS = await createOS(osData);
+            logger.log(`[OS12WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+            setInternalOsId(newOS.id);
+            return newOS.id;
+        } catch (err) {
+            logger.error('[OS12WorkflowPage] ❌ Erro ao criar OS:', err);
+            toast.error('Erro ao criar ordem de serviço');
+            return null;
+        } finally {
+            setIsCreatingOS(false);
+        }
+    };
 
     const {
         currentStep,
@@ -190,29 +205,37 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
 
     const handleSaveStep = async () => {
         try {
-            await saveStep(currentStep, true);
-            toast.success('Dados salvos com sucesso!');
+            if (finalOsId) {
+                await saveStep(currentStep, true);
+                toast.success('Dados salvos com sucesso!');
+            }
         } catch {
             toast.error('Erro ao salvar dados');
         }
     };
 
-    // Loading state enquanto cria OS
-    if (!finalOsId || isCreatingOS) {
-        return (
-            <div className="min-h-screen bg-background flex items-center justify-center">
-                <Card className="w-full max-w-md p-8">
-                    <div className="flex flex-col items-center gap-4 text-center">
-                        <Loader2 className="w-12 h-12 animate-spin text-primary" />
-                        <h2 className="text-xl font-semibold">Preparando Assessoria Recorrente...</h2>
-                        <p className="text-sm text-muted-foreground">
-                            Isso levará apenas alguns segundos
-                        </p>
-                    </div>
-                </Card>
-            </div>
-        );
-    }
+    // Handler customizado para o avanço da etapa 1 (criar OS com cliente)
+    const handleCustomNextStep = async () => {
+        // Na Etapa 1, precisamos criar a OS antes de avançar
+        if (currentStep === 1 && !finalOsId) {
+            const clienteId = etapa1Data.leadId || etapa1Data.clienteId;
+            if (!clienteId) {
+                toast.error('Selecione um cliente antes de continuar');
+                return;
+            }
+
+            const newOsId = await createOSWithClient(clienteId);
+            if (!newOsId) {
+                return; // Erro na criação
+            }
+
+            // Salvar dados da etapa 1
+            await saveStep(1, true);
+        }
+
+        // Chamar o handler normal de navegação
+        handleNextStep();
+    };
 
     return (
         <div className="min-h-screen bg-background">
@@ -300,12 +323,12 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
-                onNextStep={handleNextStep}
+                onNextStep={handleCustomNextStep}
                 onSaveDraft={handleSaveStep}
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
-                isLoading={isLoadingData}
-                // Props de delegação
+                isLoading={isLoadingData || isCreatingOS}
+                // Props de delegação (só funciona se já tem OS criada)
                 osType="OS-12"
                 osId={finalOsId}
                 currentOwnerId={currentUser?.id}

@@ -71,9 +71,19 @@ export function StepFollowup3({ data, onDataChange, readOnly = false }: StepFoll
         <div>
           <Label>Data prevista para retorno</Label>
           <Input
-            type="date"
+            type="text"
+            placeholder="dd/mm/aaaa"
+            maxLength={10}
             value={data.dataRetorno}
-            onChange={(e) => !readOnly && onDataChange({ ...data, dataRetorno: e.target.value })}
+            onChange={(e) => {
+              if (readOnly) return;
+              const masked = e.target.value
+                .replace(/\D/g, '')
+                .replace(/(\d{2})(\d)/, '$1/$2')
+                .replace(/(\d{2})(\d)/, '$1/$2')
+                .replace(/(\/\d{4})\d+?$/, '$1');
+              onDataChange({ ...data, dataRetorno: masked });
+            }}
             disabled={readOnly}
           />
         </div>

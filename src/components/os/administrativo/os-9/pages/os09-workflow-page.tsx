@@ -1,4 +1,4 @@
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
@@ -8,13 +8,14 @@ import {
   StepRequisicaoCompra,
   StepUploadOrcamentos
 } from '@/components/os/administrativo/os-9/steps';
-import { ChevronLeft, Info, Loader2 } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { CargoSlug } from '@/lib/constants/os-ownership-rules';
-import { useAutoCreateOS } from '@/lib/hooks/use-auto-create-os';
+import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { ordensServicoAPI } from '@/lib/api-client';
 import { Route } from '@/routes/_auth/os/criar/requisicao-compras';
 import { logger } from '@/lib/utils/logger';
 import { supabase } from '@/lib/supabase-client';
@@ -32,44 +33,82 @@ interface OS09WorkflowPageProps {
 export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
   // 1. Consolidar osId (props > URL)
   const { osId: urlOsId } = Route.useSearch();
-  const finalOsId = osId || urlOsId;
+  const [internalOsId, setInternalOsId] = useState<string | undefined>(osId || urlOsId);
+  const finalOsId = osId || urlOsId || internalOsId;
   const navigate = useNavigate();
+  const [isCreatingOS, setIsCreatingOS] = useState(false);
 
   // Obter usuário atual para delegação
   const { currentUser } = useAuth();
 
-  // 2. Hook de Auto-Criação
-  const {
-    createOSWithFirstStep,
-    isCreating: isCreatingOS,
-    createdOsId
-  } = useAutoCreateOS({
-    tipoOS: 'OS-09',
-    nomeEtapa1: 'Requisição de Compra',
-    enabled: !finalOsId
-  });
+  // Hook para criar OS
+  const { mutate: createOS } = useCreateOrdemServico();
 
-  // 3. useEffect para auto-criar na montagem
+  // Atualizar internalOsId se props mudarem
   useEffect(() => {
-    if (!finalOsId && !isCreatingOS) {
-      logger.log('[OS09WorkflowPage] 📦 Montado sem osId, iniciando auto-criação...');
-      createOSWithFirstStep().catch((err) => {
-        logger.error('[OS09WorkflowPage] ❌ Erro na auto-criação:', err);
-      });
-    }
-  }, [finalOsId, isCreatingOS, createOSWithFirstStep]);
+    if (osId) setInternalOsId(osId);
+    else if (urlOsId) setInternalOsId(urlOsId);
+  }, [osId, urlOsId]);
 
-  // 4. Navegar quando OS for criada
-  useEffect(() => {
-    if (createdOsId && !finalOsId) {
-      logger.log(`[OS09WorkflowPage] 🔄 Navegando para osId=${createdOsId}...`);
+  // Função para criar OS quando o CC for selecionado na Etapa 1
+  const createOSWithCC = async (centroCustoId: string): Promise<string | null> => {
+    if (finalOsId) return finalOsId; // Já existe uma OS
+
+    try {
+      setIsCreatingOS(true);
+      logger.log('[OS09WorkflowPage] 🔧 Criando OS com CC:', centroCustoId);
+
+      // 1. Buscar cliente_id do Centro de Custo
+      const { data: ccData, error: ccError } = await supabase
+        .from('centros_custo')
+        .select('cliente_id')
+        .eq('id', centroCustoId)
+        .single();
+
+      if (ccError || !ccData?.cliente_id) {
+        throw new Error('Centro de custo não encontrado ou sem cliente vinculado');
+      }
+
+      // 2. Buscar tipo de OS
+      const tiposOS = await ordensServicoAPI.getTiposOS();
+      const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-09');
+
+      if (!tipo) {
+        throw new Error('Tipo de OS OS-09 não encontrado no sistema');
+      }
+
+      // 3. Criar OS com o cliente do CC
+      const osData = {
+        tipo_os_id: tipo.id,
+        status_geral: 'em_triagem' as const,
+        descricao: 'OS-09: Requisição de Compras',
+        criado_por_id: currentUser?.id,
+        cliente_id: ccData.cliente_id,
+        cc_id: centroCustoId,
+        data_entrada: new Date().toISOString()
+      };
+
+      const newOS = await createOS(osData);
+      logger.log(`[OS09WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+      
+      setInternalOsId(newOS.id);
+      
+      // Navegar para URL com osId
       navigate({
         to: '/os/criar/requisicao-compras',
-        search: { osId: createdOsId },
+        search: { osId: newOS.id },
         replace: true
       });
+      
+      return newOS.id;
+    } catch (err) {
+      logger.error('[OS09WorkflowPage] ❌ Erro ao criar OS:', err);
+      toast.error('Erro ao criar ordem de serviço');
+      return null;
+    } finally {
+      setIsCreatingOS(false);
     }
-  }, [createdOsId, finalOsId, navigate]);
+  };
 
   // 5. Hook de Estado do Workflow (aguarda osId)
   const {
@@ -153,7 +192,8 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
   const etapa1Data = formDataByStep[1] || {
     totalItems: 0,
     valorTotal: 0,
-    hasItems: false
+    hasItems: false,
+    centro_custo_id: undefined
   };
 
   const etapa2Data = formDataByStep[2] || {
@@ -187,29 +227,37 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
 
   const handleSaveStep = async () => {
     try {
-      await saveStep(currentStep, true);
-      toast.success('Dados salvos com sucesso!');
+      if (finalOsId) {
+        await saveStep(currentStep, true);
+        toast.success('Dados salvos com sucesso!');
+      }
     } catch {
       toast.error('Erro ao salvar dados');
     }
   };
 
-  // 6. Loading state enquanto cria OS
-  if (!finalOsId || isCreatingOS) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="w-full max-w-md p-8">
-          <div className="flex flex-col items-center gap-4 text-center">
-            <Loader2 className="w-12 h-12 animate-spin text-primary" />
-            <h2 className="text-xl font-semibold">Preparando Requisição de Compras...</h2>
-            <p className="text-sm text-muted-foreground">
-              Isso levará apenas alguns segundos
-            </p>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  // Handler customizado para o avanço da etapa 1 (criar OS com CC)
+  const handleCustomNextStep = async () => {
+    // Na Etapa 1, precisamos criar a OS antes de avançar
+    if (currentStep === 1 && !finalOsId) {
+      const ccId = etapa1Data.centro_custo_id;
+      if (!ccId) {
+        toast.error('Selecione um Centro de Custo antes de continuar');
+        return;
+      }
+
+      const newOsId = await createOSWithCC(ccId);
+      if (!newOsId) {
+        return; // Erro na criação
+      }
+
+      // Salvar dados da etapa 1
+      await saveStep(1, true);
+    }
+
+    // Chamar o handler normal de navegação
+    handleNextStep();
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -278,12 +326,12 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
-        onNextStep={handleNextStep}
+        onNextStep={handleCustomNextStep}
         onSaveDraft={handleSaveStep}
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
-        isLoading={isLoadingData}
-        // Props de delegação
+        isLoading={isLoadingData || isCreatingOS}
+        // Props de delegação (só funciona se já tem OS criada)
         osType="OS-09"
         osId={finalOsId}
         currentOwnerId={currentUser?.id}

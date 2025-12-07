@@ -12,6 +12,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import {
   Building2,
   User,
@@ -19,16 +20,31 @@ import {
   MapPin,
   Mail,
   Phone,
+  Briefcase,
+  Home,
+  Waves,
+  ArrowUp,
 } from 'lucide-react';
 import { Cliente } from '@/lib/hooks/use-cliente-historico';
 
-// Extended type to include observacoes which may come from the API
-interface ClienteExtended extends Cliente {
-  observacoes?: string;
-}
+// Labels para tipos
+const TIPO_CLIENTE_LABELS: Record<string, string> = {
+  PESSOA_FISICA: 'Pessoa Física',
+  PESSOA_JURIDICA: 'Pessoa Jurídica',
+};
+
+const TIPO_EMPRESA_LABELS: Record<string, string> = {
+  ADMINISTRADORA: 'Administradora',
+  CONDOMINIO: 'Condomínio',
+  CONSTRUTORA: 'Construtora',
+  INCORPORADORA: 'Incorporadora',
+  INDUSTRIA: 'Indústria',
+  COMERCIO: 'Comércio',
+  OUTROS: 'Outros',
+};
 
 interface ClienteTabVisaoGeralProps {
-  cliente: ClienteExtended | undefined;
+  cliente: Cliente | undefined;
   isLoading?: boolean;
 }
 
@@ -64,9 +80,25 @@ export function ClienteTabVisaoGeral({ cliente, isLoading }: ClienteTabVisaoGera
               <Label className="text-xs text-muted-foreground">Razão Social</Label>
               <p className="font-medium mt-1">{cliente.nome_razao_social}</p>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label className="text-xs text-muted-foreground">Tipo</Label>
+                <p className="font-medium mt-1">
+                  {cliente.tipo_cliente ? TIPO_CLIENTE_LABELS[cliente.tipo_cliente] : '-'}
+                </p>
+              </div>
+              {cliente.tipo_empresa && (
+                <div>
+                  <Label className="text-xs text-muted-foreground">Segmento</Label>
+                  <Badge variant="outline" className="mt-1">
+                    {TIPO_EMPRESA_LABELS[cliente.tipo_empresa] || cliente.tipo_empresa}
+                  </Badge>
+                </div>
+              )}
+            </div>
             <div>
               <Label className="text-xs text-muted-foreground">CPF/CNPJ</Label>
-              <p className="font-medium mt-1">{cliente.cpf_cnpj || '-'}</p>
+              <p className="font-medium mt-1 font-mono">{cliente.cpf_cnpj || '-'}</p>
             </div>
             <div>
               <Label className="text-xs text-muted-foreground">Status</Label>
@@ -79,15 +111,27 @@ export function ClienteTabVisaoGeral({ cliente, isLoading }: ClienteTabVisaoGera
           </CardContent>
         </Card>
 
-        {/* Contato */}
+        {/* Responsável e Contato */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5 text-primary" />
-              Informações de Contato
+              Responsável e Contato
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {cliente.nome_responsavel && (
+              <div className="flex items-center gap-3">
+                <Briefcase className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-xs text-muted-foreground">Responsável</Label>
+                  <p className="font-medium mt-1">{cliente.nome_responsavel}</p>
+                  {endereco.cargo_responsavel && (
+                    <p className="text-xs text-muted-foreground">{endereco.cargo_responsavel}</p>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="flex items-center gap-3">
               <Mail className="h-4 w-4 text-muted-foreground" />
               <div>
@@ -123,7 +167,7 @@ export function ClienteTabVisaoGeral({ cliente, isLoading }: ClienteTabVisaoGera
             {endereco.cep && (
               <div>
                 <Label className="text-xs text-muted-foreground">CEP</Label>
-                <p className="font-medium mt-1">{endereco.cep}</p>
+                <p className="font-medium mt-1 font-mono">{endereco.cep}</p>
               </div>
             )}
           </div>
@@ -160,6 +204,30 @@ export function ClienteTabVisaoGeral({ cliente, isLoading }: ClienteTabVisaoGera
                   </div>
                 )}
               </div>
+
+              {/* Características adicionais */}
+              {(endereco.tipo_telhado || endereco.possui_elevador || endereco.possui_piscina) && (
+                <div className="flex flex-wrap gap-2 mt-4">
+                  {endereco.tipo_telhado && (
+                    <Badge variant="outline" className="gap-1">
+                      <Home className="h-3 w-3" />
+                      {endereco.tipo_telhado}
+                    </Badge>
+                  )}
+                  {endereco.possui_elevador && (
+                    <Badge variant="outline" className="gap-1">
+                      <ArrowUp className="h-3 w-3" />
+                      Com Elevador
+                    </Badge>
+                  )}
+                  {endereco.possui_piscina && (
+                    <Badge variant="outline" className="gap-1">
+                      <Waves className="h-3 w-3" />
+                      Com Piscina
+                    </Badge>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

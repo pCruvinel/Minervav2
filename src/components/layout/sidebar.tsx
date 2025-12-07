@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from '@tanstack/react-router';
 import {
   Home,
@@ -10,14 +10,12 @@ import {
   Settings,
   PieChart,
   CreditCard,
-  Plus,
   Kanban,
   Receipt,
   TrendingUp,
   TrendingDown,
   UserCog,
   ClipboardCheck,
-  Building2,
   Shield,
   ChevronRight,
   LayoutGrid,
@@ -131,11 +129,102 @@ const menuItems = [
   },
 ];
 
+// Componente Popover para Submenu quando colapsado
+interface SubmenuPopoverProps {
+  items: typeof menuItems[0]['submenu'];
+  isActive: (to: string) => boolean;
+  anchorEl: HTMLElement | null;
+  onClose: () => void;
+  onMouseEnter: () => void;
+}
+
+function SubmenuPopover({ items, isActive, anchorEl, onClose, onMouseEnter: onPopoverMouseEnter }: SubmenuPopoverProps) {
+  const popoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        popoverRef.current &&
+        !popoverRef.current.contains(event.target as Node) &&
+        anchorEl &&
+        !anchorEl.contains(event.target as Node)
+      ) {
+        onClose();
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [anchorEl, onClose]);
+
+  if (!anchorEl || !items) return null;
+
+  const rect = anchorEl.getBoundingClientRect();
+
+  return (
+    <div
+      ref={popoverRef}
+      className="fixed bg-white rounded-lg shadow-lg border z-50"
+      style={{
+        top: rect.top,
+        left: rect.right + 8,
+        minWidth: '200px',
+        padding: 'var(--spacing-xs)',
+      }}
+      onMouseEnter={onPopoverMouseEnter}
+      onMouseLeave={onClose}
+    >
+      <ul className="flex flex-col" style={{ gap: 'var(--spacing-xs)' }}>
+        {items.map((subItem) => {
+          const SubIcon = subItem.icon;
+          const subIsActive = isActive(subItem.to);
+
+          return (
+            <li key={subItem.id}>
+              <Link
+                to={subItem.to}
+                className="flex items-center rounded-lg transition-colors text-sm"
+                style={{
+                  gap: 'var(--spacing-sm)',
+                  padding: 'var(--spacing-sm) var(--spacing-md)',
+                  backgroundColor: subIsActive ? 'var(--color-primary-50)' : 'transparent',
+                  color: subIsActive ? 'var(--color-primary-700)' : 'var(--color-neutral-700)',
+                  fontWeight: subIsActive ? 'var(--font-weight-medium)' : 'var(--font-weight-normal)',
+                  transitionDuration: 'var(--transition-base)',
+                  textDecoration: 'none',
+                }}
+                onMouseEnter={(e) => {
+                  if (!subIsActive) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-neutral-100)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!subIsActive) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+                onClick={onClose}
+              >
+                <SubIcon className="w-4 h-4 shrink-0" />
+                <span>{subItem.label}</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 export function Sidebar() {
   const { currentUser } = useAuth();
   const location = useLocation();
   const { isOpen, toggle } = useSidebarContext();
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
+  const [hoveredMenu, setHoveredMenu] = useState<{ id: string; element: HTMLElement } | null>(null);
+  const hoverTimeoutRef = useRef<number | null>(null);
 
   const currentPath = location.pathname;
 
@@ -147,7 +236,6 @@ export function Sidebar() {
     const roleSlug = (
       currentUser.cargo_slug ||
       currentUser.role_nivel ||
-      currentUser.role ||
       'colaborador_obra'
     ) as RoleLevel;
 
@@ -214,9 +302,9 @@ export function Sidebar() {
         }}
       >
         {isOpen ? (
-          <MinervaLogo variant="full" className="h-[67px]" />
+          <MinervaLogo variant="full" className="h-[67px] w-full" />
         ) : (
-          <MinervaLogo variant="icon" className="h-10 w-10" />
+          <MinervaLogo variant="icon" className="h-16 w-16" />
         )}
       </div>
 
@@ -239,23 +327,41 @@ export function Sidebar() {
                       }
                       toggleSubmenu(item.id);
                     }}
+                    onMouseEnter={(e) => {
+                      // Adicionar efeito de hover
+                      if (!itemIsActive) {
+                        e.currentTarget.style.backgroundColor = 'var(--color-neutral-100)';
+                      }
+                      // Limpar timeout anterior se existir
+                      if (hoverTimeoutRef.current) {
+                        clearTimeout(hoverTimeoutRef.current);
+                        hoverTimeoutRef.current = null;
+                      }
+                      // Mostrar popover quando colapsado
+                      if (!isOpen) {
+                        setHoveredMenu({ id: item.id, element: e.currentTarget });
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      // Remover efeito de hover
+                      if (!itemIsActive) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                      // Delay para permitir mover o mouse para o popover
+                      if (!isOpen) {
+                        hoverTimeoutRef.current = setTimeout(() => {
+                          setHoveredMenu(prev => prev?.id === item.id ? null : prev);
+                        }, 300);
+                      }
+                    }}
                     className="w-full flex items-center rounded-lg transition-colors text-sm font-medium"
                     style={{
                       gap: 'var(--spacing-sm)',
                       padding: 'var(--spacing-sm) var(--spacing-md)',
                       backgroundColor: itemIsActive ? 'var(--color-primary-50)' : 'transparent',
                       color: itemIsActive ? 'var(--color-primary-700)' : 'var(--color-neutral-700)',
-                      transitionDuration: 'var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!itemIsActive) {
-                        e.currentTarget.style.backgroundColor = 'var(--color-neutral-100)';
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!itemIsActive) {
-                        e.currentTarget.style.backgroundColor = 'transparent';
-                      }
+                      transitionDuration: 'var(--transition-base)',
+                      textDecoration: 'none',
                     }}
                     title={!isOpen ? item.label : undefined}
                   >
@@ -273,7 +379,30 @@ export function Sidebar() {
                     )}
                   </button>
 
-                  {/* Submenu */}
+                  {/* Popover para menu colapsado */}
+                  {!isOpen && hoveredMenu?.id === item.id && (
+                    <SubmenuPopover
+                      items={item.submenu}
+                      isActive={isActive}
+                      anchorEl={hoveredMenu.element}
+                      onMouseEnter={() => {
+                        // Cancelar timeout quando mouse entra no popover
+                        if (hoverTimeoutRef.current) {
+                          clearTimeout(hoverTimeoutRef.current);
+                          hoverTimeoutRef.current = null;
+                        }
+                      }}
+                      onClose={() => {
+                        if (hoverTimeoutRef.current) {
+                          clearTimeout(hoverTimeoutRef.current);
+                          hoverTimeoutRef.current = null;
+                        }
+                        setHoveredMenu(null);
+                      }}
+                    />
+                  )}
+
+                  {/* Submenu expandido tradicional */}
                   {isOpen && isExpanded && (
                     <ul
                       className="flex flex-col"
@@ -298,13 +427,14 @@ export function Sidebar() {
                                 gap: 'var(--spacing-xs)',
                                 padding: 'var(--spacing-xs) var(--spacing-sm)',
                                 backgroundColor: subIsActive ? 'var(--color-primary-50)' : 'transparent',
-                                color: subIsActive ? 'var(--color-primary-700)' : 'var(--color-neutral-600)',
+                                color: subIsActive ? 'var(--color-primary-700)' : 'var(--color-neutral-700)',
                                 fontWeight: subIsActive ? 'var(--font-weight-medium)' : 'var(--font-weight-normal)',
-                                transitionDuration: 'var(--transition-fast)',
+                                transitionDuration: 'var(--transition-base)',
+                                textDecoration: 'none',
                               }}
                               onMouseEnter={(e) => {
                                 if (!subIsActive) {
-                                  e.currentTarget.style.backgroundColor = 'var(--color-neutral-50)';
+                                  e.currentTarget.style.backgroundColor = 'var(--color-neutral-100)';
                                 }
                               }}
                               onMouseLeave={(e) => {
@@ -335,7 +465,8 @@ export function Sidebar() {
                     padding: 'var(--spacing-sm) var(--spacing-md)',
                     backgroundColor: itemIsActive ? 'var(--color-primary-50)' : 'transparent',
                     color: itemIsActive ? 'var(--color-primary-700)' : 'var(--color-neutral-700)',
-                    transitionDuration: 'var(--transition-fast)',
+                    transitionDuration: 'var(--transition-base)',
+                    textDecoration: 'none',
                   }}
                   onMouseEnter={(e) => {
                     if (!itemIsActive) {

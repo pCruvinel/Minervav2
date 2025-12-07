@@ -19,11 +19,31 @@ import { Alert, AlertDescription } from '../ui/alert';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Checkbox } from '../ui/checkbox';
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Info, Calculator, Loader2, MapPin, ChevronsUpDown, Check, FileText, Building2 } from 'lucide-react';
 import { Colaborador } from '@/types/colaborador';
-import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DIAS_SEMANA, DOCUMENTOS_OBRIGATORIOS, BANCOS } from '@/lib/constants/colaboradores';
+import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DOCUMENTOS_OBRIGATORIOS, BANCOS } from '@/lib/constants/colaboradores';
+
+// Dias da semana começando por Segunda com inicial e valor
+const DIAS_SEMANA_CONFIG = [
+  { value: 'SEG', inicial: 'S', nome: 'Segunda' },
+  { value: 'TER', inicial: 'T', nome: 'Terça' },
+  { value: 'QUA', inicial: 'Q', nome: 'Quarta' },
+  { value: 'QUI', inicial: 'Q', nome: 'Quinta' },
+  { value: 'SEX', inicial: 'S', nome: 'Sexta' },
+  { value: 'SAB', inicial: 'S', nome: 'Sábado' },
+  { value: 'DOM', inicial: 'D', nome: 'Domingo' },
+];
+
+// Turnos com configuração visual
+const TURNOS_CONFIG = [
+  { value: 'MANHA', label: 'Manhã', icon: '🌅' },
+  { value: 'TARDE', label: 'Tarde', icon: '☀️' },
+  { value: 'NOITE', label: 'Noite', icon: '🌙' },
+  { value: 'INTEGRAL', label: 'Integral', icon: '⏰' },
+];
 import { useViaCEP } from '@/lib/hooks/use-viacep';
 import { cn } from '@/lib/utils';
 
@@ -65,6 +85,35 @@ const maskCEP = (value: string) => {
     .replace(/\D/g, '')
     .replace(/(\d{5})(\d)/, '$1-$2')
     .replace(/(-\d{3})\d+?$/, '$1');
+};
+
+// Máscara para data no formato dd/mm/yyyy
+const maskDate = (value: string) => {
+  return value
+    .replace(/\D/g, '')
+    .replace(/(\d{2})(\d)/, '$1/$2')
+    .replace(/(\d{2})(\d)/, '$1/$2')
+    .replace(/(\/\d{4})\d+?$/, '$1');
+};
+
+// Converter dd/mm/yyyy para yyyy-mm-dd (formato ISO)
+const dateToISO = (dateBR: string): string => {
+  if (!dateBR || dateBR.length !== 10) return '';
+  const [dia, mes, ano] = dateBR.split('/');
+  if (!dia || !mes || !ano) return '';
+  return `${ano}-${mes}-${dia}`;
+};
+
+// Converter yyyy-mm-dd (formato ISO) para dd/mm/yyyy
+const dateFromISO = (dateISO: string): string => {
+  if (!dateISO) return '';
+  // Se já está no formato dd/mm/yyyy, retorna como está
+  if (dateISO.includes('/')) return dateISO;
+  // Se está no formato ISO (yyyy-mm-dd ou com timestamp)
+  const datePart = dateISO.split('T')[0];
+  const [ano, mes, dia] = datePart.split('-');
+  if (!dia || !mes || !ano) return '';
+  return `${dia}/${mes}/${ano}`;
 };
 
 export function ModalCadastroColaborador({
@@ -123,7 +172,7 @@ export function ModalCadastroColaborador({
     if (colaborador) {
       setNomeCompleto(colaborador.nome_completo || colaborador.nome || '');
       setCpf(colaborador.cpf || '');
-      setDataNascimento(colaborador.data_nascimento ? new Date(colaborador.data_nascimento).toISOString().split('T')[0] : '');
+      setDataNascimento(colaborador.data_nascimento ? dateFromISO(colaborador.data_nascimento) : '');
       setEmailPessoal(colaborador.email_pessoal || '');
       setEmailProfissional(colaborador.email_profissional || colaborador.email || '');
       setTelefonePessoal(colaborador.telefone_pessoal || '');
@@ -138,11 +187,35 @@ export function ModalCadastroColaborador({
       setSalarioBruto(colaborador.salario_base?.toString() || '');
       setRemuneracaoContratual(colaborador.remuneracao_contratual?.toString() || '');
 
-      // Parse endereço se existir
-      if (colaborador.endereco) {
-        // Tenta extrair campos do endereço
+      // Campos de endereço separados
+      setCep(colaborador.cep || '');
+      setLogradouro(colaborador.logradouro || '');
+      setNumero(colaborador.numero || '');
+      setComplemento(colaborador.complemento || '');
+      setBairro(colaborador.bairro || '');
+      setCidade(colaborador.cidade || '');
+      setUf(colaborador.uf || '');
+
+      // Fallback: Parse endereço se campos separados não existirem
+      if (!colaborador.logradouro && colaborador.endereco) {
         setLogradouro(colaborador.endereco);
       }
+
+      // Documentos obrigatórios
+      if (colaborador.documentos_obrigatorios) {
+        const docs = Array.isArray(colaborador.documentos_obrigatorios) 
+          ? colaborador.documentos_obrigatorios 
+          : Object.keys(colaborador.documentos_obrigatorios);
+        setDocumentosObrigatorios(docs);
+      } else {
+        setDocumentosObrigatorios([]);
+      }
+
+      // Dados bancários
+      setBanco(colaborador.banco || '');
+      setAgencia(colaborador.agencia || '');
+      setConta(colaborador.conta || '');
+      setChavePix(colaborador.chave_pix || '');
     } else {
       handleReset();
     }
@@ -201,22 +274,6 @@ export function ModalCadastroColaborador({
       return 'Setor Assessoria Técnica';
     }
     return funcaoData.setor;
-  };
-
-  const handleDiaToggle = (dia: string) => {
-    setDisponibilidadeDias(prev =>
-      prev.includes(dia)
-        ? prev.filter(d => d !== dia)
-        : [...prev, dia]
-    );
-  };
-
-  const handleTurnoToggle = (t: string) => {
-    setTurno(prev =>
-      prev.includes(t)
-        ? prev.filter(item => item !== t)
-        : [...prev, t]
-    );
   };
 
   const handleDocumentoToggle = (doc: string) => {
@@ -294,8 +351,17 @@ export function ModalCadastroColaborador({
       // Campos existentes na tabela colaboradores
       nome_completo: nomeCompleto,
       cpf,
-      data_nascimento: dataNascimento || null,
+      data_nascimento: dataNascimento ? dateToISO(dataNascimento) : null,
       endereco: enderecoCompleto, // Texto único com endereço completo
+      // Campos de endereço separados
+      cep: cep || null,
+      logradouro: logradouro || null,
+      numero: numero || null,
+      complemento: complemento || null,
+      bairro: bairro || null,
+      cidade: cidade || null,
+      uf: uf || null,
+      // Contato
       email_pessoal: emailPessoal || null,
       email_profissional: emailProfissional || null,
       telefone_pessoal: telefonePessoal || null,
@@ -314,6 +380,13 @@ export function ModalCadastroColaborador({
       custo_dia: calcularCustoDia() || null,
       rateio_fixo: getRateioFixo() || null,
       bloqueado_sistema: isColaboradorObra,
+      // Documentos obrigatórios
+      documentos_obrigatorios: documentosObrigatorios.length > 0 ? documentosObrigatorios : null,
+      // Dados bancários
+      banco: banco || null,
+      agencia: agencia || null,
+      conta: conta || null,
+      chave_pix: chavePix || null,
     });
 
     // Reset
@@ -427,9 +500,11 @@ export function ModalCadastroColaborador({
               <div className="space-y-2">
                 <Label>Data de Nascimento</Label>
                 <Input
-                  type="date"
+                  type="text"
+                  placeholder="dd/mm/aaaa"
                   value={dataNascimento}
-                  onChange={(e) => setDataNascimento(e.target.value)}
+                  onChange={(e) => setDataNascimento(maskDate(e.target.value))}
+                  maxLength={10}
                 />
               </div>
 
@@ -588,44 +663,61 @@ export function ModalCadastroColaborador({
             {/* Disponibilidade */}
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Disponibilidade</h4>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Dias Disponíveis</Label>
-                  <div className="flex gap-2 flex-wrap">
-                    {DIAS_SEMANA.map(dia => (
-                      <div key={dia} className="flex items-center">
-                        <Checkbox
-                          id={dia}
-                          checked={disponibilidadeDias.includes(dia)}
-                          onCheckedChange={() => handleDiaToggle(dia)}
-                        />
-                        <label htmlFor={dia} className="ml-2 text-sm cursor-pointer">
-                          {dia}
-                        </label>
-                      </div>
+              <div className="space-y-6">
+                {/* Dias da Semana - Estilo iOS/Android */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Dias Disponíveis</Label>
+                  <ToggleGroup 
+                    type="multiple" 
+                    value={disponibilidadeDias}
+                    onValueChange={(value) => setDisponibilidadeDias(value)}
+                    className="flex gap-2 justify-start"
+                  >
+                    {DIAS_SEMANA_CONFIG.map((dia) => (
+                      <ToggleGroupItem
+                        key={dia.value}
+                        value={dia.value}
+                        aria-label={dia.nome}
+                        title={dia.nome}
+                        className={cn(
+                          "h-10 w-10 rounded-full p-0 font-semibold text-sm transition-all",
+                          "border-2 border-muted-foreground/20",
+                          "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary",
+                          "hover:bg-muted hover:border-muted-foreground/40"
+                        )}
+                      >
+                        {dia.inicial}
+                      </ToggleGroupItem>
                     ))}
-                  </div>
+                  </ToggleGroup>
                 </div>
 
-                <div className="space-y-2">
-                  <Label>Turno (Multi-seleção)</Label>
-                  <div className="flex gap-4 flex-wrap">
-                    {['MANHA', 'TARDE', 'NOITE', 'INTEGRAL'].map((t) => (
-                      <div key={t} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`turno-${t}`}
-                          checked={turno.includes(t)}
-                          onCheckedChange={() => handleTurnoToggle(t)}
-                        />
-                        <label
-                          htmlFor={`turno-${t}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                        >
-                          {t.charAt(0) + t.slice(1).toLowerCase()}
-                        </label>
-                      </div>
+                {/* Turno - Estilo moderno com badges */}
+                <div className="space-y-3">
+                  <Label className="text-sm text-muted-foreground">Turno</Label>
+                  <ToggleGroup 
+                    type="multiple" 
+                    value={turno}
+                    onValueChange={(value) => setTurno(value)}
+                    className="flex gap-2 flex-wrap justify-start"
+                  >
+                    {TURNOS_CONFIG.map((t) => (
+                      <ToggleGroupItem
+                        key={t.value}
+                        value={t.value}
+                        aria-label={t.label}
+                        className={cn(
+                          "h-9 px-4 rounded-full font-medium text-sm transition-all",
+                          "border border-muted-foreground/20",
+                          "data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary",
+                          "hover:bg-muted hover:border-muted-foreground/40"
+                        )}
+                      >
+                        <span className="mr-1.5">{t.icon}</span>
+                        {t.label}
+                      </ToggleGroupItem>
                     ))}
-                  </div>
+                  </ToggleGroup>
                 </div>
               </div>
             </div>

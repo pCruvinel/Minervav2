@@ -1,6 +1,6 @@
 import { logger } from '@/lib/utils/logger';
 import { useState, useEffect } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -15,7 +15,6 @@ import {
   Send,
   Building2,
   Briefcase,
-  Eye,
   Clock,
   CheckCircle2,
 } from 'lucide-react';
@@ -45,11 +44,12 @@ interface Colaborador {
 }
 
 export function ColaboradoresListaPage() {
+  const navigate = useNavigate();
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('');
   const [setorFilter, setSetorFilter] = useState('todos');
-  const [statusFilter] = useState('todos');
+  const [statusFilter, setStatusFilter] = useState('todos');
   const [modalConviteOpen, setModalConviteOpen] = useState(false);
 
   // Buscar colaboradores da API
@@ -93,8 +93,9 @@ export function ColaboradoresListaPage() {
       colaborador.setor?.toLowerCase() === setorFilter.toLowerCase();
 
     const matchesStatus = statusFilter === 'todos' ||
-      (statusFilter === 'ativo' && colaborador.ativo) ||
-      (statusFilter === 'inativo' && !colaborador.ativo);
+      (statusFilter === 'ativo' && colaborador.ativo && colaborador.status_convite !== 'pendente' && colaborador.status_convite !== 'convidado') ||
+      (statusFilter === 'inativo' && !colaborador.ativo) ||
+      (statusFilter === 'pendente' && (colaborador.status_convite === 'pendente' || colaborador.status_convite === 'convidado'));
 
     return matchesSearch && matchesSetor && matchesStatus;
   });
@@ -107,6 +108,11 @@ export function ColaboradoresListaPage() {
     // Recarregar lista após enviar convites
     const data = await colaboradoresAPI.list();
     setColaboradores(data);
+  };
+
+  // Navegar para detalhes ao clicar na linha
+  const handleRowClick = (colaboradorId: string) => {
+    navigate({ to: '/colaboradores/$colaboradorId', params: { colaboradorId } });
   };
 
   return (
@@ -205,6 +211,17 @@ export function ColaboradoresListaPage() {
                   <SelectItem value="diretoria">Diretoria</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos Status</SelectItem>
+                  <SelectItem value="ativo">Ativos</SelectItem>
+                  <SelectItem value="inativo">Inativos</SelectItem>
+                  <SelectItem value="pendente">Pendentes</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
@@ -218,20 +235,19 @@ export function ColaboradoresListaPage() {
                 <TableHead>Tipo Contratação</TableHead>
                 <TableHead className="text-right">Custo-Dia</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={6} className="text-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
                     <p className="text-muted-foreground mt-2">Carregando colaboradores...</p>
                   </TableCell>
                 </TableRow>
               ) : colaboradoresFiltrados.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={6} className="text-center py-12">
                     <p className="text-muted-foreground">
                       Nenhum colaborador encontrado com os filtros aplicados.
                     </p>
@@ -239,7 +255,11 @@ export function ColaboradoresListaPage() {
                 </TableRow>
               ) : (
                 colaboradoresFiltrados.map((colaborador) => (
-                  <TableRow key={colaborador.id}>
+                  <TableRow 
+                    key={colaborador.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleRowClick(colaborador.id)}
+                  >
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
@@ -277,15 +297,6 @@ export function ColaboradoresListaPage() {
                     <TableCell>
                       {renderStatusBadge(colaborador)}
                     </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm" asChild>
-                          <Link to="/colaboradores/$colaboradorId" params={{ colaboradorId: colaborador.id }}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
-                      </div>
-                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -306,9 +317,19 @@ export function ColaboradoresListaPage() {
 
 // Helper para badge de status
 function renderStatusBadge(colaborador: Colaborador) {
-  const status = colaborador.status_convite || (colaborador.ativo ? 'ativo' : 'inativo');
+  // Se o colaborador está inativo, sempre mostrar "Inativo" (prioridade máxima)
+  if (colaborador.ativo === false) {
+    return (
+      <Badge variant="destructive">
+        Inativo
+      </Badge>
+    );
+  }
 
-  switch (status) {
+  // Se está ativo, verificar o status do convite
+  const statusConvite = colaborador.status_convite;
+
+  switch (statusConvite) {
     case 'pendente':
     case 'convidado':
       return (
@@ -324,22 +345,11 @@ function renderStatusBadge(colaborador: Colaborador) {
           Aceito
         </Badge>
       );
-    case 'ativo':
+    default:
+      // Colaborador ativo sem status de convite específico
       return (
         <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/30">
           Ativo
-        </Badge>
-      );
-    case 'inativo':
-      return (
-        <Badge variant="destructive">
-          Inativo
-        </Badge>
-      );
-    default:
-      return (
-        <Badge variant={colaborador.ativo ? 'default' : 'destructive'}>
-          {colaborador.ativo ? 'ATIVO' : 'INATIVO'}
         </Badge>
       );
   }

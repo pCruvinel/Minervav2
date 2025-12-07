@@ -33,6 +33,8 @@ import {
   CheckCircle,
   ArrowLeft,
   AlertCircle,
+  ClipboardList,
+  FolderOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
@@ -47,6 +49,7 @@ import {
   ClienteTabContratos,
   ClienteTabHistoricoOS,
   ClienteTabFinanceiro,
+  ClienteTabDocumentos,
 } from './tabs';
 
 // ===========================================
@@ -199,7 +202,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
       </div>
 
       {/* Resumo Rápido */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-2">
@@ -209,6 +212,19 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
             <h3 className="text-xl">{contratosSummary.contratosAtivos}</h3>
             <p className="text-xs text-muted-foreground mt-1">
               {contratoPrincipal ? `Principal: ${contratoPrincipal.tipo}` : 'Nenhum contrato ativo'}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-muted-foreground">Total de OS</p>
+              <ClipboardList className="h-4 w-4 text-blue-500" />
+            </div>
+            <h3 className="text-xl text-blue-500">{ordensServico.length}</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Ordens de serviço
             </p>
           </CardContent>
         </Card>
@@ -259,7 +275,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
 
       {/* Tabs de Conteúdo */}
       <Tabs defaultValue="visao-geral" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
           <TabsTrigger value="contratos">
             Contratos
@@ -278,6 +294,10 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
             )}
           </TabsTrigger>
           <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
+          <TabsTrigger value="documentos">
+            <FolderOpen className="h-4 w-4 mr-1" />
+            Documentos
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="visao-geral">
@@ -294,6 +314,10 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
 
         <TabsContent value="financeiro">
           <ClienteTabFinanceiro clienteId={clienteId} />
+        </TabsContent>
+
+        <TabsContent value="documentos">
+          <ClienteTabDocumentos clienteId={clienteId} />
         </TabsContent>
       </Tabs>
 

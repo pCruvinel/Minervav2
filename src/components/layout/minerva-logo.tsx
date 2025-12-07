@@ -1,5 +1,6 @@
 
 import logoImage from '../../img/logo.png';
+import logoIcone from '../../img/logo-icone.png';
 
 interface MinervaLogoProps {
   variant?: 'full' | 'icon' | 'compact';
@@ -12,10 +13,9 @@ export function MinervaLogo({ variant = 'full', className = '' }: MinervaLogoPro
     return (
       <div className={`flex items-center justify-center ${className}`}>
         <img
-          src={logoImage}
+          src={logoIcone}
           alt="Minerva Engenharia"
-          className="h-8 w-8 object-contain object-left"
-          style={{ objectPosition: 'left center' }}
+          className="w-full h-full object-contain"
         />
       </div>
     );
