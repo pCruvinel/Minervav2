@@ -376,6 +376,9 @@ export function OSDetailsWorkflowPage({
           telefoneContatoLocal: '',
           cargoContatoLocal: '',
         },
+        5: {
+          visitaRealizada: false, // ✅ Evitar undefined no Switch (controlled/uncontrolled warning)
+        },
         6: {
           fotosAncoragem: [],
           arquivosGerais: [],
@@ -426,6 +429,9 @@ export function OSDetailsWorkflowPage({
         nomeContatoLocal: '',
         telefoneContatoLocal: '',
         cargoContatoLocal: '',
+      },
+      5: {
+        visitaRealizada: false, // ✅ Evitar undefined no Switch (controlled/uncontrolled warning)
       },
       6: {
         fotosAncoragem: [],
@@ -1838,6 +1844,13 @@ export function OSDetailsWorkflowPage({
                 currentOwnerId={os?.responsavel_id}
                 currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
                 onDelegationComplete={() => {
+                  // ✅ FIX: Salvar etapa atual como concluída ANTES de avançar
+                  saveStep(currentStep, false).then(() => {
+                    logger.log(`✅ Etapa ${currentStep} salva após delegação`);
+                  }).catch(err => {
+                    logger.error('❌ Erro ao salvar etapa após delegação:', err);
+                  });
+
                   toast.success('Responsabilidade transferida com sucesso!');
 
                   // Avançar para próxima etapa após delegar
@@ -1864,10 +1877,15 @@ export function OSDetailsWorkflowPage({
           onDelegationComplete={() => {
             setIsDelegationModalOpen(false);
             setPendingHandoff(null);
-            toast.success('Responsabilidade transferida!');
 
-            // Retornar ao Dashboard pois perdeu acesso
-            // window.location.href = '/dashboard'; // Opcional, ou simplesmente avançar
+            // ✅ FIX: Salvar etapa atual como concluída ANTES de avançar
+            saveStep(currentStep, false).then(() => {
+              logger.log(`✅ Etapa ${currentStep} salva após delegação (modal)`);
+            }).catch(err => {
+              logger.error('❌ Erro ao salvar etapa após delegação (modal):', err);
+            });
+
+            toast.success('Responsabilidade transferida!');
 
             // Avançar para próxima etapa após delegar
             setCurrentStep(prev => prev + 1);

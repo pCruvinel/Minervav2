@@ -132,7 +132,7 @@ export function OSListPage({ currentUser }: OSListPageProps) {
   };
 
   // Verificar se o usuário pode ver a coluna Setor
-  const canViewSetorColumn = currentUser.role_nivel === 'diretoria' || currentUser.role_nivel === 'gestor_administrativo';
+  const canViewSetorColumn = currentUser.role_nivel === 'diretor' || currentUser.role_nivel === 'coord_administrativo';
 
   return (
     <div className="content-wrapper">
