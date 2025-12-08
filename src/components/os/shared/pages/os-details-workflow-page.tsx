@@ -21,8 +21,7 @@ import {
   Send,
   ChevronLeft,
   AlertCircle,
-  Loader2,
-  Info
+  Loader2
 } from 'lucide-react';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
@@ -681,10 +680,16 @@ export function OSDetailsWorkflowPage({
   // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
   const handleFormDataChange = (newFormData: typeof formData) => {
     setFormData(newFormData);
-    
+
     // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
+    // Type assertion necessária porque formData.tipo pode ser string vazia
+    const tipoNormalizado = (newFormData.tipo === 'fisica' || newFormData.tipo === 'juridica')
+      ? newFormData.tipo
+      : undefined;
+
     setEtapa1Data({
       ...newFormData,
+      tipo: tipoNormalizado,
       leadId: selectedLeadId || (formDataByStep[1] as any)?.leadId || '',
     });
   };
@@ -771,7 +776,33 @@ export function OSDetailsWorkflowPage({
 
         logger.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
         setEtapa1Data(etapa1DataCompleta);
-        logger.log('✅ setEtapa1Data chamado com dados completos');
+
+        // ✅ FIX: Sincronizar também o estado formData local para evitar desincronização
+        setFormData({
+          nome: etapa1DataCompleta.nome || '',
+          cpfCnpj: etapa1DataCompleta.cpfCnpj || '',
+          tipo: etapa1DataCompleta.tipo || '',
+          nomeResponsavel: etapa1DataCompleta.nomeResponsavel || '',
+          cargoResponsavel: etapa1DataCompleta.cargoResponsavel || '',
+          telefone: etapa1DataCompleta.telefone || '',
+          email: etapa1DataCompleta.email || '',
+          tipoEdificacao: etapa1DataCompleta.tipoEdificacao || '',
+          qtdUnidades: etapa1DataCompleta.qtdUnidades || '',
+          qtdBlocos: etapa1DataCompleta.qtdBlocos || '',
+          qtdPavimentos: etapa1DataCompleta.qtdPavimentos || '',
+          tipoTelhado: etapa1DataCompleta.tipoTelhado || '',
+          possuiElevador: etapa1DataCompleta.possuiElevador || false,
+          possuiPiscina: etapa1DataCompleta.possuiPiscina || false,
+          cep: etapa1DataCompleta.cep || '',
+          endereco: etapa1DataCompleta.endereco || '',
+          numero: etapa1DataCompleta.numero || '',
+          complemento: etapa1DataCompleta.complemento || '',
+          bairro: etapa1DataCompleta.bairro || '',
+          cidade: etapa1DataCompleta.cidade || '',
+          estado: etapa1DataCompleta.estado || '',
+        });
+
+        logger.log('✅ setEtapa1Data e setFormData chamados com dados completos');
 
         // Salvar dados imediatamente no banco para garantir persistência
         if (osId) {
@@ -795,14 +826,7 @@ export function OSDetailsWorkflowPage({
     }
   };
 
-  const handleSaveNewLead = () => {
-    // Aqui salvaria no backend
-    logger.log('Salvando novo lead:', formData);
-    setShowNewLeadDialog(false);
-    // Simular seleção do novo lead
-    setSelectedLeadId('NEW');
-    setEtapa1Data({ leadId: 'NEW' });
-  };
+
 
   /**
    * Criar OS e todas as 15 etapas no banco
@@ -1740,7 +1764,7 @@ export function OSDetailsWorkflowPage({
                     <div className="text-center">
                       <h3 className="font-medium mb-2">Start de Contrato</h3>
                       <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                        {isCreatingOS 
+                        {isCreatingOS
                           ? 'Concluindo OS automaticamente e iniciando Start de Obra...'
                           : 'Sucesso! Contrato assinado e Start de Obra iniciada. O status do cliente foi atualizado para \'Ativo\'.'
                         }
@@ -1815,11 +1839,11 @@ export function OSDetailsWorkflowPage({
                 currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
                 onDelegationComplete={() => {
                   toast.success('Responsabilidade transferida com sucesso!');
-                  
+
                   // Avançar para próxima etapa após delegar
                   setCurrentStep(prev => prev + 1);
                   setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
-                  
+
                   // Refresh para atualizar responsavel_id
                   refreshEtapas?.();
                 }}

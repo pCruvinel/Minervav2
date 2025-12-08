@@ -197,10 +197,10 @@ export function useDelegation(): UseDelegationReturn {
         description,
       });
 
-      // 1. Buscar nomes dos colaboradores para o histórico
+      // 1. Buscar dados dos colaboradores (incluindo auth_user_id para notificação)
       const { data: colaboradores, error: colabError } = await supabase
         .from('colaboradores')
-        .select('id, nome_completo')
+        .select('id, nome_completo, auth_user_id')
         .in('id', [newOwnerId, oldOwnerId]);
 
       if (colabError) throw colabError;
@@ -254,13 +254,18 @@ export function useDelegation(): UseDelegationReturn {
       }
 
       // 4. Enviar Notificação para o Novo Responsável
-      await NotificationService.create({
-        usuario_id: newOwnerId,
-        titulo: 'Nova Responsabilidade Atribuída',
-        mensagem: `Você recebeu a responsabilidade pela OS. ${description ? `Obs: ${description}` : ''}`,
-        link_acao: `/os/${osId}`,
-        tipo: 'tarefa'
-      });
+      // IMPORTANTE: Usar auth_user_id (não colaborador.id) para compatibilidade com RLS
+      if (newOwner?.auth_user_id) {
+        await NotificationService.create({
+          usuario_id: newOwner.auth_user_id, // ✅ Usar auth_user_id para RLS
+          titulo: 'Nova Responsabilidade Atribuída',
+          mensagem: `Você recebeu a responsabilidade pela OS. ${description ? `Obs: ${description}` : ''}`,
+          link_acao: `/os/${osId}`,
+          tipo: 'tarefa'
+        });
+      } else {
+        logger.warn('⚠️ Colaborador destino sem auth_user_id - notificação não enviada:', newOwnerId);
+      }
 
       logger.log('✅ Delegação concluída com sucesso');
       toast.success(`Responsabilidade transferida para ${newOwner?.nome_completo}`);

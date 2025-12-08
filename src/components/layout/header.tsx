@@ -79,8 +79,21 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
                 className="minerva-dropdown-trigger"
                 onClick={() => setShowDropdown(!showDropdown)}
               >
-                <div className="minerva-avatar bg-primary text-white">
-                  {user.avatar_url}
+                <div className="minerva-avatar bg-primary text-white overflow-hidden">
+                  {user.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt={user.nome_completo}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    user.nome_completo
+                      ?.split(' ')
+                      .map(n => n[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase() || 'U'
+                  )}
                 </div>
                 <div className="text-left hidden md:block">
                   <p className="text-sm font-medium">{user.nome_completo}</p>
@@ -104,7 +117,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
 
                     {/* Minha Conta */}
                     <a
-                      href="/perfil"
+                      href="/minha-conta"
                       className="minerva-dropdown-item w-full"
                       onClick={() => setShowDropdown(false)}
                     >
@@ -114,7 +127,7 @@ export function Header({ user, breadcrumbs, onLogout, osData }: HeaderProps) {
 
                     {/* Meus Documentos */}
                     <a
-                      href="/meus-documentos"
+                      href="/minha-conta?tab=documentos"
                       className="minerva-dropdown-item w-full"
                       onClick={() => setShowDropdown(false)}
                     >
