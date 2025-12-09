@@ -21,13 +21,13 @@
 
 ### 10 Funções de Colaborador do Sistema
 1. `admin` - Administrador (acesso total)
-2. `diretoria` - Diretoria (gestão executiva)
-3. `gestor_administrativo` - Gestor Administrativo
-4. `gestor_obras` - Gestor de Obras
-5. `gestor_assessoria` - Gestor de Assessoria
-6. `coordenador_obras` - Coordenador de Obras
-7. `coordenador_assessoria` - Coordenador de Assessoria
-8. `colaborador` - Colaborador (funcionário interno)
+2. `diretor` - Diretoria (gestão executiva)
+3. `coord_administrativo` - Coordenador Administrativo
+4. `coord_obras` - Coordenador de Obras
+5. `coord_assessoria` - Coordenador de Assessoria
+6. `operacional_admin` - Operacional Administrativo
+7. `operacional_obras` - Operacional de Obras
+8. `operacional_assessoria` - Operacional de Assessoria
 9. `colaborador_obra` - Colaborador de Obra (SEM acesso ao sistema)
 10. `mao_de_obra` - Mão de Obra (SEM acesso ao sistema)
 

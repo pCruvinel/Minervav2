@@ -17,7 +17,7 @@ import { useOS } from '@/lib/hooks/use-os';
 // Componentes compartilhados
 import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
-import { StepPrecificacao } from '@/components/os/shared/steps/step-precificacao';
+import { StepPrecificacaoAssessoria } from '@/components/os/shared/steps/step-precificacao-assessoria';
 import { StepGerarProposta } from '@/components/os/shared/steps/step-gerar-proposta';
 import { StepAgendarApresentacao } from '@/components/os/shared/steps/step-agendar-apresentacao';
 import { StepRealizarApresentacao } from '@/components/os/shared/steps/step-realizar-apresentacao';
@@ -28,7 +28,7 @@ import { StepContratoAssinado } from '@/components/os/shared/steps/step-contrato
 // Componentes específicos de Assessoria
 import { StepSelecaoTipoAssessoria } from '@/components/os/assessoria/os-5-6/steps/step-selecao-tipo-assessoria';
 import { StepAtivarContratoAssessoria } from '@/components/os/assessoria/os-5-6/steps/step-ativar-contrato-assessoria';
-import { StepMemorialEscopo, type StepMemorialEscopoHandle } from '@/components/os/shared/steps/step-memorial-escopo';
+import { StepEscopoAssessoria, type StepEscopoAssessoriaHandle, type StepEscopoAssessoriaData } from '@/components/os/shared/steps/step-escopo-assessoria';
 
 // Definição das 12 etapas do fluxo OS 05-06
 const steps: WorkflowStep[] = [
@@ -55,7 +55,7 @@ interface OSDetailsAssessoriaPageProps {
 export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdProp }: OSDetailsAssessoriaPageProps) {
   // Estado interno para armazenar osId criada dinamicamente
   const [internalOsId, setInternalOsId] = useState<string | null>(null);
-  
+
   // Usar osIdProp (editando OS existente) ou internalOsId (criando nova OS)
   const osId = osIdProp || internalOsId;
 
@@ -106,7 +106,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
-  const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
+  const stepEscopoRef = useRef<StepEscopoAssessoriaHandle>(null);
 
   // Mapeamento de dados para compatibilidade com componentes existentes
   const etapa1Data = formDataByStep[1] || { leadId: '' };
@@ -124,18 +124,24 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     telefoneContatoLocal: '',
     cargoContatoLocal: '',
   };
-  const etapa4Data = formDataByStep[4] || {
+  const etapa4Data: Partial<StepEscopoAssessoriaData> = formDataByStep[4] || {
     objetivo: '',
-    etapasPrincipais: [],
-    planejamentoInicial: '',
-    logisticaTransporte: '',
-    preparacaoArea: '',
+    especificacoesTecnicas: [],
+    metodologia: '',
+    prazo: {
+      planejamentoInicial: '',
+      logisticaTransporte: '',
+      levantamentoCampo: '',
+      composicaoLaudo: '',
+      apresentacaoCliente: '',
+    },
+    garantia: '',
   };
   const etapa5Data = formDataByStep[5] || {
-    valorBase: '',
-    descontos: '',
-    acrescimos: '',
-    observacoesFinanceiras: '',
+    custoBase: '',
+    percentualImposto: '14',
+    percentualEntrada: '40',
+    numeroParcelas: '2',
   };
   const etapa6Data = formDataByStep[6] || {
     propostaGerada: false,
@@ -175,10 +181,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   // HANDLER CUSTOMIZADO: Criar OS obrigatória na Etapa 1
   // ============================================================================
   const handleNextStep = async () => {
-    logger.log('🔍 [Assessoria] handleNextStep chamado', { 
-      currentStep, 
-      osId, 
-      hasLeadId: !!etapa1Data.leadId 
+    logger.log('🔍 [Assessoria] handleNextStep chamado', {
+      currentStep,
+      osId,
+      hasLeadId: !!etapa1Data.leadId
     });
 
     // ETAPA 1: VALIDAR E CRIAR OS OBRIGATORIAMENTE
@@ -214,7 +220,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
       // Nota: O tipo de OS será definido na Etapa 2, então criamos com um tipo padrão (OS-05)
       logger.log('🔧 Criando OS para o lead...');
       const tipoOS = etapa2Data.tipoOS || 'OS-05';
-      
+
       try {
         // Buscar o usuário atual para definir como responsável
         const user = (await supabase.auth.getUser()).data.user;
@@ -278,7 +284,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
         return;
       }
     }
-    
+
     // ETAPAS 2-12: Validação específica por etapa
     else {
       // Etapa 3: Validar Follow-up 1
@@ -289,10 +295,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
         }
       }
 
-      // Etapa 4: Validar Memorial de Escopo
-      if (currentStep === 4 && stepMemorialRef.current) {
-        if (!stepMemorialRef.current.isFormValid()) {
-          toast.error('Preencha todos os campos obrigatórios do Memorial de Escopo');
+      // Etapa 4: Validar Escopo de Assessoria
+      if (currentStep === 4 && stepEscopoRef.current) {
+        if (!stepEscopoRef.current.isFormValid()) {
+          toast.error('Preencha todos os campos obrigatórios do Escopo de Assessoria');
           return;
         }
       }
@@ -346,7 +352,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
   const handleFormDataChange = (newFormData: typeof formData) => {
     setFormData(newFormData);
-    
+
     // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
     setEtapa1Data({
       ...newFormData,
@@ -368,8 +374,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     1: (data: any) => !!data.leadId,
     2: (data: any) => !!data.tipoOS,
     3: (data: any) => !!(data.motivoProcura && data.idadeEdificacao),
-    4: (data: any) => !!(data.objetivo || data.descricaoServico), // Aceita ambos formatos (novo e legado)
-    5: (data: any) => !!data.valorBase,
+    4: (data: any) => !!(data.objetivo && data.especificacoesTecnicas?.length > 0), // Novo formato de escopo assessoria
+    5: (data: any) => !!data.custoBase && parseFloat(data.custoBase.replace(/[^\d,.-]/g, '').replace(',', '.')) > 0,
     6: (data: any) => !!data.propostaGerada,
     7: (data: any) => !!data.dataAgendamento,
     8: (data: any) => !!data.apresentacaoRealizada,
@@ -396,7 +402,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
       case 3:
         return stepFollowup1Ref.current?.isFormValid() === false;
       case 4:
-        return stepMemorialRef.current?.isFormValid() === false;
+        return stepEscopoRef.current?.isFormValid() === false;
       default:
         return false;
     }
@@ -481,6 +487,23 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
         });
 
         logger.log(`✅ ${osFilhaCodigo} criada com sucesso:`, resultData);
+
+        // 8. Atualizar status da OS atual para "concluido"
+        const { error: updateError } = await supabase
+          .from('ordens_servico')
+          .update({
+            status_geral: 'concluido',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', osId);
+
+        if (updateError) {
+          logger.error('Erro ao atualizar status da OS:', updateError);
+          toast.error('OS filha criada, mas houve erro ao atualizar status da OS pai');
+        } else {
+          logger.log('✅ Status da OS atualizado para concluido');
+        }
+
         toast.success(`Contrato ativado! ${osFilhaCodigo} criada automaticamente.`);
         if (onBack) onBack();
       } catch (mutationError) {
@@ -509,11 +532,11 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     const precoFinal = parseFloat(etapa5Data?.precoFinal || etapa5Data?.valorBase || '0');
     const percentualEntrada = parseFloat(etapa5Data?.percentualEntrada || '0');
     const numeroParcelas = parseFloat(etapa5Data?.numeroParcelas || '1') || 1;
-    
+
     const valorTotal = precoFinal;
     const valorEntrada = valorTotal * (percentualEntrada / 100);
     const valorParcela = numeroParcelas > 0 ? (valorTotal - valorEntrada) / numeroParcelas : 0;
-    
+
     return { valorTotal, valorEntrada, valorParcela };
   }, [etapa5Data]);
 
@@ -609,20 +632,20 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
                 />
               )}
 
-              {/* ETAPA 4: Formulário Memorial (Escopo e Prazos) */}
+              {/* ETAPA 4: Escopo de Assessoria (Objetivo, Especificações, Prazo) */}
               {currentStep === 4 && (
-                <StepMemorialEscopo
-                  ref={stepMemorialRef}
+                <StepEscopoAssessoria
+                  ref={stepEscopoRef}
                   data={etapa4Data}
                   onDataChange={setEtapa4Data}
                   readOnly={isHistoricalNavigation}
+                  tipoOS={tipoOS}
                 />
               )}
 
-              {/* ETAPA 5: Precificação */}
+              {/* ETAPA 5: Precificação (Custo Base Editável) */}
               {currentStep === 5 && (
-                <StepPrecificacao
-                  memorialData={etapa4Data}
+                <StepPrecificacaoAssessoria
                   data={etapa5Data}
                   onDataChange={setEtapa5Data}
                   readOnly={isHistoricalNavigation}
@@ -633,9 +656,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
               {currentStep === 6 && (
                 <StepGerarProposta
                   osId={osId || ''}
+                  tipoOS={formDataByStep[2]?.tipoOS || tipoOS}
                   etapa1Data={formDataByStep[1] || {}}
                   etapa2Data={formDataByStep[2] || {}}
-                  etapa7Data={etapa4Data} // Memorial de Escopo (etapa 4)
+                  etapa7Data={etapa4Data} // Escopo de Assessoria (etapa 4)
                   etapa8Data={etapa5Data} // Precificação (etapa 5)
                   valorTotal={valoresFinanceiros.valorTotal}
                   valorEntrada={valoresFinanceiros.valorEntrada}

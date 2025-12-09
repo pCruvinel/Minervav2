@@ -1,11 +1,20 @@
 /**
- * Handler para geração de PDFs de Propostas de Assessoria Recorrente Anual (OS 12)
+ * Handler para geração de PDFs de Propostas de Assessoria Anual (OS 05)
+ * 
+ * Busca dados das etapas de escopo (4) e precificação (5) do workflow OS 5-6
  */
 
 import { SupabaseClient } from '@supabase/supabase-js';
 import { renderToBuffer } from '@react-pdf/renderer';
 import React from 'react';
-import { PropostaAssAnualTemplate, type PropostaAssAnualData } from '../templates/proposta-ass-anual.tsx';
+import { 
+  PropostaAssAnualTemplate, 
+  type PropostaAssAnualData,
+  type EspecificacaoTecnica,
+  type DadosPrazoAnual,
+  type DadosPrecificacao,
+  type DadosPagamento,
+} from '../templates/proposta-ass-anual.tsx';
 import { uploadPDFToStorage } from '../utils/pdf-storage.ts';
 import { PDFGenerationResponse } from '../index.ts';
 
@@ -17,7 +26,6 @@ export async function handlePropostaAssAnualGeneration(
   try {
     console.log('[Assessoria Anual Handler] Iniciando geração de PDF...');
     console.log('[Assessoria Anual Handler] osId:', osId);
-    console.log('[Assessoria Anual Handler] dados recebidos:', JSON.stringify(dados, null, 2));
 
     // 1. Buscar dados da OS
     const { data: os, error: osError } = await supabase
@@ -45,13 +53,76 @@ export async function handlePropostaAssAnualGeneration(
       );
     }
 
-    // 2. Extrair dados do cliente
+    console.log('[Assessoria Anual Handler] OS encontrada:', os.codigo_os);
+
+    // 2. Buscar etapas específicas (4 = Escopo, 5 = Precificação)
+    const { data: etapas, error: etapasError } = await supabase
+      .from('os_etapas')
+      .select('*')
+      .eq('os_id', osId)
+      .in('ordem', [4, 5])
+      .order('ordem');
+
+    if (etapasError) {
+      console.error('[Assessoria Anual Handler] Erro ao buscar etapas:', etapasError);
+    }
+
+    // Separar etapas
+    const etapaEscopo = etapas?.find(e => e.ordem === 4);
+    const etapaPrecificacao = etapas?.find(e => e.ordem === 5);
+
+    // 3. Extrair dados das etapas
+    const dadosEscopo = (etapaEscopo?.dados_etapa as any) || {};
+    const dadosPrecificacao = (etapaPrecificacao?.dados_etapa as any) || {};
+
+    console.log('[Assessoria Anual Handler] Dados escopo:', dadosEscopo);
+    console.log('[Assessoria Anual Handler] Dados precificação:', dadosPrecificacao);
+
+    // 4. Extrair dados do cliente
     const clienteData = Array.isArray(os.cliente) ? os.cliente[0] : os.cliente;
     if (!clienteData) {
       throw new Error('Dados do cliente não encontrados');
     }
 
-    // 3. Montar dados para o template
+    // Extrair endereço
+    const endereco = clienteData.endereco || {};
+
+    // 5. Processar especificações técnicas
+    const especificacoes = dadosEscopo.especificacoesTecnicas || dados.especificacoesTecnicas || [];
+    const especificacoesTecnicas: EspecificacaoTecnica[] = especificacoes.map((e: any) => ({
+      descricao: e.descricao || e,
+    }));
+
+    // 6. Processar prazo (formato diferente do pontual - horário de funcionamento)
+    const prazoFromEscopo = dadosEscopo.prazo || {};
+    const prazo: DadosPrazoAnual = {
+      horarioFuncionamento: (dados.horarioFuncionamento as string) || 
+        prazoFromEscopo.horarioFuncionamento || 
+        'Segunda a sexta de 8h às 18h',
+      suporteEmergencial: (dados.suporteEmergencial as string) || 
+        prazoFromEscopo.suporteEmergencial || 
+        'Suporte técnico emergencial - atuação máxima de 2h',
+    };
+
+    // 7. Processar precificação
+    // Tentar extrair custoBase do step ou dos dados diretos
+    const custoBaseStr = dadosPrecificacao.custoBase || dados.custoBase || '0';
+    const custoBase = typeof custoBaseStr === 'string' 
+      ? parseFloat(custoBaseStr.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+      : custoBaseStr;
+
+    const precificacao: DadosPrecificacao = {
+      valorParcial: custoBase,
+      percentualImposto: parseFloat(dadosPrecificacao.percentualImposto || dados.percentualImposto || '14') || 14,
+    };
+
+    // 8. Processar pagamento
+    const pagamento: DadosPagamento = {
+      percentualDesconto: parseFloat(dadosPrecificacao.percentualDesconto || dados.percentualDesconto || '3') || 3,
+      diaVencimento: parseInt(dadosPrecificacao.diaVencimento || dados.diaVencimento || '5') || 5,
+    };
+
+    // 9. Montar dados completos para o template
     const propostaData: PropostaAssAnualData = {
       // Dados da OS
       codigoOS: os.codigo_os,
@@ -59,66 +130,78 @@ export async function handlePropostaAssAnualGeneration(
 
       // Cliente
       clienteNome: clienteData.nome_razao_social,
-      clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj,
+      clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj || '',
       clienteEmail: clienteData.email,
       clienteTelefone: clienteData.telefone,
-      clienteEndereco: clienteData.endereco?.logradouro,
-      clienteResponsavel: (dados.clienteResponsavel as string) || undefined,
+      clienteEndereco: endereco.logradouro || endereco.rua || '',
+      clienteBairro: endereco.bairro || '',
+      clienteCidade: endereco.cidade || 'São Luís',
+      clienteEstado: endereco.estado || 'MA',
 
-      // Escopo do Serviço
-      escopoServico: (dados.escopoServico as string) ||
-        'Assessoria técnica recorrente mensal para acompanhamento e suporte em questões de engenharia.',
-
-      // SLA
-      prazoResposta: (dados.prazoResposta as string) || '24 horas',
-      frequenciaVisita: (dados.frequenciaVisita as string) || 'Mensal',
-      visitasMes: (dados.visitasMes as number) || 4,
-
-      // Investimento
-      valorMensal: (dados.valorMensal as string | number) || 0,
-      valorAnual: (dados.valorAnual as string | number) || undefined,
-
-      // Pagamento
-      formasPagamento: (dados.formasPagamento as string[]) || ['Boleto', 'PIX'],
+      // Conteúdo
+      objetivo: (dados.objetivo as string) || dadosEscopo.objetivo || os.descricao || '',
+      especificacoesTecnicas,
+      metodologia: (dados.metodologia as string) || dadosEscopo.metodologia || '',
+      prazo,
+      garantia: (dados.garantia as string) || dadosEscopo.garantia || '',
+      precificacao,
+      pagamento,
     };
 
-    console.log('[Assessoria Anual Handler] Dados preparados para template');
+    console.log('[Assessoria Anual Handler] Dados preparados:', {
+      codigoOS: propostaData.codigoOS,
+      clienteNome: propostaData.clienteNome,
+      qtdEspecificacoes: propostaData.especificacoesTecnicas.length,
+      valorParcial: propostaData.precificacao.valorParcial,
+    });
 
-    // 4. Renderizar template
+    // 10. Validar dados mínimos
+    if (!propostaData.objetivo) {
+      throw new Error('Objetivo da proposta não definido');
+    }
+    if (propostaData.especificacoesTecnicas.length === 0) {
+      throw new Error('Nenhuma especificação técnica definida');
+    }
+    if (propostaData.precificacao.valorParcial <= 0) {
+      throw new Error('Valor da proposta deve ser maior que zero');
+    }
+
+    // 11. Renderizar template
+    console.log('[Assessoria Anual Handler] Renderizando template...');
     const doc = React.createElement(PropostaAssAnualTemplate, { data: propostaData });
     const pdfBuffer = await renderToBuffer(doc);
 
-    // 5. Upload para Storage
+    // 12. Upload para Storage
+    console.log('[Assessoria Anual Handler] Fazendo upload...');
     const uploadResult = await uploadPDFToStorage(
       supabase,
-      pdfBuffer,
-      `propostas/proposta-ass-anual-${os.codigo_os}-${Date.now()}.pdf`
+      new Uint8Array(pdfBuffer),
+      osId,
+      'proposta-ass-anual',
+      {
+        codigoOS: propostaData.codigoOS,
+        clienteNome: propostaData.clienteNome,
+        valorProposta: propostaData.precificacao.valorParcial,
+        dataEmissao: propostaData.dataEmissao,
+      }
     );
-
-    if (!uploadResult.success) {
-      throw new Error(uploadResult.error || 'Erro ao fazer upload do PDF');
-    }
 
     console.log('[Assessoria Anual Handler] ✅ PDF gerado com sucesso');
 
     return {
       success: true,
       url: uploadResult.url,
-      error: null,
       metadata: {
-        tipoDocumento: 'proposta-ass-anual',
-        osId: os.id,
-        codigoOS: os.codigo_os,
-        dataGeração: new Date().toISOString(),
+        filename: uploadResult.filename,
+        size: uploadResult.size,
+        tipo: 'proposta-ass-anual',
       },
     };
   } catch (error: any) {
     console.error('[Assessoria Anual Handler] ❌ Erro:', error);
     return {
       success: false,
-      url: null,
       error: error.message || 'Erro desconhecido ao gerar PDF',
-      metadata: null,
     };
   }
 }
