@@ -3,8 +3,10 @@
  * 
  * Hub de Dashboards com roteamento RBAC:
  * - Admin/Diretor: ManagerTable Global + KPIs
- * - Coordenadores: ManagerTable Setorial + ActionKanban pessoal
+ * - Coordenadores: ManagerTable Setorial + ActionKanban pessoal (NOVO: Separação Ação x Monitoramento)
  * - Operacional: ActionKanban estritamente pessoal
+ * 
+ * @version 2.0 - Resolve "Ponto Cego" do Dashboard
  */
 'use client';
 
@@ -15,8 +17,21 @@ import { ActionKanban } from './action-kanban';
 import { ManagerTable } from './manager-table';
 import { MetricCard } from './metric-card';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@tanstack/react-router';
-import { Loader2, FileText, Clock, AlertTriangle, CheckCircle2, TrendingUp, Users, LayoutGrid } from 'lucide-react';
+import {
+  Loader2,
+  FileText,
+  Clock,
+  AlertTriangle,
+  CheckCircle2,
+  TrendingUp,
+  Users,
+  LayoutGrid,
+  ArrowRightLeft,
+  Eye,
+  Target
+} from 'lucide-react';
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -28,6 +43,9 @@ export function DashboardPage() {
     minhasPendencias,
     pendenciasSetor,
     visaoGlobal,
+    monitoramentoSetor,
+    osFilhasExternas,
+    aguardandoTerceiros,
     contadores,
     loading: isLoadingData,
     error
@@ -73,13 +91,6 @@ export function DashboardPage() {
   const cargoSlug = (currentUser.cargo_slug || currentUser.role_nivel || 'colaborador_obra') as RoleLevel;
   const permissoes = getPermissoes(currentUser);
 
-  // Calcular OSs "aguardando terceiros" para o Kanban
-  const aguardandoTerceiros = visaoGlobal.filter(os =>
-    os.criado_por_id === currentUser.id &&
-    os.responsavel_id !== currentUser.id &&
-    os.responsavelEtapaId !== currentUser.id
-  );
-
   // ========== RENDERIZAÇÃO POR CARGO ==========
 
   // ADMIN/DIRETOR/DIRETORIA: ManagerTable Global + KPIs
@@ -119,11 +130,11 @@ export function DashboardPage() {
               description="Prazos vencidos"
             />
             <MetricCard
-              title="Concluídas (30d)"
-              value={0} // TODO: Implementar contador de concluídas
-              icon={CheckCircle2}
-              variant="success"
-              description="Últimos 30 dias"
+              title="Aguardando Terceiros"
+              value={contadores.aguardando}
+              icon={Users}
+              variant="default"
+              description="OSs criadas por mim com outros"
             />
           </div>
 
@@ -132,6 +143,7 @@ export function DashboardPage() {
             data={visaoGlobal}
             title="Todas as Ordens de Serviço"
             showSetorFilter={true}
+            showResponsavelAtual={true}
           />
 
           {/* Link para Kanban Pessoal */}
@@ -157,6 +169,7 @@ export function DashboardPage() {
   }
 
   // COORDENADORES: ManagerTable Setorial + ActionKanban pessoal
+  // NOVA ESTRUTURA: KPIs do Setor → Minhas Ações → Controle Geral do Setor
   if (cargoSlug.startsWith('coord_')) {
     const setorLabel = currentUser.setor_slug === 'assessoria' ? 'Assessoria'
       : currentUser.setor_slug === 'obras' ? 'Obras'
@@ -170,25 +183,32 @@ export function DashboardPage() {
           <div>
             <h1 className="text-3xl font-semibold mb-2">Dashboard - {setorLabel}</h1>
             <p className="text-muted-foreground">
-              Gerencie as ordens de serviço do seu setor
+              Gerencie as ordens de serviço do seu setor • Visão completa de monitoramento
             </p>
           </div>
 
-          {/* KPIs do Setor */}
+          {/* ========== SEÇÃO 1: KPIs DO SETOR (Monitoramento) ========== */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricCard
-              title={`OS do ${setorLabel}`}
-              value={contadores.totalSetor}
-              icon={FileText}
+              title={`Total ${setorLabel}`}
+              value={contadores.totalMonitoramento}
+              icon={Eye}
               variant="primary"
-              description="Total no setor"
+              description="OSs no monitoramento"
             />
             <MetricCard
               title="Minhas Pendências"
               value={contadores.minhaVez + contadores.emAndamento}
-              icon={Users}
+              icon={Target}
               variant="default"
               description="Sob minha responsabilidade"
+            />
+            <MetricCard
+              title="Aguardando Outros"
+              value={contadores.filhasExternas}
+              icon={ArrowRightLeft}
+              variant={contadores.filhasExternas > 0 ? 'warning' : 'default'}
+              description="OSs do setor em outros setores"
             />
             <MetricCard
               title="Urgentes"
@@ -197,40 +217,69 @@ export function DashboardPage() {
               variant={contadores.urgentes > 0 ? 'danger' : 'success'}
               description="Prazos vencidos"
             />
-            <MetricCard
-              title="Performance"
-              value="--"
-              icon={TrendingUp}
-              variant="default"
-              description="Taxa de conclusão"
-            />
           </div>
 
-          {/* Link para Kanban Pessoal */}
-          <div className="flex items-center justify-between p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <div>
-              <h3 className="font-medium">Minhas Tarefas</h3>
+          {/* ========== SEÇÃO 2: MINHAS AÇÕES IMEDIATAS ========== */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Target className="h-5 w-5 text-primary" />
+                🎯 Minhas Ações Imediatas
+              </CardTitle>
               <p className="text-sm text-muted-foreground">
                 {contadores.urgentes > 0
                   ? `⚠️ ${contadores.urgentes} urgente(s) + ${contadores.minhaVez} a fazer`
-                  : `${minhasPendencias.length} tarefa(s) pendente(s)`
+                  : `${minhasPendencias.length} tarefa(s) sob sua responsabilidade`
                 }
               </p>
-            </div>
-            <Button asChild>
-              <Link to="/dashboard/kanban">
-                <LayoutGrid className="h-4 w-4 mr-2" />
-                Abrir Kanban
-              </Link>
-            </Button>
-          </div>
+            </CardHeader>
+            <CardContent>
+              {minhasPendencias.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-success" />
+                  <p>Nenhuma tarefa pendente para você agora!</p>
+                </div>
+              ) : (
+                <>
+                  <ActionKanban
+                    minhasPendencias={minhasPendencias}
+                    aguardandoTerceiros={[]} // Removido daqui, será exibido separadamente
+                    title=""
+                  />
+                  <div className="mt-4 text-center">
+                    <Button variant="outline" asChild>
+                      <Link to="/dashboard/kanban">
+                        <LayoutGrid className="h-4 w-4 mr-2" />
+                        Abrir Kanban Completo
+                      </Link>
+                    </Button>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
 
-          {/* Tabela do Setor */}
+          {/* ========== SEÇÃO 3: CONTROLE GERAL DO SETOR ========== */}
           <ManagerTable
-            data={pendenciasSetor}
-            title={`Ordens de Serviço - ${setorLabel}`}
+            data={monitoramentoSetor}
+            title={`Controle Geral - ${setorLabel}`}
             showSetorFilter={false}
+            showResponsavelAtual={true}
+            userSetorSlug={currentUser.setor_slug as string}
           />
+
+          {/* Performance placeholder */}
+          <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
+            <div className="flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-muted-foreground" />
+              <div>
+                <h3 className="font-medium">Estatísticas do Setor</h3>
+                <p className="text-sm text-muted-foreground">
+                  Em breve: métricas de performance e taxa de conclusão
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     );

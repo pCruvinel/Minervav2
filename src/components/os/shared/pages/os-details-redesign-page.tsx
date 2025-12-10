@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,6 +32,7 @@ import {
     Code
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
+import { LinkedRequestsWidget } from '../../linked-requests-widget';
 import { OSDocumentsTab } from '../../tabs/os-documents-tab';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/lib/supabase-client';
@@ -49,6 +50,7 @@ interface OSDetails {
     cliente_endereco?: any;
     tipo_os_nome: string;
     responsavel_nome?: string;
+    responsavel_avatar_url?: string;
     criado_por_nome?: string;
     data_entrada?: string;
     data_prazo?: string;
@@ -79,7 +81,7 @@ interface Comment {
     tipo: string;
     criado_em: string;
     usuario_nome: string;
-    usuario_avatar?: string;
+    usuario_avatar_url?: string | null;
     etapa_nome?: string;
 }
 
@@ -375,7 +377,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         data_conclusao,
                         clientes!inner(nome_razao_social),
                         tipos_os!inner(nome),
-                        colaboradores!ordens_servico_responsavel_id_fkey(nome_completo),
+                        colaboradores!ordens_servico_responsavel_id_fkey(nome_completo, avatar_url),
                         colaboradores!ordens_servico_criado_por_id_fkey(nome_completo)
                     `)
                     .eq('id', osId)
@@ -390,6 +392,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     cliente_nome: (data.clientes as any)?.nome_razao_social || 'Cliente não encontrado',
                     tipo_os_nome: (data.tipos_os as any)?.nome || 'Tipo não encontrado',
                     responsavel_nome: (data.colaboradores?.[0] as any)?.nome_completo,
+                    responsavel_avatar_url: (data.colaboradores?.[0] as any)?.avatar_url,
                     criado_por_nome: (data.colaboradores?.[1] as any)?.nome_completo,
                     data_entrada: data.data_entrada,
                     data_prazo: data.data_prazo,
@@ -439,7 +442,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         comentario,
                         tipo,
                         criado_em,
-                        colaboradores!inner(nome_completo),
+                        colaboradores!inner(nome_completo, avatar_url),
                         os_etapas(nome_etapa)
                     `, { count: 'exact' })
                     .eq('os_id', osId);
@@ -467,6 +470,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         tipo: c.tipo,
                         criado_em: c.criado_em,
                         usuario_nome: (c.colaboradores as any)?.nome_completo || 'Usuário',
+                        usuario_avatar_url: (c.colaboradores as any)?.avatar_url || null,
                         etapa_nome: (c.os_etapas as any)?.nome_etapa
                     })) || [];
                     setComments(formattedComments);
@@ -856,6 +860,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         {/* OS Hierarchy */}
                         <OSHierarchyCard osId={osDetails.id} />
 
+                        {/* 🆕 Solicitações Vinculadas (OSs Filhas) */}
+                        <LinkedRequestsWidget osId={osDetails.id} />
+
                         {/* OS Information */}
                         <Card className="border-border rounded-lg shadow-sm">
                             <CardHeader>
@@ -909,6 +916,10 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <Avatar className="w-8 h-8">
+                                            <AvatarImage
+                                                src={osDetails.responsavel_avatar_url || undefined}
+                                                alt={osDetails.responsavel_nome || 'Responsável'}
+                                            />
                                             <AvatarFallback className="bg-primary text-white font-medium">
                                                 {osDetails.responsavel_nome?.substring(0, 2).toUpperCase() || '??'}
                                             </AvatarFallback>
@@ -1063,6 +1074,10 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                     comments.map(comment => (
                                                         <div key={comment.id} className="flex gap-3 animate-in fade-in-50 duration-300">
                                                             <Avatar className="w-8 h-8 flex-shrink-0">
+                                                                <AvatarImage
+                                                                    src={comment.usuario_avatar_url || undefined}
+                                                                    alt={comment.usuario_nome || 'Usuário'}
+                                                                />
                                                                 <AvatarFallback className="bg-primary text-white text-xs font-medium">
                                                                     {comment.usuario_nome?.substring(0, 2).toUpperCase() || '??'}
                                                                 </AvatarFallback>

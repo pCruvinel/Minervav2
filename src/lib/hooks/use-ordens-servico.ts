@@ -17,9 +17,10 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
         .select(`
           *,
           clientes (*),
-          colaboradores:responsavel_id (*),
+          colaboradores:responsavel_id (*, setores:setor_id(slug)),
           tipos_os (*, setores:setor_padrao_id(*)),
-          os_etapas (*)
+          os_etapas (*, responsavel:responsavel_id(id, nome_completo, avatar_url, setores:setor_id(slug))),
+          parent_os:parent_os_id (id, tipos_os (*, setores:setor_padrao_id(*)))
         `)
         .order('data_entrada', { ascending: false });
 

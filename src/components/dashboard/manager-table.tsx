@@ -3,8 +3,11 @@
  * 
  * Foco em controle e visibilidade. Inclui:
  * - Colunas: ID, Cliente, Tipo OS, Etapa Atual, Responsável, Prazo, Status
+ * - 🆕 Coluna "Situação": Badge indicando onde a OS está (no setor, aguardando outro, etc.)
  * - Filtros: Setor, Responsável, Busca por Cliente
  * - Destaque visual para prazos vencidos
+ * 
+ * @version 2.0 - Adiciona indicador de responsável atual
  */
 
 import { useState, useMemo } from 'react';
@@ -30,11 +33,18 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
     Search,
     Filter,
     AlertTriangle,
     ArrowUpDown,
-    Eye
+    Eye,
+    ArrowRightLeft
 } from 'lucide-react';
 import { type OSComEtapa } from '@/lib/hooks/use-dashboard-data';
 import { type SetorSlug } from '@/lib/types';
@@ -52,6 +62,10 @@ interface ManagerTableProps {
     showSetorFilter?: boolean;
     /** Lista de responsáveis únicos para o filtro */
     responsaveis?: { id: string; nome: string }[];
+    /** 🆕 Se deve mostrar coluna de "Responsável Atual" com badge de situação */
+    showResponsavelAtual?: boolean;
+    /** 🆕 Slug do setor do usuário atual (para comparação de situação) */
+    userSetorSlug?: string;
 }
 
 type SortField = 'codigo_os' | 'cliente_nome' | 'prazoEtapa' | 'status_geral';
@@ -77,6 +91,14 @@ const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     cancelada: { label: 'Cancelada', className: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
+const SETOR_LABELS: Record<string, string> = {
+    'administrativo': 'Administrativo',
+    'assessoria': 'Assessoria',
+    'obras': 'Obras',
+    'diretoria': 'Diretoria',
+    'ti': 'TI',
+};
+
 // ============================================================
 // COMPONENTE PRINCIPAL
 // ============================================================
@@ -85,7 +107,9 @@ export function ManagerTable({
     data,
     title = 'Ordens de Serviço',
     showSetorFilter = true,
-    responsaveis = []
+    responsaveis = [],
+    showResponsavelAtual = false,
+    userSetorSlug
 }: ManagerTableProps) {
     // Estados de filtro
     const [searchTerm, setSearchTerm] = useState('');
@@ -187,6 +211,93 @@ export function ManagerTable({
         return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
     };
 
+    /**
+     * 🆕 Retorna o Badge indicando a situação da OS em relação ao setor do usuário
+     * - 🟢 Verde: Responsável está no setor do usuário
+     * - 🟡 Amarelo: OS está aguardando outro setor
+     * - 🔵 Azul: É uma OS filha de outra OS do setor
+     * - 🔘 Default: Sem informação de setor
+     */
+    const getSituacaoBadge = (os: OSComEtapa) => {
+        const responsavelSetor = os.responsavelSetorSlug;
+        const osSetor = os.setorSlug;
+        const parentSetor = os.parentOsSetorSlug;
+
+        // Se não temos setor do usuário definido, mostrar badge genérico baseado no responsável
+        if (!userSetorSlug) {
+            // Mostrar setor do responsável se disponível
+            if (responsavelSetor) {
+                const setorLabel = SETOR_LABELS[responsavelSetor] || responsavelSetor;
+                return (
+                    <Badge variant="outline" className="bg-muted text-muted-foreground">
+                        {setorLabel}
+                    </Badge>
+                );
+            }
+            return (
+                <Badge variant="outline" className="bg-muted/50 text-muted-foreground">
+                    -
+                </Badge>
+            );
+        }
+
+        // Caso 1: OS é do setor do usuário E responsável está em outro setor
+        if (osSetor === userSetorSlug && responsavelSetor && responsavelSetor !== userSetorSlug) {
+            const setorLabel = SETOR_LABELS[responsavelSetor] || responsavelSetor;
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 whitespace-nowrap">
+                                <ArrowRightLeft className="h-3 w-3 mr-1" />
+                                Aguardando {setorLabel}
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>Esta OS do seu setor está com o setor {setorLabel}</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+
+        // Caso 2: OS é filha de uma OS do setor do usuário (visibilidade transversal)
+        if (osSetor !== userSetorSlug && parentSetor === userSetorSlug) {
+            const setorLabel = SETOR_LABELS[osSetor || ''] || osSetor || 'Outro';
+            return (
+                <TooltipProvider>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Badge variant="outline" className="bg-info/10 text-info border-info/20 whitespace-nowrap">
+                                OS Vinculada ({setorLabel})
+                            </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>OS filha criada a partir de uma OS do seu setor</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </TooltipProvider>
+            );
+        }
+
+        // Caso 3: OS está no setor e responsável está no setor (tudo normal)
+        if (osSetor === userSetorSlug) {
+            return (
+                <Badge variant="outline" className="bg-success/10 text-success border-success/20">
+                    No Setor
+                </Badge>
+            );
+        }
+
+        // Fallback: OS de outro setor aparecendo na lista (visão global)
+        const setorLabel = SETOR_LABELS[osSetor || ''] || osSetor || 'Outro';
+        return (
+            <Badge variant="outline" className="bg-muted text-muted-foreground">
+                {setorLabel}
+            </Badge>
+        );
+    };
+
     return (
         <Card>
             <CardHeader className="pb-4">
@@ -270,6 +381,9 @@ export function ManagerTable({
                                 <TableHead>Tipo OS</TableHead>
                                 <TableHead>Etapa Atual</TableHead>
                                 <TableHead>Responsável</TableHead>
+                                {showResponsavelAtual && (
+                                    <TableHead>Situação</TableHead>
+                                )}
                                 <TableHead>
                                     <Button
                                         variant="ghost"
@@ -298,7 +412,7 @@ export function ManagerTable({
                         <TableBody>
                             {filteredData.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={showResponsavelAtual ? 9 : 8} className="h-24 text-center text-muted-foreground">
                                         Nenhuma ordem de serviço encontrada.
                                     </TableCell>
                                 </TableRow>
@@ -350,7 +464,7 @@ export function ManagerTable({
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="h-7 w-7">
                                                     <AvatarImage
-                                                        src={(os as any).responsavel_avatar_url || undefined}
+                                                        src={os.responsavel_avatar_url || undefined}
                                                         alt={os.responsavel_nome || 'Responsável'}
                                                     />
                                                     <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
@@ -362,6 +476,13 @@ export function ManagerTable({
                                                 </span>
                                             </div>
                                         </TableCell>
+
+                                        {/* 🆕 Situação (se habilitado) */}
+                                        {showResponsavelAtual && (
+                                            <TableCell>
+                                                {getSituacaoBadge(os)}
+                                            </TableCell>
+                                        )}
 
                                         {/* Prazo */}
                                         <TableCell className={os.prazoVencido ? 'text-destructive font-medium' : ''}>

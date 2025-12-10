@@ -23,7 +23,7 @@ import { StepPrecificacaoAssessoria } from '@/components/os/shared/steps/step-pr
 import { StepGerarProposta } from '@/components/os/shared/steps/step-gerar-proposta';
 import { StepAgendarApresentacao } from '@/components/os/shared/steps/step-agendar-apresentacao';
 import { StepRealizarApresentacao } from '@/components/os/shared/steps/step-realizar-apresentacao';
-import { StepFollowup3 } from '@/components/os/shared/steps/step-followup-3';
+import { StepAnaliseRelatorio } from '@/components/os/shared/steps/step-analise-relatorio';
 import { StepGerarContrato } from '@/components/os/shared/steps/step-gerar-contrato';
 import { StepContratoAssinado } from '@/components/os/shared/steps/step-contrato-assinado';
 
@@ -154,10 +154,14 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const etapa7Data = formDataByStep[7] || { dataAgendamento: '' };
   const etapa8Data = formDataByStep[8] || { apresentacaoRealizada: false };
   const etapa9Data = formDataByStep[9] || {
-    interesseCliente: '',
-    pontosDuvida: '',
-    proximosPassos: '',
-    dataRetorno: '',
+    propostaApresentada: '',
+    metodoApresentacao: '',
+    clienteAchouProposta: '',
+    clienteAchouContrato: '',
+    doresNaoAtendidas: '',
+    indicadorFechamento: '',
+    quemEstavaNaApresentacao: '',
+    nivelSatisfacao: '',
   };
   const etapa10Data = formDataByStep[10] || {
     contratoFile: null as File | null,
@@ -383,7 +387,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     6: (data: any) => !!data.propostaGerada,
     7: (data: any) => !!data.dataAgendamento,
     8: (data: any) => !!data.apresentacaoRealizada,
-    9: (data: any) => !!data.interesseCliente,
+    9: (data: any) => !!data.indicadorFechamento && !!data.propostaApresentada,
     10: (data: any) => !!data.contratoFile,
     11: (data: any) => !!data.contratoAssinado,
   }), []);
@@ -713,7 +717,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
               {/* ETAPA 9: Follow-up 3 (Pós-Apresentação) */}
               {currentStep === 9 && (
-                <StepFollowup3
+                <StepAnaliseRelatorio
                   data={etapa9Data}
                   onDataChange={setEtapa9Data}
                   readOnly={isHistoricalNavigation}
