@@ -7,11 +7,11 @@ import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Loader2 } from 'lucide-react';
 import {
   Mail,
   Search,
-  User,
   Send,
   Building2,
   Briefcase,
@@ -25,6 +25,7 @@ import { toast } from 'sonner';
 interface Colaborador {
   id: string;
   nome_completo: string;
+  avatar_url?: string | null;
   cpf: string | null;
   email: string | null;
   telefone: string | null;
@@ -255,16 +256,19 @@ export function ColaboradoresListaPage() {
                 </TableRow>
               ) : (
                 colaboradoresFiltrados.map((colaborador) => (
-                  <TableRow 
+                  <TableRow
                     key={colaborador.id}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleRowClick(colaborador.id)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={colaborador.avatar_url || undefined} alt={colaborador.nome_completo} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {colaborador.nome_completo?.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'U'}
+                          </AvatarFallback>
+                        </Avatar>
                         <div>
                           <p className="font-medium">{colaborador.nome_completo}</p>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground">

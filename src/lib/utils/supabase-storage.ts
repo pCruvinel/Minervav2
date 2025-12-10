@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase-client';
+import { logger } from '@/lib/utils/logger';
 
 // Bucket name
 const BUCKET_NAME = 'uploads';
@@ -107,7 +108,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
   const filePath = `${osNumero}/follow-up1/${fileName}`;
   
   try {
-    console.log(`📤 Uploading file to: ${filePath}`);
+    logger.log(`📤 Uploading file to: ${filePath}`);
 
     const { data, error } = await supabase.storage
       .from(BUCKET_NAME)
@@ -117,11 +118,11 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
       });
 
     if (error) {
-      console.error('❌ Upload error:', error);
+      logger.error('❌ Upload error:', error);
       throw error;
     }
     
-    console.log('✅ File uploaded successfully', data);
+    logger.log('✅ File uploaded successfully', data);
 
     // URL pública do arquivo
     const { data: { publicUrl } } = supabase.storage
@@ -140,7 +141,7 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
     };
     
   } catch (error) {
-    console.error('❌ Error uploading file:', error);
+    logger.error('❌ Error uploading file:', error);
     throw error;
   }
 }
@@ -150,21 +151,21 @@ export async function uploadFile(options: UploadFileOptions): Promise<UploadedFi
  */
 export async function deleteFile(filePath: string): Promise<void> {
   try {
-    console.log(`🗑️ Deleting file: ${filePath}`);
+    logger.log(`🗑️ Deleting file: ${filePath}`);
 
     const { error } = await supabase.storage
       .from(BUCKET_NAME)
       .remove([filePath]);
     
     if (error) {
-      console.error('❌ Delete error:', error);
+      logger.error('❌ Delete error:', error);
       throw error;
     }
     
-    console.log('✅ File deleted successfully');
+    logger.log('✅ File deleted successfully');
     
   } catch (error) {
-    console.error('❌ Error deleting file:', error);
+    logger.error('❌ Error deleting file:', error);
     throw error;
   }
 }

@@ -10,6 +10,8 @@
  * @module offline-cache
  */
 
+import { logger } from '@/lib/utils/logger';
+
 // =====================================================
 // TYPES
 // =====================================================
@@ -109,7 +111,7 @@ export class OfflineCache {
       // Verificar tamanho
       const size = estimateSize(entry);
       if (size > this.maxSize) {
-        console.warn(`⚠️ Cache entry muito grande (${size} bytes)`);
+        logger.warn(`⚠️ Cache entry muito grande (${size} bytes)`);
         return;
       }
 
@@ -120,7 +122,7 @@ export class OfflineCache {
         this.saveMetadata();
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao salvar em cache:', error);
+      logger.warn('⚠️ Erro ao salvar em cache:', error);
       // Handle quota exceeded
       if (error instanceof DOMException && error.code === 22) {
         this.clearExpired();
@@ -157,7 +159,7 @@ export class OfflineCache {
         return entry.data;
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao recuperar do cache:', error);
+      logger.warn('⚠️ Erro ao recuperar do cache:', error);
     }
 
     return null;
@@ -182,7 +184,7 @@ export class OfflineCache {
         this.saveMetadata();
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao remover do cache:', error);
+      logger.warn('⚠️ Erro ao remover do cache:', error);
     }
   }
 
@@ -200,7 +202,7 @@ export class OfflineCache {
         this.saveMetadata();
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao limpar cache:', error);
+      logger.warn('⚠️ Erro ao limpar cache:', error);
     }
   }
 
@@ -222,9 +224,9 @@ export class OfflineCache {
         this.remove(key);
       }
 
-      console.log(`🧹 Limpeza de cache: ${keysToRemove.length} entradas expiradas removidas`);
+      logger.log(`🧹 Limpeza de cache: ${keysToRemove.length} entradas expiradas removidas`);
     } catch (error) {
-      console.warn('⚠️ Erro ao limpar cache expirado:', error);
+      logger.warn('⚠️ Erro ao limpar cache expirado:', error);
     }
   }
 
@@ -279,7 +281,7 @@ export class OfflineCache {
       }
       this.saveMetadata();
     } catch (error) {
-      console.warn('⚠️ Erro ao importar cache:', error);
+      logger.warn('⚠️ Erro ao importar cache:', error);
     }
   }
 
@@ -293,7 +295,7 @@ export class OfflineCache {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(metadata));
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao salvar metadados:', error);
+      logger.warn('⚠️ Erro ao salvar metadados:', error);
     }
   }
 
@@ -310,7 +312,7 @@ export class OfflineCache {
         }
       }
     } catch (error) {
-      console.warn('⚠️ Erro ao carregar metadados:', error);
+      logger.warn('⚠️ Erro ao carregar metadados:', error);
     }
   }
 }

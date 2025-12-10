@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { z, ZodEffects, ZodObject } from 'zod';
+import { logger } from '../utils/logger';
 
 /**
  * Estado de erros de validação
@@ -125,8 +126,8 @@ export function useFieldValidation(schema: z.ZodType<any>): UseFieldValidationRe
     try {
       return getBaseSchema(schema);
     } catch (error) {
-      console.error('❌ useFieldValidation: Erro ao extrair baseSchema:', error);
-      console.error('❌ Schema passado:', schema);
+      logger.error('❌ useFieldValidation: Erro ao extrair baseSchema:', error);
+      logger.error('❌ Schema passado:', schema);
       throw error;
     }
   }, [schema]);
@@ -141,7 +142,7 @@ export function useFieldValidation(schema: z.ZodType<any>): UseFieldValidationRe
         const fieldSchema = baseSchema.shape[fieldName];
 
         if (!fieldSchema) {
-          console.warn(`⚠️ Campo "${fieldName}" não encontrado no schema`);
+          logger.warn(`⚠️ Campo "${fieldName}" não encontrado no schema`);
           return true;
         }
 
@@ -227,7 +228,7 @@ export function useFieldValidation(schema: z.ZodType<any>): UseFieldValidationRe
 
     // Proteção contra schema inválido
     if (!baseSchema || !baseSchema.shape) {
-      console.warn('⚠️ useFieldValidation: baseSchema inválido ou sem shape', baseSchema);
+      logger.warn('⚠️ useFieldValidation: baseSchema inválido ou sem shape', baseSchema);
       return;
     }
 

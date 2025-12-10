@@ -4,7 +4,8 @@ import {
     DialogContent,
 } from '../ui/dialog';
 import { Badge } from '../ui/badge';
-import { Calendar, Clock, User, FileText, AlertCircle, Tag, Briefcase, Timer } from 'lucide-react';
+import { Calendar, Clock, FileText, AlertCircle, Tag, Briefcase, Timer } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { categoryColors } from '@/lib/design-tokens';
 import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 
@@ -120,13 +121,20 @@ export function ModalDetalhesAgendamento({ open, onClose, agendamento }: ModalDe
                         {/* Colaborador Card (se existir) */}
                         {agendamento.usuarioNome && (
                             <div className="bg-muted/30 rounded-xl p-4 border border-border/50 shadow-sm">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <User className="h-4 w-4 text-primary" />
-                                    <span className="text-xs font-medium text-primary opacity-75">Colaborador</span>
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={agendamento.usuarioAvatarUrl || undefined} alt={agendamento.usuarioNome} />
+                                        <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                                            {agendamento.usuarioNome?.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase() || 'U'}
+                                        </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <span className="text-xs font-medium text-primary opacity-75">Colaborador</span>
+                                        <p className="font-semibold text-foreground truncate" title={agendamento.usuarioNome}>
+                                            {agendamento.usuarioNome}
+                                        </p>
+                                    </div>
                                 </div>
-                                <p className="font-semibold text-foreground truncate" title={agendamento.usuarioNome}>
-                                    {agendamento.usuarioNome}
-                                </p>
                             </div>
                         )}
                     </div>

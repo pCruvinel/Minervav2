@@ -80,7 +80,7 @@ export function useEtapas() {
   const fetchEtapas = async (osId: string): Promise<void> => {
     // Validar osId antes de fazer requisição
     if (!osId || osId.trim() === '' || osId === 'undefined' || osId === 'null') {
-      console.warn('⚠️ fetchEtapas: osId inválido:', osId);
+      logger.warn('⚠️ fetchEtapas: osId inválido:', osId);
       setEtapas([]);
       return;
     }
@@ -88,15 +88,15 @@ export function useEtapas() {
     try {
       setIsLoading(true);
       setError(null);
-      console.log(`📋 Buscando etapas da OS ${osId}...`);
+      logger.log(`📋 Buscando etapas da OS ${osId}...`);
       
       const data = await ordensServicoAPI.getEtapas(osId);
       
-      console.log(`✅ ${data.length} etapas carregadas:`, data);
+      logger.log(`✅ ${data.length} etapas carregadas:`, data);
       setEtapas(data);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao buscar etapas';
-      console.error('❌ Erro ao buscar etapas:', err);
+      logger.error('❌ Erro ao buscar etapas:', err);
       setError(errorMsg);
       setEtapas(null);
       throw err;
@@ -116,21 +116,21 @@ export function useEtapas() {
     // Validar osId
     if (!osId || osId.trim() === '' || osId === 'undefined' || osId === 'null') {
       const errorMsg = `createEtapa: osId inválido: ${osId}`;
-      console.error('❌', errorMsg);
+      logger.error('❌', errorMsg);
       throw new Error(errorMsg);
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      console.log(`➕ Criando etapa ${data.ordem} - ${data.nome_etapa} na OS ${osId}...`);
+      logger.log(`➕ Criando etapa ${data.ordem} - ${data.nome_etapa} na OS ${osId}...`);
 
       const newEtapa = await ordensServicoAPI.createEtapa(osId, {
         ...data,
         status: data.status || 'pendente',
       });
 
-      console.log('✅ Etapa criada:', newEtapa);
+      logger.log('✅ Etapa criada:', newEtapa);
       
       // Atualizar lista local
       setEtapas((prev) => prev ? [...prev, newEtapa] : [newEtapa]);
@@ -138,7 +138,7 @@ export function useEtapas() {
       return newEtapa;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao criar etapa';
-      console.error('❌ Erro ao criar etapa:', err);
+      logger.error('❌ Erro ao criar etapa:', err);
       setError(errorMsg);
       throw err;
     } finally {
@@ -157,18 +157,18 @@ export function useEtapas() {
     // Validar etapaId
     if (!etapaId || etapaId.trim() === '' || etapaId === 'undefined' || etapaId === 'null') {
       const errorMsg = `updateEtapa: etapaId inválido: ${etapaId}`;
-      console.error('❌', errorMsg);
+      logger.error('❌', errorMsg);
       throw new Error(errorMsg);
     }
 
     try {
       setIsLoading(true);
       setError(null);
-      console.log(`💾 Atualizando etapa ${etapaId}...`, data);
+      logger.log(`💾 Atualizando etapa ${etapaId}...`, data);
       
       const updatedEtapa = await ordensServicoAPI.updateEtapa(etapaId, data);
       
-      console.log('✅ Etapa atualizada:', updatedEtapa);
+      logger.log('✅ Etapa atualizada:', updatedEtapa);
       
       // Atualizar lista local
       setEtapas((prev) =>
@@ -180,7 +180,7 @@ export function useEtapas() {
       return updatedEtapa;
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao atualizar etapa';
-      console.error('❌ Erro ao atualizar etapa:', err);
+      logger.error('❌ Erro ao atualizar etapa:', err);
       setError(errorMsg);
       throw err;
     } finally {

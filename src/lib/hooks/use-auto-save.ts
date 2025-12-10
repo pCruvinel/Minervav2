@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 
 interface UseAutoSaveOptions {
   /** Tempo em ms antes de executar o auto-save (debounce) */
@@ -108,23 +109,23 @@ export function useAutoSave(
         if (onBeforeSave) {
           const isValid = await onBeforeSave(data);
           if (!isValid) {
-            console.warn('⚠️ Auto-save: Validação falhou');
+            logger.warn('⚠️ Auto-save: Validação falhou');
             setIsSaving(false);
             return;
           }
         }
 
         // Executar save
-        console.log('💾 Auto-saving...', data);
+        logger.log('💾 Auto-saving...', data);
         await saveFunction(data);
 
         // Salvar em localStorage
         if (useLocalStorage && storageKey) {
           try {
             localStorage.setItem(storageKey, JSON.stringify(data));
-            console.log(`✅ Auto-saved to localStorage: ${storageKey}`);
+            logger.log(`✅ Auto-saved to localStorage: ${storageKey}`);
           } catch (storageError) {
-            console.warn('⚠️ Erro ao salvar em localStorage:', storageError);
+            logger.warn('⚠️ Erro ao salvar em localStorage:', storageError);
           }
         }
 
@@ -136,7 +137,7 @@ export function useAutoSave(
           onSaveSuccess(data);
         }
 
-        console.log('✅ Auto-save concluído');
+        logger.log('✅ Auto-save concluído');
 
         // Mostrar "salvo" por 2 segundos
         setTimeout(() => {
@@ -144,7 +145,7 @@ export function useAutoSave(
         }, 2000);
       } catch (error) {
         const err = error instanceof Error ? error : new Error(String(error));
-        console.error('❌ Erro ao auto-salvar:', err);
+        logger.error('❌ Erro ao auto-salvar:', err);
 
         // Callback de erro
         if (onSaveError) {
@@ -155,9 +156,9 @@ export function useAutoSave(
         if (useLocalStorage && storageKey) {
           try {
             localStorage.setItem(`${storageKey}_draft`, JSON.stringify(pendingDataRef.current));
-            console.log('✅ Rascunho salvo em localStorage (fallback)');
+            logger.log('✅ Rascunho salvo em localStorage (fallback)');
           } catch (storageError) {
-            console.error('❌ Erro ao salvar rascunho em localStorage:', storageError);
+            logger.error('❌ Erro ao salvar rascunho em localStorage:', storageError);
           }
         }
       } finally {
@@ -249,7 +250,7 @@ export function useLocalStorageData(storageKey: string): any | null {
       return JSON.parse(stored);
     }
   } catch (error) {
-    console.warn(`⚠️ Erro ao recuperar ${storageKey} do localStorage:`, error);
+    logger.warn(`⚠️ Erro ao recuperar ${storageKey} do localStorage:`, error);
   }
   return null;
 }
@@ -270,9 +271,9 @@ export function useClearLocalStorage() {
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(`${storageKey}_draft`);
-      console.log(`✅ Dados limpos do localStorage: ${storageKey}`);
+      logger.log(`✅ Dados limpos do localStorage: ${storageKey}`);
     } catch (error) {
-      console.error(`❌ Erro ao limpar ${storageKey} do localStorage:`, error);
+      logger.error(`❌ Erro ao limpar ${storageKey} do localStorage:`, error);
     }
   }, []);
 }

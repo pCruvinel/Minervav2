@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { CelulaData } from '@/lib/hooks/use-semana-calendario';
 import { turnoColors } from '@/lib/design-tokens';
 import { Clock, Users, Calendar, Plus, ClipboardList } from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { useState, lazy, Suspense } from 'react';
 import { dateStringToSaoPaulo } from '@/lib/utils/timezone';
 
@@ -177,10 +178,16 @@ export function ModalDetalhesCelula({ open, onClose, celula, onSuccess }: ModalD
                           </div>
                         )}
 
-                        {/* Usuário responsável */}
+                        {/* Usuário responsável - Avatar + Nome */}
                         {agend.usuarioNome && (
-                          <div className="text-xs text-muted-foreground">
-                            Por: {agend.usuarioNome}
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/30">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={agend.usuarioAvatarUrl || undefined} alt={agend.usuarioNome} />
+                              <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                                {agend.usuarioNome.split(' ').map((n: string) => n[0]).slice(0, 2).join('').toUpperCase()}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className="text-xs text-muted-foreground">{agend.usuarioNome}</span>
                           </div>
                         )}
                       </div>

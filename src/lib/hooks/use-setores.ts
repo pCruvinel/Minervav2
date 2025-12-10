@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabase-client';
+import { logger } from '../utils/logger';
 
 export interface Setor {
   id: string;
@@ -25,7 +26,7 @@ export function useSetores() {
 
         setSetores(data || []);
       } catch (err: any) {
-        console.error('Erro ao buscar setores:', err);
+        logger.error('Erro ao buscar setores:', err);
         setError(err);
       } finally {
         setLoading(false);

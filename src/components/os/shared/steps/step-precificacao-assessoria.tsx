@@ -5,6 +5,7 @@
  * (não calculado automaticamente a partir de sub-etapas)
  */
 
+import { useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,6 +51,8 @@ export function StepPrecificacaoAssessoria({
     onDataChange,
     readOnly = false,
 }: StepPrecificacaoAssessoriaProps) {
+    // Ref para controlar se já sincronizamos os dados iniciais
+    const hasInitialized = useRef(false);
 
     // Parsear custo base
     const custoBase = parseMoeda(data.custoBase || '0');
@@ -63,6 +66,31 @@ export function StepPrecificacaoAssessoria({
     const valorEntrada = valorTotal * (percentualEntrada / 100);
     const valorRemanescente = valorTotal - valorEntrada;
     const valorParcela = numeroParcelas > 0 ? valorRemanescente / numeroParcelas : 0;
+
+    // Sincronizar valores padrão quando componente monta
+    // Isso garante que os dados sejam salvos mesmo se o usuário não editar nada
+    useEffect(() => {
+        if (!hasInitialized.current) {
+            hasInitialized.current = true;
+
+            // Se não há dados, inicializar com padrões
+            const shouldInitialize = !data.percentualImposto || !data.percentualEntrada || !data.numeroParcelas;
+
+            if (shouldInitialize) {
+                const initialData = {
+                    custoBase: data.custoBase || '',
+                    percentualImposto: data.percentualImposto || '14',
+                    percentualEntrada: data.percentualEntrada || '40',
+                    numeroParcelas: data.numeroParcelas || '2',
+                    valorImposto: valorImposto.toFixed(2),
+                    valorTotal: valorTotal.toFixed(2),
+                    valorEntrada: valorEntrada.toFixed(2),
+                    valorParcela: valorParcela.toFixed(2),
+                };
+                onDataChange(initialData);
+            }
+        }
+    }, [data, onDataChange, valorImposto, valorTotal, valorEntrada, valorParcela]);
 
     // Handler para mudanças
     const handleChange = (field: string, value: string) => {

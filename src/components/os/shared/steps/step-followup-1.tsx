@@ -36,7 +36,7 @@ interface StepFollowup1Props {
     telefoneContatoLocal?: string;
     cargoContatoLocal?: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: StepFollowup1Props['data']) => void;
   readOnly?: boolean;
   osId?: string;
   colaboradorId?: string;
@@ -393,6 +393,7 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             files={data.anexos || []}
             onFilesChange={(files) => {
               console.log('📁 Updating files:', files);
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               // Transformar para formato do schema: { id?, url, nome, tamanho? }
               const filesForSchema = files.map((file: any) => ({
                 id: file.id,

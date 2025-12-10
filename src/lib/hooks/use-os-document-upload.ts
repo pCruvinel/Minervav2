@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { supabase } from '../supabase-client';
+import { logger } from '../utils/logger';
 
 export interface OSDocumento {
   id: string;
@@ -82,7 +83,7 @@ export function useOSDocumentUpload(osId: string) {
         });
 
       if (uploadError) {
-        console.error('Erro no upload:', uploadError);
+        logger.error('Erro no upload:', uploadError);
         throw new Error(`Falha ao fazer upload: ${uploadError.message}`);
       }
 
@@ -120,7 +121,7 @@ export function useOSDocumentUpload(osId: string) {
         .single();
 
       if (dbError) {
-        console.error('Erro ao salvar metadados:', dbError);
+        logger.error('Erro ao salvar metadados:', dbError);
         // Tentar deletar arquivo upado
         await supabase.storage.from('uploads').remove([path]);
         throw new Error(`Falha ao registrar documento: ${dbError.message}`);
@@ -134,7 +135,7 @@ export function useOSDocumentUpload(osId: string) {
       } as OSDocumento;
 
     } catch (error) {
-      console.error('Erro no upload de documento:', error);
+      logger.error('Erro no upload de documento:', error);
       throw error;
     } finally {
       setIsUploading(false);
@@ -164,7 +165,7 @@ export function useOSDocumentUpload(osId: string) {
         .remove([documento.caminho_arquivo]);
 
       if (storageError) {
-        console.warn('Erro ao deletar do storage:', storageError);
+        logger.warn('Erro ao deletar do storage:', storageError);
       }
 
       // 3. Deletar do banco
@@ -178,7 +179,7 @@ export function useOSDocumentUpload(osId: string) {
       }
 
     } catch (error) {
-      console.error('Erro ao deletar documento:', error);
+      logger.error('Erro ao deletar documento:', error);
       throw error;
     }
   };

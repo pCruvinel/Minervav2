@@ -36,7 +36,7 @@ interface StepFollowUp2Props {
     servicoResolver: string;
     arquivosGerais: Array<ArquivoComComentario>;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: StepFollowUp2Props['data']) => void;
   osId?: string;
 }
 
@@ -47,7 +47,8 @@ export function StepFollowUp2({
 }: StepFollowUp2Props) {
 
   // Helper para normalizar arquivos para o formato do schema
-  const handleFilesChange = (files: any[], field: 'fotosAncoragem' | 'arquivosGerais') => {
+  const handleFilesChange = (files: ArquivoComComentario[], field: 'fotosAncoragem' | 'arquivosGerais') => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filesForSchema = files.map((file: any) => ({
       id: file.id,
       url: file.url,
@@ -66,9 +67,10 @@ export function StepFollowUp2({
   };
 
   // Converter dados do schema para o formato do FileUploadUnificado
-  const getFilesForUpload = (files: any[]) => {
+  const getFilesForUpload = (files: ArquivoComComentario[]): ArquivoComComentario[] => {
     if (!files) return [];
-    return files.map(f => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return files.map((f: any) => ({
       id: f.id || '',
       name: f.name || f.nome || '',
       url: f.url || '',

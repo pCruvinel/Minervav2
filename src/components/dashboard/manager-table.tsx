@@ -12,7 +12,7 @@ import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -349,6 +349,10 @@ export function ManagerTable({
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="h-7 w-7">
+                                                    <AvatarImage
+                                                        src={(os as any).responsavel_avatar_url || undefined}
+                                                        alt={os.responsavel_nome || 'Responsável'}
+                                                    />
                                                     <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
                                                         {getInitials(os.responsavel_nome || '')}
                                                     </AvatarFallback>

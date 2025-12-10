@@ -166,6 +166,7 @@ function MinhaContaPage() {
       setUploadingAvatar(true);
 
       const fileName = `${currentUser.id}/avatar_${Date.now()}.jpg`;
+      console.log('[Avatar] Iniciando upload:', fileName);
 
       // Upload para Storage
       const { error: uploadError } = await supabase.storage
@@ -175,29 +176,55 @@ function MinhaContaPage() {
           contentType: 'image/jpeg'
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error('[Avatar] Erro no upload storage:', uploadError);
+        throw uploadError;
+      }
 
       // Obter URL pública
       const { data: { publicUrl } } = supabase.storage
         .from('avatars')
         .getPublicUrl(fileName);
 
+      console.log('[Avatar] URL pública obtida:', publicUrl);
+
       // Atualizar user metadata
       const { error: updateError } = await supabase.auth.updateUser({
         data: { avatar_url: publicUrl }
       });
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('[Avatar] Erro ao atualizar auth metadata:', updateError);
+        throw updateError;
+      }
+
+      console.log('[Avatar] Auth metadata atualizado com sucesso');
+
+      // Sincronizar avatar_url na tabela colaboradores (para exibição em outras partes do sistema)
+      const { error: colabError } = await supabase
+        .from('colaboradores')
+        .update({ avatar_url: publicUrl })
+        .eq('id', currentUser.id);
+
+      if (colabError) {
+        console.warn('[Avatar] Aviso: Não foi possível sincronizar na tabela colaboradores:', colabError);
+      } else {
+        console.log('[Avatar] Sincronizado na tabela colaboradores');
+      }
 
       // Atualizar estado local imediatamente
       setAvatarUrl(publicUrl);
 
-      // Refresh do contexto
+      // Forçar refresh completo da sessão para atualizar o JWT
+      console.log('[Avatar] Forçando refresh da sessão...');
+      await supabase.auth.refreshSession();
       await refreshUser();
+
+      console.log('[Avatar] Upload concluído com sucesso!');
       toast.success('Avatar atualizado com sucesso!');
 
     } catch (error) {
-      console.error('Erro no upload do avatar:', error);
+      console.error('[Avatar] Erro no upload do avatar:', error);
       const message = error instanceof Error ? error.message : 'Erro ao atualizar avatar';
       toast.error(message);
     } finally {
@@ -220,6 +247,16 @@ function MinhaContaPage() {
       });
 
       if (error) throw error;
+
+      // Sincronizar remoção na tabela colaboradores
+      const { error: colabError } = await supabase
+        .from('colaboradores')
+        .update({ avatar_url: null })
+        .eq('id', currentUser.id);
+
+      if (colabError) {
+        console.warn('Aviso: Não foi possível sincronizar remoção de avatar na tabela colaboradores:', colabError);
+      }
 
       // Atualizar estado local
       setAvatarUrl(undefined);

@@ -30,9 +30,20 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     updateEtapa
   } = useEtapas();
 
-  // Load steps when osId changes
+  // ✅ FIX: Sync currentStep when initialStep prop changes (e.g., from URL navigation)
+  // O useState só usa initialStep na primeira montagem, então precisamos sincronizar manualmente
+  useEffect(() => {
+    if (initialStep !== undefined && initialStep !== currentStep) {
+      logger.log(`🔄 Sync currentStep from initialStep prop: ${initialStep} (was: ${currentStep})`);
+      setCurrentStep(initialStep);
+    }
+  }, [initialStep]);
+
+  // ✅ FIX: Clear formDataByStep when osId changes to prevent data leakage between OSs
   useEffect(() => {
     if (osId) {
+      logger.log(`🧹 Clearing form data for new OS: ${osId}`);
+      setFormDataByStep({});
       fetchEtapas(osId);
     }
   }, [osId]);

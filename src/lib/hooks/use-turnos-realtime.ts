@@ -14,6 +14,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { Turno, TurnoComVagas } from './use-turnos';
 import { toast } from 'sonner';
+import { logger } from '@/lib/utils/logger';
 
 // =====================================================
 // TYPES
@@ -55,7 +56,7 @@ function saveTurnosToCache(turnos: TurnoComVagas[]): void {
       localStorage.setItem(CACHE_TIMESTAMP_KEY, Date.now().toString());
     }
   } catch (error) {
-    console.warn('⚠️ Erro ao salvar turnos em cache:', error);
+    logger.warn('⚠️ Erro ao salvar turnos em cache:', error);
   }
 }
 
@@ -82,7 +83,7 @@ function getTurnosFromCache(): CachedTurnoData | null {
       }
     }
   } catch (error) {
-    console.warn('⚠️ Erro ao recuperar turnos do cache:', error);
+    logger.warn('⚠️ Erro ao recuperar turnos do cache:', error);
   }
 
   return null;
@@ -98,7 +99,7 @@ function clearTurnosCache(): void {
       localStorage.removeItem(CACHE_TIMESTAMP_KEY);
     }
   } catch (error) {
-    console.warn('⚠️ Erro ao limpar cache:', error);
+    logger.warn('⚠️ Erro ao limpar cache:', error);
   }
 }
 
@@ -212,7 +213,7 @@ export function useTurnosRealtime(dateRange?: { start: string; end: string }) {
       // Salvar em cache
       saveTurnosToCache(turnos);
     } catch (error: any) {
-      console.error('❌ Erro ao inicializar turnos:', error);
+      logger.error('❌ Erro ao inicializar turnos:', error);
 
       // Tentar usar cache como fallback
       const cached = getTurnosFromCache();
@@ -266,7 +267,7 @@ export function useTurnosRealtime(dateRange?: { start: string; end: string }) {
 
                 if (resolved.id !== localTurno.id || resolved.atualizadoEm !== localTurno.atualizadoEm) {
                   conflicts++;
-                  console.warn('⚠️ Conflito resolvido para turno:', updatedTurno.id);
+                  logger.warn('⚠️ Conflito resolvido para turno:', updatedTurno.id);
                 }
 
                 newTurnos[index] = resolved;
@@ -291,9 +292,9 @@ export function useTurnosRealtime(dateRange?: { start: string; end: string }) {
         })
         .subscribe();
 
-      console.log('✅ Subscription realtime configurada');
+      logger.log('✅ Subscription realtime configurada');
     } catch (error) {
-      console.error('❌ Erro ao configurar subscription:', error);
+      logger.error('❌ Erro ao configurar subscription:', error);
     }
   }, []);
 
@@ -302,14 +303,14 @@ export function useTurnosRealtime(dateRange?: { start: string; end: string }) {
    */
   const syncWithServer = useCallback(async () => {
     try {
-      console.log('🔄 Sincronizando com servidor...');
+      logger.log('🔄 Sincronizando com servidor...');
 
       // Recarregar dados do servidor
       await initializeTurnos();
 
       toast.success('Sincronização concluída');
     } catch (error: any) {
-      console.error('❌ Erro ao sincronizar:', error);
+      logger.error('❌ Erro ao sincronizar:', error);
       toast.error('Erro ao sincronizar com servidor');
     }
   }, [initializeTurnos]);

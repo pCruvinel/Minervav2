@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { tiposOSAPI } from '../api-client';
+import { logger } from '../utils/logger';
 
 export interface TipoOS {
   id: string;
@@ -25,15 +26,15 @@ export function useTiposOS() {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Carregando tipos de OS do backend...');
+      logger.log('🔄 Carregando tipos de OS do backend...');
 
       // Chamar API real do backend
       const dados = await tiposOSAPI.list();
 
-      console.log('✅ Tipos de OS carregados:', dados);
+      logger.log('✅ Tipos de OS carregados:', dados);
       setTiposOS(dados || []);
     } catch (err) {
-      console.error('❌ Erro ao carregar tipos de OS:', err);
+      logger.error('❌ Erro ao carregar tipos de OS:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setTiposOS([]);
     } finally {

@@ -13,6 +13,7 @@ import { useCallback, useMemo } from 'react';
 import { useApi, useMutation } from './use-api';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/utils/logger';
 
 // =====================================================
 // TYPES
@@ -213,7 +214,7 @@ const turnosAPI = {
    * OTIMIZADO: Busca todos os turnos de uma vez e distribui por dia no frontend
    */
   async getByWeek(startDate: string, endDate: string): Promise<Map<string, TurnoComVagas[]>> {
-    console.log(`📅 Buscando turnos de ${startDate} a ${endDate}`);
+    logger.log(`📅 Buscando turnos de ${startDate} a ${endDate}`);
     
     // Buscar todos os turnos ativos de uma vez
     const { data: todosOsTurnos, error } = await supabase
@@ -276,7 +277,7 @@ const turnosAPI = {
       }
     });
 
-    console.log(`📅 Turnos distribuídos: ${turnosPorDia.size} dias com turnos`);
+    logger.log(`📅 Turnos distribuídos: ${turnosPorDia.size} dias com turnos`);
     return turnosPorDia;
   },
 
@@ -393,7 +394,7 @@ export function useTurnos() {
      () => turnosAPI.list(),
      {
        onError: (error) => {
-         console.error('❌ Erro ao carregar turnos:', error);
+         logger.error('❌ Erro ao carregar turnos:', error);
          toast.error(`Erro ao carregar turnos: ${error.message}`);
        },
      }
@@ -413,7 +414,7 @@ export function useTurnosPorData(data: string) {
     {
       deps: [data],
       onError: (error) => {
-        console.error('❌ Erro ao carregar turnos da data:', error);
+        logger.error('❌ Erro ao carregar turnos da data:', error);
         toast.error(`Erro ao carregar turnos: ${error.message}`);
       },
     }
@@ -433,7 +434,7 @@ export function useTurnosPorSemana(startDate: string, endDate: string) {
     {
       deps: [startDate, endDate],
       onError: (error) => {
-        console.error('❌ Erro ao carregar turnos da semana:', error);
+        logger.error('❌ Erro ao carregar turnos da semana:', error);
         toast.error(`Erro ao carregar turnos: ${error.message}`);
       },
     }
@@ -451,7 +452,7 @@ export function useCreateTurno() {
        toast.success('Turno criado com sucesso!');
      },
      onError: (error) => {
-       console.error('❌ Erro ao criar turno:', error);
+       logger.error('❌ Erro ao criar turno:', error);
        toast.error(`Erro ao criar turno: ${error.message}`);
      },
    });
@@ -468,7 +469,7 @@ export function useUpdateTurno(turnoId: string) {
         toast.success('Turno atualizado com sucesso!');
       },
       onError: (error) => {
-        console.error('❌ Erro ao atualizar turno:', error);
+        logger.error('❌ Erro ao atualizar turno:', error);
         toast.error(`Erro ao atualizar turno: ${error.message}`);
       },
     }
@@ -484,7 +485,7 @@ export function useDeleteTurno() {
       toast.success('Turno removido com sucesso!');
     },
     onError: (error) => {
-      console.error('❌ Erro ao remover turno:', error);
+      logger.error('❌ Erro ao remover turno:', error);
       toast.error(`Erro ao remover turno: ${error.message}`);
     },
   });
@@ -509,7 +510,7 @@ export function useVerificarDisponibilidade() {
           horarioFim
         );
       } catch (error: any) {
-        console.error('❌ Erro ao verificar disponibilidade:', error);
+        logger.error('❌ Erro ao verificar disponibilidade:', error);
         toast.error(`Erro ao verificar disponibilidade: ${error.message}`);
         return false;
       }
@@ -539,7 +540,7 @@ export function useVerificarVagasSetor() {
           horarioFim
         );
       } catch (error: any) {
-        console.error('❌ Erro ao verificar vagas do setor:', error);
+        logger.error('❌ Erro ao verificar vagas do setor:', error);
         toast.error(`Erro ao verificar vagas: ${error.message}`);
         return 0;
       }
@@ -557,7 +558,7 @@ export function useTurnoCapacidade(turnoId: string, data: string) {
     {
       deps: [turnoId, data],
       onError: (error) => {
-        console.error('❌ Erro ao carregar capacidade do turno:', error);
+        logger.error('❌ Erro ao carregar capacidade do turno:', error);
       },
     }
   );

@@ -105,16 +105,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /**
    * Carrega usuário direto do Session (JWT metadata)
-   * Performance: ~1ms (leitura de objeto em memória)
+   * Busca avatar_url da tabela colaboradores pois o Auth não retorna no JWT
    */
-  const loadUserFromSession = (session: Session) => {
+  const loadUserFromSession = async (session: Session) => {
     try {
       setIsLoading(true);
       const user = buildUserFromMetadata(session);
+
+      // Buscar avatar_url da tabela colaboradores (mais confiável que o metadata)
+      try {
+        const { data: colabData } = await supabase
+          .from('colaboradores')
+          .select('avatar_url')
+          .eq('id', user.id)
+          .single();
+
+        if (colabData?.avatar_url) {
+          user.avatar_url = colabData.avatar_url;
+
+        }
+      } catch (avatarError) {
+        console.log('[Auth V3] Não foi possível buscar avatar da tabela colaboradores');
+      }
+
       setCurrentUser(user);
       console.log('[Auth V3] ✅ Usuário carregado:', user.email, {
         cargo: user.cargo_slug,
-        setor: user.setor_slug
+        setor: user.setor_slug,
+        avatar: user.avatar_url ? '✓' : '✗'
       });
     } catch (error) {
       console.error('[Auth V3] ❌ Erro ao construir usuário:', error);
@@ -139,6 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const nome_completo = metadata.nome_completo || user.email?.split('@')[0] || 'Usuário';
     const email = user.email || metadata.email || '';
     const ativo = metadata.ativo !== false; // Default true
+    const avatar_url = metadata.avatar_url || undefined;
+
+
 
     // Calcular permissões baseado no cargo_slug
     const pode_delegar = ['admin', 'diretoria'].includes(cargo_slug) || cargo_slug.startsWith('gestor');
@@ -153,7 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role_nivel: cargo_slug, // Compatibilidade com código legado
       setor: setor_slug.toUpperCase(), // Compatibilidade com código legado
       ativo,
-      avatar_url: user.user_metadata?.avatar_url,
+      avatar_url,
       pode_delegar,
       pode_aprovar,
     };

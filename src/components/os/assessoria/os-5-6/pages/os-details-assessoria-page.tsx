@@ -17,6 +17,8 @@ import { useOS } from '@/lib/hooks/use-os';
 // Componentes compartilhados
 import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
+import { StepFollowup1OS5, type StepFollowup1OS5Handle } from '@/components/os/shared/steps/step-followup-1-os5';
+import { StepFollowup1OS6, type StepFollowup1OS6Handle } from '@/components/os/shared/steps/step-followup-1-os6';
 import { StepPrecificacaoAssessoria } from '@/components/os/shared/steps/step-precificacao-assessoria';
 import { StepGerarProposta } from '@/components/os/shared/steps/step-gerar-proposta';
 import { StepAgendarApresentacao } from '@/components/os/shared/steps/step-agendar-apresentacao';
@@ -106,6 +108,8 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
+  const stepFollowup1OS5Ref = useRef<StepFollowup1OS5Handle>(null);
+  const stepFollowup1OS6Ref = useRef<StepFollowup1OS6Handle>(null);
   const stepEscopoRef = useRef<StepEscopoAssessoriaHandle>(null);
 
   // Mapeamento de dados para compatibilidade com componentes existentes
@@ -624,12 +628,30 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
               {/* ETAPA 3: Follow-up 1 (Entrevista Inicial) */}
               {currentStep === 3 && (
-                <StepFollowup1
-                  ref={stepFollowup1Ref}
-                  data={etapa3Data}
-                  onDataChange={setEtapa3Data}
-                  readOnly={isHistoricalNavigation}
-                />
+                tipoOS === 'OS-05' ? (
+                  <StepFollowup1OS5
+                    ref={stepFollowup1OS5Ref}
+                    data={etapa3Data}
+                    onDataChange={setEtapa3Data}
+                    readOnly={isHistoricalNavigation}
+                    osId={osId || undefined}
+                  />
+                ) : tipoOS === 'OS-06' ? (
+                  <StepFollowup1OS6
+                    ref={stepFollowup1OS6Ref}
+                    data={etapa3Data}
+                    onDataChange={setEtapa3Data}
+                    readOnly={isHistoricalNavigation}
+                    osId={osId || undefined}
+                  />
+                ) : (
+                  <StepFollowup1
+                    ref={stepFollowup1Ref}
+                    data={etapa3Data}
+                    onDataChange={setEtapa3Data}
+                    readOnly={isHistoricalNavigation}
+                  />
+                )
               )}
 
               {/* ETAPA 4: Escopo de Assessoria (Objetivo, Especificações, Prazo) */}

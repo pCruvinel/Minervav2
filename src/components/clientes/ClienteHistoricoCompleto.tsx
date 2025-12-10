@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, FileText, Calendar, DollarSign, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 interface ClienteHistoricoCompletoProps {
     clienteId: string;
@@ -150,7 +151,16 @@ export function ClienteHistoricoCompleto({
                         <div className="space-y-4">
                             {timeline.map((item) => (
                                 <div key={item.id} className="flex items-start space-x-4">
-                                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                    {item.responsavel_nome ? (
+                                        <Avatar className="h-6 w-6 mt-1">
+                                            <AvatarImage src={(item as any).responsavel_avatar_url || undefined} alt={item.responsavel_nome} />
+                                            <AvatarFallback className="bg-primary/10 text-primary text-[10px]">
+                                                {item.responsavel_nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                    ) : (
+                                        <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                                    )}
                                     <div className="flex-1">
                                         <div className="flex items-center justify-between">
                                             <h4 className="font-medium">{item.titulo}</h4>

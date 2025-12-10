@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { clientesAPI } from '../api-client';
+import { logger } from '../utils/logger';
 
 export function useClientes(tipo?: string) {
   const [clientes, setClientes] = useState<any[]>([]);
@@ -16,15 +17,15 @@ export function useClientes(tipo?: string) {
       setLoading(true);
       setError(null);
 
-      console.log('🔄 Carregando clientes do backend...', tipo ? `com filtro: ${tipo}` : '');
+      logger.log('🔄 Carregando clientes do backend...', tipo ? `com filtro: ${tipo}` : '');
 
       // Chamar API real do backend
       const dados = await clientesAPI.list(tipo === 'LEAD' ? 'LEAD' : undefined);
 
-      console.log('✅ Clientes carregados:', dados);
+      logger.log('✅ Clientes carregados:', dados);
       setClientes(dados || []);
     } catch (err) {
-      console.error('❌ Erro ao carregar clientes:', err);
+      logger.error('❌ Erro ao carregar clientes:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
       setClientes([]);
     } finally {
@@ -48,17 +49,17 @@ export function useCreateCliente() {
       setLoading(true);
       setError(null);
 
-      console.log('📝 Criando cliente no backend...', clienteData);
+      logger.log('📝 Criando cliente no backend...', clienteData);
 
       // Chamar API real do backend (que retorna UUID válido do Supabase)
       const novoCliente = await clientesAPI.create(clienteData);
 
-      console.log('✅ Cliente criado com UUID válido:', novoCliente.id);
+      logger.log('✅ Cliente criado com UUID válido:', novoCliente.id);
       setLoading(false);
 
       return novoCliente;
     } catch (err) {
-      console.error('❌ Erro ao criar cliente:', err);
+      logger.error('❌ Erro ao criar cliente:', err);
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
       setLoading(false);
@@ -78,15 +79,15 @@ export function useUpdateCliente() {
       setLoading(true);
       setError(null);
 
-      console.log('📝 Atualizando cliente no backend...', clienteId, data);
+      logger.log('📝 Atualizando cliente no backend...', clienteId, data);
 
       // Chamar API real do backend
       const updated = await clientesAPI.update(clienteId, data);
 
-      console.log('✅ Cliente atualizado com sucesso:', updated);
+      logger.log('✅ Cliente atualizado com sucesso:', updated);
       return updated;
     } catch (err) {
-      console.error('❌ Erro ao atualizar cliente:', err);
+      logger.error('❌ Erro ao atualizar cliente:', err);
       const errorObj = err instanceof Error ? err : new Error(String(err));
       setError(errorObj);
       throw errorObj;

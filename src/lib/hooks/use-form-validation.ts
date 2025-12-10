@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { validateStep, getStepValidationErrors, hasSchemaForStep } from '../validations/os-etapas-schema';
 import { toast } from '../utils/safe-toast';
+import { logger } from '../utils/logger';
 
 /**
  * Hook para gerenciar validação de formulários de etapas
@@ -65,11 +66,11 @@ export function useFormValidation() {
           try {
             toast.error(`Preencha os campos obrigatórios:\n\n${errorMessage}${moreErrors}`);
           } catch (toastError) {
-            console.error('❌ Erro ao exibir toast de validação:', toastError);
+            logger.error('❌ Erro ao exibir toast de validação:', toastError);
           }
         }
 
-        console.warn(`⚠️ Etapa ${stepNumber} inválida:`, validationErrors);
+        logger.warn(`⚠️ Etapa ${stepNumber} inválida:`, validationErrors);
       }
 
       return valid;
@@ -128,7 +129,7 @@ export function useFormValidation() {
         try {
           toast.error(`Erros na validação:\n\n${errorMessage}${moreErrors}`);
         } catch (toastError) {
-          console.error('❌ Erro ao exibir toast de erros:', toastError);
+          logger.error('❌ Erro ao exibir toast de erros:', toastError);
         }
       }
     }

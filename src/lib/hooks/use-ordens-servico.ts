@@ -4,6 +4,7 @@ import { ordensServicoAPI } from '../api-client';
 import { toast } from '../utils/safe-toast';
 import { supabase } from '@/lib/supabase-client';
 import { normalizeStatusOS, normalizeSetorOS } from '../types';
+import { logger } from '../utils/logger';
 
 /**
  * Hook para gerenciar ordens de serviço
@@ -31,7 +32,7 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
 
       const { data, error } = await query;
       
-      console.log('🔍 [useOrdensServico] Query result:', { 
+      logger.log('🔍 [useOrdensServico] Query result:', { 
         count: data?.length, 
         error, 
         filters 
@@ -42,7 +43,7 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
     },
     {
       onError: (error) => {
-        console.error('❌ Erro ao carregar OS:', error);
+        logger.error('❌ Erro ao carregar OS:', error);
         toast.error(`Erro ao carregar OS: ${error.message}`);
       },
       // Só re-executar quando os filtros mudarem
@@ -61,6 +62,7 @@ export function useOrdensServico(filters?: { status?: string; tipo?: string }) {
       cliente_nome: os.clientes?.nome_razao_social || 'Cliente não informado',
       tipo_os_nome: os.tipos_os?.nome || 'Tipo não informado',
       responsavel_nome: os.colaboradores?.nome_completo || 'Não atribuído',
+      responsavel_avatar_url: os.colaboradores?.avatar_url || null,
       setor_nome: os.tipos_os?.setores?.nome || os.tipos_os?.setores?.slug || '-',
       // Campos legados para compatibilidade
       codigo: os.codigo_os, // Legado
@@ -193,7 +195,7 @@ export function useEtapasOS(osId: string) {
     () => ordensServicoAPI.getEtapas(osId),
     {
       onError: (error) => {
-        console.error('Erro ao carregar etapas:', error);
+        logger.error('Erro ao carregar etapas:', error);
       },
       // Só re-executar quando osId mudar
       deps: [osId],

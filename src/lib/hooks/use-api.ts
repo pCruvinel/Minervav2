@@ -9,6 +9,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Opções de configuração para o hook useApi
@@ -112,7 +113,7 @@ export function useApi<T>(
       setLoading(true);
       setError(null);
       
-      console.log('🔄 Iniciando requisição API...');
+      logger.log('🔄 Iniciando requisição API...');
       
       // Add timeout of 30 seconds
       const timeoutPromise = new Promise<never>((_, reject) => {
@@ -121,7 +122,7 @@ export function useApi<T>(
       
       const result = await Promise.race([apiCallRef.current(), timeoutPromise]);
       
-      console.log('✅ API Response received:', result);
+      logger.log('✅ API Response received:', result);
       setData(result);
       onSuccessRef.current?.(result);
     } catch (err) {
@@ -173,7 +174,7 @@ export function useApi<T>(
         }
       }
 
-      console.error('❌ API Error:', {
+      logger.error('❌ API Error:', {
         message: error.message,
         originalError: err,
         stack: error.stack,
@@ -188,7 +189,7 @@ export function useApi<T>(
   
   // Executar apenas uma vez quando o componente montar ou deps mudarem
   useEffect(() => {
-    console.log('🚀 useApi: Executando fetch inicial');
+    logger.log('🚀 useApi: Executando fetch inicial');
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps); // Apenas deps controlam quando re-executar
@@ -302,7 +303,7 @@ export function useMutation<T, V = any>(
         }
       }
 
-      console.error('❌ Mutation Error:', {
+      logger.error('❌ Mutation Error:', {
         message: error.message,
         originalError: err,
         stack: error.stack,

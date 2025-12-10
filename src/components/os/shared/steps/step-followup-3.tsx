@@ -13,7 +13,7 @@ interface StepFollowup3Props {
     proximosPassos: string;
     dataRetorno: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: StepFollowup3Props['data']) => void;
   readOnly?: boolean;
 }
 
@@ -30,8 +30,8 @@ export function StepFollowup3({ data, onDataChange, readOnly = false }: StepFoll
       <div className="space-y-4">
         <div>
           <Label>Nível de interesse do cliente</Label>
-          <Select 
-            value={data.interesseCliente} 
+          <Select
+            value={data.interesseCliente}
             onValueChange={(value: string) => !readOnly && onDataChange({ ...data, interesseCliente: value })}
             disabled={readOnly}
           >
