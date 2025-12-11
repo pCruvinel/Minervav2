@@ -16,7 +16,7 @@ import { useMemo, useState, useEffect, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
     StepCadastroClientePortal,
     StepAnexarART,
@@ -33,8 +33,8 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
@@ -75,6 +75,8 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
     }, [propOsId]);
 
     // Função para criar OS quando o cliente for selecionado na Etapa 1
+    const { createCentroCustoWithId } = useCentroCusto();
+
     const createOSWithClient = async (clienteId: string): Promise<string | null> => {
         if (finalOsId) return finalOsId;
 
@@ -89,6 +91,7 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 throw new Error('Tipo de OS OS-12 não encontrado no sistema');
             }
 
+            // 1. Criar OS primeiro (sem cc_id)
             const osData = {
                 tipo_os_id: tipo.id,
                 status_geral: 'em_triagem' as const,
@@ -100,6 +103,24 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
 
             const newOS = await createOS(osData);
             logger.log(`[OS12WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+
+            // 2. Criar Centro de Custo com MESMO ID da OS
+            logger.log('[OS12WorkflowPage] 🏗️ Criando Centro de Custo com ID:', newOS.id);
+            const cc = await createCentroCustoWithId(
+                newOS.id, // CC terá o mesmo ID da OS
+                tipo.id,
+                clienteId,
+                'Contrato Assessoria Anual'
+            );
+            logger.log('[OS12WorkflowPage] ✅ Centro de Custo criado:', cc.nome);
+
+            // 3. Atualizar OS com cc_id
+            const { supabase } = await import('@/lib/supabase-client');
+            await supabase
+                .from('ordens_servico')
+                .update({ cc_id: cc.id })
+                .eq('id', newOS.id);
+
             setInternalOsId(newOS.id);
             return newOS.id;
         } catch (err) {
@@ -208,16 +229,29 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 return;
             }
 
+            // Capturar dados antes de criar OS (importante! o hook reinicializa após osId mudar)
+            const dadosEtapa1 = { ...etapa1Data };
+
             const newOsId = await createOSWithClient(clienteId);
             if (!newOsId) {
                 return; // Erro na criação
             }
 
-            // Salvar dados da etapa 1
-            await saveStep(1, true);
+            // Aguardar um tick para o hook reconhecer o novo osId e criar etapas
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Salvar dados da etapa 1 passando explicitamente os dados capturados
+            // O hook já suporta explicitData como 3º parâmetro
+            // isDraft=false significa NÃO é rascunho → markAsComplete=true (concluída)
+            await saveStep(1, false, dadosEtapa1);
+
+            // Forçar avanço para etapa 2
+            setCurrentStep(2);
+            toast.success('Cliente cadastrado! Avançando para ART...', { icon: '✅' });
+            return;
         }
 
-        // Chamar o handler normal de navegação
+        // Para outras etapas, usar o handler normal de navegação
         handleNextStep();
     };
 
@@ -322,7 +356,7 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 </Card>
             </div>
 
-            <WorkflowFooterWithDelegation
+            <WorkflowFooter
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -331,13 +365,6 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData || isCreatingOS}
-                osType="OS-12"
-                osId={finalOsId}
-                currentOwnerId={currentUser?.id}
-                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-                onDelegationComplete={() => {
-                    toast.success('Responsabilidade transferida com sucesso!');
-                }}
             />
         </div>
     );

@@ -3,7 +3,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
   StepRequisicaoCompra,
   StepUploadOrcamentos
@@ -13,7 +13,6 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { Route } from '@/routes/_auth/os/criar/requisicao-compras';
@@ -90,16 +89,16 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
 
       const newOS = await createOS(osData);
       logger.log(`[OS09WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
-      
+
       setInternalOsId(newOS.id);
-      
+
       // Navegar para URL com osId
       navigate({
         to: '/os/criar/requisicao-compras',
         search: { osId: newOS.id },
         replace: true
       });
-      
+
       return newOS.id;
     } catch (err) {
       logger.error('[OS09WorkflowPage] ❌ Erro ao criar OS:', err);
@@ -321,8 +320,8 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         </Card>
       </div>
 
-      {/* Footer com botões de navegação e delegação */}
-      <WorkflowFooterWithDelegation
+      {/* Footer com botões de navegação */}
+      <WorkflowFooter
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
@@ -331,14 +330,6 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         readOnlyMode={isHistoricalNavigation}
         onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData || isCreatingOS}
-        // Props de delegação (só funciona se já tem OS criada)
-        osType="OS-09"
-        osId={finalOsId}
-        currentOwnerId={currentUser?.id}
-        currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-        onDelegationComplete={() => {
-          toast.success('Responsabilidade transferida com sucesso!');
-        }}
       />
     </div>
   );

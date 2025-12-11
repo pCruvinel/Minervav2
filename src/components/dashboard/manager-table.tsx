@@ -10,8 +10,8 @@
  * @version 2.0 - Adiciona indicador de responsável atual
  */
 
-import { useState, useMemo } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useState, useMemo, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -43,8 +43,9 @@ import {
     Filter,
     AlertTriangle,
     ArrowUpDown,
-    Eye,
-    ArrowRightLeft
+    ArrowRightLeft,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import { type OSComEtapa } from '@/lib/hooks/use-dashboard-data';
 import { type SetorSlug } from '@/lib/types';
@@ -111,6 +112,8 @@ export function ManagerTable({
     showResponsavelAtual = false,
     userSetorSlug
 }: ManagerTableProps) {
+    const navigate = useNavigate();
+
     // Estados de filtro
     const [searchTerm, setSearchTerm] = useState('');
     const [setorFilter, setSetorFilter] = useState<SetorSlug | 'todos'>('todos');
@@ -119,6 +122,10 @@ export function ManagerTable({
     // Estado de ordenação
     const [sortField, setSortField] = useState<SortField>('prazoEtapa');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+
+    // Estado de paginação
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     // Extrair responsáveis únicos dos dados se não fornecidos
     const responsaveisUnicos = useMemo(() => {
@@ -183,6 +190,22 @@ export function ManagerTable({
 
         return result;
     }, [data, searchTerm, setorFilter, responsavelFilter, sortField, sortDirection]);
+
+    // Reset página quando filtros mudam
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm, setorFilter, responsavelFilter]);
+
+    // Dados paginados
+    const paginatedData = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filteredData.slice(startIndex, startIndex + itemsPerPage);
+    }, [filteredData, currentPage, itemsPerPage]);
+
+    // Cálculos de paginação
+    const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+    const startItem = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
 
     // Handlers
     const handleSort = (field: SortField) => {
@@ -351,7 +374,7 @@ export function ManagerTable({
                 </div>
             </CardHeader>
 
-            <CardContent className="p-0">
+            <CardContent className="px-6 pb-6">
                 <div className="rounded-md border">
                     <Table>
                         <TableHeader>
@@ -406,31 +429,25 @@ export function ManagerTable({
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </Button>
                                 </TableHead>
-                                <TableHead className="w-[60px]">Ação</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {filteredData.length === 0 ? (
+                            {paginatedData.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={showResponsavelAtual ? 9 : 8} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={showResponsavelAtual ? 8 : 7} className="h-24 text-center text-muted-foreground">
                                         Nenhuma ordem de serviço encontrada.
                                     </TableCell>
                                 </TableRow>
                             ) : (
-                                filteredData.map((os) => (
+                                paginatedData.map((os) => (
                                     <TableRow
                                         key={os.id}
-                                        className={os.prazoVencido ? 'bg-destructive/5 hover:bg-destructive/10' : ''}
+                                        className={`cursor-pointer ${os.prazoVencido ? 'bg-destructive/5 hover:bg-destructive/10' : 'hover:bg-muted/50'}`}
+                                        onClick={() => navigate({ to: '/os/$osId', params: { osId: os.id } })}
                                     >
                                         {/* ID */}
-                                        <TableCell className="font-mono font-medium">
-                                            <Link
-                                                to="/os/$osId"
-                                                params={{ osId: os.id }}
-                                                className="text-primary hover:underline"
-                                            >
-                                                {os.codigo_os}
-                                            </Link>
+                                        <TableCell className="font-mono font-medium text-primary">
+                                            {os.codigo_os}
                                         </TableCell>
 
                                         {/* Cliente */}
@@ -493,21 +510,66 @@ export function ManagerTable({
                                         <TableCell>
                                             {getStatusBadge(os.status_geral)}
                                         </TableCell>
-
-                                        {/* Ação */}
-                                        <TableCell>
-                                            <Button variant="ghost" size="icon" asChild>
-                                                <Link to="/os/$osId" params={{ osId: os.id }}>
-                                                    <Eye className="h-4 w-4" />
-                                                </Link>
-                                            </Button>
-                                        </TableCell>
                                     </TableRow>
                                 ))
                             )}
                         </TableBody>
                     </Table>
                 </div>
+
+                {/* Paginação */}
+                {filteredData.length > 0 && (
+                    <div className="flex items-center justify-between mt-4">
+                        <p className="text-sm text-muted-foreground">
+                            Mostrando {startItem} a {endItem} de {filteredData.length} registros
+                        </p>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                                Anterior
+                            </Button>
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                    let pageNum: number;
+                                    if (totalPages <= 5) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = i + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + i;
+                                    } else {
+                                        pageNum = currentPage - 2 + i;
+                                    }
+                                    return (
+                                        <Button
+                                            key={pageNum}
+                                            variant={currentPage === pageNum ? 'default' : 'outline'}
+                                            size="sm"
+                                            className="w-8 h-8 p-0"
+                                            onClick={() => setCurrentPage(pageNum)}
+                                        >
+                                            {pageNum}
+                                        </Button>
+                                    );
+                                })}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                            >
+                                Próximo
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    </div>
+                )}
             </CardContent>
         </Card>
     );

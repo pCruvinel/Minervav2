@@ -37,6 +37,8 @@ import { OSDocumentsTab } from '../../tabs/os-documents-tab';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
+import { getStepOwner } from '@/lib/constants/os-ownership-rules';
+import { SETOR_NOMES } from '@/types/os-setor-config';
 
 // Types for the redesigned OS details
 interface OSDetails {
@@ -1003,7 +1005,15 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                     <h3 className="font-medium">{step.nome_etapa}</h3>
                                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                                         <span>Etapa {step.ordem}</span>
-                                                        {step.responsavel_id && <span>• Responsável definido</span>}
+                                                        {(() => {
+                                                            // Extrai tipo de OS do código (ex: "OS-10-0001" → "OS-10")
+                                                            const tipoOS = osDetails?.codigo_os?.match(/^OS-\d+/)?.[0];
+                                                            const owner = tipoOS ? getStepOwner(tipoOS, step.ordem) : null;
+                                                            if (owner) {
+                                                                return <span>• Setor: {SETOR_NOMES[owner.setor]}</span>;
+                                                            }
+                                                            return null;
+                                                        })()}
                                                         {step.ultima_atualizacao && (
                                                             <span>• Atualizado {formatDate(step.ultima_atualizacao)}</span>
                                                         )}

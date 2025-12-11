@@ -117,6 +117,7 @@ export function useOrdemServico(osId: string | null) {
       ...rawOS,
       cliente_nome: rawOS.cliente?.nome_razao_social || 'Cliente não informado',
       tipo_os_nome: rawOS.tipo_os?.nome || 'Tipo não informado',
+      tipo_os_codigo: rawOS.tipo_os?.codigo || null, // e.g., 'OS-01', 'OS-02', etc.
       responsavel_nome: rawOS.responsavel?.nome_completo || 'Não atribuído',
       setor_nome: rawOS.tipo_os?.setores?.nome || rawOS.tipo_os?.setores?.slug || '-',
       

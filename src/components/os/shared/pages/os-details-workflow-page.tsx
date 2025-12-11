@@ -24,9 +24,11 @@ import {
   Loader2
 } from 'lucide-react';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
-import { DelegationModal } from '@/components/os/shared/components/delegation-modal';
-import { CargoSlug, checkDelegationRequired, HandoffPoint } from '@/lib/constants/os-ownership-rules';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
+
+import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
+import { TransferenciaInfo } from '@/types/os-setor-config';
 import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
 import { StepMemorialEscopo, type StepMemorialEscopoHandle } from '@/components/os/shared/steps/step-memorial-escopo';
@@ -261,6 +263,9 @@ export function OSDetailsWorkflowPage({
   const { currentUser } = useAuth();
   const currentUserId = currentUser?.id || 'user-unknown';
 
+  // Hook de Transferência Automática de Setor
+  const { executarTransferencia } = useTransferenciaSetor();
+
   // Fetch OS details to ensure we have client and type info (fallback for existing OSs)
   const { data: os } = useOrdemServico(osId as string);
 
@@ -318,9 +323,9 @@ export function OSDetailsWorkflowPage({
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
 
-  // Estado para interceptação de delegação (Bypass Protection)
-  const [isDelegationModalOpen, setIsDelegationModalOpen] = useState(false);
-  const [pendingHandoff, setPendingHandoff] = useState<HandoffPoint | null>(null);
+  // Estado para feedback de transferência de setor
+  const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
+  const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
 
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
@@ -1411,29 +1416,30 @@ export function OSDetailsWorkflowPage({
         await saveStep(currentStep, false, currentData);
       }
 
-      // ✅ INTERCEPTAÇÃO DE DELEGAÇÃO (Bypass Protection)
+      // Avançar para próxima etapa
       const nextStep = currentStep + 1;
-      // Tenta obter o código do tipo de OS (da OS carregada ou do formulário se for criação)
-      const osTypeCodigo = os?.tipo_os_codigo || (etapa2Data.tipoOS ? mapearTipoOSParaCodigo(etapa2Data.tipoOS) : undefined);
+      if (nextStep <= steps.length) {
+        // Verificar se há transferência de setor
+        if (osId && os?.tipo_os_codigo) {
+          const resultado = await executarTransferencia({
+            osId,
+            osType: os.tipo_os_codigo,
+            etapaAtual: currentStep,
+            proximaEtapa: nextStep,
+            clienteNome: os.cliente_nome || etapa1Data.nome,
+            codigoOS: os.codigo_os
+          });
 
-      if (osTypeCodigo && currentUser?.cargo_slug && nextStep <= steps.length) {
-        const handoff = checkDelegationRequired(
-          osTypeCodigo,
-          currentStep,
-          nextStep,
-          currentUser.cargo_slug as CargoSlug
-        );
-
-        if (handoff) {
-          logger.warn('🛑 Interceptação de Navegação: Delegação Necessária', handoff);
-          setPendingHandoff(handoff);
-          setIsDelegationModalOpen(true);
-          return; // ⛔️ INTERROMPE O AVANÇO
+          if (resultado.success && resultado.transferencia) {
+            // Mostrar modal de feedback
+            setTransferenciaInfo(resultado.transferencia);
+            setIsTransferenciaModalOpen(true);
+            // O modal redireciona ao fechar, então não avançamos aqui
+            return;
+          }
         }
-      }
 
-      // Avançar para próxima etapa (Fluxo Normal)
-      if (currentStep < steps.length) {
+        // Fluxo normal (sem transferência)
         setCurrentStep(prev => prev + 1);
         setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
       }
@@ -1821,10 +1827,10 @@ export function OSDetailsWorkflowPage({
 
             </CardContent>
 
-            {/* Footer com botões de navegação e delegação */}
+            {/* Footer com botões de navegação */}
             {/* Ocultar footer na etapa 15 pois já tem o botão "Start de Contrato" dedicado */}
             {currentStep !== 15 && (
-              <WorkflowFooterWithDelegation
+              <WorkflowFooter
                 currentStep={currentStep}
                 totalSteps={TOTAL_WORKFLOW_STEPS}
                 onPrevStep={handlePrevStep}
@@ -1838,66 +1844,22 @@ export function OSDetailsWorkflowPage({
                 onReturnToActive={handleReturnToActive}
                 isFormInvalid={isCurrentStepInvalid}
                 invalidFormMessage="Preencha todos os campos obrigatórios para continuar"
-                // Props de delegação - habilitam verificação automática de handoff
-                osType={os?.tipo_os_codigo || mapearTipoOSParaCodigo(etapa2Data.tipoOS || '')}
-                osId={osId || undefined}
-                currentOwnerId={os?.responsavel_id}
-                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-                onDelegationComplete={() => {
-                  // ✅ FIX: Salvar etapa atual como concluída ANTES de avançar
-                  saveStep(currentStep, false).then(() => {
-                    logger.log(`✅ Etapa ${currentStep} salva após delegação`);
-                  }).catch(err => {
-                    logger.error('❌ Erro ao salvar etapa após delegação:', err);
-                  });
-
-                  toast.success('Responsabilidade transferida com sucesso!');
-
-                  // Avançar para próxima etapa após delegar
-                  setCurrentStep(prev => prev + 1);
-                  setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
-
-                  // Refresh para atualizar responsavel_id
-                  refreshEtapas?.();
-                }}
               />
             )}
           </Card>
         </div>
       </div>
 
-      {/* Modal de Delegação (Interceptação no nível da Página) */}
-      {osId && currentUser?.id && pendingHandoff && (
-        <DelegationModal
-          isOpen={isDelegationModalOpen}
+      {/* Modal de Feedback de Transferência de Setor */}
+      {osId && transferenciaInfo && (
+        <FeedbackTransferencia
+          isOpen={isTransferenciaModalOpen}
           onClose={() => {
-            setIsDelegationModalOpen(false);
-            setPendingHandoff(null);
+            setIsTransferenciaModalOpen(false);
+            setTransferenciaInfo(null);
           }}
-          onDelegationComplete={() => {
-            setIsDelegationModalOpen(false);
-            setPendingHandoff(null);
-
-            // ✅ FIX: Salvar etapa atual como concluída ANTES de avançar
-            saveStep(currentStep, false).then(() => {
-              logger.log(`✅ Etapa ${currentStep} salva após delegação (modal)`);
-            }).catch(err => {
-              logger.error('❌ Erro ao salvar etapa após delegação (modal):', err);
-            });
-
-            toast.success('Responsabilidade transferida!');
-
-            // Avançar para próxima etapa após delegar
-            setCurrentStep(prev => prev + 1);
-            setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
-            window.scrollTo(0, 0);
-
-            // Refresh para atualizar permissões visualmente
-            refreshEtapas?.();
-          }}
+          transferencia={transferenciaInfo}
           osId={osId}
-          currentOwnerId={currentUser.id} // Usar user logado para garantir, já que ele é quem está delegando
-          handoff={pendingHandoff}
         />
       )}
     </div >

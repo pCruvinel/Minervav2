@@ -1,21 +1,18 @@
 /**
  * HomePage - Hub de Informações Gerais (Mural Digital)
- * 
- * Grid responsivo com 4 widgets:
- * - Resumo Semanal (Calendário)
- * - Quadro de Avisos
- * - Notificações Recentes
- * - Aniversariantes do Mês
+ *
+
+ * Grid responsivo com 2 widgets:
+ * - Quadro de Avisos (primeira coluna)
+ * - Minha Agenda + Aniversariantes (segunda coluna, empilhados)
  */
 'use client';
 
 import { useAuth } from '@/lib/contexts/auth-context';
 import { WeeklyCalendarWidget } from './weekly-calendar-widget';
 import { SystemAnnouncementsWidget } from './system-announcements-widget';
-import { RecentNotificationsWidget } from './recent-notifications-widget';
 import { BirthdaysWidget } from './birthdays-widget';
 import { Loader2 } from 'lucide-react';
-
 // ============================================================
 // COMPONENTE
 // ============================================================
@@ -44,26 +41,21 @@ export function HomePage() {
                 </p>
             </div>
 
-            {/* Grid de Widgets */}
+            {/* Grid de Widgets - 2 colunas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Widget 1: Resumo Semanal */}
-                <div className="min-h-[350px]">
-                    <WeeklyCalendarWidget />
-                </div>
-
-                {/* Widget 2: Quadro de Avisos */}
-                <div className="min-h-[350px]">
+                {/* Widget 1: Quadro de Avisos - primeira coluna */}
+                <div className="min-h-[720px]">
                     <SystemAnnouncementsWidget />
                 </div>
 
-                {/* Widget 3: Notificações */}
-                <div className="min-h-[350px]">
-                    <RecentNotificationsWidget />
-                </div>
-
-                {/* Widget 4: Aniversariantes */}
-                <div className="min-h-[350px]">
-                    <BirthdaysWidget />
+                {/* Widget 2: Segunda coluna - Minha Agenda e Aniversariantes empilhados */}
+                <div className="flex flex-col gap-6">
+                    <div className="min-h-[350px]">
+                        <WeeklyCalendarWidget />
+                    </div>
+                    <div className="min-h-[350px]">
+                        <BirthdaysWidget />
+                    </div>
                 </div>
             </div>
         </div>

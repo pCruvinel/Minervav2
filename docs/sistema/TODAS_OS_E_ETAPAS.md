@@ -69,7 +69,7 @@ src/components/os/shared/
 ├── components/
 │   ├── workflow-stepper.tsx             # Stepper visual
 │   ├── workflow-footer.tsx              # Footer com ações
-│   └── workflow-footer-with-delegation.tsx  # Footer com delegação
+│   └── feedback-transferencia.tsx       # Modal de feedback pós-transferência (NOVO v2.7)
 └── steps/
     ├── cadastrar-lead.tsx               # Etapa 1
     ├── step-followup-1.tsx              # Etapa 3
@@ -82,6 +82,10 @@ src/components/os/shared/
     ├── step-analise-relatorio.tsx       # Etapa 12
     ├── step-gerar-contrato.tsx          # Etapa 13
     └── step-contrato-assinado.tsx       # Etapa 14
+
+src/lib/hooks/
+├── use-transferencia-setor.ts           # Hook de transferência automática (NOVO v2.7)
+└── use-notificar-coordenador.ts         # Notificar coordenador (NOVO v2.7)
 
 src/constants/
 └── os-workflow.ts                       # Definição de etapas e tipos

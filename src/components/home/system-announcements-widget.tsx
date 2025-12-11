@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase-client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Megaphone, AlertTriangle, Info, CheckCircle } from 'lucide-react';
+import { formatInSaoPaulo, toSaoPauloTime } from '@/lib/utils/timezone';
 
 // ============================================================
 // TIPOS
@@ -49,6 +50,42 @@ const TIPO_CONFIG = {
         text: 'text-green-700 dark:text-green-400'
     }
 };
+
+/**
+ * Formata data e hora para exibição no timeline
+ * @param dateString - Data no formato ISO
+ * @returns Objeto com data formatada e hora formatada
+ */
+function formatAnnouncementDateTime(dateString: string) {
+    const date = toSaoPauloTime(dateString);
+    const dateFormatted = formatInSaoPaulo(date, 'dd/MM/yyyy');
+    const timeFormatted = formatInSaoPaulo(date, 'HH:mm');
+
+    return {
+        date: dateFormatted,
+        time: timeFormatted,
+        fullDate: date
+    };
+}
+
+/**
+ * Agrupa avisos por data
+ * @param avisos - Lista de avisos
+ * @returns Objeto com avisos agrupados por data
+ */
+function groupAvisosByDate(avisos: Aviso[]) {
+    const grouped: Record<string, Aviso[]> = {};
+
+    avisos.forEach(aviso => {
+        const { date } = formatAnnouncementDateTime(aviso.created_at);
+        if (!grouped[date]) {
+            grouped[date] = [];
+        }
+        grouped[date].push(aviso);
+    });
+
+    return grouped;
+}
 
 // ============================================================
 // COMPONENTE
@@ -118,30 +155,45 @@ export function SystemAnnouncementsWidget() {
                         <p className="text-sm">Sem avisos recentes</p>
                     </div>
                 ) : (
-                    <div className="space-y-3">
-                        {avisos.map((aviso) => {
-                            const config = TIPO_CONFIG[aviso.tipo] || TIPO_CONFIG.info;
-                            const Icon = config.icon;
-
-                            return (
-                                <div
-                                    key={aviso.id}
-                                    className={`p-3 rounded-lg border ${config.bg} ${config.border}`}
-                                >
-                                    <div className="flex items-start gap-2">
-                                        <Icon className={`h-5 w-5 mt-0.5 ${config.text}`} />
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className={`font-medium text-sm ${config.text}`}>
-                                                {aviso.titulo}
-                                            </h4>
-                                            <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
-                                                {aviso.mensagem}
-                                            </p>
-                                        </div>
-                                    </div>
+                    <div className="space-y-6">
+                        {Object.entries(groupAvisosByDate(avisos)).map(([date, avisosDoDia]) => (
+                            <div key={date} className="timeline-day">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-2 h-2 rounded-full bg-primary"></div>
+                                    <span className="text-sm font-medium text-muted-foreground">{date}</span>
                                 </div>
-                            );
-                        })}
+
+                                <div className="space-y-3 ml-4">
+                                    {avisosDoDia.map((aviso) => {
+                                        const config = TIPO_CONFIG[aviso.tipo] || TIPO_CONFIG.info;
+                                        const Icon = config.icon;
+                                        const { time } = formatAnnouncementDateTime(aviso.created_at);
+
+                                        return (
+                                            <div
+                                                key={aviso.id}
+                                                className={`p-3 rounded-lg border ${config.bg} ${config.border} chat-bubble`}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className="flex flex-col items-center">
+                                                        <Icon className={`h-5 w-5 ${config.text}`} />
+                                                        <span className="text-xs text-muted-foreground mt-1">{time}</span>
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h4 className={`font-medium text-sm ${config.text}`}>
+                                                            {aviso.titulo}
+                                                        </h4>
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            {aviso.mensagem}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
             </CardContent>

@@ -112,10 +112,10 @@ export function WeeklyCalendarWidget() {
             <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-lg">
                     <Calendar className="h-5 w-5 text-primary" />
-                    Minha Semana
+                    Minha Agenda
                 </CardTitle>
                 <CardDescription>
-                    {format(new Date(), "'Semana de' dd/MM", { locale: ptBR })}
+                    {format(new Date(), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                 </CardDescription>
             </CardHeader>
 

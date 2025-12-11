@@ -2,7 +2,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
     StepAberturaSolicitacao,
     StepSelecaoCentroCusto,
@@ -14,7 +14,6 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { supabase } from '@/lib/supabase-client';
@@ -89,7 +88,7 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
 
             const newOS = await createOS(osData);
             logger.log(`[OS10WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
-            
+
             setInternalOsId(newOS.id);
             return newOS.id;
         } catch (err) {
@@ -294,7 +293,7 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
             </div>
 
             {/* Footer com botões de navegação */}
-            <WorkflowFooterWithDelegation
+            <WorkflowFooter
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -303,14 +302,6 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
                 readOnlyMode={isHistoricalNavigation}
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData || isCreatingOS}
-                // Props de delegação (só funciona se já tem OS criada)
-                osType="OS-10"
-                osId={finalOsId}
-                currentOwnerId={currentUser?.id}
-                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-                onDelegationComplete={() => {
-                    toast.success('Responsabilidade transferida com sucesso!');
-                }}
             />
         </div>
     );

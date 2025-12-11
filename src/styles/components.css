@@ -532,3 +532,47 @@
 .status-info {
   color: hsl(var(--info));
 }
+
+/* ==========================================
+ * TIMELINE CHAT
+ * ========================================== */
+
+.timeline-day {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.timeline-day::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 1.5rem;
+    bottom: 0;
+    width: 1px;
+    background-color: hsl(var(--border));
+}
+
+.chat-bubble {
+    position: relative;
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.chat-bubble:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.chat-bubble::after {
+    content: '';
+    position: absolute;
+    left: -8px;
+    top: 1rem;
+    width: 0;
+    height: 0;
+    border-top: 8px solid transparent;
+    border-bottom: 8px solid transparent;
+    border-right: 8px solid hsl(var(--card));
+}

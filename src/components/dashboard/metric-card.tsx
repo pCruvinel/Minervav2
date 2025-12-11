@@ -171,12 +171,12 @@ export function MetricCard({
   );
 
   if (to) {
-    return (
-      <Link to={to} className="block h-full">
-        {cardContent}
-      </Link>
-    );
-  }
+      return (
+        <Link to={to} className="block h-full no-underline">
+          {cardContent}
+        </Link>
+      );
+    }
 
   return cardContent;
 }

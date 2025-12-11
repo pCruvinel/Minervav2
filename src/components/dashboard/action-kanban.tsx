@@ -24,7 +24,6 @@ import {
     ArrowRight
 } from 'lucide-react';
 import { type OSComEtapa } from '@/lib/hooks/use-dashboard-data';
-import { useAuth } from '@/lib/contexts/auth-context';
 
 // ============================================================
 // TIPOS
@@ -69,7 +68,7 @@ function KanbanCard({ os }: { os: OSComEtapa }) {
         <Link
             to="/os/$osId"
             params={{ osId: os.id }}
-            className="block"
+            className="block no-underline"
         >
             <div className={`
         p-3 rounded-lg border transition-all cursor-pointer
@@ -188,8 +187,6 @@ export function ActionKanban({
     aguardandoTerceiros = [],
     title = 'Minhas Tarefas'
 }: ActionKanbanProps) {
-    const { currentUser } = useAuth();
-
     // Separar em colunas
     const colunas = useMemo(() => {
         const urgentes: OSComEtapa[] = [];

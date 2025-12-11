@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { CadastrarLead, CadastrarLeadHandle, FormDataCompleto } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepAgendarVisita } from '@/components/os/assessoria/os-11/steps/step-agendar-visita';
 import { StepRealizarVisita } from '@/components/os/assessoria/os-11/steps/step-realizar-visita';
@@ -14,8 +14,8 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
+import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
@@ -60,6 +60,8 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
     }, [propOsId]);
 
     // Função para criar OS quando o cliente for selecionado na Etapa 1
+    const { createCentroCustoWithId } = useCentroCusto();
+
     const createOSWithClient = async (clienteId: string): Promise<string | null> => {
         if (finalOsId) return finalOsId; // Já existe uma OS
 
@@ -75,7 +77,7 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
                 throw new Error('Tipo de OS OS-11 não encontrado no sistema');
             }
 
-            // Criar OS com o cliente real (não o genérico)
+            // 1. Criar OS primeiro (sem cc_id)
             const osData = {
                 tipo_os_id: tipo.id,
                 status_geral: 'em_triagem' as const,
@@ -87,6 +89,24 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
 
             const newOS = await createOS(osData);
             logger.log(`[OS11WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+
+            // 2. Criar Centro de Custo com MESMO ID da OS
+            logger.log('[OS11WorkflowPage] 🏗️ Criando Centro de Custo com ID:', newOS.id);
+            const cc = await createCentroCustoWithId(
+                newOS.id, // CC terá o mesmo ID da OS
+                tipo.id,
+                clienteId,
+                'Laudo Pontual Assessoria'
+            );
+            logger.log('[OS11WorkflowPage] ✅ Centro de Custo criado:', cc.nome);
+
+            // 3. Atualizar OS com cc_id
+            const { supabase } = await import('@/lib/supabase-client');
+            await supabase
+                .from('ordens_servico')
+                .update({ cc_id: cc.id })
+                .eq('id', newOS.id);
+
             setInternalOsId(newOS.id);
             return newOS.id;
         } catch (err) {
@@ -375,7 +395,7 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
                 </Card>
             </div>
 
-            <WorkflowFooterWithDelegation
+            <WorkflowFooter
                 currentStep={currentStep}
                 totalSteps={steps.length}
                 onPrevStep={handlePrevStep}
@@ -386,14 +406,6 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
                 isLoading={isLoadingData || isCreatingOS}
                 isFormInvalid={isCurrentStepInvalid}
                 invalidFormMessage="Por favor, selecione um horário no calendário e um técnico responsável para continuar"
-                // Props de delegação (só funciona se já tem OS criada)
-                osType="OS-11"
-                osId={finalOsId}
-                currentOwnerId={currentUser?.id}
-                currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-                onDelegationComplete={() => {
-                    toast.success('Responsabilidade transferida com sucesso!');
-                }}
             />
         </div>
     );

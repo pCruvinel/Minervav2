@@ -1,11 +1,12 @@
 /**
  * ExecutiveDashboard - Container Principal
- * 
- * Dashboard Executivo com 3 abas:
+ *
+ * Dashboard Executivo com 4 abas:
  * - Visão Geral (KPIs)
  * - Controladoria (Kanban de Carga)
  * - Auditoria (Logs)
- * 
+ * - Avisos (Gerenciamento do Quadro de Avisos)
+ *
  * Acesso restrito: admin, diretor, diretoria
  */
 'use client';
@@ -15,11 +16,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExecutiveOverview } from './executive-overview';
 import { WorkloadKanban } from './workload-kanban';
 import { SystemAuditLog } from './system-audit-log';
+import { AnnouncementsManager } from './announcements-manager';
 import {
     ShieldAlert,
     BarChart3,
     Users,
     FileSearch,
+    Megaphone,
     Loader2
 } from 'lucide-react';
 
@@ -75,7 +78,7 @@ export function ExecutiveDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[500px]">
+                <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <BarChart3 className="h-4 w-4" />
                         <span className="hidden sm:inline">Visão Geral</span>
@@ -91,6 +94,11 @@ export function ExecutiveDashboard() {
                         <span className="hidden sm:inline">Auditoria</span>
                         <span className="sm:hidden">Logs</span>
                     </TabsTrigger>
+                    <TabsTrigger value="announcements" className="flex items-center gap-2">
+                        <Megaphone className="h-4 w-4" />
+                        <span className="hidden sm:inline">Avisos</span>
+                        <span className="sm:hidden">Avisos</span>
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -103,6 +111,10 @@ export function ExecutiveDashboard() {
 
                 <TabsContent value="audit">
                     <SystemAuditLog />
+                </TabsContent>
+
+                <TabsContent value="announcements">
+                    <AnnouncementsManager />
                 </TabsContent>
             </Tabs>
         </div>

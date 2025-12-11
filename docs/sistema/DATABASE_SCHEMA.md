@@ -1,9 +1,9 @@
 # 📊 Database Schema - Sistema Minerva ERP
 
-**Última Atualização:** 2025-12-05
+**Última Atualização:** 2025-12-11
 **Banco:** Supabase (PostgreSQL)
 **Projeto:** zxfevlkssljndqqhxkjb (MinervaV2)
-**Versão Schema:** v2.6
+**Versão Schema:** v2.7
 
 ---
 
@@ -24,6 +24,9 @@
 | `parent_os_id` | uuid | FK para OS pai (hierarquia) |
 | `is_contract_active` | boolean | Flag para contratos faturáveis (OS-12, OS-13) |
 | `dados_publicos` | jsonb | Dados para formulários externos (OS-07) |
+| `setor_atual_id` | uuid | FK para `setores` - setor responsável atual (**Novo v2.7**) |
+| `setor_solicitante_id` | uuid | FK para `setores` - setor que originou a OS (**Novo v2.7**) |
+| `etapa_atual_ordem` | integer | Número da etapa atual (**Novo v2.7**) |
 | `created_at` | timestamptz | Data de criação |
 | `updated_at` | timestamptz | Data de atualização |
 
@@ -295,6 +298,24 @@
 | `created_by` | uuid | FK para `colaboradores` |
 | `created_at` | timestamptz | Data de criação |
 
+### 20. `os_transferencias` - Histórico de Transferências de Setor (**Novo v2.7**)
+
+| Coluna | Tipo | Descrição |
+|:-------|:-----|:----------|
+| `id` | uuid | PK |
+| `os_id` | uuid | FK para `ordens_servico` |
+| `etapa_origem` | integer | Número da etapa de origem |
+| `etapa_destino` | integer | Número da etapa de destino |
+| `setor_origem_id` | uuid | FK para `setores` |
+| `setor_destino_id` | uuid | FK para `setores` |
+| `transferido_por_id` | uuid | FK para `colaboradores` - quem executou |
+| `coordenador_notificado_id` | uuid | FK para `colaboradores` - coordenador notificado |
+| `transferido_em` | timestamptz | Data/hora da transferência |
+| `motivo` | text | Motivo: 'avanço_etapa', 'reversão', etc. |
+| `metadados` | jsonb | Dados adicionais (osType, cliente, etc.) |
+
+> **Substitui:** Tabela `delegacoes` (deprecated)
+
 ---
 
 ## ⚡ Edge Functions (Backend)
@@ -316,7 +337,7 @@
 | `003_create_trigger_gerar_codigo_os.sql` | Trigger automático para código |
 | `005_create_os_requisition_items.sql` | Tabela de itens de requisição |
 | `008_os_parent_child_architecture.sql` | `is_contract_active`, `os_vagas_recrutamento` |
-| `009_create_delegacoes_table.sql` | Sistema de delegação de tarefas |
+| `009_create_delegacoes_table.sql` | Sistema de delegação de tarefas **(DEPRECATED)** |
 | `010_create_notifications_system.sql` | Tabelas `notificacoes` e `sistema_avisos` |
 | `20250105_refactor_roles_sectors.sql` | Reestruturação RBAC (cargos/setores) |
 | `20250106_create_contas_pagar.sql` | Tabela de contas a pagar |
@@ -328,6 +349,7 @@
 | `20250112_create_extratos_bancarios.sql` | Importação de extratos |
 | `20250113_create_conciliacoes.sql` | Conciliação bancária |
 | `20250114_add_colaborador_fields.sql` | Novos campos de RH (Dados Bancários, Docs) |
+| `20251211_create_os_transferencias.sql` | **Transferência automática de setor** (substitui delegação) |
 
 ---
 

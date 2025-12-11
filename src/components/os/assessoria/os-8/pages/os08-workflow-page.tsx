@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
-import { WorkflowFooterWithDelegation } from '@/components/os/shared/components/workflow-footer-with-delegation';
+import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
   StepIdentificacaoSolicitante,
   StepAtribuirCliente,
@@ -17,7 +17,6 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { CargoSlug } from '@/lib/constants/os-ownership-rules';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
@@ -361,8 +360,8 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
         </Card>
       </div>
 
-      {/* Footer com botões de navegação e delegação */}
-      <WorkflowFooterWithDelegation
+      {/* Footer com botões de navegação */}
+      <WorkflowFooter
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
@@ -373,14 +372,6 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
         isLoading={isLoadingData || isCreatingOS}
         isFormInvalid={isCurrentStepInvalid}
         invalidFormMessage="Por favor, selecione um horário no calendário para continuar"
-        // Props de delegação (só funciona se já tem OS criada)
-        osType="OS-08"
-        osId={finalOsId}
-        currentOwnerId={currentUser?.id}
-        currentUserCargoSlug={currentUser?.cargo_slug as CargoSlug}
-        onDelegationComplete={() => {
-          toast.success('Responsabilidade transferida com sucesso!');
-        }}
       />
     </div>
   );
