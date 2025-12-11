@@ -16,7 +16,7 @@ Abaixo está o PRD Oficial v2.0 no seu modelo:
 |-------|-------|
 | **Projeto** | Minerva ERP (Sistema de Gestão de Engenharia) |
 | **Data de Criação** | 28/11/2025 |
-| **Versão** | 2.5 (Redesign 2025) |
+| **Versão** | 2.7 (Transferência Automática de Setor) |
 | **Status** | 🟢 Aprovado para Implementação |
 | **Cliente** | Minerva Engenharia |
 | **Responsável (PM)** | [Seu Nome] |
@@ -369,4 +369,4 @@ Um ERP v2.0 com **Motor de Workflow Polimórfico** (adapta as etapas conforme o 
 | Campo | Valor |
 |-------|-------|
 | **Classificação** | CONFIDENCIAL / INTERNO |
-| **Última atualização** | 03/12/2025 |
+| **Última atualização** | 11/12/2025 |

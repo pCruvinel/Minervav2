@@ -1,162 +1,142 @@
-# 05 - Documentação de API
-
-> **Template**: Documente todos os endpoints do seu projeto
+# 05 - Documentação de API - Minerva ERP v2.7
 
 ## 🔌 Visão Geral
 
-[PREENCHER]
+O Minerva ERP utiliza **Supabase** como backend, com acesso direto ao banco PostgreSQL via cliente JS e Edge Functions para operações complexas.
 
-**Exemplo:**
-Base URL: `https://seu-projeto.vercel.app/api`
-Autenticação: Bearer Token (JWT do Supabase)
+**Base URL (Edge Functions):** `https://lvxbxndwqomxmsrqfwzo.supabase.co/functions/v1`
+**Autenticação:** Bearer Token (JWT do Supabase Auth)
 
 ---
 
-## 🔐 Autenticação
+## ⚡ Edge Functions
 
-### POST `/auth/signup`
+### `server` - API Principal (Hono)
 
-**Descrição**: [PREENCHER]
+**Descrição**: API BFF (Backend for Frontend) com rotas customizadas usando Hono framework.
+
+**Endpoints Principais:**
+- `POST /api/clientes` - CRUD de clientes
+- `POST /api/os` - Operações em Ordens de Serviço
+- `POST /api/colaboradores` - Gestão de colaboradores
+
+---
+
+### `generate-pdf` - Geração de PDFs
+
+**Descrição**: Geração automática de documentos PDF usando React-PDF.
 
 **Request:**
-```json
+```typescript
 {
-  "email": "user@example.com",
-  "password": "senha123",
-  "name": "Nome do Usuário"
-}
-```
-
-**Response 200:**
-```json
-{
-  "user": {
-    "id": "uuid",
-    "email": "user@example.com",
-    "name": "Nome do Usuário"
-  },
-  "session": {
-    "access_token": "jwt...",
-    "refresh_token": "jwt..."
+  template: 'proposta' | 'contrato' | 'laudo-tecnico' | 'visita-tecnica' | 'memorial' | 'documento-sst' | 'parecer-reforma',
+  data: {
+    // Dados específicos do template
+    osId: string,
+    clienteNome: string,
+    // ... outros campos
   }
 }
 ```
 
-**Errors:**
-- `400` - Email já cadastrado
-- `422` - Validação falhou
+**Templates Disponíveis:**
+| Template | Uso | OS Relacionada |
+|----------|-----|----------------|
+| `proposta` | Proposta Comercial | OS-01 a OS-06 |
+| `contrato` | Contrato de Serviço | OS-01 a OS-06, OS-13 |
+| `laudo-tecnico` | Laudo Técnico | OS-11 |
+| `visita-tecnica` | Relatório de Visita | OS-08 |
+| `memorial` | Memorial Descritivo | OS-01 a OS-04 |
+| `documento-sst` | Documentos SST | OS-13 |
+| `parecer-reforma` | Parecer de Reforma | OS-07 |
 
 ---
 
-### POST `/auth/login`
+### `invite-user` - Convite de Usuários
 
-[PREENCHER]
+**Descrição**: Envio de convites de acesso por email para novos colaboradores.
 
----
-
-## 📁 Projects
-
-### GET `/projects`
-
-**Descrição**: [PREENCHER]
-
-**Headers:**
-```
-Authorization: Bearer {token}
-```
-
-**Query Params:**
-```
-?status=active&limit=20&offset=0
+**Request:**
+```typescript
+{
+  email: string,
+  nome: string,
+  cargo_id: string,
+  setor_id: string
+}
 ```
 
 **Response 200:**
 ```json
 {
-  "data": [
-    {
-      "id": "uuid",
-      "name": "Projeto X",
-      "description": "Descrição...",
-      "status": "active",
-      "created_at": "2024-01-01T00:00:00Z"
-    }
-  ],
-  "total": 42,
-  "limit": 20,
-  "offset": 0
+  "success": true,
+  "message": "Convite enviado com sucesso"
 }
 ```
 
 ---
 
-### POST `/projects`
+## 🗄️ Acesso Direto ao Banco (Supabase Client)
 
-[PREENCHER]
+### Tabelas Principais
 
----
-
-### GET `/projects/:id`
-
-[PREENCHER]
-
----
-
-### PATCH `/projects/:id`
-
-[PREENCHER]
-
----
-
-### DELETE `/projects/:id`
-
-[PREENCHER]
-
----
-
-## 📌 Tasks
-
-[PREENCHER - Documentar endpoints de tasks]
-
----
-
-## 📊 Schemas
-
-### Project Schema
 ```typescript
-interface Project {
-  id: string;
-  name: string;
-  description?: string;
-  owner_id: string;
-  status: 'planning' | 'active' | 'paused' | 'completed' | 'archived';
-  start_date?: string;  // ISO 8601
-  end_date?: string;    // ISO 8601
-  created_at: string;   // ISO 8601
-  updated_at: string;   // ISO 8601
-}
+// Ordens de Serviço
+const { data } = await supabase
+  .from('ordens_servico')
+  .select('*, cliente:clientes(*), responsavel:colaboradores(*)')
+  .eq('id', osId);
+
+// Transferências de Setor
+const { data } = await supabase
+  .from('os_transferencias')
+  .select('*, setor_origem:setores!setor_origem_id(*), setor_destino:setores!setor_destino_id(*)')
+  .eq('os_id', osId);
+
+// Etapas de OS
+const { data } = await supabase
+  .from('os_etapas')
+  .select('*')
+  .eq('os_id', osId)
+  .order('ordem');
 ```
 
 ---
 
 ## ⚠️ Códigos de Erro
 
-[PREENCHER]
-
-**Exemplo:**
-
 | Código | Descrição | Exemplo |
 |--------|-----------|---------|
 | 400 | Bad Request | Dados inválidos |
-| 401 | Unauthorized | Token inválido ou expirado |
-| 403 | Forbidden | Sem permissão para recurso |
+| 401 | Unauthorized | Token JWT inválido ou expirado |
+| 403 | Forbidden | Violação de RLS (sem permissão) |
 | 404 | Not Found | Recurso não existe |
-| 422 | Unprocessable Entity | Validação falhou |
-| 429 | Too Many Requests | Rate limit excedido |
-| 500 | Internal Server Error | Erro no servidor |
+| 422 | Unprocessable Entity | Validação Zod falhou |
+| 500 | Internal Server Error | Erro na Edge Function |
 
 ---
 
-**Status**: 🟡 Template - Aguardando preenchimento
-**Documento Anterior**: [04-BANCO-DE-DADOS.md](.BANCO-DE-DADOS.md)
-**Próximo Documento**: [06-COMPONENTES.md](./COMPONENTES.md)
+## 🔐 Autenticação
+
+### Login
+```typescript
+const { data, error } = await supabase.auth.signInWithPassword({
+  email: 'usuario@minerva.com.br',
+  password: 'senha123'
+});
+```
+
+### Verificar Sessão
+```typescript
+const { data: { session } } = await supabase.auth.getSession();
+```
+
+### Logout
+```typescript
+await supabase.auth.signOut();
+```
+
+---
+
+**Status**: ✅ Preenchido para Minerva v2.7
+**Última Atualização**: 11/12/2025

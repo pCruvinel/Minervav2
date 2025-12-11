@@ -139,7 +139,7 @@ Utiliza variáveis CSS para tema (Dark/Light mode support) e plugins para anima�
 ---
 
 **Status**: ✅ **Atualizado**
-**Última Atualização**: 03/12/2025
+**Última Atualização**: 11/12/2025
 
 ## 🆕 Funcionalidades v2.5 (Redesign 2025)
 
@@ -152,6 +152,14 @@ Utiliza variáveis CSS para tema (Dark/Light mode support) e plugins para anima�
 - **Documentos de Clientes**: `clientes_documentos` para gestão de arquivos
 - **Controle de Presença**: `registros_presenca` para ponto eletrônico
 - **Documentos de Colaboradores**: `colaboradores_documentos` para arquivos pessoais
+- **Transferências de Setor**: `os_transferencias` para histórico de handoffs (v2.7)
+
+### Novos Hooks v2.7
+- **`use-transferencia-setor.ts`**: Detecção e execução de transferência automática
+- **`use-notificar-coordenador.ts`**: Notificação automática ao coordenador destino
+
+### Novos Componentes v2.7
+- **`feedback-transferencia.tsx`**: Modal de feedback após transferência de setor
 
 ### Expansão do Schema
 - **Colaboradores**: +20 campos (contratação, salários, contatos, etc.)

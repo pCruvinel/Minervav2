@@ -1,8 +1,8 @@
-# 📋 BACKLOG COMPLETO - Projeto Minerva ERP v2.5
+# 📋 BACKLOG COMPLETO - Projeto Minerva ERP v2.7
 
 > **Documento Executivo de Status e Backlog**
-> **Última Atualização:** 03/12/2025 (Revisão de Status)
-> **Versão do Sistema:** v2.5 (Redesign 2025)
+> **Última Atualização:** 11/12/2025 (Transferência Automática)
+> **Versão do Sistema:** v2.7 (Transferência Automática de Setor)
 > **Status Geral:** Em Desenvolvimento Ativo
 
 ---
@@ -10,7 +10,7 @@
 ## 🎯 VISÃO EXECUTIVA
 
 ### Contexto do Projeto
-O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de engenharia e construção, focada na digitalização e automação de processos de Ordens de Serviço (OS), controle financeiro e gestão de relacionamento com clientes (CRM). O sistema implementa workflows polimórficos que se adaptam a 13 tipos diferentes de serviços, garantindo eficiência operacional e isolamento de dados por setor.
+O **Minerva ERP v2.7** é uma plataforma completa de gestão para empresas de engenharia e construção, focada na digitalização e automação de processos de Ordens de Serviço (OS), controle financeiro e gestão de relacionamento com clientes (CRM). O sistema implementa workflows polimórficos que se adaptam a 13 tipos diferentes de serviços, garantindo eficiência operacional, **transferência automática de setor** e isolamento de dados por setor.
 
 ### Objetivos Estratégicos
 - **Digitalização Completa**: Eliminar processos manuais e planilhas paralelas
@@ -28,9 +28,9 @@ O **Minerva ERP v2.5** é uma plataforma completa de gestão para empresas de en
 |--------|-------|------------|-------------------|---------|
 | **Admin/TI** | 10 | 1-2 | Configurações globais, usuários, backups | Sistema completo |
 | **Diretoria** | 9 | 3-5 | Relatórios estratégicos, aprovações críticas | Visão global |
-| **Gestor Administrativo** | 5 | 2-3 | Financeiro, RH, contratos transversais | Multi-setor |
-| **Gestor de Obras** | 5 | 2-4 | OS de construção, equipes de campo | Setor isolado |
-| **Gestor de Assessoria** | 5 | 2-3 | Laudos técnicos, pareceres | Setor isolado |
+| **Coordenador Administrativo** | 5 | 2-3 | Financeiro, RH, contratos transversais | Multi-setor |
+| **Coordenador Obras** | 5 | 2-4 | OS de construção, equipes de campo | Setor isolado |
+| **Coordenador Assessoria** | 5 | 2-3 | Laudos técnicos, pareceres | Setor isolado |
 | **Colaborador** | 1 | 20+ | Execução operacional, próprias OS | Restrito |
 | **Mão de Obra** | 0 | 50+ | Apenas custos/presença | **BLOQUEADO** |
 

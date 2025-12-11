@@ -841,7 +841,7 @@ Frontend → API Call → Edge Function `generate-pdf`
 
 ---
 
-**Data da Análise**: 10/12/2025
-**Última Atualização**: 10/12/2025 - Reestruturação da OS-12 (Start de Contrato - Assessoria Anual) com 8 etapas e integração Supabase Functions
-**Status**: Todos os workflows implementados + funcionalidades v2.5 - OS-12 em reestruturação
-**Próxima Revisão**: Após implementação completa da OS-12 reestruturadaz
+**Data da Análise**: 11/12/2025
+**Última Atualização**: 11/12/2025 - Documentação sincronizada com v2.7 (Transferência Automática de Setor)
+**Status**: Todos os workflows implementados + funcionalidades v2.7 - OS-12 em reestruturação
+**Próxima Revisão**: Após implementação completa da OS-12 reestruturada

@@ -1,7 +1,7 @@
 # 📚 ÍNDICE DA DOCUMENTAÇÃO - ERP Minerva
 
-**Última atualização:** 03/12/2025
-**Status:** Documentação atualizada com schema v2.5 e novas funcionalidades
+**Última atualização:** 11/12/2025
+**Status:** Documentação atualizada com schema v2.7 e sistema de transferência automática
 
 ---
 

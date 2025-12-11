@@ -267,6 +267,44 @@ Adapta-se ao perfil do usuário:
 - **Backup Automático**: Estratégia de backup incremental para dados críticos
 - **Recuperação de Desastre**: Plano de continuidade implementado com RTO < 4h
 
+## 11. Sistema de Transferência Automática de Setor (v2.7)
+
+### Conceito
+O sistema de transferência automática detecta mudanças de setor responsável entre etapas de uma OS e executa automaticamente:
+- Registro de transferência no banco (`os_transferencias`)
+- Notificação do coordenador do setor destino
+- Atualização da timeline de atividades
+- Atualização do `setor_atual_id` na OS
+
+### Regras de Handoff (Transferência)
+
+#### OS-01 a OS-04 (Obras)
+- **Etapa 4 → 5**: Administrativo → Obras (Agendar → Realizar Visita)
+- **Etapa 6 → 9**: Obras → Administrativo (Follow-up 2 → Gerar Proposta)
+
+#### OS-05 e OS-06 (Assessoria)
+- **Etapa 6 → 7**: Obras → Administrativo (Proposta → Agendamento)
+
+#### OS-12 (Assessoria Anual)
+- **Etapa 1 → 2**: Administrativo → Assessoria (Cadastro → ART)
+- **Etapa 3 → 4**: Assessoria → Administrativo (Plano → Agendar)
+- **Etapa 6 → 7**: Administrativo → Assessoria (Agendar Recorrente → Realizar)
+
+#### OS-13 (Start de Contrato)
+- **Etapa 1 → 2**: Administrativo → Obras (Dados Cliente → ART)
+- **Etapa 7 → 8**: Administrativo → Obras (Visita Inicial → Histograma)
+
+### Componentes Envolvidos
+- **Hook**: `use-transferencia-setor.ts` - Lógica de detecção e execução
+- **Hook**: `use-notificar-coordenador.ts` - Notificação automática
+- **Modal**: `feedback-transferencia.tsx` - Feedback visual após transferência
+- **Tabela**: `os_transferencias` - Histórico de todas as transferências
+
+### Campos de Rastreamento em `ordens_servico`
+- `setor_atual_id`: Setor que atualmente possui responsabilidade
+- `setor_solicitante_id`: Setor que originou a OS
+- `etapa_atual_ordem`: Número da etapa atual para queries rápidas
+
 ---
 
-*Documento atualizado em 03/12/2025.*
+*Documento atualizado em 11/12/2025.*

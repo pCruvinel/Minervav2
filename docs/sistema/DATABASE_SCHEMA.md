@@ -2,7 +2,7 @@
 
 **Última Atualização:** 2025-12-11
 **Banco:** Supabase (PostgreSQL)
-**Projeto:** zxfevlkssljndqqhxkjb (MinervaV2)
+**Projeto:** lvxbxndwqomxmsrqfwzo (MinervaV2)
 **Versão Schema:** v2.7
 
 ---
@@ -162,7 +162,7 @@
 > **Semântica:** `responsavel_id` = quem vai executar (agenda bloqueada).
 > `criado_por` = quem criou o registro (rastreabilidade).
 
-## 🆕 Novas Tabelas v2.6 (Financeiro & Cobrança)
+## 🆕 Novas Tabelas v2.7 (Transferência Automática)
 
 ### 10. `contas_pagar` - Contas a Pagar
 
@@ -422,7 +422,7 @@ conciliacoes
 
 ---
 
-## 📊 Estatísticas do Schema v2.6
+## 📊 Estatísticas do Schema v2.7
 
 - **Total de Tabelas:** 28+ tabelas ativas
 - **Enums Definidos:** 15 tipos enumerados
