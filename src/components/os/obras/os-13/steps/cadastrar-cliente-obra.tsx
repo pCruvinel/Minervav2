@@ -33,7 +33,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, Check, AlertCircle, Loader2, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Search, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { toast } from '@/lib/utils/safe-toast';
 import { format } from 'date-fns';
@@ -69,7 +69,6 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
   function CadastrarClienteObra({ data, onDataChange, readOnly = false, osId: initialOsId, parentOSId, clienteId }, ref) {
     // Estados locais
     const [showCombobox, setShowCombobox] = useState(false);
-    const [showPassword, setShowPassword] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -83,8 +82,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
     // Hooks
     const { clientes: leads, loading: loadingLeads } = useClientes('LEAD');
-    const { mutate: updateCliente } = useUpdateCliente();
-    const { generateCentroCusto } = useCentroCusto();
+    const { generateCentroCusto, createCentroCustoWithId } = useCentroCusto();
     const { uploadDocumentos } = useClienteDocumentos();
     const { mutate: createOS } = useCreateOSWorkflow();
 
@@ -103,32 +101,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
     // ... (generatePassword and validate functions remain the same) ...
 
-    /**
-     * Gera senha automática segura
-     * Padrão: 8 caracteres (A-Z, a-z, 0-9)
-     */
-    const generatePassword = () => {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-      const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-      const numbers = '23456789';
 
-      let password = '';
-
-      // Garantir pelo menos 1 maiúscula e 1 número
-      password += uppercase[Math.floor(Math.random() * uppercase.length)];
-      password += numbers[Math.floor(Math.random() * numbers.length)];
-
-      // Completar com caracteres aleatórios
-      for (let i = 2; i < 12; i++) {
-        password += chars[Math.floor(Math.random() * chars.length)];
-      }
-
-      // Embaralhar
-      password = password.split('').sort(() => Math.random() - 0.5).join('');
-
-      onDataChange({ ...data, senhaAcesso: password });
-      toast.success('Senha gerada com sucesso!');
-    };
 
     /**
      * Valida todos os campos obrigatórios
@@ -167,11 +140,8 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
         setIsSaving(true);
         logger.log('💾 Iniciando salvamento de dados da obra...');
 
-        // 1. Atualizar senha do cliente
-        logger.log('📝 Atualizando senha do cliente...');
-        await updateCliente(data.clienteId, {
-          senha_acesso: data.senhaAcesso
-        });
+        // 1. (Removido) Atualização de senha feita via fluxo de convite
+
 
         // 2. Upload de documentos do cliente (paralelo)
         logger.log('📤 Fazendo upload de documentos do cliente...');
@@ -190,46 +160,17 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
         // 3. Gerar Centro de Custo
         logger.log('🏗️ Gerando Centro de Custo...');
 
-        // Se não tem OS ID, precisamos buscar o tipo OS pelo código
-        let tipoOSId = '';
-
-        if (initialOsId) {
-          const { data: os } = await supabase
-            .from('ordens_servico')
-            .select('tipo_os_id')
-            .eq('id', initialOsId)
-            .single();
-
-          if (os?.tipo_os_id) tipoOSId = os.tipo_os_id;
-        } else {
-          const { data: tipoOS } = await supabase
-            .from('tipos_os')
-            .select('id')
-            .eq('codigo', 'OS-13')
-            .single();
-
-          if (tipoOS?.id) tipoOSId = tipoOS.id;
-        }
-
-        if (!tipoOSId) {
-          throw new Error('Tipo de OS não encontrado (OS-13)');
-        }
-
-        const cc = await generateCentroCusto(
-          tipoOSId,
-          data.clienteId,
-          `Centro de Custo - ${selectedLead?.nome_razao_social || 'Cliente'}`
-        );
-
+        // 3. Criar ou recuperar OS primeiro
         let currentOsId = initialOsId;
+        let osCreatedNow = false;
 
-        // 4. Se não tem OS, criar
         if (!currentOsId) {
-          logger.log('🆕 Criando nova OS...');
+          logger.log('🆕 Criando nova OS (sem CC inicial)...');
+          // Criamos a OS sem CC primeiro
           const result = await createOS({
             tipoOSCodigo: 'OS-13',
             clienteId: data.clienteId,
-            ccId: cc.id,
+            ccId: undefined, // Será atualizado depois
             responsavelId: user?.id || null,
             descricao: `Start de Contrato - ${selectedLead?.nome_razao_social || 'Cliente'}`,
             metadata: {
@@ -245,15 +186,10 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
           });
 
           currentOsId = result.os.id;
+          osCreatedNow = true;
           logger.log('✅ Nova OS criada:', currentOsId);
         } else {
-          // 5. Atualizar OS existente com cc_id e metadata
-          logger.log('🔗 Vinculando Centro de Custo à OS existente...');
-          await supabase
-            .from('ordens_servico')
-            .update({ cc_id: cc.id })
-            .eq('id', currentOsId);
-
+          // Atualizar metadata da OS existente
           logger.log('💾 Salvando metadata da OS...');
           const { data: currentOS } = await supabase
             .from('ordens_servico')
@@ -272,6 +208,47 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
             .update({ metadata: updatedMetadata })
             .eq('id', currentOsId);
         }
+
+        // 4. Gerar Centro de Custo com ID = OS ID
+        logger.log('🏗️ Gerando Centro de Custo com ID igual à OS...');
+
+        // Recuperar tipoOSId se não tivermos
+        let tipoOSId = '';
+        if (osCreatedNow) {
+          // Já sabemos que é OS-13 se acabamos de criar, mas precisamos do ID
+          const { data: tipoOS } = await supabase
+            .from('tipos_os')
+            .select('id')
+            .eq('codigo', 'OS-13')
+            .single();
+          if (tipoOS?.id) tipoOSId = tipoOS.id;
+        } else {
+          // Buscar da OS existente
+          const { data: os } = await supabase
+            .from('ordens_servico')
+            .select('tipo_os_id')
+            .eq('id', currentOsId)
+            .single();
+          if (os?.tipo_os_id) tipoOSId = os.tipo_os_id;
+        }
+
+        if (!tipoOSId) throw new Error('Tipo de OS não encontrado');
+
+        // Criar CC com ID específico
+        const cc = await createCentroCustoWithId(
+          currentOsId, // ID DO CC = ID DA OS
+          tipoOSId,
+          data.clienteId,
+          `Centro de Custo - ${selectedLead?.nome_razao_social || 'Cliente'}`
+        );
+        logger.log('✅ Centro de Custo criado:', cc.nome);
+
+        // 5. Vincular CC à OS
+        logger.log('🔗 Vinculando Centro de Custo à OS...');
+        await supabase
+          .from('ordens_servico')
+          .update({ cc_id: cc.id })
+          .eq('id', currentOsId);
 
         // 6. Upload de contrato assinado (documento da OS)
         // Agora temos certeza que currentOsId existe
@@ -498,44 +475,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
                 </Alert>
               </div>
 
-              {/* Senha de Acesso */}
-              <div className="space-y-2">
-                <Label htmlFor="senhaAcesso">Senha de Acesso ao Portal *</Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Input
-                      id="senhaAcesso"
-                      type={showPassword ? 'text' : 'password'}
-                      value={data.senhaAcesso}
-                      onChange={(e) => onDataChange({ ...data, senhaAcesso: e.target.value })}
-                      placeholder="Mínimo 8 caracteres, letras maiúsculas e números"
-                      disabled={readOnly}
-                      className={errors.senhaAcesso ? 'border-destructive' : ''}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-2 top-1/2 -translate-y-1/2"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={generatePassword}
-                    disabled={readOnly}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Gerar Senha
-                  </Button>
-                </div>
-                {errors.senhaAcesso && (
-                  <p className="text-sm text-destructive">{errors.senhaAcesso}</p>
-                )}
-              </div>
+
 
               {/* Centro de Custo (Read-Only) */}
               {data.centroCusto && (

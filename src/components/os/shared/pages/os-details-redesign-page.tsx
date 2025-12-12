@@ -1022,16 +1022,6 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             </div>
 
                                             <div className="flex items-center gap-3">
-                                                <div className="text-right text-sm">
-                                                    <div className="flex items-center gap-2">
-                                                        <MessageSquare className="w-4 h-4" />
-                                                        <span>{step.comentarios_count}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2">
-                                                        <Paperclip className="w-4 h-4" />
-                                                        <span>{step.documentos_count}</span>
-                                                    </div>
-                                                </div>
 
                                                 <Badge variant="outline" className={getStepStatusColor(step.status)}>
                                                     {step.status === 'concluida' ? 'Concluída' :

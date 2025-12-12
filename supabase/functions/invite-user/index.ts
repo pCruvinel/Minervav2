@@ -33,6 +33,21 @@ app.use(
   })
 );
 
+// Explicit OPTIONS handler to ensure CORS works
+app.options("/*", (c) => {
+  return c.text("", 204, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, x-client-info, apikey",
+  });
+});
+
+// Debug Logger
+app.use("/*", async (c, next) => {
+  console.log(`[${new Date().toISOString()}] ${c.req.method} ${c.req.path}`);
+  await next();
+});
+
 // Initialize Supabase Admin Client
 const getSupabaseAdmin = () => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -78,8 +93,8 @@ app.post("/*", async (c) => {
       }
 
       console.log("✅ Invite sent successfully:", data.user.id);
-      return c.json({ 
-        success: true, 
+      return c.json({
+        success: true,
         message: "Invite sent successfully",
         user: {
           id: data.user.id,
@@ -103,7 +118,7 @@ app.post("/*", async (c) => {
   console.log(`📧 Processing ${invites.length} invites...`);
   console.log(`🔗 Default redirect URL: ${redirectTo || defaultRedirect}`);
 
-  const results: { 
+  const results: {
     success: Array<{ email: string; user_id: string }>;
     failed: Array<{ email: string; error: string }>;
   } = {

@@ -72,8 +72,40 @@ function SetupPasswordPage() {
       logger.log('[SetupPassword] Password updated successfully');
       toast.success('Senha definida com sucesso!');
 
-      // Redirect to dashboard
-      navigate({ to: '/' });
+      // Verificar se é cliente ou colaborador
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        // Verificar se existe na tabela clientes (é cliente)
+        const { data: clienteData } = await supabase
+          .from('clientes')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+
+        if (clienteData) {
+          logger.log('[SetupPassword] User is a client, redirecting to portal');
+          navigate({ to: '/portal' });
+          return;
+        }
+
+        // Verificar se existe na tabela colaboradores (é staff)
+        const { data: colaboradorData } = await supabase
+          .from('colaboradores')
+          .select('id')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        if (colaboradorData) {
+          logger.log('[SetupPassword] User is staff, redirecting to dashboard');
+          navigate({ to: '/' });
+          return;
+        }
+      }
+
+      // Fallback: redirecionar para login
+      logger.warn('[SetupPassword] Could not determine user type, redirecting to login');
+      navigate({ to: '/login' });
     } catch (err) {
       logger.error('[SetupPassword] Unexpected error:', err);
       toast.error('Erro inesperado. Tente novamente.');
@@ -226,13 +258,12 @@ function ValidationItem({
   return (
     <div className="flex items-center gap-2 text-xs">
       <CheckCircle2
-        className={`w-4 h-4 ${
-          isValid
+        className={`w-4 h-4 ${isValid
             ? 'text-success'
             : optional
               ? 'text-muted-foreground/50'
               : 'text-muted-foreground'
-        }`}
+          }`}
       />
       <span
         className={

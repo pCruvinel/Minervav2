@@ -44,9 +44,9 @@ export function useNotificarCoordenador() {
   const buscarCoordenador = useCallback(async (setorSlug: SetorSlug): Promise<CoordenadorInfo | null> => {
     try {
       const cargoSlug = COORDENADOR_POR_SETOR[setorSlug];
-      
+
       logger.log(`🔍 Buscando coordenador do setor ${setorSlug} (cargo: ${cargoSlug})`);
-      
+
       const { data, error } = await supabase
         .from('colaboradores')
         .select(`
@@ -58,19 +58,19 @@ export function useNotificarCoordenador() {
         .eq('cargos.slug', cargoSlug)
         .eq('ativo', true)
         .limit(1)
-        .single();
-      
+        .maybeSingle(); // ✅ FIX: Use maybeSingle to avoid 406/PGRST116 errors
+
       if (error) {
-        // Se não encontrou, pode ser que não há coordenador cadastrado
-        if (error.code === 'PGRST116') {
-          logger.warn(`⚠️ Nenhum coordenador encontrado para o setor ${setorSlug}`);
-          return null;
-        }
         throw error;
       }
-      
+
+      if (!data) {
+        logger.warn(`⚠️ Nenhum coordenador encontrado para o setor ${setorSlug}`);
+        return null;
+      }
+
       logger.log(`✅ Coordenador encontrado: ${data.nome_completo}`);
-      
+
       return {
         id: data.id,
         nome_completo: data.nome_completo,
@@ -91,7 +91,7 @@ export function useNotificarCoordenador() {
     try {
       // 1. Buscar coordenador do setor destino
       const coordenador = await buscarCoordenador(payload.setorDestinoSlug);
-      
+
       if (!coordenador) {
         logger.warn(`⚠️ Sem coordenador para notificar no setor ${payload.setorDestinoSlug}`);
         return {
@@ -99,7 +99,7 @@ export function useNotificarCoordenador() {
           error: `Nenhum coordenador ativo encontrado para o setor ${SETOR_NOMES[payload.setorDestinoSlug]}`,
         };
       }
-      
+
       // 2. Criar notificação
       const notificacao = {
         usuario_id: coordenador.id,
@@ -108,21 +108,21 @@ export function useNotificarCoordenador() {
         link_acao: payload.linkOS,
         tipo: 'tarefa',
       };
-      
+
       logger.log('📧 Criando notificação para coordenador:', notificacao);
-      
+
       const { data, error } = await supabase
         .from('notificacoes')
         .insert(notificacao)
         .select('id')
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       logger.log(`✅ Notificação criada com sucesso (ID: ${data.id})`);
-      
+
       return {
         success: true,
         coordenador,

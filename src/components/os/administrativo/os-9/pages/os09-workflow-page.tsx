@@ -57,16 +57,20 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
       setIsCreatingOS(true);
       logger.log('[OS09WorkflowPage] 🔧 Criando OS com CC:', centroCustoId);
 
-      // 1. Buscar cliente_id do Centro de Custo
+      // 1. Buscar dados do Centro de Custo (pode ser fixo ou variável)
       const { data: ccData, error: ccError } = await supabase
         .from('centros_custo')
-        .select('cliente_id')
+        .select('cliente_id, tipo')
         .eq('id', centroCustoId)
         .single();
 
-      if (ccError || !ccData?.cliente_id) {
-        throw new Error('Centro de custo não encontrado ou sem cliente vinculado');
+      if (ccError || !ccData) {
+        throw new Error('Centro de custo não encontrado');
       }
+
+      // CCs fixos (Escritório, Dept. Assessoria, Dept. Obras) não têm cliente_id
+      // CCs variáveis (de contratos) têm cliente_id
+      const clienteId = ccData.cliente_id || null;
 
       // 2. Buscar tipo de OS
       const tiposOS = await ordensServicoAPI.getTiposOS();
@@ -76,13 +80,13 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
         throw new Error('Tipo de OS OS-09 não encontrado no sistema');
       }
 
-      // 3. Criar OS com o cliente do CC
+      // 3. Criar OS (cliente_id é opcional para CCs fixos)
       const osData = {
         tipo_os_id: tipo.id,
         status_geral: 'em_triagem' as const,
         descricao: 'OS-09: Requisição de Compras',
         criado_por_id: currentUser?.id,
-        cliente_id: ccData.cliente_id,
+        cliente_id: clienteId,
         cc_id: centroCustoId,
         data_entrada: new Date().toISOString()
       };

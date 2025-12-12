@@ -127,9 +127,9 @@ const fetchResumoCliente = async (clienteId: string): Promise<ResumoCliente> => 
 
   // Buscar documentos
   const { count: totalDocumentos, error: docsError } = await supabase
-    .from('documentos')
-    .select('*', { count: 'exact', head: true })
-    .eq('cliente_id', clienteId);
+    .from('os_documentos')
+    .select('*, ordens_servico!inner(cliente_id)', { count: 'exact', head: true })
+    .eq('ordens_servico.cliente_id', clienteId);
 
   if (docsError) throw docsError;
 

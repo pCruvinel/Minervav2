@@ -33,11 +33,19 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ModalHeaderPadrao } from '@/components/ui/modal-header-padrao';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -58,6 +66,7 @@ import {
   FolderOpen,
   Image,
   File,
+  Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -272,19 +281,29 @@ export function ClienteTabDocumentos({ clienteId }: ClienteTabDocumentosProps) {
         </Card>
       )}
 
-      {/* Dialog de Upload */}
+      {/* Dialog de Upload - Modernizado */}
       <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Enviar Documento</DialogTitle>
-            <DialogDescription>
-              Selecione o tipo e o arquivo para enviar.
-            </DialogDescription>
-          </DialogHeader>
+        <DialogContent className="max-w-lg p-0">
+          <ModalHeaderPadrao
+            title="Enviar Documento"
+            description="Selecione o tipo e o arquivo para enviar."
+            icon={Upload}
+            theme="create"
+          />
 
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de Documento</Label>
+          <div className="p-6 space-y-4">
+            {/* Seção: Tipo de Documento */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FileText className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Classificação</h3>
+                  <p className="text-xs text-muted-foreground">Selecione o tipo de documento</p>
+                </div>
+              </div>
+
               <Select
                 value={selectedTipo}
                 onValueChange={(v) => setSelectedTipo(v as TipoDocumento)}
@@ -302,10 +321,21 @@ export function ClienteTabDocumentos({ clienteId }: ClienteTabDocumentosProps) {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label>Arquivo</Label>
+            {/* Seção: Upload */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Upload className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Arquivo</h3>
+                  <p className="text-xs text-muted-foreground">Arraste ou clique para selecionar</p>
+                </div>
+              </div>
+
               <div
-                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                className="border-2 border-dashed rounded-xl p-8 text-center cursor-pointer 
+                           hover:bg-muted/50 hover:border-primary/50 transition-all"
                 onClick={() => fileInputRef.current?.click()}
               >
                 <input
@@ -316,18 +346,20 @@ export function ClienteTabDocumentos({ clienteId }: ClienteTabDocumentosProps) {
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                 />
                 {selectedFile ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <FileText className="h-6 w-6 text-primary" />
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-6 w-6 text-primary" />
+                    </div>
                     <div className="text-left">
                       <p className="font-medium">{selectedFile.name}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {formatFileSize(selectedFile.size)}
                       </p>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                    <Upload className="h-10 w-10 mx-auto mb-3 text-muted-foreground" />
                     <p className="text-sm text-muted-foreground">
                       Clique para selecionar um arquivo
                     </p>
@@ -340,36 +372,51 @@ export function ClienteTabDocumentos({ clienteId }: ClienteTabDocumentosProps) {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="p-6 pt-0">
             <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
               Cancelar
             </Button>
             <Button onClick={handleUpload} disabled={isUploading || !selectedFile || !selectedTipo}>
-              {isUploading ? 'Enviando...' : 'Enviar'}
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Enviar
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de Confirmação de Delete */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir Documento</DialogTitle>
-            <DialogDescription>
+      {/* Dialog de Confirmação de Delete - Modernizado */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-3">
+              <Trash2 className="h-6 w-6 text-destructive" />
+            </div>
+            <AlertDialogTitle className="text-center">Excluir Documento</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
               Tem certeza que deseja excluir este documento? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
               Excluir
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

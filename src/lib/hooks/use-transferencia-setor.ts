@@ -17,16 +17,16 @@
 
 import { useCallback, useState } from 'react';
 import { supabase } from '@/lib/supabase-client';
-import { 
-  getHandoffPoint, 
-  getStepOwner, 
-  SetorSlug 
+import {
+  getHandoffPoint,
+  getStepOwner,
+  SetorSlug
 } from '@/lib/constants/os-ownership-rules';
-import { 
-  TransferenciaInfo, 
-  TransferenciaResult, 
+import {
+  TransferenciaInfo,
+  TransferenciaResult,
   SETOR_NOMES,
-  NotificacaoTransferenciaPayload 
+  NotificacaoTransferenciaPayload
 } from '@/types/os-setor-config';
 import { useNotificarCoordenador } from './use-notificar-coordenador';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -53,7 +53,7 @@ export interface ExecutarTransferenciaParams {
 export function useTransferenciaSetor() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const { currentUser } = useAuth();
   const { notificarCoordenador, buscarCoordenador } = useNotificarCoordenador();
 
@@ -66,12 +66,12 @@ export function useTransferenciaSetor() {
       .select('id')
       .eq('slug', setorSlug)
       .single();
-    
+
     if (error) {
       logger.error(`Erro ao buscar setor ${setorSlug}:`, error);
       return null;
     }
-    
+
     return data?.id || null;
   }, []);
 
@@ -80,16 +80,16 @@ export function useTransferenciaSetor() {
    */
   const verificarMudancaSetor = useCallback((
     osType: string,
-    etapaAtual: number, 
+    etapaAtual: number,
     proximaEtapa: number
   ): { houveTransferencia: boolean; handoff: ReturnType<typeof getHandoffPoint> } => {
     const handoff = getHandoffPoint(osType, etapaAtual, proximaEtapa);
-    
+
     if (handoff) {
       logger.log(`🔄 Handoff detectado: Etapa ${etapaAtual} → ${proximaEtapa} (Setor: ${handoff.toSetor})`);
       return { houveTransferencia: true, handoff };
     }
-    
+
     return { houveTransferencia: false, handoff: null };
   }, []);
 
@@ -160,17 +160,18 @@ export function useTransferenciaSetor() {
 
       logger.log(`📝 Transferência registrada (ID: ${transferenciaData.id})`);
 
-      // 5. Atualizar setor_atual_id na OS
+      // 5. Atualizar setor_atual_id e responsavel_id na OS
       const { error: updateOsError } = await supabase
         .from('ordens_servico')
         .update({
           setor_atual_id: setorDestinoId,
           etapa_atual_ordem: proximaEtapa,
+          responsavel_id: coordenador?.id || null, // Novo responsável = coordenador do setor destino
         })
         .eq('id', osId);
 
       if (updateOsError) {
-        logger.error('Erro ao atualizar setor_atual_id:', updateOsError);
+        logger.error('Erro ao atualizar setor_atual_id e responsavel_id:', updateOsError);
         // Não falhar por isso, continuar
       }
 
@@ -183,9 +184,9 @@ export function useTransferenciaSetor() {
         dados_adicionais: {
           etapa_origem: etapaAtual,
           etapa_destino: proximaEtapa,
-          setor_origem: setorOrigemSlug,
+          setor_origem: setorOrigemSlug || 'indefinido',
           setor_destino: setorDestinoSlug,
-          coordenador_notificado: coordenador?.nome_completo,
+          coordenador_notificado: coordenador?.nome_completo || null, // ✅ FIX: Handle undefined
         },
       });
 

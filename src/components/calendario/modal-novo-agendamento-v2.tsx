@@ -368,14 +368,14 @@ export function ModalNovoAgendamentoV2({
                                   borderColor: isSelected ? corSetor.bgSolid : corSetor.border,
                                 }}
                               >
-                                {isSelected && colaboradorSelecionado ? (
+                                {colaboradorSelecionado && colaboradorSelecionado.setor === vaga.setor && colaboradorSelecionado.vagaIndex === vaga.index ? (
                                   // Colaborador selecionado
                                   <div className="flex items-center gap-2">
                                     <Avatar className="h-6 w-6">
                                       <AvatarImage src={colaboradorSelecionado.avatarUrl} />
-                                      <AvatarFallback 
+                                      <AvatarFallback
                                         className="text-[10px]"
-                                        style={{ 
+                                        style={{
                                           backgroundColor: corSetor.bgSolid,
                                           color: 'white'
                                         }}
@@ -390,7 +390,7 @@ export function ModalNovoAgendamentoV2({
                                 ) : (
                                   // Vaga livre
                                   <div className="flex items-center gap-2">
-                                    <div 
+                                    <div
                                       className="w-6 h-6 rounded-full flex items-center justify-center"
                                       style={{ backgroundColor: corSetor.bgSolid }}
                                     >

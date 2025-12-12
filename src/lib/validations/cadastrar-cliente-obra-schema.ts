@@ -11,8 +11,7 @@
 
 import { z } from 'zod';
 
-// Regex para validação de senha: mínimo 8 caracteres, letras maiúsculas e números
-const senhaRegex = /^(?=.*[A-Z])(?=.*[0-9]).{8,}$/;
+
 
 export const cadastrarClienteObraSchema = z.object({
   // Identificação do Cliente
@@ -30,14 +29,6 @@ export const cadastrarClienteObraSchema = z.object({
   aniversarioGestor: z.string().min(1, {
     message: 'Aniversário do gestor é obrigatório'
   }),
-
-  senhaAcesso: z.string()
-    .min(8, {
-      message: 'Senha deve ter no mínimo 8 caracteres'
-    })
-    .regex(senhaRegex, {
-      message: 'Senha deve conter letras maiúsculas e números'
-    }),
 
   // Centro de Custo (opcional - será gerado automaticamente)
   centroCusto: z.object({
@@ -77,7 +68,6 @@ export const cadastrarClienteObraDefaults: CadastrarClienteObraData = {
   clienteNome: '',
   dataContratacao: '',
   aniversarioGestor: '',
-  senhaAcesso: '',
   documentosFoto: [],
   comprovantesResidencia: [],
   contratoSocial: [],

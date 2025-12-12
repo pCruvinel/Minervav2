@@ -15,13 +15,14 @@ export type RoleLevel =
   | 'operacional_comercial'
   | 'operacional_assessoria'
   | 'operacional_obras'
-  | 'colaborador_obra';
+  | 'colaborador_obra'
+  | 'cliente';
 
 // ============================================================
 // TIPOS DE SETORES (Baseado nos Slugs do Banco)
 // ============================================================
 
-export type SetorSlug = 'administrativo' | 'assessoria' | 'obras' | 'diretoria' | 'ti';
+export type SetorSlug = 'administrativo' | 'assessoria' | 'obras' | 'diretoria' | 'ti' | 'cliente';
 
 // Alias para compatibilidade com código legado
 export type Setor = 'COM' | 'ASS' | 'OBR';
@@ -69,8 +70,8 @@ export type DelegacaoStatus =
   | 'concluida'
   | 'recusada';
 
-export type FinanceiroTipo = 
-  | 'receita' 
+export type FinanceiroTipo =
+  | 'receita'
   | 'despesa';
 
 export type AgendamentoStatus =
@@ -87,13 +88,13 @@ export interface User {
   id: string;
   email: string;
   nome_completo: string;
-  
+
   // Novos campos da V2 (via Join)
   cargo_slug?: RoleLevel;
   setor_slug?: SetorSlug;
-  
+
   // Campos mantidos para compatibilidade com código legado (mas mapeados para os novos valores)
-  role_nivel?: RoleLevel; 
+  role_nivel?: RoleLevel;
   setor?: string;
 
   avatar_url?: string;
@@ -101,7 +102,7 @@ export interface User {
   data_admissao?: Date;
   telefone?: string;
   cpf?: string;
-  
+
   // Permissões calculadas (Frontend Helper)
   pode_delegar?: boolean;
   pode_aprovar?: boolean;
@@ -134,7 +135,7 @@ export interface OrdemServico {
   responsavel_id?: string;
   criado_por_id?: string;
   cc_id?: string;
-  
+
   // 🆕 Relacionamento Hierárquico (Migration 2025-12-02)
   parent_os_id?: string | null; // ID da OS origem/pai
 
@@ -165,7 +166,7 @@ export interface OrdemServico {
     titulo: string;
     status: string;
   };
-  
+
   // Objeto completo do cliente (opcional, vindo de joins/API)
   cliente?: Cliente;
 }
@@ -528,6 +529,22 @@ export const PERMISSOES_POR_ROLE: Record<RoleLevel, Permissoes> = {
     acesso_financeiro: false,
     escopo_visao: 'nenhuma',
     descricao: 'Colaborador de obra sem acesso ao sistema'
+  },
+
+  // ========== CARGO 11: CLIENTE (Externo, Nível 0) ==========
+  cliente: {
+    nivel: 0,
+    pode_ver_todas_os: false,
+    pode_acessar_financeiro: false,
+    pode_delegar: false,
+    pode_aprovar: false,
+    pode_gerenciar_usuarios: false,
+    pode_criar_os: false,
+    pode_cancelar_os: false,
+    setores_visiveis: [], // Visualização customizada via Portal
+    acesso_financeiro: false,
+    escopo_visao: 'proprio', // Apenas seus dados
+    descricao: 'Cliente com acesso ao portal'
   }
 };
 
@@ -947,11 +964,11 @@ export const PRAZOS_NECESSIDADE: { value: PrazoNecessidade; label: string }[] = 
 /**
  * Motivos de bloqueio do calendário
  */
-export type BloqueioMotivo = 
-  | 'feriado' 
-  | 'manutencao' 
-  | 'evento' 
-  | 'ferias_coletivas' 
+export type BloqueioMotivo =
+  | 'feriado'
+  | 'manutencao'
+  | 'evento'
+  | 'ferias_coletivas'
   | 'outro';
 
 /**
@@ -1026,7 +1043,7 @@ export interface TurnoCapacidadeInfo {
   horaInicio: string;
   horaFim: string;
   cor: string;
-  
+
   // Capacidade por setor
   capacidade: {
     setor: string;
@@ -1035,12 +1052,12 @@ export interface TurnoCapacidadeInfo {
     vagasDisponiveis: number;
     percentualOcupado: number;
   }[];
-  
+
   // Resumo geral
   totalVagas: number;
   totalOcupadas: number;
   totalDisponiveis: number;
-  
+
   // Flags
   bloqueado: boolean;
   motivoBloqueio?: BloqueioMotivo;
@@ -1056,18 +1073,18 @@ export interface TimeBlock {
   horaInicio: string;                   // HH:MM
   horaFim: string;                      // HH:MM
   duracaoMinutos: number;
-  
+
   // Capacidade
   capacidadePorSetor: TurnoCapacidadeInfo['capacidade'];
-  
+
   // Agendamentos dentro deste bloco
   agendamentos: TimeBlockAgendamento[];
-  
+
   // Visual
   cor: string;
   bloqueado: boolean;
   motivoBloqueio?: BloqueioMotivo;
-  
+
   // Posicionamento no grid (para renderização)
   topPercent: number;                   // Posição Y em %
   heightPercent: number;                // Altura em %
@@ -1083,19 +1100,19 @@ export interface TimeBlockAgendamento {
   horarioInicio: string;
   horarioFim: string;
   duracaoHoras: number;
-  
+
   // Solicitante
   solicitanteNome?: string;
   responsavelNome?: string;
-  
+
   // OS vinculada
   osId?: string;
   osCodigo?: string;
   clienteNome?: string;
-  
+
   // Status
   status: 'confirmado' | 'cancelado' | 'realizado' | 'ausente';
-  
+
   // Posicionamento horizontal no time block (para slots paralelos)
   slotIndex: number;                    // 0, 1, 2... para agendamentos paralelos
   totalSlots: number;                   // Quantos slots paralelos existem

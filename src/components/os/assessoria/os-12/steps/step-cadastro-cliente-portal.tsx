@@ -10,17 +10,14 @@
  * - Placeholder para integração futura com Supabase Edge Function
  */
 
-import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
-import { logger } from '@/lib/utils/logger';
+import { forwardRef, useImperativeHandle, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, AlertCircle, Eye, EyeOff, RefreshCw, Building2 } from 'lucide-react';
+import { Search, AlertCircle, Building2, Mail } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { toast } from '@/lib/utils/safe-toast';
 import { useClientes } from '@/lib/hooks/use-clientes';
@@ -29,7 +26,6 @@ import { FileUploadUnificado, FileWithComment } from '@/components/ui/file-uploa
 export interface StepCadastroClientePortalData {
     clienteId?: string;
     clienteNome?: string;
-    senhaPortal?: string;
     documentos?: FileWithComment[];
 }
 
@@ -48,7 +44,6 @@ export interface StepCadastroClientePortalHandle {
 export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHandle, StepCadastroClientePortalProps>(
     function StepCadastroClientePortal({ data, onDataChange, readOnly = false, osId }, ref) {
         const [showCombobox, setShowCombobox] = useState(false);
-        const [showPassword, setShowPassword] = useState(false);
         const [errors, setErrors] = useState<Record<string, string>>({});
 
         // Hooks - buscar clientes do tipo CLIENTE (não leads)
@@ -58,27 +53,6 @@ export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHan
         const selectedCliente = clientes.find(c => c.id === data.clienteId);
 
         /**
-         * Gera senha automática segura
-         */
-        const generatePassword = () => {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-            const uppercase = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-            const numbers = '23456789';
-
-            let password = '';
-            password += uppercase[Math.floor(Math.random() * uppercase.length)];
-            password += numbers[Math.floor(Math.random() * numbers.length)];
-
-            for (let i = 2; i < 10; i++) {
-                password += chars[Math.floor(Math.random() * chars.length)];
-            }
-
-            password = password.split('').sort(() => Math.random() - 0.5).join('');
-            onDataChange({ ...data, senhaPortal: password });
-            toast.success('Senha gerada com sucesso!');
-        };
-
-        /**
          * Valida campos obrigatórios
          */
         const validate = (): boolean => {
@@ -86,10 +60,6 @@ export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHan
 
             if (!data.clienteId) {
                 newErrors.clienteId = 'Selecione um cliente';
-            }
-
-            if (!data.senhaPortal || data.senhaPortal.length < 8) {
-                newErrors.senhaPortal = 'Senha deve ter no mínimo 8 caracteres';
             }
 
             setErrors(newErrors);
@@ -223,57 +193,30 @@ export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHan
                     </CardContent>
                 </Card>
 
-                {/* SEÇÃO B: Senha do Portal */}
+                {/* SEÇÃO B: Informativo sobre Convite por E-mail */}
                 {data.clienteId && (
-                    <Card>
+                    <Card className="border-primary/20 bg-primary/5">
                         <CardHeader>
-                            <CardTitle>Acesso ao Portal do Cliente</CardTitle>
+                            <CardTitle className="flex items-center gap-2">
+                                <Mail className="h-5 w-5 text-primary" />
+                                Acesso ao Portal do Cliente
+                            </CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="senhaPortal">Senha de Acesso *</Label>
-                                <div className="flex gap-2">
-                                    <div className="relative flex-1">
-                                        <Input
-                                            id="senhaPortal"
-                                            type={showPassword ? 'text' : 'password'}
-                                            value={data.senhaPortal || ''}
-                                            onChange={(e) => onDataChange({ ...data, senhaPortal: e.target.value })}
-                                            placeholder="Mínimo 8 caracteres"
-                                            disabled={readOnly}
-                                            className={errors.senhaPortal ? 'border-destructive' : ''}
-                                        />
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="sm"
-                                            className="absolute right-2 top-1/2 -translate-y-1/2"
-                                            onClick={() => setShowPassword(!showPassword)}
-                                        >
-                                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                        </Button>
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        variant="secondary"
-                                        onClick={generatePassword}
-                                        disabled={readOnly}
-                                    >
-                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                        Gerar
-                                    </Button>
-                                </div>
-                                {errors.senhaPortal && (
-                                    <p className="text-sm text-destructive">{errors.senhaPortal}</p>
-                                )}
-                            </div>
-
                             <Alert>
                                 <AlertCircle className="h-4 w-4" />
                                 <AlertDescription>
-                                    O portal do cliente será criado automaticamente ao avançar. Um e-mail com as credenciais será enviado ao cliente.
+                                    <strong>Convite por E-mail:</strong> Ao concluir o cadastro do contrato, um e-mail será enviado automaticamente para o cliente com um link seguro para criar sua senha de acesso ao portal.
                                 </AlertDescription>
                             </Alert>
+                            <div className="text-sm text-muted-foreground space-y-1">
+                                <p>O cliente receberá:</p>
+                                <ul className="list-disc list-inside ml-2">
+                                    <li>Link para definir sua própria senha</li>
+                                    <li>Instruções de acesso ao portal</li>
+                                    <li>Dados de contato do suporte</li>
+                                </ul>
+                            </div>
                         </CardContent>
                     </Card>
                 )}

@@ -40,8 +40,9 @@ export interface Agendamento {
   // Responsável pela execução (dono da agenda)
   responsavelId?: string;
   responsavelNome?: string;
-  // Dados legacy/enriquecidos
+  // Dados legacy/enriquecidos - responsável pela execução
   usuarioNome?: string;
+  usuarioAvatarUrl?: string;
   osCodigo?: string;
   clienteNome?: string;
   statusGeralOS?: string;
@@ -335,53 +336,53 @@ const agendamentosAPI = {
   /**
     * Cancelar agendamento
     */
-   async cancel(id: string, motivo: string): Promise<Agendamento> {
-     // Primeiro, buscar dados do agendamento para o audit log
-     const { data: agendamentoAtual, error: errorBusca } = await supabase
-       .from('agendamentos')
-       .select('*')
-       .eq('id', id)
-       .single();
+  async cancel(id: string, motivo: string): Promise<Agendamento> {
+    // Primeiro, buscar dados do agendamento para o audit log
+    const { data: agendamentoAtual, error: errorBusca } = await supabase
+      .from('agendamentos')
+      .select('*')
+      .eq('id', id)
+      .single();
 
-     if (errorBusca) throw errorBusca;
+    if (errorBusca) throw errorBusca;
 
-     // Cancelar o agendamento
-     const { data, error } = await supabase
-       .from('agendamentos')
-       .update({
-         status: 'cancelado',
-         cancelado_em: new Date().toISOString(),
-         cancelado_motivo: motivo,
-       })
-       .eq('id', id)
-       .select()
-       .single();
+    // Cancelar o agendamento
+    const { data, error } = await supabase
+      .from('agendamentos')
+      .update({
+        status: 'cancelado',
+        cancelado_em: new Date().toISOString(),
+        cancelado_motivo: motivo,
+      })
+      .eq('id', id)
+      .select()
+      .single();
 
-     if (error) throw error;
+    if (error) throw error;
 
-     // Registrar no audit_log
-     const { data: user } = await supabase.auth.getUser();
-     await supabase
-       .from('audit_log')
-       .insert({
-         usuario_id: user.user?.id,
-         acao: 'UPDATE',
-         tabela_afetada: 'agendamentos',
-         registro_id_afetado: id,
-         dados_antigos: {
-           status: agendamentoAtual.status,
-           cancelado_em: agendamentoAtual.cancelado_em,
-           cancelado_motivo: agendamentoAtual.cancelado_motivo,
-         },
-         dados_novos: {
-           status: 'cancelado',
-           cancelado_em: new Date().toISOString(),
-           cancelado_motivo: motivo,
-         },
-       });
+    // Registrar no audit_log
+    const { data: user } = await supabase.auth.getUser();
+    await supabase
+      .from('audit_log')
+      .insert({
+        usuario_id: user.user?.id,
+        acao: 'UPDATE',
+        tabela_afetada: 'agendamentos',
+        registro_id_afetado: id,
+        dados_antigos: {
+          status: agendamentoAtual.status,
+          cancelado_em: agendamentoAtual.cancelado_em,
+          cancelado_motivo: agendamentoAtual.cancelado_motivo,
+        },
+        dados_novos: {
+          status: 'cancelado',
+          cancelado_em: new Date().toISOString(),
+          cancelado_motivo: motivo,
+        },
+      });
 
-     return mapAgendamentoFromDB(data);
-   },
+    return mapAgendamentoFromDB(data);
+  },
 
   /**
    * Marcar agendamento como realizado
@@ -422,56 +423,58 @@ const agendamentosAPI = {
  * Hook para listar agendamentos com filtros
  */
 export function useAgendamentos(filters?: AgendamentoFilters) {
-   const { data, loading, error, refetch } = useApi(
-     () => agendamentosAPI.list(filters),
-     {
-       deps: [
-         filters?.turnoId,
-         filters?.data,
-         filters?.dataInicio,
-         filters?.dataFim,
-         filters?.status,
-         filters?.setor,
-         filters?.osId,
-       ],
-       onError: (error) => {
-         console.error('❌ Erro ao carregar agendamentos:', error);
-         toast.error(`Erro ao carregar agendamentos: ${error.message}`);
-       },
-     }
-   );
+  const { data, loading, error, refetch } = useApi(
+    () => agendamentosAPI.list(filters),
+    {
+      deps: [
+        filters?.turnoId,
+        filters?.data,
+        filters?.dataInicio,
+        filters?.dataFim,
+        filters?.status,
+        filters?.setor,
+        filters?.osId,
+      ],
+      onError: (error) => {
+        console.error('❌ Erro ao carregar agendamentos:', error);
+        toast.error(`Erro ao carregar agendamentos: ${error.message}`);
+      },
+    }
+  );
 
-   const agendamentos = useMemo(() => {
-     if (!data) return [];
+  const agendamentos = useMemo(() => {
+    if (!data) return [];
 
-     return data
-       .map((agendamento) => {
-         const statusGeral =
-           agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
-         const etapasAtivas =
-           agendamento.ordens_servico?.etapas?.filter((etapa) =>
-             ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
-           ).length || agendamento.etapasAtivas || 0;
+    return data
+      .map((agendamento) => {
+        const statusGeral =
+          agendamento.ordens_servico?.status_geral || agendamento.statusGeralOS;
+        const etapasAtivas =
+          agendamento.ordens_servico?.etapas?.filter((etapa) =>
+            ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
+          ).length || agendamento.etapasAtivas || 0;
 
-         return {
-           ...agendamento,
-           usuarioNome: agendamento.colaborador?.nome_completo || agendamento.usuarioNome,
-           osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
-           clienteNome:
-             agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
-           statusGeralOS: statusGeral,
-           etapasAtivas,
-         };
-       })
-       .filter(
-         (agendamento) =>
-           agendamento.status !== 'cancelado' &&
-           (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
-       );
-   }, [data]);
+        return {
+          ...agendamento,
+          // Usar responsável para exibição, não o criador
+          usuarioNome: agendamento.responsavel?.nome_completo || agendamento.responsavelNome || agendamento.usuarioNome,
+          usuarioAvatarUrl: agendamento.responsavel?.avatar_url,
+          osCodigo: agendamento.ordens_servico?.codigo_os || agendamento.osCodigo,
+          clienteNome:
+            agendamento.ordens_servico?.cliente?.nome_razao_social || agendamento.clienteNome,
+          statusGeralOS: statusGeral,
+          etapasAtivas,
+        };
+      })
+      .filter(
+        (agendamento) =>
+          agendamento.status !== 'cancelado' &&
+          (!agendamento.statusGeralOS || agendamento.statusGeralOS !== 'cancelado')
+      );
+  }, [data]);
 
-   return { agendamentos, loading, error, refetch };
- }
+  return { agendamentos, loading, error, refetch };
+}
 
 /**
  * Hook para obter agendamentos de uma data específica
@@ -652,8 +655,9 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     // Responsável pela execução
     responsavelId: data.responsavel_id,
     responsavelNome: data.responsavel?.nome_completo,
-    // Dados legacy/enriquecidos
-    usuarioNome: data.colaborador?.nome_completo,
+    // Dados legacy/enriquecidos - usar responsável, não criador
+    usuarioNome: data.responsavel?.nome_completo || data.colaborador?.nome_completo,
+    usuarioAvatarUrl: data.responsavel?.avatar_url,
     osCodigo: data.ordens_servico?.codigo_os,
     clienteNome: data.ordens_servico?.cliente?.nome_razao_social,
     statusGeralOS: data.ordens_servico?.status_geral,

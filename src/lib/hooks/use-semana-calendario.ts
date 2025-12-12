@@ -37,6 +37,7 @@ export interface AgendamentoProcessado {
   setor: string;
   status: string;
   usuarioNome?: string;
+  usuarioAvatarUrl?: string;
   osCodigo?: string;
 }
 
@@ -87,7 +88,7 @@ const semanaAPI = {
         categoria,
         setor,
         status,
-        colaborador:criado_por (nome_completo),
+        responsavel:responsavel_id (nome_completo, avatar_url),
         ordens_servico:os_id (codigo_os)
       `)
       .gte('data', dataInicio)
@@ -159,7 +160,8 @@ const semanaAPI = {
         categoria: agend.categoria,
         setor: agend.setor,
         status: agend.status,
-        usuarioNome: (agend.colaborador as any)?.nome_completo,
+        usuarioNome: (agend.responsavel as any)?.nome_completo,
+        usuarioAvatarUrl: (agend.responsavel as any)?.avatar_url,
         osCodigo: (agend.ordens_servico as any)?.codigo_os,
       };
 

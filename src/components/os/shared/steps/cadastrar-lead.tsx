@@ -458,7 +458,14 @@ export const CadastrarLead = forwardRef<CadastrarLeadHandle, CadastrarLeadProps>
 
       } catch (error) {
         logger.error('Erro ao salvar lead:', error);
-        toast.error(`Erro ao salvar cliente: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+
+        // Tratar erro de CPF/CNPJ duplicado
+        const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+        if (errorMessage.includes('cpf_cnpj_key') || errorMessage.includes('duplicate key')) {
+          toast.error('CPF/CNPJ já cadastrado. Por favor, selecione o cliente existente ou use outro documento.');
+        } else {
+          toast.error(`Erro ao salvar cliente: ${errorMessage}`);
+        }
       } finally {
         setIsSaving(false);
       }

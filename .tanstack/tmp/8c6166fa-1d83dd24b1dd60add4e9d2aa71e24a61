@@ -1,0 +1,11 @@
+import { createFileRoute } from '@tanstack/react-router'
+
+export const Route = createFileRoute(
+  '/_auth/clientes/portal-preview/$clienteId',
+)({
+  component: RouteComponent,
+})
+
+function RouteComponent() {
+  return <div>Hello "/_auth/clientes/portal-preview/$clienteId"!</div>
+}

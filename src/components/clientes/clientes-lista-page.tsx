@@ -167,7 +167,7 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
 
   // Calcular estatísticas
   const stats = {
-    total: clientes.length,
+    total: clientes.filter(c => c.status !== 'lead').length, // Excluir leads do total de clientes
     ativos: clientes.filter(c => c.status === 'ativo').length,
     leads: clientes.filter(c => c.status === 'lead').length,
     comContratos: clientes.filter(c => c.qtdContratos > 0).length,

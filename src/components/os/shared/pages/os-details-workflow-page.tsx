@@ -51,6 +51,7 @@ import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '@/constants/os-workflow';
 import { isValidUUID, mapearTipoOSParaCodigo, calcularValoresPrecificacao } from '@/lib/utils/os-workflow-helpers';
+import { getSetorIdBySlug, SETOR_SLUG_TO_ID } from '@/lib/constants/colaboradores';
 
 // ============================================================
 // INTERFACES DE DADOS DAS ETAPAS
@@ -540,7 +541,24 @@ export function OSDetailsWorkflowPage({
       return;
     }
 
-    // Sync Step 1 (Client) - Complete client data
+    // ✅ FIX: Check if formDataByStep[1] already has complete data from dados_etapa
+    // This prevents overwriting data that was correctly loaded from the database
+    const existingEtapa1 = formDataByStep[1];
+    const etapa1Status = etapas.find(e => e.ordem === 1)?.status;
+
+    const hasCompleteData = (existingEtapa1 &&
+      existingEtapa1.leadId &&
+      existingEtapa1.nome &&
+      Object.keys(existingEtapa1).length > 5) ||
+      etapa1Status === 'concluida'; // ✅ CRITICAL FIX: If step is completed, NEVER overwrite
+
+    if (hasCompleteData) {
+      logger.log('✅ formDataByStep[1] already has complete data from dados_etapa, skipping sync from os.cliente');
+      hasSyncedOSData.current = true;
+      return;
+    }
+
+    // Sync Step 1 (Client) - Complete client data (fallback for legacy OSs without dados_etapa)
     if (os.cliente) {
       const clienteData = os.cliente;
       const currentEtapa1 = formDataByStep[1] || {};
@@ -878,14 +896,24 @@ export function OSDetailsWorkflowPage({
 
       // 4. Criar OS no banco
       logger.log('📝 Criando OS no banco...');
+
+      // Obter setor do usuário que está criando a OS
+      const setorSolicitanteId = currentUser?.setor_slug
+        ? getSetorIdBySlug(currentUser.setor_slug)
+        : null;
+      // Setor inicial é Administrativo (etapa 1 sempre começa com Admin)
+      const setorAtualId = SETOR_SLUG_TO_ID['administrativo'];
+
       const novaOS = await ordensServicoAPI.create({
         cliente_id: etapa1Data.leadId,
         tipo_os_id: tipoOSEncontrado.id,
         descricao: `${etapa2Data.tipoOS} - ${nomeCliente}`,
-        criado_por_id: currentUserId, // Enviar ID do usuário logado para evitar erro de "colaborador Sistema"
-        responsavel_id: currentUserId, // ✅ FIX: Regra de Ouro - Responsabilidade Inicial
+        criado_por_id: currentUserId,
+        responsavel_id: currentUserId,
+        setor_solicitante_id: setorSolicitanteId, // Setor de quem abriu a OS
+        setor_atual_id: setorAtualId, // Etapa 1 = Administrativo
         status_geral: 'em_andamento',
-        parent_os_id: parentOSId // Passar parentOSId
+        parent_os_id: parentOSId
       });
 
       logger.log('✅ OS criada:', novaOS);

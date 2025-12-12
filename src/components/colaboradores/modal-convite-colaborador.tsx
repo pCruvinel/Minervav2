@@ -2,7 +2,7 @@
  * ModalConviteColaborador - Convite em Lote
  * 
  * Permite enviar múltiplos convites de uma vez
- * Campos: Nome, Email, Cargo
+ * Campos: Nome, Email
  */
 'use client';
 
@@ -18,7 +18,6 @@ import {
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Loader2, Plus, Trash2, Mail, Send, AlertCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase-client';
@@ -33,14 +32,8 @@ interface ConviteItem {
     id: string;
     nome: string;
     email: string;
-    cargo_id: string;
 }
 
-interface Cargo {
-    id: string;
-    nome: string;
-    slug: string;
-}
 
 interface ModalConviteColaboradorProps {
     open: boolean;
@@ -58,40 +51,16 @@ export function ModalConviteColaborador({
     onSuccess,
 }: ModalConviteColaboradorProps) {
     const [convites, setConvites] = useState<ConviteItem[]>([
-        { id: crypto.randomUUID(), nome: '', email: '', cargo_id: '' }
+        { id: crypto.randomUUID(), nome: '', email: '' }
     ]);
-    const [cargos, setCargos] = useState<Cargo[]>([]);
     const [loading, setLoading] = useState(false);
-    const [loadingCargos, setLoadingCargos] = useState(true);
 
-    // Buscar cargos
-    useEffect(() => {
-        async function fetchCargos() {
-            try {
-                const { data, error } = await supabase
-                    .from('cargos')
-                    .select('id, nome, slug')
-                    .order('nome');
-
-                if (error) throw error;
-                setCargos(data || []);
-            } catch (err) {
-                logger.error('Erro ao buscar cargos:', err);
-            } finally {
-                setLoadingCargos(false);
-            }
-        }
-
-        if (open) {
-            fetchCargos();
-        }
-    }, [open]);
 
     // Adicionar nova linha
     const handleAddConvite = () => {
         setConvites(prev => [
             ...prev,
-            { id: crypto.randomUUID(), nome: '', email: '', cargo_id: '' }
+            { id: crypto.randomUUID(), nome: '', email: '' }
         ]);
     };
 
@@ -134,7 +103,6 @@ export function ModalConviteColaborador({
                 .map(c => ({
                     email: c.email.trim().toLowerCase(),
                     nome: c.nome.trim() || null,
-                    cargo_id: c.cargo_id || null,
                 }));
 
             if (convitesValidos.length === 0) {
@@ -174,7 +142,7 @@ export function ModalConviteColaborador({
             }
 
             // Limpar e fechar
-            setConvites([{ id: crypto.randomUUID(), nome: '', email: '', cargo_id: '' }]);
+            setConvites([{ id: crypto.randomUUID(), nome: '', email: '' }]);
             onSuccess?.();
             onClose();
 
@@ -190,7 +158,7 @@ export function ModalConviteColaborador({
 
     // Reset ao fechar
     const handleClose = () => {
-        setConvites([{ id: crypto.randomUUID(), nome: '', email: '', cargo_id: '' }]);
+        setConvites([{ id: crypto.randomUUID(), nome: '', email: '' }]);
         onClose();
     };
 
@@ -212,10 +180,10 @@ export function ModalConviteColaborador({
                     {convites.map((convite, index) => (
                         <div
                             key={convite.id}
-                            className="grid grid-cols-12 gap-2 items-end p-3 bg-muted/30 rounded-lg"
+                            className="grid grid-cols-11 gap-2 items-end p-3 bg-muted/30 rounded-lg"
                         >
                             {/* Nome */}
-                            <div className="col-span-4 space-y-1">
+                            <div className="col-span-5 space-y-1">
                                 {index === 0 && <Label className="text-xs">Nome</Label>}
                                 <Input
                                     placeholder="Nome completo"
@@ -225,7 +193,7 @@ export function ModalConviteColaborador({
                             </div>
 
                             {/* Email */}
-                            <div className="col-span-4 space-y-1">
+                            <div className="col-span-5 space-y-1">
                                 {index === 0 && <Label className="text-xs">Email *</Label>}
                                 <Input
                                     type="email"
@@ -233,27 +201,6 @@ export function ModalConviteColaborador({
                                     value={convite.email}
                                     onChange={(e) => handleUpdateConvite(convite.id, 'email', e.target.value)}
                                 />
-                            </div>
-
-                            {/* Cargo */}
-                            <div className="col-span-3 space-y-1">
-                                {index === 0 && <Label className="text-xs">Cargo</Label>}
-                                <Select
-                                    value={convite.cargo_id}
-                                    onValueChange={(value) => handleUpdateConvite(convite.id, 'cargo_id', value)}
-                                    disabled={loadingCargos}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Selecione..." />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {cargos.map(cargo => (
-                                            <SelectItem key={cargo.id} value={cargo.id}>
-                                                {cargo.nome}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
                             </div>
 
                             {/* Remover */}

@@ -255,11 +255,15 @@ Adapta-se ao perfil do usuário:
 - **Justificativas**: Campo obrigatório para atrasos, faltas ou ausências
 - **Relatórios**: Geração automática de relatórios de presença por período
 
-### Portal de Documentos para Clientes
-- **Acesso Seguro**: Autenticação independente do sistema principal
-- **Documentos Compartilhados**: Apenas documentos marcados como "cliente" são visíveis
-- **Notificações**: Alertas automáticos quando novos documentos são adicionados
-- **Download Seguro**: Links temporários para download com expiração
+### Portal do Cliente Completo
+- **Acesso Seguro**: Autenticação independente (`clients` schema) via Magic Link ou Senha definida pelo usuário
+- **Convite**: Fluxo de convite por e-mail disparado pelo Administrativo (sem senha pré-definida)
+- **Funcionalidades**:
+    - **Dashboard**: Visão geral de contratos e status
+    - **Documentos**: Visualização de arquivos com visibilidade 'cliente' ou 'público'
+    - **Timeline**: Histórico de serviços e chamados
+    - **Solicitações**: Abertura de chamados (OS-07, OS-08) diretamente pelo portal
+- **Segurança**: Row Level Security (RLS) garante que o cliente veja apenas seus próprios dados
 
 ### Regras de Segurança Adicionais v2.5
 - **Criptografia**: Documentos sensíveis são criptografados em trânsito e repouso

@@ -78,8 +78,28 @@ function AuthCallbackPage() {
           logger.log('[AuthCallback] Recovery - redirecting to setup password');
           navigate({ to: '/auth/setup-password' });
         } else {
-          // Magic link login or other - go to dashboard
-          logger.log('[AuthCallback] Other type - redirecting to dashboard');
+          // Magic link login or other - determine user type and redirect
+          logger.log('[AuthCallback] Other type - checking user type...');
+
+          const { data: { user } } = await supabase.auth.getUser();
+
+          if (user) {
+            // Check if user is a client
+            const { data: clienteData } = await supabase
+              .from('clientes')
+              .select('id')
+              .eq('auth_user_id', user.id)
+              .maybeSingle();
+
+            if (clienteData) {
+              logger.log('[AuthCallback] User is a client, redirecting to portal');
+              navigate({ to: '/portal' });
+              return;
+            }
+          }
+
+          // Default: redirect to dashboard (staff)
+          logger.log('[AuthCallback] User is staff, redirecting to dashboard');
           navigate({ to: '/' });
         }
       } catch (err) {

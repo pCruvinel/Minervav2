@@ -46,7 +46,7 @@ import {
     FileCode
 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { useOSDocumentUpload, OSDocumento } from '@/lib/hooks/use-os-document-upload';
+import { useOSDocumentUpload, OSDocumento, VisibilidadeDocumento } from '@/lib/hooks/use-os-document-upload';
 import { supabase } from '@/lib/supabase-client';
 
 interface OSDocumentsTabProps {
@@ -82,6 +82,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [docType, setDocType] = useState('');
     const [description, setDescription] = useState('');
+    const [visibilidade, setVisibilidade] = useState<VisibilidadeDocumento>('interno');
 
     useEffect(() => {
         loadDocuments();
@@ -123,7 +124,8 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
             await uploadDocument({
                 file: selectedFile,
                 tipoDocumento: docType,
-                descricao: description
+                descricao: description,
+                visibilidade
             });
 
             toast.success('Documento enviado com sucesso!');
@@ -133,6 +135,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
             setSelectedFile(null);
             setDocType('');
             setDescription('');
+            setVisibilidade('interno');
 
             // Reload list
             loadDocuments();
@@ -243,6 +246,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                         <TableHead className="w-[50px]"></TableHead>
                                         <TableHead>Arquivo</TableHead>
                                         <TableHead>Descrição</TableHead>
+                                        <TableHead>Visibilidade</TableHead>
                                         <TableHead>Tipo</TableHead>
                                         <TableHead>Enviado em</TableHead>
                                         <TableHead className="w-[100px] text-right">Ações</TableHead>
@@ -267,6 +271,21 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                             </TableCell>
                                             <TableCell className="text-muted-foreground">
                                                 {doc.descricao || '-'}
+                                            </TableCell>
+                                            <TableCell>
+                                                {doc.visibilidade === 'cliente' ? (
+                                                    <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+                                                        Portal Cliente
+                                                    </Badge>
+                                                ) : doc.visibilidade === 'publico' ? (
+                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                        Público
+                                                    </Badge>
+                                                ) : (
+                                                    <Badge variant="outline" className="text-muted-foreground">
+                                                        Interno
+                                                    </Badge>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="capitalize">
@@ -352,6 +371,20 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                 value={description}
                                 onChange={e => setDescription(e.target.value)}
                             />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Visibilidade</Label>
+                            <Select value={visibilidade} onValueChange={(v) => setVisibilidade(v as VisibilidadeDocumento)}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Selecione a visibilidade..." />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="interno">🔒 Apenas Interno (Equipe)</SelectItem>
+                                    <SelectItem value="cliente">👥 Disponível no Portal do Cliente</SelectItem>
+                                    <SelectItem value="publico">🌍 Público (Link Externo)</SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {isUploading && (

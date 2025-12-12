@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { supabase } from '../supabase-client';
 import { logger } from '../utils/logger';
 
+export type VisibilidadeDocumento = 'interno' | 'publico' | 'cliente';
+
 export interface OSDocumento {
   id: string;
   os_id: string;
@@ -15,6 +17,7 @@ export interface OSDocumento {
   uploaded_by: string;
   criado_em: string;
   url?: string;
+  visibilidade: VisibilidadeDocumento;
 }
 
 export interface UploadDocumentoParams {
@@ -23,6 +26,7 @@ export interface UploadDocumentoParams {
   etapaId?: string;
   metadata?: Record<string, unknown>;
   descricao?: string; // Descrição/observação do documento
+  visibilidade?: VisibilidadeDocumento;
 }
 
 /**
@@ -39,7 +43,8 @@ export interface UploadDocumentoParams {
  *   const doc = await uploadDocument({
  *     file,
  *     tipoDocumento: 'ART',
- *     etapaId: '123'
+ *     etapaId: '123',
+ *     visibilidade: 'cliente'
  *   });
  * };
  * ```
@@ -56,7 +61,8 @@ export function useOSDocumentUpload(osId: string) {
     tipoDocumento,
     etapaId,
     metadata = {},
-    descricao
+    descricao,
+    visibilidade = 'interno'
   }: UploadDocumentoParams): Promise<OSDocumento> => {
     if (!osId) {
       throw new Error('osId é obrigatório para fazer upload de documentos');
@@ -115,6 +121,7 @@ export function useOSDocumentUpload(osId: string) {
           mime_type: file.type,
           metadados: metadata,
           descricao: descricao || null, // Salvar descrição na coluna correta
+          visibilidade: visibilidade,
           uploaded_by: user.id
         })
         .select()

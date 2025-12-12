@@ -474,23 +474,23 @@ src/routes/_auth/os/criar/
 - **Workflow**: Contrato de longo prazo (anual) com 8 etapas
 - **Tipo**: Assessoria recorrente mensal/anual
 - **Abertura**: Deve ser aberta pelo **Coordenador Administrativo**
-- **% Concluída**: 🔄 Em Reestruturação
+- **% Concluída**: 95% ✅
 
 ### 🎯 Objetivo
 Gerenciar contratos de assessoria de longo prazo desde a captação do cliente até a execução e acompanhamento das visitas recorrentes.
 
 ### 📝 Passo-a-Passo das Etapas
 
-| # | Etapa | Status | Componente | Descrição | Responsável 
-|----|-------|--------|------------|-----------|-------------|---------|
-| 1 | **Cadastro do Cliente e Portal** | ❌ | `step-cadastro-cliente-portal.tsx` | Upload de documentos, seleção de cliente, geração de senha | Administrativo
-| 2 | **Upload de ART** | ❌ | `step-anexar-art.tsx` | Anexar Anotação de Responsabilidade Técnica | Assessoria 
-| 3 | **Upload de Plano de Manutenção** | ❌ | `step-plano-manutencao.tsx` | Upload do plano de manutenção do condomínio | Assessoria
-| 4 | **Agendar Visita** | ❌ | `step-agendar-visita.tsx` | Agendamento da primeira visita técnica | Administrativo
-| 5 | **Realizar Visita** | ❌ | `step-realizar-visita.tsx` | Checkbox registrando visita com data/horário e observação | Administrativo
-| 6 | **Agendar Visita Recorrente** | ❌ | `step-agendar-visita-recorrente.tsx` | Agendar próxima visita periódica | Administrativo
-| 7 | **Realizar Visita Recorrente** | ❌ | `step-realizar-visita-recorrente.tsx` | Registrar realização da visita recorrente | Assessoria
-| 8 | **Concluir e Transformar em Contrato** | ❌ | `step-concluir-contrato.tsx` | Finaliza OS e transforma em contrato ativo | Assessoria
+| # | Etapa | Status | Componente | Descrição | Responsável |
+|---|-------|--------|------------|-----------|-------------|
+| 1 | **Cadastro do Cliente e Portal** | ✅ | `step-cadastro-cliente-portal.tsx` | Cadastro de cliente e envio de convite (Magic Link) | Administrativo
+| 2 | **Upload de ART** | ✅ | `step-anexar-art.tsx` | Anexar Anotação de Responsabilidade Técnica | Assessoria
+| 3 | **Upload de Plano de Manutenção** | ✅ | `step-plano-manutencao.tsx` | Upload do plano de manutenção do condomínio | Assessoria
+| 4 | **Agendar Visita** | ✅ | `step-agendar-visita.tsx` | Agendamento da primeira visita técnica | Administrativo
+| 5 | **Realizar Visita** | ✅ | `step-realizar-visita.tsx` | Checkbox registrando visita com data/horário e observação | Administrativo
+| 6 | **Agendar Visita Recorrente** | ✅ | `step-agendar-visita-recorrente.tsx` | Agendar próxima visita periódica | Administrativo
+| 7 | **Realizar Visita Recorrente** | ✅ | `step-realizar-visita-recorrente.tsx` | Registrar realização da visita recorrente | Assessoria
+| 8 | **Concluir e Transformar em Contrato** | ✅ | `step-concluir-contrato.tsx` | Finaliza OS e transforma em contrato ativo | Assessoria
 
 ### 🔄 Fluxo de Responsabilidade (Handoff)
 
@@ -533,29 +533,25 @@ Gerenciar contratos de assessoria de longo prazo desde a captação do cliente a
 
 ### ⚙️ Regras de Negócio Específicas
 
-#### **📧 Etapa 1 - Criação do Portal do Cliente (CRÍTICO)**
-
+#### **📧 Etapa 1 - Criação do Portal do Cliente**
 > [!IMPORTANT]
-> Ao finalizar a Etapa 1, o sistema DEVE criar automaticamente o **Portal do Cliente**.
+> A criação do Portal do Cliente agora utiliza um fluxo seguro de **Convite por E-mail**.
+> O cadastro de senha manual foi removido.
 
 **Ações Automáticas via Supabase Functions:**
-1. **Criação de usuário** no portal do cliente (tabela `clientes_portal`)
-2. **Geração de senha** segura e temporária
-3. **Envio de e-mail** automático contendo:
-   - Login (e-mail do cliente)
-   - Senha temporária
-   - Link de acesso ao portal
-4. **Registro de atividade** na timeline da OS
+1. **Verificação de usuário existente** (por e-mail ou CPF/CNPJ)
+2. **Criação de usuário Auth** (se não existir)
+3. **Envio de e-mail de convite** (Magic Link / Setup Password) via Resend
+4. **Vinculação do cliente** à OS e ao usuário Auth
 
-**Supabase Edge Function:** `create-client-portal`
+**Supabase Edge Function:** `invite-client`
 ```typescript
-// Chamada esperada:
-const { data, error } = await supabase.functions.invoke('create-client-portal', {
+// Chamada:
+const { data, error } = await supabase.functions.invoke('invite-client', {
   body: {
-    clienteId: string,
     email: string,
-    nomeCliente: string,
-    osId: string
+    nome: string, // Opcional
+    redirectTo: string // URL para setup de senha
   }
 });
 ```
@@ -632,10 +628,10 @@ src/routes/_auth/os/criar/
 
 | Integração | Descrição | Status |
 |------------|-----------|--------|
-| **Supabase Functions** | `create-client-portal` para criar usuário no portal | ❌ Pendente |
-| **E-mail (Resend)** | Envio automático de credenciais ao cliente | ❌ Pendente |
+| **Supabase Functions** | `invite-client` para convidar usuário ao portal | ✅ Implementado |
+| **E-mail (Resend)** | Envio automático de convite ao cliente | ✅ Implementado |
 | **Calendário** | Integração com agendamento de visitas | ⚠️ Parcial |
-| **Portal do Cliente** | Área externa para acesso do cliente | ❌ Pendente |
+| **Portal do Cliente** | Área externa para acesso do cliente | ✅ Implementado |
 
 ---
 
@@ -769,11 +765,14 @@ Frontend → API Call → Edge Function `generate-pdf`
 - **Arquivos**: `registros_presenca` table + presence components
 - **Status**: ✅ Implementado no backend
 
-### Portal de Documentos para Clientes
-- **Integração**: Área segura externa ao sistema principal
-- **Funcionalidade**: Acesso a documentos compartilhados
-- **Arquivos**: `clientes_documentos` table + client portal
-- **Status**: ✅ Implementado no backend
+### Portal do Cliente Completo
+- **Integração**: Área externa segura (`/portal`) com autenticação própria
+- **Funcionalidades**:
+    - Dashboard com status e notificações
+    - Abas: Visão Geral, Contratos, Histórico de Serviços (Timeline), Documentos, Chamados
+    - Upload de documentos com controle de visibilidade
+- **Segurança**: Row Level Security (RLS) garantindo isolamento de dados
+- **Status**: ✅ Implementado Frontend/Backend
 
 ### Expansão do Schema de Colaboradores
 - **Novos Campos**: Contratação, salários, contatos de emergência

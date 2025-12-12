@@ -24,7 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '../ui/command';
 import { Info, Calculator, Loader2, MapPin, ChevronsUpDown, Check, FileText, Building2 } from 'lucide-react';
 import { Colaborador } from '@/types/colaborador';
-import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DOCUMENTOS_OBRIGATORIOS, BANCOS } from '@/lib/constants/colaboradores';
+import { FUNCOES, QUALIFICACOES_OBRA, TIPOS_CONTRATACAO, DOCUMENTOS_OBRIGATORIOS, BANCOS, getCargoIdByFuncao, getSetorIdBySlug } from '@/lib/constants/colaboradores';
 
 // Dias da semana começando por Segunda com inicial e valor
 const DIAS_SEMANA_CONFIG = [
@@ -203,8 +203,8 @@ export function ModalCadastroColaborador({
 
       // Documentos obrigatórios
       if (colaborador.documentos_obrigatorios) {
-        const docs = Array.isArray(colaborador.documentos_obrigatorios) 
-          ? colaborador.documentos_obrigatorios 
+        const docs = Array.isArray(colaborador.documentos_obrigatorios)
+          ? colaborador.documentos_obrigatorios
           : Object.keys(colaborador.documentos_obrigatorios);
         setDocumentosObrigatorios(docs);
       } else {
@@ -374,6 +374,9 @@ export function ModalCadastroColaborador({
       qualificacao: qualificacao || null,
       setor: funcaoData?.setor || null,
       gestor: funcaoData?.gestor || null,
+      // Campos com FK - preenchidos automaticamente para compatibilidade com hooks
+      cargo_id: getCargoIdByFuncao(funcao),
+      setor_id: getSetorIdBySlug(funcaoData?.setor),
       tipo_contratacao: tipoContratacao || null,
       salario_base: isCLT ? parseFloat(salarioBruto) : null,
       remuneracao_contratual: isContrato ? parseFloat(remuneracaoContratual) : null,
@@ -667,8 +670,8 @@ export function ModalCadastroColaborador({
                 {/* Dias da Semana - Estilo iOS/Android */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Dias Disponíveis</Label>
-                  <ToggleGroup 
-                    type="multiple" 
+                  <ToggleGroup
+                    type="multiple"
                     value={disponibilidadeDias}
                     onValueChange={(value) => setDisponibilidadeDias(value)}
                     className="flex gap-2 justify-start"
@@ -695,8 +698,8 @@ export function ModalCadastroColaborador({
                 {/* Turno - Estilo moderno com badges */}
                 <div className="space-y-3">
                   <Label className="text-sm text-muted-foreground">Turno</Label>
-                  <ToggleGroup 
-                    type="multiple" 
+                  <ToggleGroup
+                    type="multiple"
                     value={turno}
                     onValueChange={(value) => setTurno(value)}
                     className="flex gap-2 flex-wrap justify-start"

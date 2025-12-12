@@ -146,23 +146,6 @@ export function DashboardPage() {
             showResponsavelAtual={true}
           />
 
-          {/* Link para Kanban Pessoal */}
-          {minhasPendencias.length > 0 && (
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg border">
-              <div>
-                <h3 className="font-medium">Minhas Tarefas Pessoais</h3>
-                <p className="text-sm text-muted-foreground">
-                  Você tem {minhasPendencias.length} tarefa(s) pendente(s)
-                </p>
-              </div>
-              <Button asChild>
-                <Link to="/dashboard/kanban">
-                  <LayoutGrid className="h-4 w-4 mr-2" />
-                  Abrir Kanban
-                </Link>
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     );

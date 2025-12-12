@@ -4,9 +4,10 @@ import { SidebarProvider, useSidebarContext } from '@/components/layout/sidebar-
 import { Header } from '@/components/layout/header'
 import { useAuth } from '@/lib/contexts/auth-context'
 import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase-client'
 
 export const Route = createFileRoute('/_auth')({
-  beforeLoad: ({ context, location }) => {
+  beforeLoad: async ({ context, location }) => {
     // Se ainda está carregando, retorna sem bloquear
     // TanStack Router vai re-executar quando context mudar
     if (context.auth.isLoading) {
@@ -21,6 +22,34 @@ export const Route = createFileRoute('/_auth')({
           redirect: location.href,
         },
       })
+    }
+
+    // Verificar se o usuário é um cliente (não staff)
+    // Clientes não podem acessar o sistema interno
+    const userId = context.auth.currentUser.id
+
+    // Verificar se existe na tabela colaboradores (é staff)
+    const { data: staffData } = await supabase
+      .from('colaboradores')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle()
+
+    // Se não é staff (não existe na tabela colaboradores), é cliente
+    if (!staffData) {
+      // Verificar se existe na tabela clientes
+      const { data: clienteData } = await supabase
+        .from('clientes')
+        .select('id')
+        .eq('auth_user_id', userId)
+        .maybeSingle()
+
+      if (clienteData) {
+        // É cliente, redirecionar para o portal
+        throw redirect({
+          to: '/portal',
+        })
+      }
     }
   },
   component: AuthLayout,

@@ -112,20 +112,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(true);
       const user = buildUserFromMetadata(session);
 
-      // Buscar avatar_url da tabela colaboradores (mais confiável que o metadata)
-      try {
-        const { data: colabData } = await supabase
-          .from('colaboradores')
-          .select('avatar_url')
-          .eq('id', user.id)
-          .single();
+      // Buscar avatar_url da tabela colaboradores APENAS se não for cliente
+      if (user.cargo_slug !== 'cliente') {
+        try {
+          const { data: colabData } = await supabase
+            .from('colaboradores')
+            .select('avatar_url')
+            .eq('id', user.id)
+            .single();
 
-        if (colabData?.avatar_url) {
-          user.avatar_url = colabData.avatar_url;
-
+          if (colabData?.avatar_url) {
+            user.avatar_url = colabData.avatar_url;
+          }
+        } catch (avatarError) {
+          console.log('[Auth V3] Não foi possível buscar avatar da tabela colaboradores');
         }
-      } catch (avatarError) {
-        console.log('[Auth V3] Não foi possível buscar avatar da tabela colaboradores');
       }
 
       setCurrentUser(user);
@@ -151,13 +152,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const metadata = user.user_metadata || {};
 
     // Extrair dados do metadata (sincronizado pelo trigger do banco)
-    const cargo_slug = metadata.cargo_slug || 'colaborador';
-    const cargo_nivel = metadata.cargo_nivel || 1;
-    const setor_slug = metadata.setor_slug || 'obras';
+    const is_client = metadata.is_client === true;
+
+    // Se for cliente, define defaults apropriados
+    const cargo_slug = metadata.cargo_slug || (is_client ? 'cliente' : 'colaborador');
+    const cargo_nivel = metadata.cargo_nivel || (is_client ? 0 : 1);
+    const setor_slug = metadata.setor_slug || (is_client ? 'cliente' : 'obras');
     const nome_completo = metadata.nome_completo || user.email?.split('@')[0] || 'Usuário';
     const email = user.email || metadata.email || '';
     const ativo = metadata.ativo !== false; // Default true
     const avatar_url = metadata.avatar_url || undefined;
+    const cliente_id = metadata.cliente_id || undefined;
 
 
 
