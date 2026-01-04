@@ -13,10 +13,11 @@ import {
   FileText,
   CheckCircle,
   XCircle,
-  TrendingUp,
   AlertTriangle,
   Clock,
+  Filter,
 } from 'lucide-react';
+import { CardDescription } from '../ui/card';
 import { CadastrarLead, FormDataCompleto } from '../os/shared/steps/cadastrar-lead';
 import { cn } from '../ui/utils';
 import { useClientes } from '../../lib/hooks/use-clientes';
@@ -46,7 +47,7 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
       // Calcular status financeiro baseado em faturas atrasadas e contas inadimplentes
       const faturasAtrasadas = cliente.faturas_atrasadas || 0;
       const contasInadimplentes = cliente.contas_inadimplentes || 0;
-      
+
       let statusFinanceiro: 'em_dia' | 'atencao' | 'inadimplente' = 'em_dia';
       if (faturasAtrasadas > 0 || contasInadimplentes > 0) {
         statusFinanceiro = 'inadimplente';
@@ -69,7 +70,7 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
         proximaFatura: cliente.proxima_fatura || null,
       };
     });
-  
+
   const [filtro, setFiltro] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('');
 
@@ -123,13 +124,13 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
     const statusConfig = {
       ativo: { label: 'Ativo', icon: CheckCircle, className: 'bg-success/10 text-success hover:bg-success/10' },
       inativo: { label: 'Inativo', icon: XCircle, className: 'bg-muted text-muted-foreground' },
-      lead: { label: 'Lead', icon: Clock, className: 'bg-blue-500/10 text-blue-500' },
+      lead: { label: 'Lead', icon: Clock, className: 'bg-info/10 text-info' },
       blacklist: { label: 'Blacklist', icon: XCircle, className: 'bg-destructive/10 text-destructive' },
     };
-    
+
     const config = statusConfig[status] || statusConfig.lead;
     const Icon = config.icon;
-    
+
     return (
       <Badge className={config.className}>
         <Icon className="h-3 w-3 mr-1" />
@@ -144,10 +145,10 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
       atencao: { label: 'Atenção', icon: AlertTriangle, className: 'bg-warning/10 text-warning' },
       inadimplente: { label: 'Inadimplente', icon: XCircle, className: 'bg-destructive/10 text-destructive' },
     };
-    
+
     const config = statusConfig[status];
     const Icon = config.icon;
-    
+
     return (
       <Badge className={config.className}>
         <Icon className="h-3 w-3 mr-1" />
@@ -183,17 +184,17 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
 
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Gestão de Clientes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Clientes</h1>
+          <p className="text-neutral-600 mt-1">
             Contratos ativos e centros de custo
           </p>
         </div>
-        <Button variant="outline" onClick={() => setIsCadastroOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
+        <Button onClick={() => setIsCadastroOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
           Cadastrar
         </Button>
       </div>
@@ -216,91 +217,99 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total de Clientes</p>
-              <Building2 className="h-4 w-4 text-primary" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Total de Clientes</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{stats.total}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Building2 className="w-6 h-6 text-primary" />
+              </div>
             </div>
-            <h3 className="text-2xl">{stats.total}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {stats.ativos} ativos
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Leads</p>
-              <Clock className="h-4 w-4 text-blue-500" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Leads</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{stats.leads}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-600" />
+              </div>
             </div>
-            <h3 className="text-2xl text-blue-500">{stats.leads}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              aguardando conversão
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Com Contratos</p>
-              <FileText className="h-4 w-4 text-success" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Com Contratos</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{stats.comContratos}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <FileText className="w-6 h-6 text-green-600" />
+              </div>
             </div>
-            <h3 className="text-2xl text-success">{stats.comContratos}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              contratos ativos
-            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Inadimplentes</p>
-              <AlertTriangle className="h-4 w-4 text-destructive" />
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Inadimplentes</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{stats.inadimplentes}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+              </div>
             </div>
-            <h3 className="text-2xl text-destructive">{stats.inadimplentes}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              requerem atenção
-            </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filtros e Tabela */}
+      {/* Filtros */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle>Clientes ({clientesFiltrados.length})</CardTitle>
-            <div className="flex items-center gap-4">
-              {/* Filtro de Status */}
-              <div className="w-48">
-                <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os Status</SelectItem>
-                    <SelectItem value="ativo">Ativo</SelectItem>
-                    <SelectItem value="inativo">Inativo</SelectItem>
-                    <SelectItem value="lead">Lead</SelectItem>
-                    <SelectItem value="blacklist">Blacklist</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Busca */}
-              <div className="relative w-80">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome..."
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+          <CardTitle className="text-xl">Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Input
+                placeholder="Buscar por nome..."
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Status</SelectItem>
+                <SelectItem value="ativo">Ativo</SelectItem>
+                <SelectItem value="inativo">Inativo</SelectItem>
+                <SelectItem value="lead">Lead</SelectItem>
+                <SelectItem value="blacklist">Blacklist</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Lista de Clientes</CardTitle>
+          <CardDescription>{clientesFiltrados.length} cliente(s) encontrado(s)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>

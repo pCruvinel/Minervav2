@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
 import { supabase } from '@/lib/supabase-client';
+import { logger } from '@/lib/utils/logger';
 
 export interface FileWithComment {
     id: string;
@@ -35,6 +36,8 @@ interface FileUploadUnificadoProps {
     onFilesChange: (files: FileWithComment[]) => void;
     disabled?: boolean;
     osId?: string;
+    etapaId?: string;
+    etapaNome?: string;
     maxFiles?: number;
     maxFileSize?: number; // in MB
     acceptedTypes?: string[];
@@ -55,7 +58,7 @@ const DEFAULT_ACCEPTED_EXTENSIONS = '.pdf,.docx,.jpg,.jpeg,.png';
 function inferMimeType(filename: string, url?: string): string {
     const name = filename || url || '';
     const extension = name.toLowerCase().split('.').pop() || '';
-    
+
     const mimeTypes: Record<string, string> = {
         'pdf': 'application/pdf',
         'doc': 'application/msword',
@@ -68,7 +71,7 @@ function inferMimeType(filename: string, url?: string): string {
         'svg': 'image/svg+xml',
         'bmp': 'image/bmp',
     };
-    
+
     return mimeTypes[extension] || '';
 }
 
@@ -78,14 +81,14 @@ function normalizeFileFromSchema(file: any): FileWithComment {
     if (file.name && file.type) {
         return file;
     }
-    
+
     // Nome do arquivo (pode vir como 'name' ou 'nome')
     const fileName = file.name || file.nome || '';
     const fileUrl = file.url || '';
-    
+
     // Inferir tipo baseado na extensão
     const inferredType = file.type || inferMimeType(fileName, fileUrl);
-    
+
     // Se é formato do schema, converte para FileWithComment
     return {
         id: file.id || Date.now().toString() + Math.random().toString(36).substring(2),
@@ -105,6 +108,8 @@ export function FileUploadUnificado({
     onFilesChange,
     disabled = false,
     osId,
+    etapaId,
+    etapaNome,
     maxFiles = 10,
     maxFileSize = 10, // 10MB default
     acceptedTypes = DEFAULT_ACCEPTED_TYPES
@@ -154,24 +159,59 @@ export function FileUploadUnificado({
             const uploadedFiles: FileWithComment[] = [];
 
             for (const file of filesArray) {
-                // Upload to Supabase Storage
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-                const filePath = osId ? `os/${osId}/${fileName}` : `temp/${fileName}`;
+                // Upload to Supabase Storage (bucket: os-documents)
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+                const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const fileName = `${timestamp}_${sanitizedName}`;
+                const filePath = osId ? `os/${osId}/documentos/anexos/${fileName}` : `temp/${fileName}`;
 
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('uploads')
-                    .upload(filePath, file);
+                const { error: uploadError } = await supabase.storage
+                    .from('os-documents')
+                    .upload(filePath, file, {
+                        contentType: file.type,
+                        upsert: false
+                    });
 
                 if (uploadError) throw uploadError;
 
                 // Get public URL
                 const { data: urlData } = supabase.storage
-                    .from('uploads')
+                    .from('os-documents')
                     .getPublicUrl(filePath);
 
+                // Gerar ID único
+                const documentoId = globalThis.crypto.randomUUID();
+
+                // Registrar em os_documentos se temos osId
+                if (osId) {
+                    const { data: { user } } = await supabase.auth.getUser();
+
+                    const { error: dbError } = await supabase
+                        .from('os_documentos')
+                        .insert({
+                            id: documentoId,
+                            os_id: osId,
+                            etapa_id: etapaId || null,
+                            nome: file.name,
+                            tipo: 'anexo',
+                            caminho_arquivo: filePath,
+                            tamanho_bytes: file.size,
+                            mime_type: file.type,
+                            visibilidade: 'interno',
+                            uploaded_by: user?.id || null,
+                            descricao: etapaNome ? `Anexo de ${etapaNome}` : null
+                        });
+
+                    if (dbError) {
+                        logger.error('Erro ao registrar documento:', dbError);
+                        // Tentar deletar arquivo do storage em caso de erro
+                        await supabase.storage.from('os-documents').remove([filePath]);
+                        throw new Error(`Falha ao registrar documento: ${dbError.message}`);
+                    }
+                }
+
                 const fileWithComment: FileWithComment = {
-                    id: Date.now().toString() + Math.random().toString(36).substring(2),
+                    id: documentoId,
                     name: file.name,
                     url: urlData.publicUrl,
                     path: filePath,
@@ -191,8 +231,8 @@ export function FileUploadUnificado({
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-        } catch (error: any) {
-            console.error('Erro ao fazer upload:', error);
+        } catch (error) {
+            logger.error('Erro ao fazer upload:', error);
             toast.error('Erro ao enviar arquivo. Tente novamente.');
         } finally {
             setUploading(false);
@@ -206,18 +246,31 @@ export function FileUploadUnificado({
 
     const handleDelete = async (fileToDelete: FileWithComment) => {
         try {
-            // Delete from Supabase Storage
-            const { error } = await supabase.storage
-                .from('uploads')
+            // Delete from Supabase Storage (bucket: os-documents)
+            const { error: storageError } = await supabase.storage
+                .from('os-documents')
                 .remove([fileToDelete.path]);
 
-            if (error) throw error;
+            if (storageError) {
+                logger.warn('Erro ao deletar do storage:', storageError);
+                // Continua para deletar do banco mesmo assim
+            }
+
+            // Delete from os_documentos table
+            const { error: dbError } = await supabase
+                .from('os_documentos')
+                .delete()
+                .eq('id', fileToDelete.id);
+
+            if (dbError) {
+                logger.warn('Erro ao deletar do banco:', dbError);
+            }
 
             // Remove from local state
             onFilesChange(files.filter(f => f.id !== fileToDelete.id));
             toast.success('Arquivo removido com sucesso');
-        } catch (error: any) {
-            console.error('Erro ao deletar arquivo:', error);
+        } catch (error) {
+            logger.error('Erro ao deletar arquivo:', error);
             toast.error('Erro ao remover arquivo. Tente novamente.');
         }
     };
@@ -264,7 +317,7 @@ export function FileUploadUnificado({
         // Preview para PDFs
         if (file.type === 'application/pdf') {
             return (
-                <div 
+                <div
                     className="w-full h-32 relative rounded overflow-hidden cursor-pointer group"
                     onClick={() => window.open(file.url, '_blank')}
                 >
@@ -286,8 +339,8 @@ export function FileUploadUnificado({
                         </div>
                     </div>
                     {/* Badge PDF no canto */}
-                    <Badge 
-                        variant="secondary" 
+                    <Badge
+                        variant="secondary"
                         className="absolute top-1 left-1 text-[10px] px-1 py-0 bg-red-100 text-red-700 border-red-200"
                     >
                         PDF

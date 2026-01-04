@@ -45,18 +45,18 @@ export function RecrutamentoPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2">Gestão de Vagas e Recrutamento</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Vagas e Recrutamento</h1>
+          <p className="text-neutral-600 mt-1">
             Acompanhe e gerencie todas as requisições de mão de obra (OS-10)
           </p>
         </div>
         <Button asChild>
           <Link to="/os/criar/requisicao-mao-de-obra">
-            <Plus className="mr-2 h-4 w-4" />
+            <Plus className="w-4 h-4 mr-2" />
             Nova Requisição de Pessoal
           </Link>
         </Button>
@@ -66,44 +66,52 @@ export function RecrutamentoPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-primary" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Vagas</p>
-                <h3 className="text-2xl font-semibold">{totalVagas}</h3>
+                <p className="text-sm font-medium text-neutral-600">Total Vagas</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{totalVagas}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <Users className="w-6 h-6 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Briefcase className="h-5 w-5 text-warning" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Vagas Abertas</p>
-                <h3 className="text-2xl font-semibold text-warning">{vagasAbertas}</h3>
+                <p className="text-sm font-medium text-neutral-600">Vagas Abertas</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasAbertas}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                <Briefcase className="w-6 h-6 text-yellow-600" />
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-success" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Vagas Preenchidas</p>
-                <h3 className="text-2xl font-semibold text-success">{vagasPreenchidas}</h3>
+                <p className="text-sm font-medium text-neutral-600">Vagas Preenchidas</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasPreenchidas}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <Clock className="h-5 w-5 text-info" />
+            <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Requisições Ativas</p>
-                <h3 className="text-2xl font-semibold">{totalRequisicoes}</h3>
+                <p className="text-sm font-medium text-neutral-600">Requisições Ativas</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{totalRequisicoes}</p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Clock className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>

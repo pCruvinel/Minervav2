@@ -17,7 +17,11 @@ import {
   Briefcase,
   Clock,
   CheckCircle2,
+  Filter,
+  Users,
+  DollarSign,
 } from 'lucide-react';
+import { CardDescription } from '../ui/card';
 import { ModalConviteColaborador } from './modal-convite-colaborador';
 import { colaboradoresAPI } from '../../lib/api-client';
 import { toast } from 'sonner';
@@ -117,17 +121,17 @@ export function ColaboradoresListaPage() {
   };
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
+    <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl mb-2">Gestão de Colaboradores</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Colaboradores</h1>
+          <p className="text-neutral-600 mt-1">
             Gerencia os documentos e informações de todos os Colaboradores.
           </p>
         </div>
         <Button onClick={handleConvidar}>
-          <Send className="mr-2 h-4 w-4" />
+          <Send className="w-4 h-4 mr-2" />
           Convidar Colaborador
         </Button>
       </div>
@@ -136,95 +140,133 @@ export function ColaboradoresListaPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Total Ativos</p>
-            <h3 className="text-2xl text-success">
-              {colaboradores.filter((c) => c.ativo).length}
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Total Ativos</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">
+                  {colaboradores.filter((c) => c.ativo).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <Users className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Total Inativos</p>
-            <h3 className="text-2xl text-destructive">
-              {colaboradores.filter((c) => !c.ativo).length}
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Total Inativos</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">
+                  {colaboradores.filter((c) => !c.ativo).length}
+                </p>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Users className="w-6 h-6 text-red-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Custo-Dia Médio</p>
-            <h3 className="text-2xl">
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                formatCurrency(
-                  colaboradores
-                    .filter((c) => c.ativo && c.custo_dia)
-                    .reduce((sum, c) => sum + (c.custo_dia || 0), 0) /
-                  (colaboradores.filter((c) => c.ativo && c.custo_dia).length || 1)
-                )
-              )}
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Custo-Dia Médio</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold text-neutral-900 mt-1">
+                    {formatCurrency(
+                      colaboradores
+                        .filter((c) => c.ativo && c.custo_dia)
+                        .reduce((sum, c) => sum + (c.custo_dia || 0), 0) /
+                      (colaboradores.filter((c) => c.ativo && c.custo_dia).length || 1)
+                    )}
+                  </p>
+                )}
+              </div>
+              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Custo-Dia Total</p>
-            <h3 className="text-2xl">
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                formatCurrency(
-                  colaboradores
-                    .filter((c) => c.ativo)
-                    .reduce((sum, c) => sum + (c.custo_dia || 0), 0)
-                )
-              )}
-            </h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-neutral-600">Custo-Dia Total</p>
+                {loading ? (
+                  <Loader2 className="h-5 w-5 animate-spin mt-1" />
+                ) : (
+                  <p className="text-2xl font-bold text-neutral-900 mt-1">
+                    {formatCurrency(
+                      colaboradores
+                        .filter((c) => c.ativo)
+                        .reduce((sum, c) => sum + (c.custo_dia || 0), 0)
+                    )}
+                  </p>
+                )}
+              </div>
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <DollarSign className="w-6 h-6 text-primary" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filtros e Tabela */}
+      {/* Filtros */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Colaboradores ({colaboradoresFiltrados.length})</CardTitle>
-            <div className="flex items-center gap-4"> {/* Added a flex container for filters */}
-              <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome, CPF ou e-mail..."
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={setorFilter} onValueChange={setSetorFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Setor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os Setores</SelectItem>
-                  <SelectItem value="obras">Obras</SelectItem>
-                  <SelectItem value="administrativo">Administrativo</SelectItem>
-                  <SelectItem value="assessoria">Assessoria</SelectItem>
-                  <SelectItem value="diretoria">Diretoria</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos Status</SelectItem>
-                  <SelectItem value="ativo">Ativos</SelectItem>
-                  <SelectItem value="inativo">Inativos</SelectItem>
-                  <SelectItem value="pendente">Pendentes</SelectItem>
-                </SelectContent>
-              </Select>
+          <CardTitle className="text-xl">Filtros</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Input
+                placeholder="Buscar por nome, CPF ou e-mail..."
+                value={filtro}
+                onChange={(e) => setFiltro(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            <Select value={setorFilter} onValueChange={setSetorFilter}>
+              <SelectTrigger className="w-full md:w-[200px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Setor" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos os Setores</SelectItem>
+                <SelectItem value="obras">Obras</SelectItem>
+                <SelectItem value="administrativo">Administrativo</SelectItem>
+                <SelectItem value="assessoria">Assessoria</SelectItem>
+                <SelectItem value="diretoria">Diretoria</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <Filter className="w-4 h-4 mr-2" />
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos Status</SelectItem>
+                <SelectItem value="ativo">Ativos</SelectItem>
+                <SelectItem value="inativo">Inativos</SelectItem>
+                <SelectItem value="pendente">Pendentes</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Tabela */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Lista de Colaboradores</CardTitle>
+          <CardDescription>{colaboradoresFiltrados.length} colaborador(es) encontrado(s)</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -337,14 +379,14 @@ function renderStatusBadge(colaborador: Colaborador) {
     case 'pendente':
     case 'convidado':
       return (
-        <Badge variant="outline" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
           <Clock className="h-3 w-3 mr-1" />
           Pendente
         </Badge>
       );
     case 'aceito':
       return (
-        <Badge variant="outline" className="bg-blue-500/10 text-blue-700 border-blue-500/30">
+        <Badge variant="outline" className="bg-info/10 text-info border-info/30">
           <CheckCircle2 className="h-3 w-3 mr-1" />
           Aceito
         </Badge>
@@ -352,7 +394,7 @@ function renderStatusBadge(colaborador: Colaborador) {
     default:
       // Colaborador ativo sem status de convite específico
       return (
-        <Badge variant="default" className="bg-green-500/10 text-green-700 border-green-500/30">
+        <Badge variant="default" className="bg-success/10 text-success border-success/30">
           Ativo
         </Badge>
       );

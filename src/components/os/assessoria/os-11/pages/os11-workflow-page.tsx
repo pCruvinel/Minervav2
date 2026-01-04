@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
 import { CadastrarLead, CadastrarLeadHandle, FormDataCompleto } from '@/components/os/shared/steps/cadastrar-lead';
 import { StepAgendarVisita } from '@/components/os/assessoria/os-11/steps/step-agendar-visita';
 import { StepRealizarVisita } from '@/components/os/assessoria/os-11/steps/step-realizar-visita';
@@ -18,6 +19,8 @@ import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
+import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
+import { TransferenciaInfo } from '@/types/os-setor-config';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastrar Cliente', short: 'Cliente', responsible: 'Assessoria', status: 'active' },
@@ -31,13 +34,22 @@ const steps: WorkflowStep[] = [
 interface OS11WorkflowPageProps {
     onBack?: () => void;
     osId?: string;
+    parentOSId?: string;
+    clienteId?: string;
 }
 
-export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPageProps) {
+export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOSId, clienteId: propClienteId }: OS11WorkflowPageProps) {
     // Estado interno para osId (criado na Etapa 1 quando o cliente for selecionado/cadastrado)
     const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
     const finalOsId = propOsId || internalOsId;
     const [isCreatingOS, setIsCreatingOS] = useState(false);
+
+    // Estado para feedback de transferência de setor
+    const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
+    const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+    // Hook de transferência
+    const { executarTransferencia } = useTransferenciaSetor();
 
     // Refs para validação imperativa de steps
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,7 +164,19 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
     });
 
     // Estado para o leadId selecionado (CadastrarLead)
-    const [selectedLeadId, setSelectedLeadId] = useState<string>(formDataByStep[1]?.leadId || '');
+    // ✅ Pré-selecionar cliente se vier da OS pai
+    const [selectedLeadId, setSelectedLeadId] = useState<string>(formDataByStep[1]?.leadId || propClienteId || '');
+
+    // Pré-selecionar cliente quando clienteId é fornecido via prop (vindo de OS pai)
+    const hasPreselectedClient = useRef(false);
+    useEffect(() => {
+        if (propClienteId && !hasPreselectedClient.current && !selectedLeadId) {
+            logger.log('🔗 [OS11] Pré-selecionando cliente da OS pai:', propClienteId);
+            setSelectedLeadId(propClienteId);
+            setStepData(1, { ...formDataByStep[1], leadId: propClienteId });
+            hasPreselectedClient.current = true;
+        }
+    }, [propClienteId]);
 
     // Etapa 1: Cadastrar Lead (compatível com CadastrarLead)
     const etapa1Data: FormDataCompleto = formDataByStep[1] || {
@@ -304,6 +328,25 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
             await saveStep(1, true);
         }
 
+        // Verificar transferência de setor (OS-11 não tem handoffs, mas mantemos por consistência)
+        if (finalOsId && currentStep < steps.length) {
+            const nextStep = currentStep + 1;
+            const resultado = await executarTransferencia({
+                osId: finalOsId,
+                osType: 'OS-11',
+                etapaAtual: currentStep,
+                proximaEtapa: nextStep,
+                clienteNome: (etapa1Data.nome as string) || 'Cliente',
+                codigoOS: undefined
+            });
+
+            if (resultado.success && resultado.transferencia) {
+                setTransferenciaInfo(resultado.transferencia);
+                setIsTransferenciaModalOpen(true);
+                return;
+            }
+        }
+
         // Chamar o handler normal de navegação
         handleNextStep();
     };
@@ -407,6 +450,16 @@ export function OS11WorkflowPage({ onBack, osId: propOsId }: OS11WorkflowPagePro
                 isFormInvalid={isCurrentStepInvalid}
                 invalidFormMessage="Por favor, selecione um horário no calendário e um técnico responsável para continuar"
             />
+
+            {/* Modal de Feedback de Transferência */}
+            {transferenciaInfo && (
+                <FeedbackTransferencia
+                    isOpen={isTransferenciaModalOpen}
+                    onClose={() => setIsTransferenciaModalOpen(false)}
+                    transferencia={transferenciaInfo}
+                    osId={finalOsId || ''}
+                />
+            )}
         </div>
     );
 }

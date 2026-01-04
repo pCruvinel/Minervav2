@@ -14,7 +14,7 @@ function NovoLeadPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-neutral-50 to-neutral-100">
+    <div className="flex items-center justify-center p-6 bg-gradient-to-br from-neutral-50 to-neutral-100">
       <div className="w-full max-w-5xl">
         {/* Header */}
         <div className="text-center mb-12">

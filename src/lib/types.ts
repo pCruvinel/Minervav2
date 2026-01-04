@@ -36,7 +36,8 @@ export type NivelHierarquico = number;
 export type OSStatus =
   | 'em_triagem'
   | 'em_andamento'
-  | 'aguardando_aprovacao'
+  | 'aguardando_info'
+  | 'aguardando_aprovacao' // Deprecated: mantido para retrocompatibilidade
   | 'concluido'
   | 'cancelado';
 
@@ -46,6 +47,43 @@ export type EtapaStatus =
   | 'concluida'
   | 'bloqueada'
   | 'cancelada';
+
+// Status situacional computado (via view vw_os_status_completo)
+export type StatusSituacao =
+  | 'no_prazo'
+  | 'alerta_prazo'
+  | 'atrasado'
+  | 'aguardando_info'
+  | 'aguardando_aprovacao' // Deprecated
+  | 'em_validacao'
+  | 'acao_pendente'
+  | 'sem_responsavel'
+  | 'finalizado';
+
+export const STATUS_SITUACAO_LABELS: Record<StatusSituacao, string> = {
+  'no_prazo': 'No Prazo',
+  'alerta_prazo': 'Alerta Prazo',
+  'atrasado': 'Atrasado',
+  'aguardando_info': 'Aguard. Info',
+  'aguardando_aprovacao': 'Aguard. Aprovação',
+  'em_validacao': 'Em Validação',
+  'acao_pendente': 'Ação Pendente',
+  'sem_responsavel': 'Sem Responsável',
+  'finalizado': 'Finalizado',
+};
+
+// Semáforo: Verde -> Amarelo -> Vermelho -> Roxo -> Azul -> Cinza
+export const STATUS_SITUACAO_CONFIG: Record<StatusSituacao, { label: string; className: string }> = {
+  'no_prazo': { label: 'No Prazo', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
+  'alerta_prazo': { label: 'Alerta Prazo', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
+  'atrasado': { label: 'Atrasado', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
+  'aguardando_info': { label: 'Aguard. Info', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
+  'em_validacao': { label: 'Em Validação', className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
+  'acao_pendente': { label: 'Ação Pendente', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
+  'sem_responsavel': { label: 'Sem Resp.', className: 'bg-neutral-500/10 text-neutral-600 border-neutral-500/20' },
+  'finalizado': { label: 'Finalizado', className: 'bg-neutral-100 text-neutral-400 border-neutral-200' },
+  'aguardando_aprovacao': { label: 'Depercated', className: 'hidden' }
+};
 
 export interface Etapa {
   id: string;
@@ -106,6 +144,9 @@ export interface User {
   // Permissões calculadas (Frontend Helper)
   pode_delegar?: boolean;
   pode_aprovar?: boolean;
+
+  // Campos específicos para clientes (Portal)
+  cliente_id?: string;
 }
 
 /**
@@ -285,9 +326,10 @@ export const ROLE_LABELS: Record<RoleLevel, string> = {
 export const STATUS_LABELS: Record<OSStatus, string> = {
   'em_triagem': 'Em Triagem',
   'em_andamento': 'Em Andamento',
+  'aguardando_info': 'Aguard. Info',
+  'aguardando_aprovacao': 'Aguard. Aprovação',
   'concluido': 'Concluído',
   'cancelado': 'Cancelado',
-  'aguardando_aprovacao': 'Aguardando Aprovação',
 };
 
 export const CLIENTE_STATUS_LABELS: Record<ClienteStatus, string> = {

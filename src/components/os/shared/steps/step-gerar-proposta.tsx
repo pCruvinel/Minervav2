@@ -14,6 +14,7 @@
  */
 
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase-client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,6 +29,7 @@ type PDFType = 'proposta' | 'proposta-ass-anual' | 'proposta-ass-pontual';
 
 interface StepGerarPropostaProps {
   osId: string;
+  etapaId?: string; // ✅ Recebe ID real da etapa
   /**
    * Tipo da OS para determinar qual template usar:
    * - 'OS-01' | 'OS-02' | 'OS-03' | 'OS-04' → proposta (obras)
@@ -113,7 +115,8 @@ export function StepGerarProposta({
   valorParcela = 0,
   data,
   onDataChange,
-  readOnly = false
+  readOnly = false,
+  etapaId
 }: StepGerarPropostaProps) {
   // Hook de geração de PDF
   const { generating, generate } = usePDFGeneration();
@@ -183,6 +186,35 @@ export function StepGerarProposta({
           dataGeracao: new Date().toISOString().split('T')[0],
           pdfUrl: result.url
         });
+        // ✅ Registrar documento na tabela os_documentos
+        if (etapaId) {
+          try {
+            const { error: regError } = await supabase
+              .from('os_documentos')
+              .insert({
+                os_id: osId,
+                etapa_id: etapaId,
+                nome_arquivo: `Proposta_${osId.substring(0, 8)}.pdf`,
+                caminho_arquivo: result.url, // URL pública ou path relativo se for bucket
+                tipo_documento: 'proposta',
+                descricao: 'Proposta Comercial Gerada',
+                tamanho_bytes: 0, // Não temos o tamanho aqui, mas ok
+                content_type: 'application/pdf',
+                uploaded_by: (await supabase.auth.getUser()).data.user?.id,
+                visibilidade: 'interno'
+              });
+
+            if (regError) {
+              console.error('Erro ao registrar documento:', regError);
+              // Não bloqueia o sucesso da geração, apenas loga erro
+            } else {
+              console.log('Documento registrado com sucesso em os_documentos');
+            }
+          } catch (err) {
+            console.error('Erro ao tentar registrar documento:', err);
+          }
+        }
+
         toast.success('Proposta gerada com sucesso!');
       } else {
         toast.error(result?.error || 'Erro ao gerar proposta');

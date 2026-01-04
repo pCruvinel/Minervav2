@@ -1,7 +1,8 @@
 # Minerva Design System v2.0
 
-> **Última atualização:** 2025-11-09  
-> **Versão:** 2.0 (Refatoração Fase 2 Completa)  
+> **📖 BÍBLIA OFICIAL DO DESIGN SYSTEM**  
+> **Última atualização:** 2026-01-02  
+> **Versão:** 2.1 (Padronização de Páginas de Listagem)  
 > **Projeto:** Minerva Engenharia - Sistema de Gestão Integrada (ERP)
 
 ---
@@ -662,6 +663,115 @@ O sistema detecta automaticamente a preferência do usuário por movimento reduz
 
 ---
 
+## 📄 Estrutura de Páginas de Listagem
+
+> [!IMPORTANT]
+> **Padrão obrigatório** para todas as páginas de listagem do sistema.  
+> Referência: `/comercial/contratos`
+
+### Container Principal
+
+```tsx
+<div className="container mx-auto p-6 space-y-6">
+  {/* Header + KPIs + Filtros + Tabela */}
+</div>
+```
+
+### Header da Página
+
+```tsx
+<div className="flex items-center justify-between">
+  <div>
+    <h1 className="text-3xl font-bold text-neutral-900">Título da Página</h1>
+    <p className="text-neutral-600 mt-1">Descrição breve</p>
+  </div>
+  <Button>
+    <Plus className="w-4 h-4 mr-2" />
+    Ação Principal
+  </Button>
+</div>
+```
+
+### Cards KPI (Resumo)
+
+```tsx
+<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+  <Card>
+    <CardContent className="pt-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-neutral-600">Label</p>
+          <p className="text-2xl font-bold text-neutral-900 mt-1">Valor</p>
+        </div>
+        {/* Ícone em círculo colorido */}
+        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+          <Icon className="w-6 h-6 text-primary" />
+        </div>
+      </div>
+    </CardContent>
+  </Card>
+</div>
+```
+
+**Cores de ícones por tipo:**
+| Tipo | Background | Ícone |
+|------|------------|-------|
+| Primário | `bg-primary/10` | `text-primary` |
+| Sucesso | `bg-green-100` | `text-green-600` |
+| Info/Valor | `bg-blue-100` | `text-blue-600` |
+| Alerta | `bg-yellow-100` | `text-yellow-600` |
+| Erro | `bg-red-100` | `text-red-600` |
+
+### Card de Filtros (Separado)
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle className="text-xl">Filtros</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="flex flex-col md:flex-row gap-4">
+      {/* Input de busca com ícone */}
+      <div className="flex-1 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
+        <Input placeholder="Buscar..." className="pl-10" />
+      </div>
+      {/* Select de filtro */}
+      <Select>
+        <SelectTrigger className="w-full md:w-[200px]">
+          <Filter className="w-4 h-4 mr-2" />
+          <SelectValue placeholder="Filtro" />
+        </SelectTrigger>
+        <SelectContent>...</SelectContent>
+      </Select>
+    </div>
+  </CardContent>
+</Card>
+```
+
+### Card da Tabela
+
+```tsx
+<Card>
+  <CardHeader>
+    <CardTitle className="text-xl">Lista de Items</CardTitle>
+    <CardDescription>N item(s) encontrado(s)</CardDescription>
+  </CardHeader>
+  <CardContent>
+    {isLoading ? (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <span className="ml-3 text-neutral-600">Carregando...</span>
+      </div>
+    ) : (
+      <Table>...</Table>
+    )}
+  </CardContent>
+</Card>
+```
+
+---
+
 ## 🎭 Princípios de Design
 
 1. **Corporativo:** Visual profissional e confiável
@@ -690,6 +800,23 @@ O sistema detecta automaticamente a preferência do usuário por movimento reduz
     </Button>
   </CardContent>
 </Card>
+
+### Card com Header Destacado (Separador)
+
+```tsx
+<Card className="border-border rounded-lg shadow-sm overflow-hidden">
+  <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+    <CardTitle className="text-base font-semibold flex items-center gap-2">
+      <Icon className="w-5 h-5 text-primary" />
+      Título do Card
+      <Badge variant="secondary" className="ml-auto">Badge Opcional</Badge>
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="pt-6">
+    Conteúdo com espaçamento adequado...
+  </CardContent>
+</Card>
+```
 ```
 
 ### Status com Badges Coloridos e Estados

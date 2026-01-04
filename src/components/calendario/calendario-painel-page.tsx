@@ -12,6 +12,7 @@ import {
     TableRow,
 } from '../ui/table';
 import { Badge } from '../ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
 import { useTurnos, useDeleteTurno, useTurnosPorSemana, Turno } from '../../lib/hooks/use-turnos';
 import { useAgendamentos, useCancelarAgendamento } from '../../lib/hooks/use-agendamentos';
@@ -201,380 +202,390 @@ export function CalendarioPainelPage() {
     }
 
     return (
-        <div className="min-h-screen bg-background p-6">
-            <div className="max-w-[1600px] mx-auto space-y-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-foreground">Painel do Calendário</h1>
-                        <p className="text-muted-foreground">Gerencie turnos e agendamentos</p>
-                    </div>
-                    <div className="flex gap-3">
-                        <Button
-                            onClick={() => setModalCriarTurno(true)}
-                            className="bg-primary hover:bg-primary/90 text-primary-foreground"
-                        >
-                            <Plus className="h-4 w-4 mr-2" />
-                            Criar Turno
-                        </Button>
-                        <Button
-                            onClick={() => setModalCriarBloqueio(true)}
-                            variant="outline"
-                            className="text-destructive border-destructive/50 hover:bg-destructive/10"
-                        >
-                            <Lock className="h-4 w-4 mr-2" />
-                            Bloquear Horário
-                        </Button>
-                        <Button
-                            onClick={() => setModalNovoAgendamento(true)}
-                            variant="outline"
-                        >
-                            <Calendar className="h-4 w-4 mr-2" />
-                            Criar Agendamento
-                        </Button>
-                    </div>
+        <div className="container mx-auto p-6 space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-neutral-900">Painel do Calendário</h1>
+                    <p className="text-neutral-600 mt-1">Gerencie turnos, agendamentos e bloqueios</p>
                 </div>
+                <div className="flex gap-3">
+                    <Button onClick={() => setModalCriarTurno(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Turno
+                    </Button>
+                    <Button
+                        onClick={() => setModalCriarBloqueio(true)}
+                        variant="outline"
+                        className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                    >
+                        <Lock className="h-4 w-4 mr-2" />
+                        Bloquear Horário
+                    </Button>
+                    <Button
+                        onClick={() => setModalNovoAgendamento(true)}
+                        variant="outline"
+                    >
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Criar Agendamento
+                    </Button>
+                </div>
+            </div>
 
-                {/* Cards de Resumo */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Turnos Ativos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-2">
-                                <Clock className="h-5 w-5 text-primary" />
-                                <span className="text-2xl font-bold">{turnos.length}</span>
+            {/* Cards de Resumo */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-neutral-600">Turnos Ativos</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-1">{turnos.length}</p>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Agendamentos (30 dias)
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-2">
-                                <Calendar className="h-5 w-5 text-success" />
-                                <span className="text-2xl font-bold">{agendamentos.length}</span>
+                            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                                <Clock className="w-6 h-6 text-primary" />
                             </div>
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Vagas Totais
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-2">
-                                <Users className="h-5 w-5 text-info" />
-                                <span className="text-2xl font-bold">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-neutral-600">Agendamentos (30d)</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-1">{agendamentos.length}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center">
+                                <Calendar className="w-6 h-6 text-success" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-neutral-600">Vagas Totais</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-1">
                                     {turnos.reduce((acc, t) => acc + t.vagasTotal, 0)}
-                                </span>
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
+                            <div className="w-12 h-12 rounded-full bg-info/10 flex items-center justify-center">
+                                <Users className="w-6 h-6 text-info" />
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                    <Card>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-sm font-medium text-muted-foreground">
-                                Bloqueios Ativos
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex items-center gap-2">
-                                <Ban className="h-5 w-5 text-destructive" />
-                                <span className="text-2xl font-bold">
+                <Card>
+                    <CardContent className="pt-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium text-neutral-600">Bloqueios Ativos</p>
+                                <p className="text-2xl font-bold text-neutral-900 mt-1">
                                     {bloqueios.filter(b => b.ativo).length}
-                                </span>
+                                </p>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
-
-                {/* Tabela de Turnos */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Clock className="h-5 w-5" />
-                            Turnos Configurados
-                        </CardTitle>
-                        <CardDescription>
-                            Lista de todos os turnos disponíveis para agendamentos
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingTurnos ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <div className="w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                <Ban className="w-6 h-6 text-destructive" />
                             </div>
-                        ) : turnos.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                Nenhum turno configurado. Clique em "Criar Turno" para começar.
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Horário</TableHead>
-                                        <TableHead>Recorrência</TableHead>
-                                        <TableHead>Vagas</TableHead>
-                                        <TableHead>Setores</TableHead>
-                                        <TableHead>Cor</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {turnos.map((turno) => (
-                                        <TableRow key={turno.id}>
-                                            <TableCell className="font-medium">
-                                                {turno.horaInicio} - {turno.horaFim}
-                                            </TableCell>
-                                            <TableCell>
-                                                {getRecorrenciaTexto(turno.tipoRecorrencia)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="outline">{turno.vagasTotal} vagas</Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex flex-wrap gap-1">
-                                                    {turno.setores.slice(0, 2).map((setor: string) => (
-                                                        <Badge key={setor} variant="secondary" className="text-xs">
-                                                            {setor}
-                                                        </Badge>
-                                                    ))}
-                                                    {turno.setores.length > 2 && (
-                                                        <Badge variant="secondary" className="text-xs">
-                                                            +{turno.setores.length - 2}
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className={`w-6 h-6 rounded-full ${getCorBadge(turno.cor)}`} />
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex justify-end gap-2">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleEditarTurno(turno)}
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDeletarTurno(turno)}
-                                                        disabled={deletando}
-                                                        className="text-destructive hover:text-destructive"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* Tabela de Agendamentos */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Calendar className="h-5 w-5" />
-                            Agendamentos Recentes
-                        </CardTitle>
-                        <CardDescription>
-                            Agendamentos dos últimos 30 dias e próximos 30 dias
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingAgendamentos ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : agendamentos.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                Nenhum agendamento encontrado no período.
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Colaborador</TableHead>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Horário</TableHead>
-                                        <TableHead>Setor</TableHead>
-                                        <TableHead>Categoria</TableHead>
-                                        <TableHead>OS</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {agendamentos.slice(0, 10).map((agendamento) => (
-                                        <TableRow key={agendamento.id}>
-                                            <TableCell className="font-medium">
-                                                {agendamento.usuarioNome || '-'}
-                                            </TableCell>
-                                            <TableCell>
-                                                {formatarData(agendamento.data)}
-                                            </TableCell>
-                                            <TableCell>
-                                                {agendamento.horarioInicio} - {agendamento.horarioFim}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge variant="secondary">
-                                                    <Briefcase className="h-3 w-3 mr-1" />
-                                                    {agendamento.setor}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>
-                                                {agendamento.categoria}
-                                            </TableCell>
-                                            <TableCell>
-                                                {agendamento.osCodigo || '-'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={agendamento.status === 'confirmado' ? 'default' : 'secondary'}
-                                                >
-                                                    {agendamento.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {agendamento.status !== 'cancelado' && (
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleCancelarAgendamento(agendamento)}
-                                                        disabled={cancelandoAgendamento}
-                                                        className="text-destructive hover:text-destructive"
-                                                        title="Cancelar agendamento"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        )}
-                        {agendamentos.length > 10 && (
-                            <div className="text-center py-4 text-sm text-muted-foreground">
-                                Exibindo 10 de {agendamentos.length} agendamentos
-                            </div>
-                        )}
-                    </CardContent>
-                </Card>
-
-                {/* v2.0: Tabela de Bloqueios */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Lock className="h-5 w-5" />
-                            Bloqueios do Calendário
-                        </CardTitle>
-                        <CardDescription>
-                            Datas e horários bloqueados para agendamentos
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        {loadingBloqueios ? (
-                            <div className="flex items-center justify-center py-8">
-                                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                            </div>
-                        ) : bloqueios.length === 0 ? (
-                            <div className="text-center py-8 text-muted-foreground">
-                                Nenhum bloqueio configurado. Clique em "Bloquear Horário" para criar.
-                            </div>
-                        ) : (
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Período</TableHead>
-                                        <TableHead>Horário</TableHead>
-                                        <TableHead>Motivo</TableHead>
-                                        <TableHead>Setor</TableHead>
-                                        <TableHead>Descrição</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Ações</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {bloqueios.map((bloqueio) => {
-                                        const cor = getBloqueioColor(bloqueio.motivo);
-                                        return (
-                                            <TableRow key={bloqueio.id}>
-                                                <TableCell className="font-medium">
-                                                    {formatarData(bloqueio.dataInicio)}
-                                                    {bloqueio.dataInicio !== bloqueio.dataFim && (
-                                                        <> - {formatarData(bloqueio.dataFim)}</>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    {bloqueio.diaInteiro ? (
-                                                        <Badge variant="secondary">Dia inteiro</Badge>
-                                                    ) : (
-                                                        <span className="text-sm">
-                                                            {bloqueio.horaInicio} - {bloqueio.horaFim}
-                                                        </span>
-                                                    )}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge
-                                                        style={{
-                                                            backgroundColor: cor.bgSolid,
-                                                            color: cor.badge.text,
-                                                            borderColor: cor.border,
-                                                        }}
-                                                    >
-                                                        {BLOQUEIO_MOTIVO_LABELS[bloqueio.motivo] || bloqueio.motivo}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell>
-                                                    {bloqueio.setorSlug || 'Todos'}
-                                                </TableCell>
-                                                <TableCell className="max-w-[200px] truncate">
-                                                    {bloqueio.descricao || '-'}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Badge variant={bloqueio.ativo ? 'default' : 'secondary'}>
-                                                        {bloqueio.ativo ? 'Ativo' : 'Inativo'}
-                                                    </Badge>
-                                                </TableCell>
-                                                <TableCell className="text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() => handleDeletarBloqueio(bloqueio.id)}
-                                                        disabled={deletandoBloqueio}
-                                                        className="text-destructive hover:text-destructive"
-                                                        title="Remover bloqueio"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
-                                                </TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        )}
+                        </div>
                     </CardContent>
                 </Card>
             </div>
+
+            {/* Tabs com as 3 Tabelas */}
+            <Tabs defaultValue="turnos" className="w-full">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="turnos" className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        Turnos ({turnos.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="agendamentos" className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        Agendamentos ({agendamentos.length})
+                    </TabsTrigger>
+                    <TabsTrigger value="bloqueios" className="flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Bloqueios ({bloqueios.filter(b => b.ativo).length})
+                    </TabsTrigger>
+                </TabsList>
+
+                {/* Tab: Turnos */}
+                <TabsContent value="turnos">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">Turnos Configurados</CardTitle>
+                            <CardDescription>
+                                Lista de todos os turnos disponíveis para agendamentos
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingTurnos ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : turnos.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    Nenhum turno configurado. Clique em "Criar Turno" para começar.
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Horário</TableHead>
+                                            <TableHead>Recorrência</TableHead>
+                                            <TableHead>Vagas</TableHead>
+                                            <TableHead>Setores</TableHead>
+                                            <TableHead>Cor</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {turnos.map((turno) => (
+                                            <TableRow key={turno.id}>
+                                                <TableCell className="font-medium">
+                                                    {turno.horaInicio} - {turno.horaFim}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {getRecorrenciaTexto(turno.tipoRecorrencia)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{turno.vagasTotal} vagas</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="flex flex-wrap gap-1">
+                                                        {turno.setores.slice(0, 2).map((setor: string) => (
+                                                            <Badge key={setor} variant="secondary" className="text-xs">
+                                                                {setor}
+                                                            </Badge>
+                                                        ))}
+                                                        {turno.setores.length > 2 && (
+                                                            <Badge variant="secondary" className="text-xs">
+                                                                +{turno.setores.length - 2}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className={`w-6 h-6 rounded-full ${getCorBadge(turno.cor)}`} />
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    <div className="flex justify-end gap-2">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleEditarTurno(turno)}
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDeletarTurno(turno)}
+                                                            disabled={deletando}
+                                                            className="text-destructive hover:text-destructive"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab: Agendamentos */}
+                <TabsContent value="agendamentos">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">Agendamentos Recentes</CardTitle>
+                            <CardDescription>
+                                Agendamentos dos últimos 30 dias e próximos 30 dias
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingAgendamentos ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : agendamentos.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    Nenhum agendamento encontrado no período.
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Colaborador</TableHead>
+                                            <TableHead>Data</TableHead>
+                                            <TableHead>Horário</TableHead>
+                                            <TableHead>Setor</TableHead>
+                                            <TableHead>Categoria</TableHead>
+                                            <TableHead>OS</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {agendamentos.slice(0, 10).map((agendamento) => (
+                                            <TableRow key={agendamento.id}>
+                                                <TableCell className="font-medium">
+                                                    {agendamento.usuarioNome || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {formatarData(agendamento.data)}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {agendamento.horarioInicio} - {agendamento.horarioFim}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="secondary">
+                                                        <Briefcase className="h-3 w-3 mr-1" />
+                                                        {agendamento.setor}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    {agendamento.categoria}
+                                                </TableCell>
+                                                <TableCell>
+                                                    {agendamento.osCodigo || '-'}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={agendamento.status === 'confirmado' ? 'default' : 'secondary'}
+                                                    >
+                                                        {agendamento.status}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {agendamento.status !== 'cancelado' && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleCancelarAgendamento(agendamento)}
+                                                            disabled={cancelandoAgendamento}
+                                                            className="text-destructive hover:text-destructive"
+                                                            title="Cancelar agendamento"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                    </TableBody>
+                                </Table>
+                            )}
+                            {agendamentos.length > 10 && (
+                                <div className="text-center py-4 text-sm text-muted-foreground">
+                                    Exibindo 10 de {agendamentos.length} agendamentos
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* Tab: Bloqueios */}
+                <TabsContent value="bloqueios">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-xl">Bloqueios do Calendário</CardTitle>
+                            <CardDescription>
+                                Datas e horários bloqueados para agendamentos
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {loadingBloqueios ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                                </div>
+                            ) : bloqueios.length === 0 ? (
+                                <div className="text-center py-8 text-muted-foreground">
+                                    Nenhum bloqueio configurado. Clique em "Bloquear Horário" para criar.
+                                </div>
+                            ) : (
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Período</TableHead>
+                                            <TableHead>Horário</TableHead>
+                                            <TableHead>Motivo</TableHead>
+                                            <TableHead>Setor</TableHead>
+                                            <TableHead>Descrição</TableHead>
+                                            <TableHead>Status</TableHead>
+                                            <TableHead className="text-right">Ações</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {bloqueios.map((bloqueio) => {
+                                            const cor = getBloqueioColor(bloqueio.motivo);
+                                            return (
+                                                <TableRow key={bloqueio.id}>
+                                                    <TableCell className="font-medium">
+                                                        {formatarData(bloqueio.dataInicio)}
+                                                        {bloqueio.dataInicio !== bloqueio.dataFim && (
+                                                            <> - {formatarData(bloqueio.dataFim)}</>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {bloqueio.diaInteiro ? (
+                                                            <Badge variant="secondary">Dia inteiro</Badge>
+                                                        ) : (
+                                                            <span className="text-sm">
+                                                                {bloqueio.horaInicio} - {bloqueio.horaFim}
+                                                            </span>
+                                                        )}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge
+                                                            style={{
+                                                                backgroundColor: cor.bgSolid,
+                                                                color: cor.badge.text,
+                                                                borderColor: cor.border,
+                                                            }}
+                                                        >
+                                                            {BLOQUEIO_MOTIVO_LABELS[bloqueio.motivo] || bloqueio.motivo}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        {bloqueio.setorSlug || 'Todos'}
+                                                    </TableCell>
+                                                    <TableCell className="max-w-[200px] truncate">
+                                                        {bloqueio.descricao || '-'}
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={bloqueio.ativo ? 'default' : 'secondary'}>
+                                                            {bloqueio.ativo ? 'Ativo' : 'Inativo'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleDeletarBloqueio(bloqueio.id)}
+                                                            disabled={deletandoBloqueio}
+                                                            className="text-destructive hover:text-destructive"
+                                                            title="Remover bloqueio"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
 
             {/* Modais */}
             <Suspense fallback={null}>

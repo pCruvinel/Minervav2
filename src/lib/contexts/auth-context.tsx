@@ -182,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       avatar_url,
       pode_delegar,
       pode_aprovar,
+      cliente_id, // Para usuários do tipo cliente (Portal)
     };
   };
 

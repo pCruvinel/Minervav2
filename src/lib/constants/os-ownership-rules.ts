@@ -17,7 +17,7 @@
 /**
  * Slugs dos cargos que podem ser donos de etapas
  */
-export type CargoSlug = 
+export type CargoSlug =
   | 'coord_administrativo'
   | 'coord_assessoria'
   | 'coord_obras'
@@ -27,7 +27,7 @@ export type CargoSlug =
 
 /**
  * Slugs dos setores correspondentes
- */  
+ */
 export type SetorSlug = 'administrativo' | 'assessoria' | 'obras';
 
 /**
@@ -252,22 +252,26 @@ const OS_11_RULE: OSOwnershipRule = {
 /**
  * OS 12: Execução de Assessoria Recorrente
  * 
- * Fluxo complexo com múltiplas trocas:
- * 1. Admin (Cadastro)
- * 2. Assessoria (Anexar ART/Plano)
- * 3. Admin (Agendar Visita)
- * 4. Assessoria (Realizar Visita)
+ * Fluxo complexo com múltiplas trocas (8 etapas):
+ * 1. Admin (Cadastro Cliente e Portal)
+ * 2. Assessoria (Anexar ART)
+ * 3. Assessoria (Plano de Manutenção)
+ * 4. Admin (Agendar Visita)
+ * 5. Admin (Realizar Visita)
+ * 6. Admin (Agendar Visita Recorrente)
+ * 7. Assessoria (Realizar Visita Recorrente)
+ * 8. Assessoria (Concluir e Ativar Contrato)
  */
 const OS_12_RULE: OSOwnershipRule = {
   osType: 'OS-12',
   osName: 'Execução de Assessoria Recorrente',
   initiator: 'coord_administrativo',
-  totalSteps: 6,
+  totalSteps: 8,
   stageOwners: [
-    { range: [1, 1], cargo: 'coord_administrativo', setor: 'administrativo' },
-    { range: [2, 2], cargo: 'coord_assessoria', setor: 'assessoria' },
-    { range: [3, 3], cargo: 'coord_administrativo', setor: 'administrativo' },
-    { range: [4, 6], cargo: 'coord_assessoria', setor: 'assessoria' },
+    { range: [1, 1], cargo: 'coord_administrativo', setor: 'administrativo' },  // Cadastro
+    { range: [2, 3], cargo: 'coord_assessoria', setor: 'assessoria' },          // ART + Plano
+    { range: [4, 6], cargo: 'coord_administrativo', setor: 'administrativo' },  // Agendar Visita + Realizar + Agendar Recorrente
+    { range: [7, 8], cargo: 'coord_assessoria', setor: 'assessoria' },          // Realizar Recorrente + Concluir
   ],
   handoffPoints: [
     {
@@ -275,24 +279,25 @@ const OS_12_RULE: OSOwnershipRule = {
       toStep: 2,
       toCargo: 'coord_assessoria',
       toSetor: 'assessoria',
-      description: 'Transferir para Assessoria para anexar ART/Plano',
+      description: 'Transferir para Assessoria para anexar ART',
     },
     {
-      fromStep: 2,
-      toStep: 3,
+      fromStep: 3,
+      toStep: 4,
       toCargo: 'coord_administrativo',
       toSetor: 'administrativo',
       description: 'Retornar para Admin para agendar visita',
     },
     {
-      fromStep: 3,
-      toStep: 4,
+      fromStep: 6,
+      toStep: 7,
       toCargo: 'coord_assessoria',
       toSetor: 'assessoria',
-      description: 'Transferir para Assessoria para realizar visita',
+      description: 'Transferir para Assessoria para realizar visita recorrente',
     },
   ],
 };
+
 
 /**
  * OS 13: Obra Complexa

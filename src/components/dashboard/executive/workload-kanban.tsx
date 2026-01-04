@@ -39,7 +39,7 @@ import { cn } from '@/lib/utils';
 
 export function WorkloadKanban() {
     const { workloads, loading, error } = useCoordinatorsWorkload();
-    
+
     // Estado: IDs dos coordenadores selecionados (todos por padrão)
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
@@ -57,8 +57,8 @@ export function WorkloadKanban() {
 
     // Toggle de seleção
     const toggleCoordinator = (id: string) => {
-        setSelectedIds(prev => 
-            prev.includes(id) 
+        setSelectedIds(prev =>
+            prev.includes(id)
                 ? prev.filter(existingId => existingId !== id)
                 : [...prev, id]
         );
@@ -106,7 +106,7 @@ export function WorkloadKanban() {
                     <Badge variant="outline" className="text-muted-foreground">
                         {workloads.reduce((sum, w) => sum + w.total, 0)} OS ativas no total
                     </Badge>
-                    <CoordinatorFilter 
+                    <CoordinatorFilter
                         coordinators={workloads}
                         selectedIds={selectedIds}
                         onToggle={toggleCoordinator}
@@ -121,9 +121,9 @@ export function WorkloadKanban() {
                         const coord = workloads.find(w => w.coordenador_id === id);
                         if (!coord) return null;
                         return (
-                            <Badge 
-                                key={id} 
-                                variant="secondary" 
+                            <Badge
+                                key={id}
+                                variant="secondary"
                                 className="pl-2 pr-1 py-1 flex items-center gap-2 transition-all hover:bg-secondary/80"
                             >
                                 <Avatar className="h-4 w-4">
@@ -162,7 +162,7 @@ export function WorkloadKanban() {
                 // Kanban Board Dinâmico
                 <div className="flex gap-6 overflow-x-auto pb-4">
                     {filteredWorkloads.map((workload, index) => (
-                        <div 
+                        <div
                             key={workload.coordenador_id}
                             className="flex-shrink-0 w-[350px] animate-in slide-in-from-left duration-300"
                             style={{ animationDelay: `${index * 50}ms` }}
@@ -329,7 +329,7 @@ function OSCard({ os }: OSCardProps) {
         <Link
             to="/os/$osId"
             params={{ osId: os.id }}
-            className="block"
+            className="block no-underline hover:no-underline"
         >
             <Card className={cn(
                 'p-3 hover:shadow-md transition-shadow cursor-pointer',

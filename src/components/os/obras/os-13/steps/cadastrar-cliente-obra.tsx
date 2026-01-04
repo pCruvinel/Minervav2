@@ -21,10 +21,9 @@
  * ```
  */
 
-import { forwardRef, useImperativeHandle, useState, useEffect } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import { logger } from '@/lib/utils/logger';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -33,21 +32,21 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar } from '@/components/ui/calendar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, AlertCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/components/ui/utils';
 import { toast } from '@/lib/utils/safe-toast';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 // Hooks
-import { useClientes, useUpdateCliente } from '@/lib/hooks/use-clientes';
+import { useClientes } from '@/lib/hooks/use-clientes';
 import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
-import { useClienteDocumentos } from '@/lib/hooks/use-cliente-documentos';
+import { type TipoDocumento } from '@/lib/hooks/use-cliente-documentos';
 import { FileUploadUnificado, FileWithComment } from '@/components/ui/file-upload-unificado';
 import { supabase } from '@/lib/supabase-client';
 
 // Validação
-import { steps } from '@/components/os/obras/os-13/pages/os13-workflow-page';
+import { steps } from '@/components/os/obras/os-13/pages/constants';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
 import { cadastrarClienteObraSchema, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
 
@@ -82,22 +81,74 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
     // Hooks
     const { clientes: leads, loading: loadingLeads } = useClientes('LEAD');
-    const { generateCentroCusto, createCentroCustoWithId } = useCentroCusto();
-    const { uploadDocumentos } = useClienteDocumentos();
+    const { createCentroCustoWithId } = useCentroCusto();
     const { mutate: createOS } = useCreateOSWorkflow();
 
     // Cliente selecionado
     const selectedLead = leads.find(l => l.id === data.clienteId);
 
-    // Pré-selecionar cliente quando clienteId é fornecido via prop (vindo de OS pai)
-    useEffect(() => {
-      if (clienteId && !data.clienteId && leads.length > 0) {
-        const cliente = leads.find(l => l.id === clienteId);
-        if (cliente) {
-          onDataChange({ ...data, clienteId });
+    /**
+     * Registra arquivos já uploadados pelo FileUploadUnificado na tabela clientes_documentos
+     * Os arquivos já estão no Storage, apenas precisamos registrar os metadados no banco
+     */
+    const registerUploadedDocuments = async (
+      files: FileWithComment[],
+      tipo: TipoDocumento
+    ): Promise<void> => {
+      if (!files || files.length === 0 || !data.clienteId) return;
+
+      logger.log(`📁 Registrando ${files.length} ${tipo} no banco...`);
+
+      for (const fileItem of files) {
+        // Verificar se já foi registrado (tem ID do banco)
+        // FileWithComment do FileUploadUnificado já tem url e path preenchidos
+        if (!fileItem.url || !fileItem.path) {
+          logger.warn(`⚠️ Arquivo ${fileItem.name} não tem URL/path, pulando...`);
+          continue;
+        }
+
+        // Registrar no banco de dados (insert simples, sem upsert)
+        const { error } = await supabase
+          .from('clientes_documentos')
+          .insert({
+            cliente_id: data.clienteId,
+            tipo_documento: tipo,
+            nome_arquivo: fileItem.name,
+            caminho_storage: fileItem.path,
+            mime_type: fileItem.type,
+            tamanho_bytes: fileItem.size,
+          });
+
+        if (error) {
+          // Se for erro de duplicata, ignorar (documento já registrado)
+          if (error.code === '23505') {
+            logger.log(`ℹ️ Documento ${fileItem.name} já registrado, pulando...`);
+          } else {
+            logger.error(`❌ Erro ao registrar ${fileItem.name}:`, error);
+          }
+          // Não lançar erro, continuar com próximo arquivo
         }
       }
-    }, [clienteId, data, onDataChange, leads]);
+
+      logger.log(`✅ ${files.length} ${tipo} registrados`);
+    };
+
+    // Pré-selecionar cliente quando clienteId é fornecido via prop (vindo de OS pai)
+    const hasPreselectedClient = useRef(false);
+    useEffect(() => {
+      // Só executar uma vez quando:
+      // 1. Tem clienteId da prop (vindo da URL)
+      // 2. Leads já carregaram
+      // 3. Ainda não pré-selecionamos
+      if (clienteId && leads.length > 0 && !hasPreselectedClient.current) {
+        const cliente = leads.find(l => l.id === clienteId);
+        if (cliente) {
+          logger.log('🔗 Pré-selecionando cliente da OS pai:', cliente.nome_razao_social);
+          onDataChange({ ...data, clienteId });
+          hasPreselectedClient.current = true;
+        }
+      }
+    }, [clienteId, leads]);
 
     // ... (generatePassword and validate functions remain the same) ...
 
@@ -143,25 +194,26 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
         // 1. (Removido) Atualização de senha feita via fluxo de convite
 
 
-        // 2. Upload de documentos do cliente (paralelo)
-        logger.log('📤 Fazendo upload de documentos do cliente...');
-        const user = (await supabase.auth.getUser()).data.user;
-        const uploadedBy = user?.id || '';
+        // 2. Registrar documentos do cliente no banco (já foram uploadados pelo FileUploadUnificado)
+        logger.log('📁 Registrando documentos do cliente no banco...');
 
         await Promise.all([
-          uploadDocumentos(data.clienteId, 'documento_foto', data.documentosFoto, uploadedBy),
-          uploadDocumentos(data.clienteId, 'comprovante_residencia', data.comprovantesResidencia, uploadedBy),
-          uploadDocumentos(data.clienteId, 'contrato_social', data.contratoSocial, uploadedBy),
+          registerUploadedDocuments(data.documentosFoto, 'documento_foto'),
+          registerUploadedDocuments(data.comprovantesResidencia, 'comprovante_residencia'),
+          registerUploadedDocuments(data.contratoSocial, 'contrato_social'),
           data.logoCliente && data.logoCliente.length > 0
-            ? uploadDocumentos(data.clienteId, 'logo_cliente', data.logoCliente, uploadedBy)
+            ? registerUploadedDocuments(data.logoCliente, 'logo_cliente')
             : Promise.resolve()
         ]);
 
         // 3. Gerar Centro de Custo
         logger.log('🏗️ Gerando Centro de Custo...');
 
-        // 3. Criar ou recuperar OS primeiro
-        let currentOsId = initialOsId;
+        // 3. Obter usuário logado
+        const { data: { user } } = await supabase.auth.getUser();
+
+        // 4. Criar ou recuperar OS primeiro
+        let currentOsId: string | undefined = initialOsId;
         let osCreatedNow = false;
 
         if (!currentOsId) {
@@ -250,9 +302,11 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
           .update({ cc_id: cc.id })
           .eq('id', currentOsId);
 
-        // 6. Upload de contrato assinado (documento da OS)
+        // 7. Upload de contrato assinado (documento da OS)
         // Agora temos certeza que currentOsId existe
-        logger.log('📤 Fazendo upload do contrato assinado...');
+        logger.log('📤 Registrando contrato assinado...');
+        const uploadedBy = user?.id || null;
+
         for (const file of data.contratoAssinado) {
           await supabase.from('os_documentos').insert({
             os_id: currentOsId,

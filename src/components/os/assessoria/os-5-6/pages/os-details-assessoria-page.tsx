@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
 import { toast } from '@/lib/utils/safe-toast';
 import { supabase } from '@/lib/supabase-client';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
@@ -13,6 +14,9 @@ import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
 import { useOS } from '@/lib/hooks/use-os';
+import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
+import { TransferenciaInfo } from '@/types/os-setor-config';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 // Componentes compartilhados
 import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
@@ -104,6 +108,14 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const [showLeadCombobox, setShowLeadCombobox] = useState(false);
   const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Estado para feedback de transferência de setor
+  const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
+  const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+  // Hooks de transferência
+  const { executarTransferencia } = useTransferenciaSetor();
+  useAuth(); // Para garantir que o contexto está disponivel
 
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
@@ -324,9 +336,31 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
     // Avançar para próxima etapa
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-      setLastActiveStep(currentStep + 1);
-      logger.log('✅ Avançado para etapa:', currentStep + 1);
+      const nextStep = currentStep + 1;
+
+      // Verificar se há transferência de setor (OS 5-6 não tem handoffs, mas mantemos por consistência)
+      const osTypeCodigo = (formDataByStep[2]?.tipoOS || tipoOS) as string; // 'OS-05' ou 'OS-06'
+      if (osId && osTypeCodigo) {
+        const resultado = await executarTransferencia({
+          osId,
+          osType: osTypeCodigo,
+          etapaAtual: currentStep,
+          proximaEtapa: nextStep,
+          clienteNome: (etapa1Data.nome as string) || 'Cliente',
+          codigoOS: os?.codigo_os
+        });
+
+        if (resultado.success && resultado.transferencia) {
+          // Mostrar modal de feedback
+          setTransferenciaInfo(resultado.transferencia);
+          setIsTransferenciaModalOpen(true);
+          return;
+        }
+      }
+
+      setCurrentStep(nextStep);
+      setLastActiveStep(nextStep);
+      logger.log('✅ Avançado para etapa:', nextStep);
       toast.success('Etapa concluída!', { icon: '✅' });
     }
   };
@@ -771,6 +805,16 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
           </Card>
         </div>
       </div>
+
+      {/* Modal de Feedback de Transferência */}
+      {transferenciaInfo && (
+        <FeedbackTransferencia
+          isOpen={isTransferenciaModalOpen}
+          onClose={() => setIsTransferenciaModalOpen(false)}
+          transferencia={transferenciaInfo}
+          osId={osId || ''}
+        />
+      )}
     </div>
   );
 }

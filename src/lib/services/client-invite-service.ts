@@ -30,6 +30,7 @@ export interface InviteStatus {
   invitedAt?: string;
   inviteAccepted: boolean;
   authUserId?: string;
+  portalAtivo: boolean;
 }
 
 /**
@@ -142,30 +143,54 @@ export async function sendClientInvite(payload: InviteClientPayload): Promise<In
  */
 export async function checkClientInviteStatus(clienteId: string): Promise<InviteStatus> {
   try {
-    const { data, error } = await supabase
+    // Tentar buscar com portal_ativo (se a coluna existir)
+    let data;
+    let error;
+
+    // Primeiro tenta com portal_ativo
+    const result = await supabase
       .from('clientes')
-      .select('auth_user_id, portal_convidado_em')
+      .select('auth_user_id, portal_convidado_em, portal_ativo')
       .eq('id', clienteId)
       .single();
 
+    // Se der erro 42703 (coluna não existe), tenta sem portal_ativo
+    if (result.error?.code === '42703') {
+      logger.log('⚠️ Coluna portal_ativo não existe ainda, usando fallback');
+      const fallback = await supabase
+        .from('clientes')
+        .select('auth_user_id, portal_convidado_em')
+        .eq('id', clienteId)
+        .single();
+
+      data = fallback.data;
+      error = fallback.error;
+    } else {
+      data = result.data;
+      error = result.error;
+    }
+
     if (error) {
       logger.warn('⚠️ Erro ao verificar status do convite:', error);
-      return { hasInvite: false, inviteAccepted: false };
+      return { hasInvite: false, inviteAccepted: false, portalAtivo: true };
     }
 
     const hasInvite = !!data?.portal_convidado_em;
     const inviteAccepted = !!data?.auth_user_id;
+    // portal_ativo defaults to true if not set or column doesn't exist
+    const portalAtivo = (data as any)?.portal_ativo !== false;
 
     return {
       hasInvite,
       invitedAt: data?.portal_convidado_em,
       inviteAccepted,
-      authUserId: data?.auth_user_id
+      authUserId: data?.auth_user_id,
+      portalAtivo
     };
 
   } catch (err) {
     logger.error('❌ Erro ao verificar status do convite:', err);
-    return { hasInvite: false, inviteAccepted: false };
+    return { hasInvite: false, inviteAccepted: false, portalAtivo: true };
   }
 }
 
@@ -196,10 +221,46 @@ export async function resendClientInvite(payload: InviteClientPayload): Promise<
   }
 }
 
+/**
+ * Toggle de acesso ao portal do cliente (ativar/desativar)
+ */
+export async function togglePortalAccess(
+  clienteId: string,
+  ativo: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    logger.log(`🔄 Toggle acesso portal: ${ativo ? 'ATIVANDO' : 'DESATIVANDO'}`, { clienteId });
+
+    const { error } = await supabase
+      .from('clientes')
+      .update({ portal_ativo: ativo })
+      .eq('id', clienteId);
+
+    if (error) {
+      logger.error('❌ Erro ao atualizar acesso ao portal:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+
+    logger.log(`✅ Acesso ao portal ${ativo ? 'ativado' : 'desativado'} com sucesso`);
+    return { success: true };
+
+  } catch (err) {
+    logger.error('❌ Erro inesperado ao toggle acesso:', err);
+    return {
+      success: false,
+      error: err instanceof Error ? err.message : 'Erro inesperado'
+    };
+  }
+}
+
 export const ClientInviteService = {
   sendInvite: sendClientInvite,
   checkStatus: checkClientInviteStatus,
-  resendInvite: resendClientInvite
+  resendInvite: resendClientInvite,
+  togglePortalAccess: togglePortalAccess
 };
 
 export default ClientInviteService;

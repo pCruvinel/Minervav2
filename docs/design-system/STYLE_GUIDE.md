@@ -1,6 +1,17 @@
-# Guia de Estilo e Desenvolvimento - Minerva v2
+# ⚠️ DOCUMENTO DEPRECIADO
 
-Este documento serve como a fonte da verdade para o Design System implícito do projeto Minerva v2. Ele foi extraído da análise do código existente (`index.css`, componentes UI e páginas de fluxo) para garantir consistência visual e técnica.
+> [!CAUTION]
+> **Este documento foi DEPRECIADO em 2026-01-02.**  
+> Use o documento oficial: **[DESIGN_SYSTEM.md](../technical/DESIGN_SYSTEM.md)**  
+> Este arquivo será mantido apenas para referência histórica.
+
+---
+
+# Guia de Estilo e Desenvolvimento - Minerva v2 (DEPRECIADO)
+
+~~Este documento serve como a fonte da verdade para o Design System implícito do projeto Minerva v2.~~ 
+
+**Consulte o documento oficial em `docs/technical/DESIGN_SYSTEM.md`.**
 
 ## 1. Design Tokens
 

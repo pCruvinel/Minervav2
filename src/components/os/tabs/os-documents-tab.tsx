@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import {
     Table,
     TableBody,
@@ -19,7 +20,11 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuTrigger
+    DropdownMenuTrigger,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent,
+    DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import {
     Select,
@@ -43,7 +48,11 @@ import {
     File,
     Image as ImageIcon,
     FileSpreadsheet,
-    FileCode
+    Lock,
+    Users,
+    Globe,
+    Link2,
+    Eye
 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
 import { useOSDocumentUpload, OSDocumento, VisibilidadeDocumento } from '@/lib/hooks/use-os-document-upload';
@@ -51,6 +60,8 @@ import { supabase } from '@/lib/supabase-client';
 
 interface OSDocumentsTabProps {
     osId: string;
+    /** IDs de OS relacionadas (Lead/Contrato) para buscar documentos unificados */
+    relatedOsIds?: string[];
 }
 
 const DOCUMENT_TYPES = [
@@ -64,16 +75,25 @@ const DOCUMENT_TYPES = [
     { value: 'outros', label: 'Outros' }
 ];
 
-export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
+// Tipo estendido para incluir origem, etapa e usuário
+interface OSDocumentoWithOrigin extends OSDocumento {
+    origemOsCodigo?: string;
+    isFromRelatedOS?: boolean;
+    descricao?: string;
+    nomeEtapa?: string;
+    enviadoPor?: string;
+}
+
+export function OSDocumentsTab({ osId, relatedOsIds = [] }: OSDocumentsTabProps) {
     const {
-        listDocuments,
         uploadDocument,
         deleteDocument,
+        updateDocumentVisibility,
         isUploading,
         uploadProgress
     } = useOSDocumentUpload(osId);
 
-    const [documents, setDocuments] = useState<OSDocumento[]>([]);
+    const [documents, setDocuments] = useState<OSDocumentoWithOrigin[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -84,18 +104,59 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
     const [description, setDescription] = useState('');
     const [visibilidade, setVisibilidade] = useState<VisibilidadeDocumento>('interno');
 
+    // Combinar todas as OS para busca unificada
+    const allOsIds = [osId, ...relatedOsIds].filter(Boolean);
+
     useEffect(() => {
         loadDocuments();
-    }, [osId]);
+    }, [osId, relatedOsIds.join(',')]);
 
     const loadDocuments = async () => {
         try {
             setIsLoading(true);
-            const docs = await listDocuments();
 
-            // Enriquecer com nomes de usuários (se necessário, o hook já poderia trazer, 
-            // mas vamos garantir que o array esteja seguro)
-            setDocuments(docs || []);
+            // Buscar documentos de todas as OS relacionadas com JOINs
+            const { data: docs, error } = await supabase
+                .from('os_documentos')
+                .select(`
+                    *,
+                    ordens_servico:os_id (
+                        codigo_os
+                    ),
+                    os_etapas:etapa_id (
+                        nome_etapa
+                    ),
+                    colaboradores:uploaded_by (
+                        nome_completo
+                    )
+                `)
+                .in('os_id', allOsIds)
+                .order('criado_em', { ascending: false });
+
+            if (error) {
+                console.error('Erro ao carregar documentos:', error);
+                toast.error('Não foi possível carregar os documentos.');
+                return;
+            }
+
+            // Enriquecer com informação de origem, etapa e usuário + URL pública
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const enrichedDocs: OSDocumentoWithOrigin[] = (docs || []).map((doc: any) => {
+                const { data: urlData } = supabase.storage
+                    .from('os-documents')
+                    .getPublicUrl(doc.caminho_arquivo);
+
+                return {
+                    ...doc,
+                    url: urlData.publicUrl,
+                    origemOsCodigo: doc.ordens_servico?.codigo_os || '',
+                    isFromRelatedOS: doc.os_id !== osId,
+                    nomeEtapa: doc.os_etapas?.nome_etapa || '',
+                    enviadoPor: doc.colaboradores?.nome_completo || ''
+                };
+            });
+
+            setDocuments(enrichedDocs);
         } catch (error) {
             console.error('Erro ao carregar documentos:', error);
             toast.error('Não foi possível carregar os documentos.');
@@ -147,7 +208,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
     };
 
     const handleDelete = async (docId: string) => {
-        if (!confirm('Tem certeza que deseja excluir este documento?')) return;
+        if (!window.confirm('Tem certeza que deseja excluir este documento?')) return;
 
         try {
             await deleteDocument(docId);
@@ -199,6 +260,25 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
         });
     };
 
+
+
+    const handleVisibilityChange = async (doc: OSDocumentoWithOrigin, novaVisibilidade: VisibilidadeDocumento) => {
+        try {
+            // Atualizar no banco
+            await updateDocumentVisibility(doc.id, novaVisibilidade);
+
+            // Atualizar estado local otimista
+            setDocuments(prev => prev.map(d =>
+                d.id === doc.id ? { ...d, visibilidade: novaVisibilidade } : d
+            ));
+
+            toast.success('Visibilidade atualizada com sucesso!');
+        } catch (error) {
+            console.error('Erro ao atualizar visibilidade:', error);
+            toast.error('Erro ao atualizar visibilidade.');
+        }
+    };
+
     const filteredDocuments = documents.filter(doc =>
         doc.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.descricao?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -209,7 +289,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
             <Card className="border-border rounded-lg shadow-sm">
                 <CardHeader>
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <CardTitle className="text-xl font-semibold">Drive</CardTitle>
+                        <CardTitle className="text-xl font-semibold">Todos os Anexos</CardTitle>
 
                         <div className="flex items-center gap-2 w-full sm:w-auto">
                             <Input
@@ -220,7 +300,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                             />
                             <Button onClick={() => setIsUploadModalOpen(true)}>
                                 <Upload className="w-4 h-4 mr-2" />
-                                Novo Documento
+                                Adicionar
                             </Button>
                         </div>
                     </div>
@@ -246,6 +326,11 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                         <TableHead className="w-[50px]"></TableHead>
                                         <TableHead>Arquivo</TableHead>
                                         <TableHead>Descrição</TableHead>
+                                        <TableHead>Etapa</TableHead>
+                                        <TableHead>Enviado por</TableHead>
+                                        {relatedOsIds.length > 0 && (
+                                            <TableHead>Origem</TableHead>
+                                        )}
                                         <TableHead>Visibilidade</TableHead>
                                         <TableHead>Tipo</TableHead>
                                         <TableHead>Enviado em</TableHead>
@@ -273,12 +358,36 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                                 {doc.descricao || '-'}
                                             </TableCell>
                                             <TableCell>
+                                                {doc.nomeEtapa ? (
+                                                    <span className="text-sm">{doc.nomeEtapa}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell>
+                                                {doc.enviadoPor ? (
+                                                    <span className="text-sm">{doc.enviadoPor}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">-</span>
+                                                )}
+                                            </TableCell>
+                                            {relatedOsIds.length > 0 && (
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={doc.isFromRelatedOS ? "secondary" : "outline"}
+                                                        className={doc.isFromRelatedOS ? "bg-primary/10 text-primary" : ""}
+                                                    >
+                                                        {doc.origemOsCodigo || '-'}
+                                                    </Badge>
+                                                </TableCell>
+                                            )}
+                                            <TableCell>
                                                 {doc.visibilidade === 'cliente' ? (
                                                     <Badge variant="secondary" className="bg-indigo-50 text-indigo-700 border-indigo-200">
                                                         Portal Cliente
                                                     </Badge>
                                                 ) : doc.visibilidade === 'publico' ? (
-                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+                                                    <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
                                                         Público
                                                     </Badge>
                                                 ) : (
@@ -298,8 +407,8 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                             <TableCell className="text-right">
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
-                                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                                            <MoreVertical className="h-4 w-4" />
+                                                        <Button variant="ghost" className="h-9 w-9 p-0">
+                                                            <MoreVertical className="h-5 w-5" />
                                                         </Button>
                                                     </DropdownMenuTrigger>
                                                     <DropdownMenuContent align="end">
@@ -307,9 +416,47 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                                                             <Download className="mr-2 h-4 w-4" />
                                                             Baixar
                                                         </DropdownMenuItem>
+
+                                                        <DropdownMenuSub>
+                                                            <DropdownMenuSubTrigger>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Visibilidade
+                                                            </DropdownMenuSubTrigger>
+                                                            <DropdownMenuSubContent>
+                                                                <DropdownMenuItem onClick={() => handleVisibilityChange(doc, 'interno')}>
+                                                                    <Lock className="mr-2 h-4 w-4 text-primary" />
+                                                                    Interno
+                                                                    {doc.visibilidade === 'interno' && <span className="ml-2 text-xs text-muted-foreground">(Atual)</span>}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleVisibilityChange(doc, 'cliente')}>
+                                                                    <Users className="mr-2 h-4 w-4 text-info" />
+                                                                    Cliente
+                                                                    {doc.visibilidade === 'cliente' && <span className="ml-2 text-xs text-muted-foreground">(Atual)</span>}
+                                                                </DropdownMenuItem>
+                                                                <DropdownMenuItem onClick={() => handleVisibilityChange(doc, 'publico')}>
+                                                                    <Globe className="mr-2 h-4 w-4 text-success" />
+                                                                    Público
+                                                                    {doc.visibilidade === 'publico' && <span className="ml-2 text-xs text-muted-foreground">(Atual)</span>}
+                                                                </DropdownMenuItem>
+                                                            </DropdownMenuSubContent>
+                                                        </DropdownMenuSub>
+
+                                                        <DropdownMenuSeparator />
+
+                                                        {doc.visibilidade === 'publico' && doc.url && (
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+                                                                    window.navigator.clipboard.writeText(doc.url || '');
+                                                                    toast.success('Link copiado para a área de transferência');
+                                                                }}
+                                                            >
+                                                                <Link2 className="mr-2 h-4 w-4" />
+                                                                Copiar Link
+                                                            </DropdownMenuItem>
+                                                        )}
                                                         <DropdownMenuItem
                                                             onClick={() => handleDelete(doc.id)}
-                                                            className="text-red-600 focus:text-red-600"
+                                                            className="text-destructive focus:text-destructive"
                                                         >
                                                             <Trash2 className="mr-2 h-4 w-4" />
                                                             Excluir
@@ -328,7 +475,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
 
             {/* Upload Modal */}
             <Dialog open={isUploadModalOpen} onOpenChange={setIsUploadModalOpen}>
-                <DialogContent>
+                <DialogContent className="max-w-md">
                     <DialogHeader>
                         <DialogTitle>Novo Documento</DialogTitle>
                         <DialogDescription>
@@ -365,7 +512,7 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Descrição (Opcional)</Label>
+                            <Label>Descrição</Label>
                             <Input
                                 placeholder="Ex: Assinado pelo cliente..."
                                 value={description}
@@ -375,16 +522,25 @@ export function OSDocumentsTab({ osId }: OSDocumentsTabProps) {
 
                         <div className="space-y-2">
                             <Label>Visibilidade</Label>
-                            <Select value={visibilidade} onValueChange={(v) => setVisibilidade(v as VisibilidadeDocumento)}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione a visibilidade..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="interno">🔒 Apenas Interno (Equipe)</SelectItem>
-                                    <SelectItem value="cliente">👥 Disponível no Portal do Cliente</SelectItem>
-                                    <SelectItem value="publico">🌍 Público (Link Externo)</SelectItem>
-                                </SelectContent>
-                            </Select>
+                            <ToggleGroup
+                                type="single"
+                                value={visibilidade}
+                                onValueChange={(v) => v && setVisibilidade(v as VisibilidadeDocumento)}
+                                className="w-full"
+                            >
+                                <ToggleGroupItem value="interno" className="flex-1 gap-2">
+                                    <Lock className={`w-4 h-4 ${visibilidade === 'interno' ? 'text-primary' : ''}`} />
+                                    Interno
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="cliente" className="flex-1 gap-2">
+                                    <Users className={`w-4 h-4 ${visibilidade === 'cliente' ? 'text-info' : ''}`} />
+                                    Cliente
+                                </ToggleGroupItem>
+                                <ToggleGroupItem value="publico" className="flex-1 gap-2">
+                                    <Globe className={`w-4 h-4 ${visibilidade === 'publico' ? 'text-success' : ''}`} />
+                                    Público
+                                </ToggleGroupItem>
+                            </ToggleGroup>
                         </div>
 
                         {isUploading && (

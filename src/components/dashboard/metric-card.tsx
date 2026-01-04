@@ -127,21 +127,28 @@ export function MetricCard({
     <Card
       className={`
         transition-all
-        ${modalStyles ? modalStyles.cardClass : 'hover:shadow-md p-6'}
-        ${(onClick || to) ? 'cursor-pointer hover:border-primary' : ''}
-        ${!modalVariant ? 'hover:shadow-md' : ''}
+        ${modalStyles ? modalStyles.cardClass : ''}
+        ${(onClick || to) ? 'cursor-pointer hover:border-primary hover:shadow-md' : ''}
       `}
       onClick={onClick}
     >
-      <CardContent className={modalStyles ? modalStyles.cardClass : "p-6"}>
-        <div className={`flex items-start justify-between ${modalStyles?.spacing || 'mb-4'}`}>
-          <div className={`${modalStyles?.iconSize || 'w-12 h-12'} rounded-lg ${style.bg} flex items-center justify-center`}>
-            <div className={`${modalStyles?.innerIconSize || 'w-10 h-10'} rounded-lg ${style.iconBg} flex items-center justify-center`}>
-              <Icon className={`w-5 h-5 ${style.iconColor}`} />
-            </div>
+      <CardContent className={modalStyles ? modalStyles.cardClass : "pt-6"}>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className={`${modalStyles?.titleSize || 'text-sm'} font-medium text-neutral-600`}>{title}</p>
+            <p className={`${modalStyles?.valueSize || 'text-2xl'} font-bold text-neutral-900 mt-1`}>{value}</p>
+            {description && (
+              <p className="text-xs text-neutral-500 mt-1">{description}</p>
+            )}
           </div>
 
-          {trend && modalVariant !== 'minimal' && (
+          <div className={`${modalStyles?.iconSize || 'w-12 h-12'} rounded-full ${style.iconBg} flex items-center justify-center shrink-0`}>
+            <Icon className={`${modalStyles?.innerIconSize || 'w-6 h-6'} ${style.iconColor}`} />
+          </div>
+        </div>
+
+        {trend && modalVariant !== 'minimal' && (
+          <div className="mt-3 flex items-center gap-2">
             <Badge
               variant="outline"
               className={`${getTrendColor()} flex items-center gap-1 text-xs`}
@@ -149,34 +156,20 @@ export function MetricCard({
               {getTrendIcon()}
               {trend.value > 0 ? '+' : ''}{trend.value}%
             </Badge>
-          )}
-        </div>
-
-        <div>
-          <p className={`${modalStyles?.titleSize || 'text-sm'} text-muted-foreground mb-1`}>{title}</p>
-          <p className={`${modalStyles?.valueSize || 'text-3xl'} font-semibold mb-2`}>{value}</p>
-
-          {description && (
-            <p className="text-xs text-muted-foreground">{description}</p>
-          )}
-
-          {trend && modalVariant !== 'minimal' && (
-            <p className="text-xs text-muted-foreground mt-2">
-              {trend.label}
-            </p>
-          )}
-        </div>
+            <span className="text-xs text-neutral-500">{trend.label}</span>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
 
   if (to) {
-      return (
-        <Link to={to} className="block h-full no-underline">
-          {cardContent}
-        </Link>
-      );
-    }
+    return (
+      <Link to={to} className="block h-full no-underline">
+        {cardContent}
+      </Link>
+    );
+  }
 
   return cardContent;
 }

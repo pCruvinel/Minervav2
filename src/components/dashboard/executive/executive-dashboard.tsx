@@ -1,11 +1,12 @@
 /**
  * ExecutiveDashboard - Container Principal
  *
- * Dashboard Executivo com 4 abas:
+ * Dashboard Executivo com 5 abas:
  * - Visão Geral (KPIs)
  * - Controladoria (Kanban de Carga)
  * - Auditoria (Logs)
  * - Avisos (Gerenciamento do Quadro de Avisos)
+ * - SLA (Configuração de prazos por etapa)
  *
  * Acesso restrito: admin, diretor, diretoria
  */
@@ -17,12 +18,14 @@ import { ExecutiveOverview } from './executive-overview';
 import { WorkloadKanban } from './workload-kanban';
 import { SystemAuditLog } from './system-audit-log';
 import { AnnouncementsManager } from './announcements-manager';
+import { SlaSettingsTab } from './sla-settings-tab';
 import {
     ShieldAlert,
     BarChart3,
     Users,
     FileSearch,
     Megaphone,
+    Timer,
     Loader2
 } from 'lucide-react';
 
@@ -78,7 +81,7 @@ export function ExecutiveDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-4 lg:w-[600px]">
+                <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <BarChart3 className="h-4 w-4" />
                         <span className="hidden sm:inline">Visão Geral</span>
@@ -99,6 +102,11 @@ export function ExecutiveDashboard() {
                         <span className="hidden sm:inline">Avisos</span>
                         <span className="sm:hidden">Avisos</span>
                     </TabsTrigger>
+                    <TabsTrigger value="sla" className="flex items-center gap-2">
+                        <Timer className="h-4 w-4" />
+                        <span className="hidden sm:inline">SLA</span>
+                        <span className="sm:hidden">SLA</span>
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -115,6 +123,10 @@ export function ExecutiveDashboard() {
 
                 <TabsContent value="announcements">
                     <AnnouncementsManager />
+                </TabsContent>
+
+                <TabsContent value="sla">
+                    <SlaSettingsTab />
                 </TabsContent>
             </Tabs>
         </div>

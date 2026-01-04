@@ -83,28 +83,56 @@ export function useCoordinatorsWorkload(): UseCoordinatorsWorkloadReturn {
 
       if (coordError) throw coordError;
 
-      // 2. Buscar todas as OSs ativas com responsável
+      // 2. Buscar todas as OSs ativas usando a view os_detalhes_completos (mesma fonte da página de detalhes)
       const { data: osAtivas, error: osError } = await supabase
-        .from('ordens_servico')
-        .select(`
-          id,
-          codigo_os,
-          status_geral,
-          data_prazo,
-          data_entrada,
-          responsavel_id,
-          clientes!cliente_id(nome_razao_social),
-          tipos_os!tipo_os_id(nome),
-          os_etapas(
-            nome_etapa,
-            status,
-            ordem
-          )
-        `)
+        .from('os_detalhes_completos')
+        .select('*')
         .not('status_geral', 'in', '("concluido","cancelado")')
         .order('data_entrada', { ascending: false });
 
-      if (osError) throw osError;
+      if (osError) {
+        // Se a view não existe, lançar erro (será tratado no catch)
+        throw new Error(`Erro ao buscar OSs: ${osError.message}. A view os_detalhes_completos pode não estar disponível.`);
+      }
+
+      // 3. Buscar etapas atuais de todas as OSs ativas
+      const osIds = (osAtivas || []).map((os: any) => os.id);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let etapasMap: Record<string, { nome: string; status: string }> = {};
+
+      if (osIds.length > 0) {
+        const { data: etapasData, error: etapasError } = await supabase
+          .from('os_etapas')
+          .select('os_id, nome_etapa, status, ordem')
+          .in('os_id', osIds)
+          .order('ordem', { ascending: true });
+
+        if (!etapasError && etapasData) {
+          // Para cada OS, encontrar a primeira etapa pendente ou em_andamento
+          const etapasPorOS: Record<string, typeof etapasData> = {};
+          etapasData.forEach((etapa) => {
+            if (!etapasPorOS[etapa.os_id]) {
+              etapasPorOS[etapa.os_id] = [];
+            }
+            etapasPorOS[etapa.os_id].push(etapa);
+          });
+
+          // Encontrar etapa atual para cada OS (primeira não concluída)
+          Object.entries(etapasPorOS).forEach(([osId, etapas]) => {
+            const etapaAtual = etapas.find(
+              (e) => e.status === 'pendente' || e.status === 'em_andamento'
+            );
+            if (etapaAtual) {
+              etapasMap[osId] = {
+                nome: etapaAtual.nome_etapa,
+                status: etapaAtual.status
+              };
+            }
+          });
+        }
+      }
+
 
       const hoje = new Date();
 
@@ -124,37 +152,33 @@ export function useCoordinatorsWorkload(): UseCoordinatorsWorkloadReturn {
         };
       });
 
-      // 4. Distribuir OSs
-      (osAtivas || []).forEach(os => {
+      // 4. Distribuir OSs (dados vêm da view os_detalhes_completos)
+      (osAtivas || []).forEach((os: any) => {
         const respId = os.responsavel_id;
         if (!respId || !workloadMap[respId]) return;
-
-        // Encontrar etapa atual (maior ordem não concluída)
-        const etapas = os.os_etapas || [];
-        const etapaAtual = etapas
-          .filter((e: any) => e.status !== 'concluido')
-          .sort((a: any, b: any) => a.ordem - b.ordem)[0];
 
         // Calcular prazo
         const prazoVencido = os.data_prazo ? new Date(os.data_prazo) < hoje : false;
 
-        // Calcular progresso baseado nas etapas
-        const totalEtapas = etapas.length;
-        const etapasConcluidas = etapas.filter((e: any) => e.status === 'concluido').length;
-        const progresso = totalEtapas > 0 ? Math.round((etapasConcluidas / totalEtapas) * 100) : 0;
+        // Progresso vem da view: etapas_concluidas_count / etapas_total_count
+        const totalEtapas = os.etapas_total_count || 0;
+        const etapasConcluidas = os.etapas_concluidas_count || 0;
+        const progresso = totalEtapas > 0
+          ? Math.round((etapasConcluidas / totalEtapas) * 100)
+          : 0;
+
+        // Etapa atual vem do mapa de etapas (buscado separadamente)
+        const etapaAtual = etapasMap[os.id] || null;
 
         const workloadOS: WorkloadOS = {
           id: os.id,
           codigo_os: os.codigo_os,
-          cliente_nome: os.clientes?.nome_razao_social || 'Cliente não informado',
-          tipo_os_nome: os.tipos_os?.nome || 'Tipo não informado',
+          cliente_nome: os.cliente_nome || 'Cliente não informado',
+          tipo_os_nome: os.tipo_os_nome || 'Tipo não informado',
           status_geral: os.status_geral,
           data_prazo: os.data_prazo,
           data_entrada: os.data_entrada,
-          etapa_atual: etapaAtual ? {
-            nome: etapaAtual.nome_etapa,
-            status: etapaAtual.status
-          } : null,
+          etapa_atual: etapaAtual,
           prazoVencido,
           progresso
         };

@@ -3,7 +3,7 @@
 > **FOCO ATUAL:** Estabilidade, Produção e Eliminação de Dívida Técnica.
 > **REGRA DE OURO:** Não use dados mockados para novas funcionalidades. Conecte ao Supabase.
 
-## 📊 Status do Projeto (Atualizado 01/12/2025)
+## 📊 Status do Projeto (Atualizado 02/01/2026)
 
 ### Supabase - Projeto MinervaV2
 - **Project ID**: `zxfevlkssljndqqhxkjb`
@@ -13,11 +13,21 @@
 
 ### Workflows de OS Implementados
 
-| OS | Nome | Status | Rota |
-|----|------|--------|------|
-| OS-10 | Requisição Mão de Obra | ✅ Implementado | `/os/criar/requisicao-mao-de-obra` |
-| OS-11 | Laudo Pontual | ✅ Implementado | `/os/criar/laudo-pontual` |
-| OS-12 | Assessoria Recorrente | ✅ Implementado | `/os/criar/assessoria-recorrente` |
+**Total**: 13 tipos de OS | **Status Geral**: ~75% implementado
+
+| OS | Nome | Status | Setor | Rota |
+|----|------|--------|-------|------|
+| OS-01 a 04 | Obras (Perícia/Revitalização/Reforço) | ⚠️ 95% | Obras | `/os/details-workflow/:id` |
+| OS-05, 06 | Assessoria Lead (Mensal/Avulsa) | ⚠️ 95% | Assessoria | `/os/criar/assessoria-lead` |
+| OS-07 | Aprovação de Reforma | ⚠️ 95% | Assessoria | `/os/criar/aprovacao-reforma` |
+| OS-08 | Visita Técnica / Parecer | ⚠️ 95% | Assessoria | `/os/criar/visita-tecnica` |
+| OS-09 | Requisição de Compras | ✅ 95% | Administrativo | `/os/criar/requisicao-compras` |
+| OS-10 | Requisição Mão de Obra | ✅ 95% | RH | `/os/criar/requisicao-mao-de-obra` |
+| OS-11 | Laudo Pontual Assessoria | ✅ 95% | Assessoria | `/os/criar/laudo-pontual` |
+| OS-12 | Assessoria Anual (Contrato) | ⚠️ 95% | Assessoria | `/os/criar/assessoria-recorrente` |
+| OS-13 | Start de Contrato de Obra | ✅ 95% | Obras | `/os/criar/start-contrato-obra` |
+
+**Legenda**: ✅ Completo e Testado | ⚠️ Implementado (pendente integração completa Supabase)
 
 ### 10 Funções de Colaborador do Sistema
 1. `admin` - Administrador (acesso total)
@@ -73,11 +83,41 @@ import {
 ```
 
 ### Hooks Existentes (Reutilizar)
-- `use-clientes.tsx` - CRUD de clientes
-- `use-agendamentos.ts` - Agendamentos e turnos
-- `use-pdf-generation.ts` - Geração de PDFs via Edge Function
+
+#### Hooks de Dados (CRUD)
+- `use-clientes.tsx` - CRUD de clientes (leads e clientes)
 - `use-ordens-servico.ts` - CRUD de ordens de serviço
 - `use-centro-custo.ts` - Geração de centro de custo (RPC)
+- `use-agendamentos.ts` - Agendamentos e turnos
+- `use-contratos.ts` - Gestão de contratos
+- `use-cliente-contratos.ts` - Contratos específicos do cliente
+
+#### Hooks de Documentos (Upload/Download)
+- `use-cliente-documentos.ts` - **Upload de docs do cliente** (RG, CNH, Contrato Social, etc.)
+- `use-os-document-upload.ts` - **Upload de docs de OS** (ART, relatórios, fotos, etc.)
+- `use-pdf-generation.ts` - Geração de PDFs via Edge Function
+
+#### Hooks de Workflow (Estado e Navegação)
+- `use-workflow-state.ts` - **Estado do workflow** (etapas, dados, salvamento)
+- `use-workflow-navigation.ts` - **Navegação entre etapas** (avançar, voltar, histórico)
+- `use-workflow-completion.ts` - **Validação de completude** das etapas
+
+#### Hooks de Transferência e Notificação
+- `use-transferencia-setor.ts` - **Handoffs automáticos** entre setores
+- `use-notificar-coordenador.ts` - **Notificações** para coordenadores
+- `use-notifications.ts` - Sistema geral de notificações
+
+#### Hooks de Dashboard e Métricas
+- `use-dashboard-data.ts` - Dados do dashboard por cargo
+- `use-coordinators-workload.ts` - Carga de trabalho dos coordenadores
+- `use-executive-metrics.ts` - Métricas executivas (direção)
+
+#### Hooks Auxiliares
+- `use-permissoes.ts` - Sistema de permissões por cargo
+- `use-os-hierarchy.ts` - Hierarquia de OS (pai/filha)
+- `use-viacep.ts` - Integração com ViaCEP
+- `use-setores.ts` - Gestão de setores
+- `use-tipos-os.ts` - Tipos de OS disponíveis
 
 ## 📐 Padrões de Arquitetura e Código
 
@@ -191,23 +231,58 @@ src/
 ├── components/        # Componentes React
 │   ├── ui/           # Shadcn/UI base components
 │   ├── os/           # Ordem de Serviço components
-│   │   ├── steps/    # Steps de workflow por OS
-│   │   │   ├── os10/ # Steps OS-10
-│   │   │   ├── os11/ # Steps OS-11
-│   │   │   └── os12/ # Steps OS-12
+│   │   ├── shared/   # Componentes compartilhados entre OS
+│   │   │   ├── pages/
+│   │   │   │   └── os-details-workflow-page.tsx  # Workflow OS-01 a 04
+│   │   │   ├── components/
+│   │   │   │   ├── workflow-stepper.tsx
+│   │   │   │   ├── workflow-footer.tsx
+│   │   │   │   └── feedback-transferencia.tsx
+│   │   │   └── steps/           # Steps compartilhados
+│   │   ├── obras/    # OS de Obras
+│   │   │   └── os-13/           # Start de Contrato de Obra (17 etapas)
+│   │   │       ├── pages/
+│   │   │       │   ├── os13-workflow-page.tsx
+│   │   │       │   └── constants.ts
+│   │   │       └── steps/
+│   │   │           ├── cadastrar-cliente-obra.tsx    # Etapa 1
+│   │   │           ├── step-anexar-art.tsx           # Etapa 2
+│   │   │           ├── step-relatorio-fotografico.tsx
+│   │   │           └── ... (15+ steps)
+│   │   └── assessoria/  # OS de Assessoria
+│   │       ├── os-5-6/  # Assessoria Lead
+│   │       ├── os-11/   # Laudo Pontual (6 etapas)
+│   │       └── os-12/   # Assessoria Anual (8 etapas)
 │   ├── layout/       # Layout components
 │   └── ...           # Feature-based folders
 ├── lib/
-│   ├── hooks/        # Custom hooks
-│   │   ├── use-os-workflows.ts  # Hook centralizado OS
+│   ├── hooks/        # Custom hooks (40+ hooks)
+│   │   ├── use-os-workflows.ts          # Hook centralizado OS
 │   │   ├── use-clientes.tsx
-│   │   ├── use-agendamentos.ts
-│   │   └── ...
+│   │   ├── use-cliente-documentos.ts    # ⚠️ Upload docs cliente
+│   │   ├── use-os-document-upload.ts    # ⚠️ Upload docs OS
+│   │   ├── use-workflow-state.ts        # ⚠️ Estado workflow
+│   │   ├── use-workflow-navigation.ts   # ⚠️ Navegação workflow
+│   │   ├── use-workflow-completion.ts   # ⚠️ Validação workflow
+│   │   ├── use-transferencia-setor.ts   # Handoffs automáticos
+│   │   ├── use-notificar-coordenador.ts
+│   │   ├── use-dashboard-data.ts
+│   │   └── ... (ver seção Hooks acima)
 │   ├── types/        # TypeScript types
 │   ├── utils/        # Utility functions
+│   │   ├── logger.ts                    # ⚠️ Logger condicional
+│   │   └── safe-toast.ts
 │   └── validations/  # Zod schemas
+│       └── cadastrar-cliente-obra-schema.ts  # Validação OS-13 Etapa 1
 ├── routes/           # TanStack Router (file-based)
-│   └── _auth/os/criar/ # Rotas de criação de OS
+│   └── _auth/os/
+│       ├── criar/    # Criação de OS
+│       │   ├── requisicao-compras.tsx       # OS-09
+│       │   ├── requisicao-mao-de-obra.tsx   # OS-10
+│       │   ├── laudo-pontual.tsx            # OS-11
+│       │   ├── assessoria-recorrente.tsx    # OS-12
+│       │   └── start-contrato-obra.tsx      # OS-13
+│       └── details-workflow/$id.tsx         # Workflow OS-01 a 04
 ├── tests/            # Componentes de teste
 └── debug/            # Componentes de debug
 ```

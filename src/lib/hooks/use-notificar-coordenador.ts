@@ -129,10 +129,16 @@ export function useNotificarCoordenador() {
         notificacaoId: data.id,
       };
     } catch (error) {
+      // ✅ FIX: Log error but don't break the flow - notifications are not critical
+      const errorObj = error as { code?: string; message?: string };
       logger.error('Erro ao notificar coordenador:', error);
+      
+      // Return success=false but with more context
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Erro desconhecido',
+        error: `Falha ao criar notificação: ${errorObj?.message || 'Erro desconhecido'}. ` +
+               `Código: ${errorObj?.code || 'N/A'}. ` +
+               'A transferência de OS foi concluída, mas a notificação não foi enviada.',
       };
     }
   }, [buscarCoordenador]);

@@ -316,7 +316,26 @@
 
 > **Substitui:** Tabela `delegacoes` (deprecated)
 
----
+### 21. `os_atividades` - Log de Atividades em OS (**v2.7**)
+
+| Coluna | Tipo | Descrição |
+|:-------|:-----|:----------|
+| `id` | uuid | PK, gerado automaticamente |
+| `os_id` | uuid | FK para `ordens_servico` (NOT NULL) |
+| `etapa_id` | uuid | FK para `os_etapas` (nullable) |
+| `usuario_id` | uuid | FK para `colaboradores` (NOT NULL) |
+| `tipo` | varchar | Tipo de atividade: 'transferencia_setor', 'comentario', 'status_change', etc. |
+| `descricao` | text | Descrição da atividade (NOT NULL) |
+| `dados_antigos` | jsonb | Estado anterior (para tracking de mudanças) |
+| `dados_novos` | jsonb | Estado novo (para tracking de mudanças) |
+| `metadados` | jsonb | Dados adicionais contextuais (default: '{}') |
+| `criado_em` | timestamptz | Timestamp de criação (default: now()) |
+
+> **RLS Policies:**
+> - SELECT: Visível para envolvidos na OS (responsavel_id ou criado_por_id)
+> - INSERT: Usuários autenticados podem inserir atividades
+
+
 
 ## ⚡ Edge Functions (Backend)
 
@@ -349,7 +368,9 @@
 | `20250112_create_extratos_bancarios.sql` | Importação de extratos |
 | `20250113_create_conciliacoes.sql` | Conciliação bancária |
 | `20250114_add_colaborador_fields.sql` | Novos campos de RH (Dados Bancários, Docs) |
+| `20251205_create_os_atividades.sql` | Tabela de log de atividades em OS |
 | `20251211_create_os_transferencias.sql` | **Transferência automática de setor** (substitui delegação) |
+| `20260102_fix_os_atividades_notificacoes_rls.sql` | **Corrige RLS de os_atividades** (adiciona policy de INSERT) |
 
 ---
 

@@ -24,6 +24,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { GroupedMultiSelect } from '@/components/dashboard/grouped-multi-select';
 import {
     Table,
     TableBody,
@@ -33,17 +34,10 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import {
-    Tooltip,
-    TooltipContent,
-    TooltipProvider,
-    TooltipTrigger,
-} from '@/components/ui/tooltip';
-import {
     Search,
     Filter,
     AlertTriangle,
     ArrowUpDown,
-    ArrowRightLeft,
     ChevronLeft,
     ChevronRight
 } from 'lucide-react';
@@ -63,13 +57,10 @@ interface ManagerTableProps {
     showSetorFilter?: boolean;
     /** Lista de responsáveis únicos para o filtro */
     responsaveis?: { id: string; nome: string }[];
-    /** 🆕 Se deve mostrar coluna de "Responsável Atual" com badge de situação */
-    showResponsavelAtual?: boolean;
-    /** 🆕 Slug do setor do usuário atual (para comparação de situação) */
-    userSetorSlug?: string;
+
 }
 
-type SortField = 'codigo_os' | 'cliente_nome' | 'prazoEtapa' | 'status_geral';
+type SortField = 'codigo_os' | 'cliente_nome' | 'prazoEtapa' | 'status_geral' | 'created_at' | 'updated_at';
 type SortDirection = 'asc' | 'desc';
 
 // ============================================================
@@ -87,18 +78,46 @@ const SETORES: { value: SetorSlug | 'todos'; label: string }[] = [
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
     em_triagem: { label: 'Em Triagem', className: 'bg-warning/10 text-warning border-warning/20' },
     em_andamento: { label: 'Em Andamento', className: 'bg-info/10 text-info border-info/20' },
-    aguardando_aprovacao: { label: 'Aguardando', className: 'bg-warning/10 text-warning border-warning/20' },
-    concluida: { label: 'Concluída', className: 'bg-success/10 text-success border-success/20' },
-    cancelada: { label: 'Cancelada', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    aguardando_info: { label: 'Aguardando Info', className: 'bg-warning/10 text-warning border-warning/20' },
+    concluido: { label: 'Concluído', className: 'bg-success/10 text-success border-success/20' },
+    cancelado: { label: 'Cancelado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
 };
 
-const SETOR_LABELS: Record<string, string> = {
-    'administrativo': 'Administrativo',
-    'assessoria': 'Assessoria',
-    'obras': 'Obras',
-    'diretoria': 'Diretoria',
-    'ti': 'TI',
+/** Configuração de cores para Status Situação (semáforo) */
+const STATUS_SITUACAO_CONFIG: Record<string, { label: string; className: string }> = {
+    no_prazo: { label: 'No Prazo', className: 'bg-success/10 text-success border-success/20' },
+    acao_pendente: { label: 'Ação Pendente', className: 'bg-info/10 text-info border-info/20' },
+    aguardando_info: { label: 'Aguard. Info', className: 'bg-warning/10 text-warning border-warning/20' },
+    aguardando_aprovacao: { label: 'Aguard. Aprovação', className: 'bg-accent text-accent-foreground border-accent' },
+    em_validacao: { label: 'Em Validação', className: 'bg-accent text-accent-foreground border-accent' }, // Legacy
+    alerta_prazo: { label: 'Alerta Prazo', className: 'bg-warning/10 text-warning border-warning/20' },
+    atrasado: { label: 'Atrasado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    finalizado: { label: 'Finalizado', className: 'bg-muted text-muted-foreground border-muted' },
+    sem_responsavel: { label: 'Sem Responsável', className: 'bg-muted/50 text-muted-foreground border-muted' },
 };
+
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+    { value: 'todos', label: 'Todos os Status' },
+    { value: 'em_triagem', label: 'Em Triagem' },
+    { value: 'em_andamento', label: 'Em Andamento' },
+    { value: 'aguardando_info', label: 'Aguardando Info' },
+    { value: 'concluido', label: 'Concluído' },
+    { value: 'cancelado', label: 'Cancelado' },
+];
+
+const STATUS_SITUACAO_OPTIONS: { value: string; label: string }[] = [
+    { value: 'todos', label: 'Todas as Situações' },
+    { value: 'atrasado', label: 'Atrasado' },
+    { value: 'alerta_prazo', label: 'Alerta Prazo' },
+    { value: 'aguardando_info', label: 'Aguard. Info' },
+    { value: 'aguardando_aprovacao', label: 'Aguard. Aprovação' },
+    { value: 'acao_pendente', label: 'Ação Pendente' },
+    { value: 'sem_responsavel', label: 'Sem Responsável' },
+    { value: 'no_prazo', label: 'No Prazo' },
+    { value: 'finalizado', label: 'Finalizado' },
+];
+
+
 
 // ============================================================
 // COMPONENTE PRINCIPAL
@@ -109,8 +128,6 @@ export function ManagerTable({
     title = 'Ordens de Serviço',
     showSetorFilter = true,
     responsaveis = [],
-    showResponsavelAtual = false,
-    userSetorSlug
 }: ManagerTableProps) {
     const navigate = useNavigate();
 
@@ -118,6 +135,11 @@ export function ManagerTable({
     const [searchTerm, setSearchTerm] = useState('');
     const [setorFilter, setSetorFilter] = useState<SetorSlug | 'todos'>('todos');
     const [responsavelFilter, setResponsavelFilter] = useState<string>('todos');
+
+    // Filtros agrupados
+    const [groupedFilters, setGroupedFilters] = useState<Record<string, string[]>>({
+        status: ['em_andamento', 'em_triagem', 'aguardando_info']
+    });
 
     // Estado de ordenação
     const [sortField, setSortField] = useState<SortField>('prazoEtapa');
@@ -164,6 +186,35 @@ export function ManagerTable({
             result = result.filter(os => os.responsavel_id === responsavelFilter);
         }
 
+        // Filtro por status (Multi-select)
+        const statusFilters = groupedFilters['status'] || [];
+        if (statusFilters.length > 0) {
+            result = result.filter(os => statusFilters.includes(os.status_geral));
+        }
+
+        // Filtro por situação (Multi-select)
+        const situacaoFilters = groupedFilters['situacao'] || [];
+        if (situacaoFilters.length > 0) {
+            result = result.filter(os => {
+                const situacao = (os as any).status_situacao;
+
+                // Se tiver status_situacao do banco
+                if (situacao && situacaoFilters.includes(situacao)) {
+                    return true;
+                }
+
+                // Fallback: calcular localmente apenas se a situação estiver nos filtros selecionados
+                if (situacaoFilters.includes('atrasado') && os.prazoVencido) return true;
+                if (situacaoFilters.includes('acao_pendente') && (os.statusEtapa === 'pendente' || os.statusEtapa === 'em_andamento')) return true;
+                if (situacaoFilters.includes('sem_responsavel') && !os.responsavel_id) return true;
+                if (situacaoFilters.includes('finalizado') && (os.status_geral === 'concluido' || os.status_geral === 'cancelado')) return true;
+                if (situacaoFilters.includes('no_prazo') && !os.prazoVencido && os.status_geral === 'em_andamento') return true;
+
+                // Se não casou com nenhum filtro selecionado
+                return false;
+            });
+        }
+
         // Ordenação
         result.sort((a, b) => {
             let comparison = 0;
@@ -175,13 +226,20 @@ export function ManagerTable({
                 case 'cliente_nome':
                     comparison = (a.cliente_nome || '').localeCompare(b.cliente_nome || '');
                     break;
-                case 'prazoEtapa':
+                case 'prazoEtapa': {
                     const dateA = a.prazoEtapa ? new Date(a.prazoEtapa).getTime() : Infinity;
                     const dateB = b.prazoEtapa ? new Date(b.prazoEtapa).getTime() : Infinity;
                     comparison = dateA - dateB;
                     break;
+                }
                 case 'status_geral':
                     comparison = (a.status_geral || '').localeCompare(b.status_geral || '');
+                    break;
+                case 'created_at':
+                    comparison = (new Date(a.created_at || 0).getTime()) - (new Date(b.created_at || 0).getTime());
+                    break;
+                case 'updated_at':
+                    comparison = (new Date(a.updated_at || 0).getTime()) - (new Date(b.updated_at || 0).getTime());
                     break;
             }
 
@@ -189,12 +247,12 @@ export function ManagerTable({
         });
 
         return result;
-    }, [data, searchTerm, setorFilter, responsavelFilter, sortField, sortDirection]);
+    }, [data, searchTerm, setorFilter, responsavelFilter, groupedFilters, sortField, sortDirection]);
 
     // Reset página quando filtros mudam
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, setorFilter, responsavelFilter]);
+    }, [searchTerm, setorFilter, responsavelFilter, groupedFilters]);
 
     // Dados paginados
     const paginatedData = useMemo(() => {
@@ -234,92 +292,7 @@ export function ManagerTable({
         return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
     };
 
-    /**
-     * 🆕 Retorna o Badge indicando a situação da OS em relação ao setor do usuário
-     * - 🟢 Verde: Responsável está no setor do usuário
-     * - 🟡 Amarelo: OS está aguardando outro setor
-     * - 🔵 Azul: É uma OS filha de outra OS do setor
-     * - 🔘 Default: Sem informação de setor
-     */
-    const getSituacaoBadge = (os: OSComEtapa) => {
-        const responsavelSetor = os.responsavelSetorSlug;
-        const osSetor = os.setorSlug;
-        const parentSetor = os.parentOsSetorSlug;
 
-        // Se não temos setor do usuário definido, mostrar badge genérico baseado no responsável
-        if (!userSetorSlug) {
-            // Mostrar setor do responsável se disponível
-            if (responsavelSetor) {
-                const setorLabel = SETOR_LABELS[responsavelSetor] || responsavelSetor;
-                return (
-                    <Badge variant="outline" className="bg-muted text-muted-foreground">
-                        {setorLabel}
-                    </Badge>
-                );
-            }
-            return (
-                <Badge variant="outline" className="bg-muted/50 text-muted-foreground">
-                    -
-                </Badge>
-            );
-        }
-
-        // Caso 1: OS é do setor do usuário E responsável está em outro setor
-        if (osSetor === userSetorSlug && responsavelSetor && responsavelSetor !== userSetorSlug) {
-            const setorLabel = SETOR_LABELS[responsavelSetor] || responsavelSetor;
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Badge variant="outline" className="bg-warning/10 text-warning border-warning/20 whitespace-nowrap">
-                                <ArrowRightLeft className="h-3 w-3 mr-1" />
-                                Aguardando {setorLabel}
-                            </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>Esta OS do seu setor está com o setor {setorLabel}</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
-
-        // Caso 2: OS é filha de uma OS do setor do usuário (visibilidade transversal)
-        if (osSetor !== userSetorSlug && parentSetor === userSetorSlug) {
-            const setorLabel = SETOR_LABELS[osSetor || ''] || osSetor || 'Outro';
-            return (
-                <TooltipProvider>
-                    <Tooltip>
-                        <TooltipTrigger asChild>
-                            <Badge variant="outline" className="bg-info/10 text-info border-info/20 whitespace-nowrap">
-                                OS Vinculada ({setorLabel})
-                            </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                            <p>OS filha criada a partir de uma OS do seu setor</p>
-                        </TooltipContent>
-                    </Tooltip>
-                </TooltipProvider>
-            );
-        }
-
-        // Caso 3: OS está no setor e responsável está no setor (tudo normal)
-        if (osSetor === userSetorSlug) {
-            return (
-                <Badge variant="outline" className="bg-success/10 text-success border-success/20">
-                    No Setor
-                </Badge>
-            );
-        }
-
-        // Fallback: OS de outro setor aparecendo na lista (visão global)
-        const setorLabel = SETOR_LABELS[osSetor || ''] || osSetor || 'Outro';
-        return (
-            <Badge variant="outline" className="bg-muted text-muted-foreground">
-                {setorLabel}
-            </Badge>
-        );
-    };
 
     return (
         <Card>
@@ -371,6 +344,31 @@ export function ManagerTable({
                             ))}
                         </SelectContent>
                     </Select>
+
+                    {/* Filtro Dropdown Agrupado (Status e Situação) */}
+                    <GroupedMultiSelect
+                        title="Status e Situação"
+                        selectedValues={groupedFilters}
+                        onChange={setGroupedFilters}
+                        groups={[
+                            {
+                                key: 'status',
+                                label: 'Status Geral',
+                                options: STATUS_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
+                                    ...opt,
+                                    icon: undefined // Pode adicionar ícones se quiser
+                                }))
+                            },
+                            {
+                                key: 'situacao',
+                                label: 'Situação',
+                                options: STATUS_SITUACAO_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
+                                    ...opt,
+                                    icon: undefined
+                                }))
+                            }
+                        ]}
+                    />
                 </div>
             </CardHeader>
 
@@ -401,23 +399,6 @@ export function ManagerTable({
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </Button>
                                 </TableHead>
-                                <TableHead>Tipo OS</TableHead>
-                                <TableHead>Etapa Atual</TableHead>
-                                <TableHead>Responsável</TableHead>
-                                {showResponsavelAtual && (
-                                    <TableHead>Situação</TableHead>
-                                )}
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('prazoEtapa')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Prazo
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
                                 <TableHead>
                                     <Button
                                         variant="ghost"
@@ -429,12 +410,48 @@ export function ManagerTable({
                                         <ArrowUpDown className="ml-1 h-3 w-3" />
                                     </Button>
                                 </TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSort('prazoEtapa')}
+                                        className="h-8 px-2 -ml-2"
+                                    >
+                                        Etapa
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSort('created_at')}
+                                        className="h-8 px-2 -ml-2"
+                                    >
+                                        Data Início
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleSort('prazoEtapa')}
+                                        className="h-8 px-2 -ml-2"
+                                    >
+                                        Prazo
+                                        <ArrowUpDown className="ml-1 h-3 w-3" />
+                                    </Button>
+                                </TableHead>
+                                <TableHead>Situação</TableHead>
+                                <TableHead>Resp. Atual</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {paginatedData.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={showResponsavelAtual ? 8 : 7} className="h-24 text-center text-muted-foreground">
+                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                                         Nenhuma ordem de serviço encontrada.
                                     </TableCell>
                                 </TableRow>
@@ -453,6 +470,11 @@ export function ManagerTable({
                                         {/* Cliente */}
                                         <TableCell className="max-w-[200px] truncate">
                                             {os.cliente_nome || '-'}
+                                        </TableCell>
+
+                                        {/* Status */}
+                                        <TableCell>
+                                            {getStatusBadge(os.status_geral)}
                                         </TableCell>
 
                                         {/* Tipo OS */}
@@ -476,7 +498,28 @@ export function ManagerTable({
                                             )}
                                         </TableCell>
 
-                                        {/* Responsável */}
+                                        {/* Data Início */}
+                                        <TableCell>
+                                            {formatDate(os.created_at || os.data_entrada)}
+                                        </TableCell>
+
+                                        {/* Prazo da Etapa */}
+                                        <TableCell>
+                                            {os.prazoEtapa ? formatDate(os.prazoEtapa) : '-'}
+                                        </TableCell>
+
+                                        {/* Situação */}
+                                        <TableCell>
+                                            {os.status_situacao ? (
+                                                <Badge variant="outline" className={STATUS_SITUACAO_CONFIG[os.status_situacao]?.className || 'bg-muted/10 text-muted-foreground'}>
+                                                    {STATUS_SITUACAO_CONFIG[os.status_situacao]?.label || os.status_situacao}
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">-</span>
+                                            )}
+                                        </TableCell>
+
+                                        {/* Responsável Atual */}
                                         <TableCell>
                                             <div className="flex items-center gap-2">
                                                 <Avatar className="h-7 w-7">
@@ -492,23 +535,6 @@ export function ManagerTable({
                                                     {os.responsavel_nome || 'Não atribuído'}
                                                 </span>
                                             </div>
-                                        </TableCell>
-
-                                        {/* 🆕 Situação (se habilitado) */}
-                                        {showResponsavelAtual && (
-                                            <TableCell>
-                                                {getSituacaoBadge(os)}
-                                            </TableCell>
-                                        )}
-
-                                        {/* Prazo */}
-                                        <TableCell className={os.prazoVencido ? 'text-destructive font-medium' : ''}>
-                                            {formatDate(os.prazoEtapa)}
-                                        </TableCell>
-
-                                        {/* Status */}
-                                        <TableCell>
-                                            {getStatusBadge(os.status_geral)}
                                         </TableCell>
                                     </TableRow>
                                 ))

@@ -26,6 +26,7 @@ import {
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
+import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
 
 import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
 import { TransferenciaInfo } from '@/types/os-setor-config';
@@ -52,6 +53,8 @@ import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '@/constants/os-workflow';
 import { isValidUUID, mapearTipoOSParaCodigo, calcularValoresPrecificacao } from '@/lib/utils/os-workflow-helpers';
 import { getSetorIdBySlug, SETOR_SLUG_TO_ID } from '@/lib/constants/colaboradores';
+import { supabase } from '@/lib/supabase-client';
+import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
 
 // ============================================================
 // INTERFACES DE DADOS DAS ETAPAS
@@ -327,6 +330,16 @@ export function OSDetailsWorkflowPage({
   // Estado para feedback de transferência de setor
   const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
   const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+  // Estado para modal de aprovação de etapa
+  const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
+  const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
+
+  // Hook de aprovação de etapa (usando currentStep)
+  const {
+    aprovacaoInfo,
+    recarregar: recarregarAprovacao
+  } = useAprovacaoEtapa(osId || undefined, currentStep);
 
   // Refs para componentes com validação imperativa
   const stepLeadRef = useRef<CadastrarLeadHandle>(null);
@@ -1098,9 +1111,35 @@ export function OSDetailsWorkflowPage({
       setIsCreatingOS(true);
 
       // Marcar etapa 15 como concluída no workflow
+      // ✅ FIX: Usar Supabase diretamente porque saveStep pode falhar silenciosamente
       try {
-        await saveStep(15, true);
-        logger.log('✅ Etapa 15 marcada como concluída no workflow');
+        // Buscar a etapa 15 da OS
+        const { data: etapa15, error: fetchError } = await supabase
+          .from('os_etapas')
+          .select('id')
+          .eq('os_id', osId)
+          .eq('ordem', 15)
+          .single();
+
+        if (fetchError || !etapa15) {
+          logger.warn('⚠️ Etapa 15 não encontrada, tentando via saveStep...', fetchError);
+          await saveStep(15, true);
+        } else {
+          // Marcar como concluída diretamente
+          const { error: updateError } = await supabase
+            .from('os_etapas')
+            .update({
+              status: 'concluida',
+              data_conclusao: new Date().toISOString()
+            })
+            .eq('id', etapa15.id);
+
+          if (updateError) {
+            logger.error('❌ Erro ao atualizar etapa 15:', updateError);
+          } else {
+            logger.log('✅ Etapa 15 marcada como concluída via Supabase');
+          }
+        }
       } catch (error) {
         logger.warn('⚠️ Erro ao marcar etapa 15 como concluída:', error);
         // Continuar mesmo se falhar
@@ -1130,9 +1169,26 @@ export function OSDetailsWorkflowPage({
       toast.success('OS concluída com sucesso! Nova OS-13 será criada para o time de execução.');
 
       // Redirecionar para criação de OS-13 (Start de Contrato) com parentOSId e clienteId
-      setTimeout(() => {
-        // Navegar para a rota de criação de OS-13 passando o ID da OS atual como pai e o cliente
-        const clienteId = os?.cliente_id || '';
+      // ✅ FIX: Buscar cliente_id diretamente do banco para evitar problemas de timing
+      setTimeout(async () => {
+        let clienteId = os?.cliente_id || '';
+
+        // Se não tem cliente_id no state, buscar diretamente do banco
+        if (!clienteId && osId) {
+          logger.log('🔍 cliente_id não disponível no state, buscando do banco...');
+          const { data: osData } = await supabase
+            .from('ordens_servico')
+            .select('cliente_id')
+            .eq('id', osId)
+            .single();
+
+          if (osData?.cliente_id) {
+            clienteId = osData.cliente_id;
+            logger.log('✅ cliente_id recuperado do banco:', clienteId);
+          }
+        }
+
+        logger.log('🔗 [REDIRECT]', { osId, clienteId });
         window.location.href = `/os/criar/start-contrato-obra?parentOSId=${osId}&clienteId=${clienteId}`;
       }, 2000);
 
@@ -1433,6 +1489,29 @@ export function OSDetailsWorkflowPage({
       return;
     }
 
+    // ========================================
+    // VERIFICAÇÃO DE APROVAÇÃO
+    // ========================================
+    if (aprovacaoInfo?.requerAprovacao && osId) {
+      const status = aprovacaoInfo.statusAprovacao;
+
+      if (status === 'pendente' || status === 'rejeitada') {
+        // Precisa solicitar aprovação - abrir modal
+        const stepInfo = steps[currentStep - 1];
+        setEtapaNomeParaAprovacao(stepInfo?.title || `Etapa ${currentStep}`);
+        setIsAprovacaoModalOpen(true);
+        return;
+      }
+
+      if (status === 'solicitada') {
+        // Aguardando aprovação do coordenador
+        toast.info('Aguardando aprovação do coordenador para avançar.');
+        return;
+      }
+
+      // Se status === 'aprovada', continua normalmente
+    }
+
     // Salvar dados da etapa atual
     try {
       if (osId) {
@@ -1490,6 +1569,10 @@ export function OSDetailsWorkflowPage({
   // ✅ FIX: Remover validação durante render para evitar setState warning
   // A validação real acontece no handleNextStep, este é apenas visual
   const isCurrentStepInvalid = false;
+
+  // ✅ Calcular ID da etapa atual para passar aos componentes filhos
+  const currentStepEtapa = etapas?.find(e => e.ordem === currentStep);
+  const currentEtapaId = currentStepEtapa?.id;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -1621,6 +1704,7 @@ export function OSDetailsWorkflowPage({
                   readOnly={isHistoricalNavigation}
                   osId={osId || undefined}
                   colaboradorId={currentUserId}
+                  etapaId={currentEtapaId}
                 />
               )}
 
@@ -1732,6 +1816,7 @@ export function OSDetailsWorkflowPage({
                   data={etapa9Data}
                   onDataChange={setEtapa9Data}
                   readOnly={isHistoricalNavigation}
+                  etapaId={currentEtapaId}
                 />
               )}
 
@@ -1771,6 +1856,7 @@ export function OSDetailsWorkflowPage({
                   data={etapa13Data}
                   onDataChange={setEtapa13Data}
                   readOnly={isHistoricalNavigation}
+                  etapaId={currentEtapaId}
                 />
               )}
 
@@ -1888,6 +1974,21 @@ export function OSDetailsWorkflowPage({
           }}
           transferencia={transferenciaInfo}
           osId={osId}
+        />
+      )}
+
+      {/* Modal de Aprovação de Etapa */}
+      {osId && (
+        <AprovacaoModal
+          open={isAprovacaoModalOpen}
+          onOpenChange={setIsAprovacaoModalOpen}
+          osId={osId}
+          etapaOrdem={currentStep}
+          etapaNome={etapaNomeParaAprovacao}
+          onAprovado={() => {
+            // Recarregar info de aprovação e avançar
+            recarregarAprovacao();
+          }}
         />
       )}
     </div >

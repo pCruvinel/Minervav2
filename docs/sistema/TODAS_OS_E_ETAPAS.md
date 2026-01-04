@@ -25,6 +25,86 @@ Este documento detalha o status de implementação das **13 Ordens de Serviço (
 
 ---
 
+## 🚦 REGRAS DE STATUS SITUAÇÃO (SEMÁFORO)
+
+### Definição
+O sistema Minerva utiliza **dois níveis de status**:
+- **Status Geral**: Ciclo de vida da OS (Em Triagem → Em Andamento → Concluído/Cancelado)
+- **Status Situação**: Indicador visual (semáforo) da saúde operacional da etapa atual
+
+### Valores de Status Situação
+
+| Status | Cor | Descrição |
+|--------|-----|-----------|
+| **Ação Pendente** | Azul | Etapa aguardando ação do responsável (padrão) |
+| **Aguard. Aprovação** | Roxo | Etapa aguardando validação hierárquica |
+| **Atrasado** | Vermelho | Prazo da etapa vencido |
+| **Alerta Prazo** | Amarelo | Faltam ≤2 dias para o prazo |
+| **Aguard. Info** | Laranja | Aguardando documentação do cliente |
+| **No Prazo** | Verde | Dentro do prazo, aguardando agendamento |
+| **Finalizado** | Cinza | OS concluída com sucesso |
+
+### Regras de Transição Automática
+
+```
+SE status_geral = 'concluido' → status_situacao = 'finalizado'
+SE status_geral = 'cancelado' → status_situacao = 'cancelado'
+SE data_atual > prazo_etapa → status_situacao = 'atrasado'
+SE data_atual >= (prazo_etapa - 2 dias) → status_situacao = 'alerta_prazo'
+SE etapa.requer_aprovacao = true → status_situacao = 'aguardando_aprovacao'
+SENÃO → status_situacao = 'acao_pendente'
+```
+
+### Etapas com Aprovação Obrigatória
+
+> [!IMPORTANT]
+> Nas etapas marcadas com **"Aguard. Aprovação"**, o colaborador **NÃO pode avançar** o fluxo sozinho.
+> O sistema desabilita o botão "Avançar" até que o Coordenador/Diretor valide a ação.
+
+| OS | Etapa # | Nome da Etapa | Aprovador |
+|----|:-------:|---------------|-----------|
+| OS-01 a 04 | 9 | Gerar Proposta Comercial | Coord. Obras |
+| OS-01 a 04 | 13 | Gerar Contrato (Upload) | Diretor |
+| OS-05/06 | 6 | Gerar Proposta Comercial | Coord. Assessoria |
+| OS-05/06 | 10 | Gerar Contrato (Upload) | Diretor |
+| OS-07 | 3 | Análise e Parecer | Coord. Assessoria |
+| OS-08 | 5 | Formulário Pós-Visita | Coord. Assessoria |
+
+---
+
+## 🔐 FUNÇÃO DE APROVAÇÃO E REPROVAÇÃO
+
+### Fluxo de Aprovação Hierárquica
+
+```mermaid
+flowchart LR
+    A[Colaborador Completa Etapa] --> B{Etapa Requer Aprovação?}
+    B -->|Não| C[Avança Automaticamente]
+    B -->|Sim| D[Status = Aguard. Aprovação]
+    D --> E[Notifica Coordenador/Diretor]
+    E --> F{Decisão do Gestor}
+    F -->|Aprovar| G[Registra Log + Libera Avanço]
+    F -->|Reprovar| H[Registra Justificativa + Retorna Etapa]
+```
+
+### Ações Disponíveis para o Aprovador
+
+| Ação | Descrição | Resultado |
+|------|-----------|-----------|
+| ✅ **Aprovar** | Validar documento/etapa | Libera botão "Avançar", registra log |
+| ❌ **Reprovar** | Rejeitar com justificativa | Retorna etapa anterior, notifica responsável |
+| 📝 **Solicitar Correção** | Pedir ajustes pontuais | Mantém etapa, notifica responsável |
+
+### Registro de Aprovação
+
+Toda aprovação/reprovação gera um registro na tabela `os_atividades`:
+- `tipo_atividade`: 'aprovacao' ou 'reprovacao'
+- `descricao`: Justificativa do gestor
+- `usuario_id`: ID do aprovador
+- `created_at`: Timestamp da decisão
+
+---
+
 ## 🏗️ OS-01 a 04: OBRAS (PERÍCIA/REVITALIZAÇÃO/REFORÇO/OUTROS)
 
 ### 📋 Informações Gerais
@@ -37,23 +117,25 @@ Este documento detalha o status de implementação das **13 Ordens de Serviço (
 
 ### 📝 Passo-a-Passo das Etapas (Definido em `OS_WORKFLOW_STEPS`)
 
-| # | Etapa | Status | Componente | Responsável |
-|----|-------|--------|------------|-------------|
-| 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo |
-| 2 | Seleção do Tipo de OS | ✅ | Select interno | Administrativo |
-| 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1.tsx` | Administrativo |
-| 4 | Agendar Visita Técnica | ✅ | `step-agendar-apresentacao.tsx` | Administrativo |
-| 5 | Realizar Visita | ✅ | Switch + Checkbox | Obras |
-| 6 | Follow-up 2 (Pós-Visita) | ✅ | `step-preparar-orcamentos.tsx` | Obras |
-| 7 | Formulário Memorial (Escopo) | ✅ | `step-memorial-escopo.tsx` | Obras |
-| 8 | Precificação | ✅ | `step-precificacao.tsx` | Obras |
-| 9 | Gerar Proposta Comercial | ✅ | `step-gerar-proposta.tsx` | Administrativo |
-| 10 | Agendar Visita (Apresentação) | ✅ | `step-agendar-apresentacao.tsx` | Administrativo |
-| 11 | Realizar Visita (Apresentação) | ✅ | `step-realizar-apresentacao.tsx` | Administrativo |
-| 12 | Follow-up 3 (Pós-Apresentação) | ✅ | `step-analise-relatorio.tsx` | Administrativo |
-| 13 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo |
-| 14 | Contrato Assinado | ✅ | `step-contrato-assinado.tsx` | Administrativo |
-| 15 | Iniciar Contrato de Obra | ✅ | Gatilho → OS-13 | Administrativo |
+> **Prazo Total do Ciclo Comercial**: 24 dias úteis
+
+| # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
+|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+| 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 2 | Seleção do Tipo de OS | ✅ | Select interno | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1.tsx` | Administrativo | 4 dias | Em Andamento | Ação Pendente |
+| 4 | Agendar Visita Técnica | ✅ | `step-agendar-apresentacao.tsx` | Administrativo | 3 dias | Em Andamento | Ação Pendente |
+| 5 | Realizar Visita | ✅ | Switch + Checkbox | Obras | 4 dias | Em Andamento | Ação Pendente |
+| 6 | Follow-up 2 (Pós-Visita) | ✅ | `step-preparar-orcamentos.tsx` | Obras | 2 dias | Em Andamento | Ação Pendente |
+| 7 | Formulário Memorial (Escopo) | ✅ | `step-memorial-escopo.tsx` | Obras | 1 dia | Em Andamento | Ação Pendente |
+| 8 | Precificação | ✅ | `step-precificacao.tsx` | Obras | 1 dia | Em Andamento | Ação Pendente |
+| 9 | Gerar Proposta Comercial | ✅ | `step-gerar-proposta.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
+| 10 | Agendar Visita (Apresentação) | ✅ | `step-agendar-apresentacao.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 11 | Realizar Visita (Apresentação) | ✅ | `step-realizar-apresentacao.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 12 | Follow-up 3 (Pós-Apresentação) | ✅ | `step-analise-relatorio.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 13 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
+| 14 | Contrato Assinado | ✅ | `step-contrato-assinado.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 15 | Iniciar Contrato de Obra | ✅ | Gatilho → OS-13 | Sistema | -- | Concluído | Finalizado |
 
 ### ⚙️ Tipos de OS Disponíveis
 - **OS 01**: Perícia de Fachada
@@ -99,41 +181,43 @@ src/constants/
 - **Setor**: Assessoria
 - **Responsável Inicial**: Coordenador Administrativo
 - **Workflow**: 12 etapas completas compartilhadas
-- **OS-05**: Assessoria Técnica Mensal → Gera **OS-12** ao final
-- **OS-06**: Assessoria Pericial Avulsa → Gera **OS-11** ao final
+- **OS-05**: Assessoria Recorrente → Gera **OS-12** ao final
+- **OS-06**: Assessoria Pontual → Gera **OS-11** ao final
 - **Arquivo Principal**: `os-details-assessoria-page.tsx`
 - **% Concluída**: 95% ✅
 
 ### 📝 Passo-a-Passo das Etapas
 
-| # | Etapa | Status | Componente | Responsável |
-|----|-------|--------|------------|-------------|
-| 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo |
-| 2 | Seleção do Tipo de OS | ✅ | `step-selecao-tipo-assessoria.tsx` | Administrativo |
-| 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1-os5.tsx` / `step-followup-1-os6.tsx` | Administrativo |
-| 4 | Formulário Memorial (Escopo e Prazos) | ✅ | `step-escopo-assessoria.tsx` | Administrativo |
-| 5 | Precificação (Formulário Financeiro) | ✅ | `step-precificacao-assessoria.tsx` | Administrativo |
-| 6 | Gerar Proposta Comercial | ✅ | `step-gerar-proposta.tsx` | Administrativo |
-| 7 | Agendar Visita (Apresentação) | ✅ | `step-agendar-apresentacao.tsx` | Administrativo |
-| 8 | Realizar Visita (Apresentação) | ✅ | `step-realizar-apresentacao.tsx` | Administrativo |
-| 9 | Follow-up 3 (Pós-Apresentação) | ✅ | `step-analise-relatorio.tsx` | Administrativo |
-| 10 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo |
-| 11 | Contrato Assinado | ✅ | `step-contrato-assinado.tsx` | Administrativo |
-| 12 | Ativar Contrato | ✅ | `step-ativar-contrato-assessoria.tsx` | Administrativo |
+> **Prazo Total do Ciclo Comercial**: 19 dias úteis
+
+| # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
+|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+| 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 2 | Seleção do Tipo de OS | ✅ | `step-selecao-tipo-assessoria.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1-os5.tsx` / `step-followup-1-os6.tsx` | Administrativo | 4 dias | Em Andamento | Ação Pendente |
+| 4 | Formulário Memorial (Escopo e Prazos) | ✅ | `step-escopo-assessoria.tsx` | Administrativo | 2 dias | Em Andamento | Ação Pendente |
+| 5 | Precificação (Formulário Financeiro) | ✅ | `step-precificacao-assessoria.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 6 | Gerar Proposta Comercial | ✅ | `step-gerar-proposta.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
+| 7 | Agendar Visita (Apresentação) | ✅ | `step-agendar-apresentacao.tsx` | Administrativo | 3 dias | Em Andamento | Ação Pendente |
+| 8 | Realizar Visita (Apresentação) | ✅ | `step-realizar-apresentacao.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 9 | Follow-up 3 (Pós-Apresentação) | ✅ | `step-analise-relatorio.tsx` | Administrativo | 2 dias | Em Andamento | Ação Pendente |
+| 10 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
+| 11 | Contrato Assinado | ✅ | `step-contrato-assinado.tsx` | Administrativo | 2 dias | Em Andamento | Ação Pendente |
+| 12 | Ativar Contrato | ✅ | `step-ativar-contrato-assessoria.tsx` | Sistema | -- | Concluído | Finalizado |
 
 ### ⚙️ Diferenças por Tipo
 
-| Característica | OS-05 (Mensal) | OS-06 (Avulsa) |
+| Característica | OS-05 (Recorrente) | OS-06 (Pontual) |
 |----------------|----------------|----------------|
-| **Tipo de Serviço** | Assessoria Técnica Recorrente | Assessoria Pericial |
+| **Tipo de Serviço** | Assessoria Recorrente | Assessoria Pontual |
 | **Follow-up 1** | `step-followup-1-os5.tsx` | `step-followup-1-os6.tsx` |
-| **OS Filha Gerada** | **OS-12** (Assessoria Recorrente) | **OS-11** (Laudo Pontual) |
+| **OS Filha Gerada** | **OS-12** (Contrato de Assessoria Recorrente) | **OS-11** (Contrato de Assessoria Pontual) |
 | **Recorrência** | Mensal/Anual | Pontual |
 
 ### 🔄 Fluxo de Ativação (Etapa 12)
 ```
-OS-05 concluída ──────► Cria OS-12 (Assessoria Técnica Recorrente)
-OS-06 concluída ──────► Cria OS-11 (Laudo Pontual Assessoria)
+OS-05 concluída ──────► Cria OS-12 (Contrato de Assessoria Recorrente)
+OS-06 concluída ──────► Cria OS-11 (Contrato de Assessoria Pontual)
 ```
 
 ### 📁 Arquivos no Sistema
@@ -179,13 +263,15 @@ Gerar um link público para o cliente preencher dados de reforma e analisar a so
 
 ### 📝 Passo-a-Passo das Etapas
 
-| # | Etapa | Status | Componente | Responsável |
-|----|-------|--------|------------|-------------|
-| 1 | Identificação do Lead | ✅ | `cadastrar-lead.tsx` | Administrativo |
-| 2 | Aguardando Cliente | ✅ | Link público gerado | Sistema |
-| 3 | Análise e Parecer | ✅ | `os07-analise-page.tsx` | Assessoria |
-| 4 | Gerar PDF | ⚠️ | Documento técnico | Assessoria |
-| 5 | Concluída | ⚠️ | Confirmação final | Administrativo |
+> **Prazo Total**: 11 dias úteis
+
+| # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
+|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+| 1 | Identificação do Lead | ✅ | `cadastrar-lead.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 2 | Aguardando Cliente | ✅ | Link público gerado | Cliente | 4 dias | Em Andamento | No Prazo |
+| 3 | Análise e Parecer | ✅ | `os07-analise-page.tsx` | Assessoria | 3 dias | Em Andamento | **Aguard. Aprovação** |
+| 4 | Gerar PDF | ⚠️ | Documento técnico | Assessoria | 2 dias | Em Andamento | Ação Pendente |
+| 5 | Concluída | ⚠️ | Confirmação final | Sistema | 1 dia | Concluído | Finalizado |
 
 ### ⚙️ Regras de Negócio Específicas
 
@@ -215,7 +301,7 @@ src/components/os/assessoria/os-7/
 
 ---
 
-## 🔧 OS-08: VISITA TÉCNICA / PARECER TÉCNICO (ASSESSORIA)
+## 🔧 OS-08: VISITA TÉCNICA (ASSESSORIA)
 
 ### 📋 Informações Gerais
 - **Setor**: Assessoria
@@ -229,15 +315,19 @@ Solicitação, agendamento e execução de visita técnica com geração de docu
 
 ### 📝 Passo-a-Passo das Etapas
 
-| # | Etapa | Status | Componente | Responsável |
-|----|-------|--------|------------|-------------|
-| 1 | Identificação do Solicitante | ✅ | `step-identificacao-solicitante.tsx` | Administrativo |
-| 2 | Atribuir Cliente | ✅ | `step-atribuir-cliente.tsx` | Administrativo |
-| 3 | Agendar Visita | ✅ | `step-agendar-visita.tsx` | Administrativo |
-| 4 | Realizar Visita | ✅ | `step-realizar-visita.tsx` | Obras |
-| 5 | Formulário Pós-Visita | ✅ | `step-formulario-pos-visita.tsx` | Obras |
-| 6 | Gerar Documento | ✅ | `step-gerar-documento.tsx` | Administrativo |
-| 7 | Enviar ao Cliente | ✅ | `step-enviar-documento.tsx` | Administrativo |
+> **Prazo Total**: 10 dias úteis
+> 
+> **Regra Especial**: Para clientes com contrato OS-05 (anual), uma OS-08 deve ser agendada **toda semana**.
+
+| # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
+|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+| 1 | Identificação do Solicitante | ✅ | `step-identificacao-solicitante.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
+| 2 | Atribuir Cliente | ✅ | `step-atribuir-cliente.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 3 | Agendar Visita | ✅ | `step-agendar-visita.tsx` | Administrativo | 2 dias | Em Andamento | No Prazo |
+| 4 | Realizar Visita | ✅ | `step-realizar-visita.tsx` | Assessoria | 2 dias | Em Andamento | Ação Pendente |
+| 5 | Formulário Pós-Visita | ✅ | `step-formulario-pos-visita.tsx` | Assessoria | 2 dias | Em Andamento | **Aguard. Aprovação** |
+| 6 | Gerar Documento | ✅ | `step-gerar-documento.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
+| 7 | Enviar ao Cliente | ✅ | `step-enviar-documento.tsx` | Sistema | 1 dia | Concluído | Finalizado |
 
 ### ⚙️ Regras de Negócio Específicas
 
@@ -351,7 +441,7 @@ Formalizar a necessidade de contratação de novos colaboradores com gerenciamen
 | # | Etapa | Status | Componente | Responsável |
 |----|-------|--------|------------|-------------|
 | 1 | Abertura da Solicitação | ✅ | `step-abertura-solicitacao.tsx` | Solicitante |
-| 2 | Seleção do Centro de Custo | ✅ | `step-selecao-centro-custo.tsx` | AdministrativoRH |
+| 2 | Seleção do Centro de Custo | ✅ | `step-selecao-centro-custo.tsx` | Administrativo |
 | 3 | Gerenciador de Vagas | ✅ | `step-gerenciador-vagas.tsx` | Administrativo |
 | 4 | Revisão e Envio | ✅ | `step-revisao-envio.tsx` | Administrativo |
 
@@ -415,14 +505,15 @@ Executar contrato de assessoria limitada focado na entrega de documento técnico
 
 ### 📝 Passo-a-Passo das Etapas
 
-| # | Etapa | Status | Componente | Descrição | Dados |
-|----|-------|--------|------------|-----------|-------|
-| 1 | **Cadastrar o Cliente** | ✅ | `step-cadastro-cliente.tsx` | Validação dos dados do cliente | Mock |
-| 2 | **Agendar Visita** | ✅ | `step-agendar-visita.tsx` | Agendamento da visita técnica | Mock |
-| 3 | **Realizar Visita e Questionário** | ✅ | `step-realizar-visita.tsx` | Visita in-loco + preenchimento | Mock |
-| 4 | **Anexar RT** | ✅ | `step-anexar-rt.tsx` | Responsabilidade Técnica (documento) | Mock |
-| 5 | **Gerar Documento** | ✅ | `step-gerar-documento.tsx` | PDF automático do Laudo Técnico | Mock |
-| 6 | **Enviar ao Cliente** | ✅ | `step-enviar-cliente.tsx` | Envio automático do documento | Mock |
+| # | Etapa | Status | Componente | Descrição | Responsável |
+|----|-------|--------|------------|-----------|-------------|
+| 1 | **Cadastrar Cliente** | ✅ | `CadastrarLead` | Selecionar ou cadastrar cliente/lead | Assessoria |
+| 2 | **Agendar Visita** | ✅ | `StepAgendarVisita` | Agendamento da visita técnica | Assessoria |
+| 3 | **Realizar Visita** | ✅ | `StepRealizarVisita` | Visita in-loco + checklist | Técnico |
+| 4 | **Anexar RT** | ✅ | `StepAnexarRT` | Responsabilidade Técnica (documento) | Técnico |
+| 5 | **Gerar Documento** | ✅ | `StepGerarDocumento` | PDF automático do Laudo Técnico | Sistema |
+| 6 | **Enviar ao Cliente** | ✅ | `StepEnviarCliente` | Envio automático do documento | Sistema |
+
 
 ### ⚙️ Regras de Negócio Específicas
 
@@ -483,14 +574,14 @@ Gerenciar contratos de assessoria de longo prazo desde a captação do cliente a
 
 | # | Etapa | Status | Componente | Descrição | Responsável |
 |---|-------|--------|------------|-----------|-------------|
-| 1 | **Cadastro do Cliente e Portal** | ✅ | `step-cadastro-cliente-portal.tsx` | Cadastro de cliente e envio de convite (Magic Link) | Administrativo
-| 2 | **Upload de ART** | ✅ | `step-anexar-art.tsx` | Anexar Anotação de Responsabilidade Técnica | Assessoria
-| 3 | **Upload de Plano de Manutenção** | ✅ | `step-plano-manutencao.tsx` | Upload do plano de manutenção do condomínio | Assessoria
-| 4 | **Agendar Visita** | ✅ | `step-agendar-visita.tsx` | Agendamento da primeira visita técnica | Administrativo
-| 5 | **Realizar Visita** | ✅ | `step-realizar-visita.tsx` | Checkbox registrando visita com data/horário e observação | Administrativo
-| 6 | **Agendar Visita Recorrente** | ✅ | `step-agendar-visita-recorrente.tsx` | Agendar próxima visita periódica | Administrativo
-| 7 | **Realizar Visita Recorrente** | ✅ | `step-realizar-visita-recorrente.tsx` | Registrar realização da visita recorrente | Assessoria
-| 8 | **Concluir e Transformar em Contrato** | ✅ | `step-concluir-contrato.tsx` | Finaliza OS e transforma em contrato ativo | Assessoria
+| 1 | **Cadastro do Cliente e Portal** | ✅ | `StepCadastroClientePortal` | Selecionar cliente e convite (Magic Link) | Administrativo
+| 2 | **Upload de ART** | ✅ | `StepAnexarART` | Anexar Anotação de Responsabilidade Técnica | Assessoria
+| 3 | **Upload de Plano de Manutenção** | ✅ | `StepPlanoManutencao` | Upload do plano de manutenção do condomínio | Assessoria
+| 4 | **Agendar Visita** | ✅ | `StepAgendarVisita` | Agendamento da primeira visita técnica | Administrativo
+| 5 | **Realizar Visita** | ✅ | `StepRealizarVisita` | Registro de visita com data/horário e observação | Administrativo
+| 6 | **Agendar Visita Recorrente** | ✅ | `StepAgendarVisitaRecorrente` | Agendamento da próxima visita periódica | Administrativo
+| 7 | **Realizar Visita Recorrente** | ✅ | `StepRealizarVisitaRecorrente` | Registrar realização da visita recorrente | Assessoria
+| 8 | **Concluir e Ativar Contrato** | ✅ | `StepConcluirContrato` | Finaliza a OS e transforma em contrato ativo | Assessoria
 
 ### 🔄 Fluxo de Responsabilidade (Handoff)
 
@@ -648,23 +739,23 @@ src/routes/_auth/os/criar/
 
 | # | Etapa | Status | Componente | Responsável |
 |----|-------|--------|------------|-------------|
-| 1 | Dados do Cliente | ✅ | `CadastrarClienteObra` | Administrativo |
-| 2 | Anexar ART | ✅ | `StepAnexarART` | Obras |
-| 3 | Relatório Fotográfico | ✅ | `StepRelatorioFotografico` | Obras |
-| 4 | Imagem de Áreas | ✅ | `StepImagemAreas` | Obras |
-| 5 | Cronograma | ✅ | `StepCronogramaObra` | Obras |
-| 6 | Agendar Visita Inicial | ✅ | `StepAgendarVisitaInicial` | Administrativo |
-| 7 | Realizar Visita Inicial | ✅ | `StepRealizarVisitaInicial` | Administrativo |
-| 8 | Histograma | ✅ | `StepHistograma` | Obras |
-| 9 | Placa de Obra | ✅ | `StepPlacaObra` | Obras |
-| 10 | Requisição de Compras | ✅ | `StepRequisicaoCompras` → OS-09 | Obras |
-| 11 | Requisição de Mão de Obra | ✅ | `StepRequisicaoMaoObra` → OS-10 | Obras |
-| 12 | Evidência Mobilização | ✅ | `StepEvidenciaMobilizacao` | Obras |
-| 13 | Diário de Obra | ✅ | `StepDiarioObra` | Obras |
-| 14 | Seguro de Obras | ✅ | `StepSeguroObras` | Administrativo |
-| 15 | Documentos SST | ✅ | `StepDocumentosSST` | Obras |
-| 16 | Agendar Visita Final | ✅ | `StepAgendarVisitaFinal` | Administrativo |
-| 17 | Realizar Visita Final | ✅ | `StepRealizarVisitaFinal` | Obras |
+| 1 | **Dados do Cliente** | ✅ | `CadastrarClienteObra` | Administrativo |
+| 2 | **Anexar ART** | ✅ | `StepAnexarART` | Obras |
+| 3 | **Relatório Fotográfico** | ✅ | `StepRelatorioFotografico` | Obras |
+| 4 | **Imagem de Áreas** | ✅ | `StepImagemAreas` | Obras |
+| 5 | **Cronograma** | ✅ | `StepCronogramaObra` | Obras |
+| 6 | **Agendar Visita Inicial** | ✅ | `StepAgendarVisitaInicial` | Administrativo |
+| 7 | **Realizar Visita Inicial** | ✅ | `StepRealizarVisitaInicial` | Administrativo |
+| 8 | **Histograma** | ✅ | `StepHistograma` | Obras |
+| 9 | **Placa de Obra** | ✅ | `StepPlacaObra` | Obras |
+| 10 | **Requisição de Compras** | ✅ | `StepRequisicaoCompras` → OS-09 | Obras |
+| 11 | **Requisição de Mão de Obra** | ✅ | `StepRequisicaoMaoObra` → OS-10 | Obras |
+| 12 | **Evidência Mobilização** | ✅ | `StepEvidenciaMobilizacao` | Obras |
+| 13 | **Diário de Obra** | ✅ | `StepDiarioObra` | Obras |
+| 14 | **Seguro de Obras** | ✅ | `StepSeguroObras` | Administrativo |
+| 15 | **Documentos SST** | ✅ | `StepDocumentosSST` | Obras |
+| 16 | **Agendar Visita Final** | ✅ | `StepAgendarVisitaFinal` | Administrativo |
+| 17 | **Realizar Visita Final** | ✅ | `StepRealizarVisitaFinal` | Obras |
 
 ### ⚙️ Integrações Automáticas
 - **Etapa 10**: Cria automaticamente **OS-09** (Requisição de Compras)

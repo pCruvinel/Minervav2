@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
@@ -18,27 +17,41 @@ import {
     MessageSquare,
     Activity,
     Paperclip,
-    Play,
-    CheckCircle,
-    AlertCircle,
-    Lock,
-    X,
+
     Send,
     Loader2,
-    Sun,
-    Moon,
     ChevronDown,
-    ChevronUp,
-    Code
+    Code,
+    Ban,
+    MoreVertical,
+    Layers,
+    MapPin
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
-import { LinkedRequestsWidget } from '../../linked-requests-widget';
 import { OSDocumentsTab } from '../../tabs/os-documents-tab';
+import { UnifiedWorkflowStepper, QuickActionsPanel } from '../../unified';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
-import { getStepOwner } from '@/lib/constants/os-ownership-rules';
-import { SETOR_NOMES } from '@/types/os-setor-config';
+import { useOSHierarchy } from '@/lib/hooks/use-os-hierarchy';
 
 // Types for the redesigned OS details
 interface OSDetails {
@@ -46,10 +59,18 @@ interface OSDetails {
     codigo_os: string;
     status_geral: string;
     descricao: string;
+    cliente_id?: string;
     cliente_nome: string;
     cliente_email?: string;
     cliente_telefone?: string;
-    cliente_endereco?: any;
+    cliente_endereco?: {
+        logradouro?: string;
+        numero?: string;
+        bairro?: string;
+        cidade?: string;
+        uf?: string;
+        cep?: string;
+    };
     tipo_os_nome: string;
     responsavel_nome?: string;
     responsavel_avatar_url?: string;
@@ -62,8 +83,9 @@ interface OSDetails {
     etapas_concluidas_count: number;
     etapas_total_count: number;
     parent_os_id?: string;
-    status_detalhado?: any;
-    metadata?: any;
+    cc_id?: string;
+    status_detalhado?: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
 
 interface WorkflowStep {
@@ -87,210 +109,15 @@ interface Comment {
     etapa_nome?: string;
 }
 
-interface ActivityItem {
-    id: string;
-    tipo: string;
-    descricao: string;
-    criado_em: string;
-    usuario_nome: string;
-    metadados?: any;
-}
 
-interface Document {
-    id: string;
-    nome: string;
-    tipo?: string;
-    tamanho_bytes?: number;
-    criado_em: string;
-    uploaded_by_nome: string;
-    caminho_arquivo?: string;
-}
 
-const getStatusBadge = (status: string) => {
-    const badges = {
-        'em_triagem': <Badge variant="secondary" className="bg-muted text-foreground font-medium">Triagem</Badge>,
-        'em_andamento': <Badge className="bg-primary/20 text-primary font-medium">Em Andamento</Badge>,
-        'aguardando_aprovacao': <Badge className="bg-secondary/20 text-secondary font-medium">Aguardando Aprovação</Badge>,
-        'concluida': <Badge className="bg-success/10 text-success font-medium">Concluída</Badge>,
-        'cancelada': <Badge className="bg-destructive/20 text-destructive font-medium">Cancelada</Badge>,
-    };
-    return badges[status as keyof typeof badges] || badges.em_triagem;
-};
 
-const getStepStatusIcon = (status: string) => {
-    switch (status) {
-        case 'concluida': return <CheckCircle className="w-5 h-5 text-success" />;
-        case 'em_andamento': return <Play className="w-5 h-5 text-primary" />;
-        case 'bloqueada': return <Lock className="w-5 h-5 text-destructive" />;
-        case 'cancelada': return <X className="w-5 h-5 text-destructive" />;
-        default: return <AlertCircle className="w-5 h-5 text-muted-foreground" />;
-    }
-};
 
-// Workflow Access Rules
-enum WorkflowAccessRule {
-    COMPLETED_READ_ONLY = 'completed_read_only',
-    CURRENT_EDITABLE = 'current_editable',
-    NEXT_AVAILABLE = 'next_available',
-    FUTURE_BLOCKED = 'future_blocked',
-    PREVIOUS_READ_ONLY = 'previous_read_only'
-}
 
-// Helper functions for workflow navigation
-const getCurrentStepOrder = (steps: WorkflowStep[]): number => {
-    const firstIncomplete = steps
-        .filter(step => step.status !== 'concluida')
-        .sort((a, b) => a.ordem - b.ordem)[0];
 
-    return firstIncomplete?.ordem || steps.length + 1;
-};
 
-const determineWorkflowAccess = (
-    step: WorkflowStep,
-    currentStepOrder: number
-): WorkflowAccessRule => {
-    // Etapa cancelada: sempre leitura (similar a concluída, mas com visual diferente)
-    if (step.status === 'cancelada') {
-        return WorkflowAccessRule.COMPLETED_READ_ONLY;
-    }
 
-    // Etapa concluída: sempre leitura
-    if (step.status === 'concluida') {
-        return WorkflowAccessRule.COMPLETED_READ_ONLY;
-    }
 
-    // Etapa atual: edição completa
-    if (step.ordem === currentStepOrder) {
-        return WorkflowAccessRule.CURRENT_EDITABLE;
-    }
-
-    // Próxima etapa disponível
-    if (step.ordem === currentStepOrder + 1 && step.status === 'pendente') {
-        return WorkflowAccessRule.NEXT_AVAILABLE;
-    }
-
-    // Etapas futuras: bloqueadas
-    if (step.ordem > currentStepOrder) {
-        return WorkflowAccessRule.FUTURE_BLOCKED;
-    }
-
-    // Etapas anteriores não concluídas: leitura
-    return WorkflowAccessRule.PREVIOUS_READ_ONLY;
-};
-
-const validateWorkflowAccess = (
-    targetStep: WorkflowStep,
-    currentStepOrder: number
-): { canAccess: boolean; reason: string } => {
-    const accessRule = determineWorkflowAccess(targetStep, currentStepOrder);
-
-    switch (accessRule) {
-        case WorkflowAccessRule.COMPLETED_READ_ONLY:
-            return { canAccess: true, reason: 'Visualização permitida' };
-
-        case WorkflowAccessRule.CURRENT_EDITABLE:
-            return { canAccess: true, reason: 'Edição permitida' };
-
-        case WorkflowAccessRule.NEXT_AVAILABLE:
-            return { canAccess: true, reason: 'Iniciar próxima etapa' };
-
-        case WorkflowAccessRule.FUTURE_BLOCKED:
-            return {
-                canAccess: false,
-                reason: 'Complete as etapas anteriores primeiro'
-            };
-
-        default:
-            return {
-                canAccess: false,
-                reason: 'Acesso não autorizado'
-            };
-    }
-};
-
-const getStepStatusColor = (status: string) => {
-    switch (status) {
-        case 'concluida': return 'bg-success/5 border-success/20 text-success';
-        case 'em_andamento': return 'bg-primary/5 border-primary/20 text-primary';
-        case 'bloqueada': return 'bg-destructive/5 border-destructive/20 text-destructive';
-        case 'cancelada': return 'bg-destructive/5 border-destructive/20 text-destructive';
-        default: return 'bg-background border-border text-foreground';
-    }
-};
-
-// Component for workflow navigation buttons
-const WorkflowNavigationButton = ({
-    step,
-    currentStepOrder,
-    onNavigate,
-    isNavigating = false
-}: {
-    step: WorkflowStep;
-    currentStepOrder: number;
-    onNavigate: (step: WorkflowStep) => void;
-    isNavigating?: boolean;
-}) => {
-    const accessRule = determineWorkflowAccess(step, currentStepOrder);
-
-    const getButtonConfig = () => {
-        switch (accessRule) {
-            case WorkflowAccessRule.COMPLETED_READ_ONLY:
-                return {
-                    variant: 'outline' as const,
-                    className: 'border-success/20 text-success hover:bg-success/5',
-                    disabled: false,
-                    text: 'Ver'
-                };
-            case WorkflowAccessRule.CURRENT_EDITABLE:
-                return {
-                    variant: 'default' as const,
-                    className: 'bg-primary hover:bg-primary',
-                    disabled: false,
-                    text: 'Continuar'
-                };
-            case WorkflowAccessRule.NEXT_AVAILABLE:
-                return {
-                    variant: 'default' as const,
-                    className: 'bg-primary hover:bg-primary/90',
-                    disabled: false,
-                    text: 'Iniciar'
-                };
-            case WorkflowAccessRule.FUTURE_BLOCKED:
-                return {
-                    variant: 'outline' as const,
-                    className: 'border-destructive/20 text-destructive cursor-not-allowed',
-                    disabled: true,
-                    text: 'Bloqueado'
-                };
-            default:
-                return {
-                    variant: 'outline' as const,
-                    className: 'border-border text-muted-foreground cursor-not-allowed',
-                    disabled: true,
-                    text: 'Indisponível'
-                };
-        }
-    };
-
-    const config = getButtonConfig();
-
-    return (
-        <Button
-            variant={config.variant}
-            className={config.className}
-            disabled={config.disabled || isNavigating}
-            onClick={() => onNavigate(step)}
-            size="sm"
-        >
-            {isNavigating ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            ) : (
-                <Play className="w-4 h-4 mr-2" />
-            )}
-            {config.text}
-        </Button>
-    );
-};
 
 // Main Component
 interface OSDetailsRedesignPageProps {
@@ -298,44 +125,60 @@ interface OSDetailsRedesignPageProps {
 }
 
 const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
-    const navigate = useNavigate();
+
+    // Buscar hierarquia para documentos unificados
+    const { parent, children } = useOSHierarchy(osId);
+
+    // Calcular IDs de OS relacionadas para buscar documentos unificados
+    const relatedOsIds = useMemo(() => {
+        const ids: string[] = [];
+        if (parent?.id) ids.push(parent.id);
+        children?.forEach(child => ids.push(child.id));
+        return ids;
+    }, [parent, children]);
 
     // State management
     const [loading, setLoading] = useState(true);
     const [osDetails, setOsDetails] = useState<OSDetails | null>(null);
     const [workflowSteps, setWorkflowSteps] = useState<WorkflowStep[]>([]);
     const [comments, setComments] = useState<Comment[]>([]);
-    const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [newComment, setNewComment] = useState('');
-    const [isNavigating, setIsNavigating] = useState(false);
+    const [commentsPage] = useState(1);
+    const [commentsPerPage] = useState(10);
+    const [commentFilter] = useState<'all' | 'comentario' | 'sistema'>('all');
+    const [searchTerm] = useState('');
+
+    const [isNavigating] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
 
     // Pagination and filtering states
-    const [commentsPage, setCommentsPage] = useState(1);
-    const [activitiesPage, setActivitiesPage] = useState(1);
-    const [commentsPerPage] = useState(10);
-    const [activitiesPerPage] = useState(20);
-    const [commentFilter, setCommentFilter] = useState<'all' | 'comentario' | 'sistema'>('all');
-    const [activityFilter, setActivityFilter] = useState<'all' | 'etapa' | 'documento' | 'comentario'>('all');
-    const [searchTerm, setSearchTerm] = useState('');
+
+
     const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
     const [isAutoUpdating, setIsAutoUpdating] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(false);
+
+    // Cancel modal states
+    const [showCancelDialog, setShowCancelDialog] = useState(false);
+    const [cancelReason, setCancelReason] = useState('');
+    const [cancelReasonOther, setCancelReasonOther] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
+
+    // Status Situação (de vw_os_status_completo)
+    const [statusSituacao, setStatusSituacao] = useState<string>('no_prazo');
+
+    // Opções de motivo de cancelamento
+    const CANCEL_REASONS = [
+        'Cliente desistiu',
+        'Proposta não aprovada',
+        'Fora do escopo',
+        'Duplicidade de OS',
+        'Erro no cadastro',
+        'Outro',
+    ];
 
     // Load data on mount and when osId changes
     useEffect(() => {
         loadOSData();
-    }, [osId]);
-
-    // Real-time updates polling (every 30 seconds)
-    useEffect(() => {
-        if (!osId) return;
-
-        const interval = setInterval(() => {
-            loadOSData(true); // Pass isAutoUpdate = true
-        }, 30000); // 30 seconds
-
-        return () => clearInterval(interval);
     }, [osId]);
 
     // Update data when filters change
@@ -343,7 +186,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
         if (osId) {
             loadOSData();
         }
-    }, [commentsPage, activitiesPage, commentFilter, activityFilter, searchTerm]);
+    }, [commentsPage, commentFilter, searchTerm]);
 
     const loadOSData = async (isAutoUpdate = false) => {
         try {
@@ -407,6 +250,21 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
             }
             setOsDetails(osData);
 
+            // Buscar status_situacao da view
+            try {
+                const { data: statusData } = await supabase
+                    .from('vw_os_status_completo')
+                    .select('status_situacao')
+                    .eq('id', osId)
+                    .single();
+
+                if (statusData?.status_situacao) {
+                    setStatusSituacao(statusData.status_situacao);
+                }
+            } catch (statusError) {
+                console.warn('Erro ao buscar status_situacao:', statusError);
+            }
+
             // Load workflow steps (with error handling)
             try {
                 const { data: stepsData, error: stepsError } = await supabase
@@ -458,7 +316,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     query = query.ilike('comentario', `%${searchTerm}%`);
                 }
 
-                const { data: commentsData, error: commentsError, count } = await query
+                const { data: commentsData, error: commentsError } = await query
                     .order('criado_em', { ascending: false })
                     .range((commentsPage - 1) * commentsPerPage, commentsPage * commentsPerPage - 1);
 
@@ -482,51 +340,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                 setComments([]);
             }
 
-            // Load recent activities (with pagination and filtering)
-            try {
-                let query = supabase
-                    .from('os_atividades')
-                    .select(`
-                        id,
-                        tipo,
-                        descricao,
-                        criado_em,
-                        colaboradores!inner(nome_completo),
-                        metadados
-                    `, { count: 'exact' })
-                    .eq('os_id', osId);
 
-                // Apply filters
-                if (activityFilter !== 'all') {
-                    query = query.eq('tipo', activityFilter);
-                }
-
-                if (searchTerm) {
-                    query = query.ilike('descricao', `%${searchTerm}%`);
-                }
-
-                const { data: activitiesData, error: activitiesError } = await query
-                    .order('criado_em', { ascending: false })
-                    .range((activitiesPage - 1) * activitiesPerPage, activitiesPage * activitiesPerPage - 1);
-
-                if (activitiesError) {
-                    console.warn('Erro ao carregar atividades:', activitiesError);
-                    setActivities([]);
-                } else {
-                    const formattedActivities = activitiesData?.map(a => ({
-                        id: a.id,
-                        tipo: a.tipo,
-                        descricao: a.descricao,
-                        criado_em: a.criado_em,
-                        usuario_nome: (a.colaboradores as any)?.nome_completo || 'Sistema',
-                        metadados: a.metadados
-                    })) || [];
-                    setActivities(formattedActivities);
-                }
-            } catch (activitiesError) {
-                console.warn('Erro ao carregar atividades:', activitiesError);
-                setActivities([]);
-            }
 
             // Documents loading removed - handled by OSDockumentsTab
 
@@ -581,81 +395,94 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
         }
     };
 
-    const handleWorkflowNavigation = async (step: WorkflowStep) => {
-        // Prevenir cliques duplos
-        if (isNavigating) return;
-        setIsNavigating(true);
+    // Cancelar OS
+    const handleCancelOS = async () => {
+        if (!cancelReason) {
+            toast.error('Selecione um motivo de cancelamento');
+            return;
+        }
 
+        const finalReason = cancelReason === 'Outro'
+            ? cancelReasonOther.trim() || 'Outro motivo não especificado'
+            : cancelReason;
+
+        if (cancelReason === 'Outro' && !cancelReasonOther.trim()) {
+            toast.error('Descreva o motivo do cancelamento');
+            return;
+        }
+
+        setIsCancelling(true);
         try {
-            // ===== VALIDAÇÕES OBRIGATÓRIAS =====
-            if (!osId) {
-                toast.error('ID da OS não encontrado');
-                return;
-            }
-
-            if (!osDetails) {
-                toast.error('Detalhes da OS não carregados');
-                return;
-            }
-
-            if (step.ordem < 1 || step.ordem > 15) {
-                toast.error('Etapa inválida');
-                return;
-            }
-
-            // ===== VERIFICAR ACESSO =====
-            const currentStepOrder = getCurrentStepOrder(workflowSteps);
-            const accessRule = determineWorkflowAccess(step, currentStepOrder);
-            const { canAccess, reason } = validateWorkflowAccess(step, currentStepOrder);
-
-            if (!canAccess) {
-                toast.error(reason);
-                return;
-            }
-
-            // ===== BLOQUEAR ETAPAS FUTURAS =====
-            if (accessRule === WorkflowAccessRule.FUTURE_BLOCKED) {
-                toast.error('Complete as etapas anteriores primeiro');
-                return;
-            }
-
-            // ===== REGISTRAR ATIVIDADE =====
+            // Buscar informações do usuário
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 toast.error('Usuário não autenticado');
                 return;
             }
 
-            await supabase.rpc('registrar_atividade_os', {
-                p_os_id: osId,
-                p_etapa_id: step.id,
-                p_usuario_id: user.id,
-                p_tipo: 'navegacao_etapa',
-                p_descricao: `Navegou para etapa ${step.ordem}: ${step.nome_etapa}`
-            });
+            // Buscar nome do colaborador
+            const { data: colaborador } = await supabase
+                .from('colaboradores')
+                .select('nome_completo')
+                .eq('user_id', user.id)
+                .single();
 
-            // ===== DETERMINAR MODO READONLY =====
-            const isReadonly = accessRule === WorkflowAccessRule.COMPLETED_READ_ONLY
-                || accessRule === WorkflowAccessRule.PREVIOUS_READ_ONLY
-                || step.status === 'cancelada';
+            const canceladoPorNome = colaborador?.nome_completo || user.email || 'Usuário desconhecido';
+            const dataCancelamento = new Date().toISOString();
 
-            // ===== NAVEGAR COM READONLY PARAM =====
-            navigate({
-                to: '/os/details-workflow/$id',
-                params: { id: osId },
-                search: {
-                    step: step.ordem,
-                    readonly: isReadonly
+            // Atualizar status da OS para cancelado com informações completas
+            const { error: updateError } = await supabase
+                .from('ordens_servico')
+                .update({
+                    status_geral: 'cancelado',
+                    metadata: {
+                        ...osDetails?.metadata,
+                        cancelamento: {
+                            motivo: finalReason,
+                            data: dataCancelamento,
+                            cancelado_por_id: user.id,
+                            cancelado_por_nome: canceladoPorNome,
+                        }
+                    }
+                })
+                .eq('id', osId);
+
+            if (updateError) throw updateError;
+
+            // Inserir na tabela de atividades (audit log)
+            const { error: atividadeError } = await supabase.from('os_atividades').insert({
+                os_id: osId,
+                usuario_id: user.id,
+                tipo: 'status_alterado',
+                descricao: `OS cancelada. Motivo: ${finalReason}`,
+                metadados: {
+                    status_anterior: osDetails?.status_geral,
+                    status_novo: 'cancelado',
+                    motivo_cancelamento: finalReason,
+                    cancelado_por: canceladoPorNome,
                 }
             });
 
+            if (atividadeError) {
+                console.warn('Erro ao registrar atividade:', atividadeError);
+            }
+
+            toast.success('OS cancelada com sucesso');
+            setShowCancelDialog(false);
+            setCancelReason('');
+            setCancelReasonOther('');
+            loadOSData(); // Recarregar dados
         } catch (error) {
-            console.error('Erro na navegação:', error);
-            toast.error('Erro ao navegar para a etapa');
+            console.error('Erro ao cancelar OS:', error);
+            toast.error('Erro ao cancelar OS');
         } finally {
-            setIsNavigating(false);
+            setIsCancelling(false);
         }
     };
+
+
+
+
 
     const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -681,9 +508,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
 
     if (loading) {
         return (
-            <div className={`min-h-screen transition-colors duration-300 ${isDarkMode ? 'bg-neutral-900 text-neutral-50' : 'bg-background text-foreground'}`}>
+            <div className="min-h-screen bg-background text-foreground">
                 {/* Header Skeleton */}
-                <div className="bg-background border-b border-border sticky top-0 z-10">
+                <div className="bg-background border-b border-border">
                     <div className="px-8 py-6">
                         <div className="flex items-center justify-between">
                             <div className="w-24 h-10 bg-muted rounded animate-pulse"></div>
@@ -754,27 +581,84 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
     }
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="bg-muted pb-6">
             {/* Header */}
-            <div className="bg-background border-b border-border sticky top-0 z-10">
-                <div className="px-8 py-6">
+            <div className="bg-background/95 backdrop-blur-sm border-b border-border">
+                <div className="container mx-auto px-6 py-4">
                     <div className="flex items-center justify-between">
                         <Link to="/os">
                             <Button
                                 variant="ghost"
                                 size="sm"
-                                className="gap-2 rounded-md"
+                                className="gap-2"
                             >
                                 <ArrowLeft className="w-4 h-4" />
                                 Voltar
                             </Button>
                         </Link>
                         <div className="text-center">
-                            <h1 className="text-3xl font-bold">{osDetails.codigo_os}</h1>
-                            <p className="text-muted-foreground font-normal">{osDetails.cliente_nome}</p>
+                            <h1 className="text-2xl font-bold text-neutral-900">{osDetails.codigo_os}</h1>
+                            <p className="text-sm text-neutral-600">{osDetails.tipo_os_nome}</p>
+                            <p className="text-xs text-neutral-400">{osDetails.cliente_nome}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            {getStatusBadge(osDetails.status_geral)}
+                            {/* Badge Status Geral */}
+                            <Badge
+                                variant="outline"
+                                className={
+                                    osDetails.status_geral === 'em_andamento'
+                                        ? 'bg-info/10 text-info border-info/20'
+                                        : osDetails.status_geral === 'em_triagem'
+                                            ? 'bg-warning/10 text-warning border-warning/20'
+                                            : osDetails.status_geral === 'aguardando_info'
+                                                ? 'bg-warning/10 text-warning border-warning/20'
+                                                : osDetails.status_geral === 'concluido'
+                                                    ? 'bg-success/10 text-success border-success/20'
+                                                    : osDetails.status_geral === 'cancelado'
+                                                        ? 'bg-destructive/10 text-destructive border-destructive/20'
+                                                        : 'bg-muted text-muted-foreground'
+                                }
+                            >
+                                {osDetails.status_geral === 'em_andamento' ? 'Em Andamento'
+                                    : osDetails.status_geral === 'em_triagem' ? 'Em Triagem'
+                                        : osDetails.status_geral === 'aguardando_info' ? 'Aguard. Info'
+                                            : osDetails.status_geral === 'concluido' ? 'Concluído'
+                                                : osDetails.status_geral === 'cancelado' ? 'Cancelado'
+                                                    : osDetails.status_geral}
+                            </Badge>
+                            {/* Badge Status Situação - dinâmico */}
+                            <Badge
+                                variant="outline"
+                                className={
+                                    statusSituacao === 'no_prazo'
+                                        ? 'bg-success/10 text-success border-success/20'
+                                        : statusSituacao === 'acao_pendente'
+                                            ? 'bg-info/10 text-info border-info/20'
+                                            : statusSituacao === 'aguardando_info'
+                                                ? 'bg-warning/10 text-warning border-warning/20'
+                                                : statusSituacao === 'aguardando_aprovacao'
+                                                    ? 'bg-accent text-accent-foreground border-accent'
+                                                    : statusSituacao === 'alerta_prazo'
+                                                        ? 'bg-warning/10 text-warning border-warning/20'
+                                                        : statusSituacao === 'atrasado'
+                                                            ? 'bg-destructive/10 text-destructive border-destructive/20'
+                                                            : statusSituacao === 'finalizado'
+                                                                ? 'bg-muted text-muted-foreground border-muted'
+                                                                : statusSituacao === 'sem_responsavel'
+                                                                    ? 'bg-muted/50 text-muted-foreground border-muted'
+                                                                    : 'bg-muted text-muted-foreground'
+                                }
+                            >
+                                {statusSituacao === 'no_prazo' ? 'No Prazo'
+                                    : statusSituacao === 'acao_pendente' ? 'Ação Pendente'
+                                        : statusSituacao === 'aguardando_info' ? 'Aguard. Info'
+                                            : statusSituacao === 'aguardando_aprovacao' ? 'Aguard. Aprovação'
+                                                : statusSituacao === 'alerta_prazo' ? 'Alerta Prazo'
+                                                    : statusSituacao === 'atrasado' ? 'Atrasado'
+                                                        : statusSituacao === 'finalizado' ? 'Finalizado'
+                                                            : statusSituacao === 'sem_responsavel' ? 'Sem Responsável'
+                                                                : statusSituacao}
+                            </Badge>
                             {isAutoUpdating && (
                                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 animate-pulse">
                                     <Loader2 className="w-3 h-3 mr-1 animate-spin" />
@@ -782,360 +666,534 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                 </Badge>
                             )}
                             {!isAutoUpdating && (
-                                <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-xs">
+                                <Badge variant="outline" className="bg-success/5 text-success border-success/20 text-xs hidden md:flex">
                                     Atualizado {formatDateTime(lastUpdate.toISOString())}
                                 </Badge>
                             )}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsDarkMode(!isDarkMode)}
-                                className="rounded-md"
-                            >
-                                {isDarkMode ? (
-                                    <Sun className="w-4 h-4" />
-                                ) : (
-                                    <Moon className="w-4 h-4" />
-                                )}
-                            </Button>
+                            {/* Menu de ações */}
+                            {osDetails.status_geral !== 'cancelado' && osDetails.status_geral !== 'concluido' && (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            onClick={() => setShowCancelDialog(true)}
+                                            className="text-destructive focus:text-destructive"
+                                        >
+                                            <Ban className="w-4 h-4 mr-2" />
+                                            Cancelar OS
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="px-8 py-6">
+            <div className="container mx-auto px-6 py-6">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
                     {/* Tab Navigation */}
                     <TabsList className="w-full h-auto p-1 bg-muted rounded-xl">
-                        <TabsTrigger value="overview" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+                        <TabsTrigger value="overview" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
                             <FileText className="w-4 h-4 flex-shrink-0" />
                             <span className="hidden sm:inline truncate">Visão Geral</span>
                             <span className="sm:hidden truncate">Geral</span>
                         </TabsTrigger>
-                        <TabsTrigger value="workflow" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
-                            <Activity className="w-4 h-4 flex-shrink-0" />
+                        <TabsTrigger value="workflow" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+                            <Layers className="w-4 h-4 flex-shrink-0" />
                             <span className="hidden sm:inline truncate">Etapas ({workflowSteps.length})</span>
                             <span className="sm:hidden truncate">Etapas ({workflowSteps.length})</span>
                         </TabsTrigger>
-                        <TabsTrigger value="documents" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+                        <TabsTrigger value="documents" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
                             <Paperclip className="w-4 h-4 flex-shrink-0" />
-                            <span className="hidden sm:inline truncate">Documentos ({osDetails.documentos_count})</span>
-                            <span className="sm:hidden truncate">Docs ({osDetails.documentos_count})</span>
+                            <span className="hidden sm:inline truncate">Anexos ({osDetails.documentos_count})</span>
+                            <span className="sm:hidden truncate">Anexos ({osDetails.documentos_count})</span>
                         </TabsTrigger>
-                        <TabsTrigger value="comments" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+                        <TabsTrigger value="comments" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
                             <MessageSquare className="w-4 h-4 flex-shrink-0" />
-                            <span className="hidden sm:inline truncate">Comentários ({osDetails.comentarios_count})</span>
+                            <span className="hidden sm:inline truncate">Chat ({osDetails.comentarios_count})</span>
                             <span className="sm:hidden truncate">Chat ({osDetails.comentarios_count})</span>
                         </TabsTrigger>
                     </TabsList>
 
                     {/* Overview Tab Content */}
                     <TabsContent value="overview" className="space-y-6">
-                        {/* Progress Card */}
-                        <Card className="border-border rounded-lg shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold">Progresso</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div>
-                                    <div className="flex justify-between text-sm mb-2">
-                                        <span>Etapas Concluídas</span>
-                                        <span>{osDetails.etapas_concluidas_count}/{osDetails.etapas_total_count}</span>
-                                    </div>
-                                    <Progress value={getProgressPercentage()} className="h-2" />
-                                    <p className="text-xs text-muted-foreground mt-1">{getProgressPercentage()}% concluído</p>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <div className="flex justify-between text-sm">
-                                        <span>Comentários</span>
-                                        <span>{osDetails.comentarios_count}</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm">
-                                        <span>Documentos</span>
-                                        <span>{osDetails.documentos_count}</span>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* OS Hierarchy */}
-                        <OSHierarchyCard osId={osDetails.id} />
-
-                        {/* 🆕 Solicitações Vinculadas (OSs Filhas) */}
-                        <LinkedRequestsWidget osId={osDetails.id} />
-
-                        {/* OS Information */}
-                        <Card className="border-border rounded-lg shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-semibold">Informações</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                            <User className="w-4 h-4" />
-                                            <span>Cliente</span>
+                        {/* 1. Cancellation Info Card (Always on top if canceled) */}
+                        {osDetails.status_geral === 'cancelado' && osDetails.metadata?.cancelamento && (() => {
+                            const cancelamento = osDetails.metadata.cancelamento as {
+                                motivo?: string;
+                                data?: string;
+                                cancelado_por_id?: string;
+                                cancelado_por_nome?: string;
+                            };
+                            return (
+                                <Card className="border-destructive/30 bg-destructive/5 rounded-lg shadow-sm">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-lg font-semibold text-destructive flex items-center gap-2">
+                                            <Ban className="w-5 h-5" />
+                                            Cancelada
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-3">
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                            <div className="p-3 rounded-lg bg-background border border-border/50">
+                                                <p className="text-xs text-muted-foreground mb-1">Cancelado por</p>
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {cancelamento.cancelado_por_nome || 'Não informado'}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-background border border-border/50">
+                                                <p className="text-xs text-muted-foreground mb-1">Data e Hora</p>
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {cancelamento.data
+                                                        ? new Date(cancelamento.data).toLocaleString('pt-BR', {
+                                                            day: '2-digit',
+                                                            month: '2-digit',
+                                                            year: 'numeric',
+                                                            hour: '2-digit',
+                                                            minute: '2-digit'
+                                                        })
+                                                        : 'Não informado'}
+                                                </p>
+                                            </div>
+                                            <div className="p-3 rounded-lg bg-background border border-border/50">
+                                                <p className="text-xs text-muted-foreground mb-1">Motivo</p>
+                                                <p className="text-sm font-medium text-foreground">
+                                                    {cancelamento.motivo || 'Não informado'}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <p className="font-normal text-lg">{osDetails.cliente_nome}</p>
-                                        {osDetails.cliente_email && (
-                                            <p className="text-sm text-muted-foreground">{osDetails.cliente_email}</p>
-                                        )}
-                                        {osDetails.cliente_telefone && (
-                                            <p className="text-sm text-muted-foreground">{osDetails.cliente_telefone}</p>
-                                        )}
-                                    </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })()}
 
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                            <FileText className="w-4 h-4" />
-                                            <span>Tipo de Serviço</span>
+                        {/* 2. Grid: Details & Progress (2:1 Ratio) */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            {/* Left Column: Detalhes (Span 2) */}
+                            <Card className="border-border rounded-lg shadow-sm h-full flex flex-col lg:col-span-2">
+                                <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+                                    <CardTitle className="text-base font-semibold">Detalhes</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6 pt-6 flex-1">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Cliente Section */}
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                                <User className="w-4 h-4" />
+                                                <span className="font-medium">Cliente</span>
+                                            </div>
+                                            <p className="text-lg font-medium text-foreground">{osDetails.cliente_nome}</p>
+                                            {(osDetails.cliente_email || osDetails.cliente_telefone) && (
+                                                <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                                                    {osDetails.cliente_email && <span>{osDetails.cliente_email}</span>}
+                                                    {osDetails.cliente_telefone && <span>{osDetails.cliente_telefone}</span>}
+                                                </div>
+                                            )}
                                         </div>
-                                        <p className="font-normal">{osDetails.tipo_os_nome}</p>
-                                    </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                            <Calendar className="w-4 h-4" />
-                                            <span>Data de Abertura</span>
+                                        {/* Address Section */}
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                                <MapPin className="w-4 h-4" />
+                                                <span className="font-medium">Endereço</span>
+                                            </div>
+                                            {osDetails.cliente_endereco ? (
+                                                <div className="text-sm text-foreground">
+                                                    <p className="font-medium">
+                                                        {osDetails.cliente_endereco?.logradouro || ''}
+                                                        {osDetails.cliente_endereco?.numero ? `, ${osDetails.cliente_endereco?.numero}` : ''}
+                                                    </p>
+                                                    <p className="text-muted-foreground">
+                                                        {osDetails.cliente_endereco?.bairro || ''}
+                                                        {osDetails.cliente_endereco?.cidade ? ` - ${osDetails.cliente_endereco?.cidade}` : ''}
+                                                        {osDetails.cliente_endereco?.uf ? `/${osDetails.cliente_endereco?.uf}` : ''}
+                                                    </p>
+                                                    {(osDetails.cliente_endereco as any).cep && (
+                                                        <p className="text-xs text-muted-foreground mt-1">
+                                                            CEP: {osDetails.cliente_endereco?.cep}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ) : (
+                                                <p className="text-sm text-muted-foreground italic">Endereço não informado</p>
+                                            )}
                                         </div>
-                                        <p className="font-normal">{osDetails.data_entrada ? formatDate(osDetails.data_entrada) : '-'}</p>
                                     </div>
 
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                            <Clock className="w-4 h-4" />
-                                            <span>Prazo</span>
+                                    {/* Grid: Tipo + Datas */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                                <FileText className="w-4 h-4" />
+                                                <span className="font-medium">Tipo</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">{osDetails.tipo_os_nome}</p>
                                         </div>
-                                        <p className="font-normal">{osDetails.data_prazo ? formatDate(osDetails.data_prazo) : '-'}</p>
-                                    </div>
-                                </div>
 
-                                <div>
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                        <User className="w-4 h-4" />
-                                        <span>Responsável Atual</span>
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                                <Calendar className="w-4 h-4" />
+                                                <span className="font-medium">Abertura</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {osDetails.data_entrada ? formatDate(osDetails.data_entrada) : '-'}
+                                            </p>
+                                        </div>
+
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                                <Clock className="w-4 h-4" />
+                                                <span className="font-medium">Prazo</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-foreground">
+                                                {osDetails.data_prazo ? formatDate(osDetails.data_prazo) : '-'}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Avatar className="w-8 h-8">
+
+                                    {/* Responsável */}
+                                    <div className="flex items-center gap-4 p-4 rounded-lg bg-primary/5 border border-primary/20">
+                                        <Avatar className="w-12 h-12 border-2 border-primary/20">
                                             <AvatarImage
                                                 src={osDetails.responsavel_avatar_url || undefined}
                                                 alt={osDetails.responsavel_nome || 'Responsável'}
                                             />
-                                            <AvatarFallback className="bg-primary text-white font-medium">
+                                            <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                                                 {osDetails.responsavel_nome?.substring(0, 2).toUpperCase() || '??'}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div>
-                                            <p className="font-medium">{osDetails.responsavel_nome || 'Não atribuído'}</p>
-                                            <p className="text-xs text-muted-foreground">Iniciado por: {osDetails.criado_por_nome || 'Sistema'}</p>
+                                            <p className="text-sm text-muted-foreground">Responsável Atual</p>
+                                            <p className="text-base font-semibold text-foreground">
+                                                {osDetails.responsavel_nome || 'Não atribuído'}
+                                            </p>
+                                            <p className="text-xs text-muted-foreground">
+                                                Criado por: {osDetails.criado_por_nome || 'Sistema'}
+                                            </p>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div>
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1 font-medium">
-                                        <FileText className="w-4 h-4" />
-                                        <span>Descrição</span>
-                                    </div>
-                                    <p className="text-muted-foreground font-normal">{osDetails.descricao}</p>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Metadata Section */}
-                        <Collapsible className="border border-border rounded-lg shadow-sm bg-card">
-                            <CollapsibleTrigger className="group flex items-center justify-between w-full p-4 font-medium hover:bg-muted/50 transition-colors">
-                                <div className="flex items-center gap-2">
-                                    <Code className="w-4 h-4 text-muted-foreground" />
-                                    <span>Dados Técnicos</span>
-                                </div>
-                                <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                            </CollapsibleTrigger>
-                            <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
-                                <div className="space-y-4">
-                                    {osDetails.status_detalhado && (
+                                    {/* Descrição */}
+                                    {osDetails.descricao && (
                                         <div>
-                                            <h4 className="text-sm font-medium mb-2">Status Detalhado</h4>
-                                            <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
-                                                {JSON.stringify(osDetails.status_detalhado, null, 2)}
-                                            </pre>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                                                <FileText className="w-4 h-4" />
+                                                <span className="font-medium">Descrição</span>
+                                            </div>
+                                            <p className="text-sm text-foreground leading-relaxed">
+                                                {osDetails.descricao}
+                                            </p>
                                         </div>
                                     )}
-                                    {osDetails.metadata && (
-                                        <div>
-                                            <h4 className="text-sm font-medium mb-2">Metadados</h4>
-                                            <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
-                                                {JSON.stringify(osDetails.metadata, null, 2)}
-                                            </pre>
+                                </CardContent>
+                            </Card>
+
+                            {/* Right Column: Progresso & Metadados (Span 1) */}
+                            <div className="flex flex-col gap-6 h-full lg:col-span-1">
+                                <Card className="border-border rounded-lg shadow-sm flex-1 flex flex-col">
+                                    <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+                                        <CardTitle className="text-base font-semibold flex items-center gap-2">
+                                            <Activity className="w-5 h-5 text-primary" />
+                                            Progresso
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="pt-6 flex-1 flex flex-col justify-center gap-8">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-sm font-medium text-muted-foreground">Conclusão do Fluxo</span>
+                                                <span className="text-2xl font-bold text-primary">{getProgressPercentage()}%</span>
+                                            </div>
+                                            <Progress value={getProgressPercentage()} className="h-3 w-full" />
                                         </div>
-                                    )}
-                                    {!osDetails.status_detalhado && !osDetails.metadata && (
-                                        <p className="text-sm text-muted-foreground">Nenhum dado técnico disponível.</p>
-                                    )}
-                                </div>
-                            </CollapsibleContent>
-                        </Collapsible>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                                                <p className="text-3xl font-bold text-foreground mb-1">{osDetails.etapas_concluidas_count}</p>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Etapas Concluídas</p>
+                                            </div>
+                                            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                                                <p className="text-3xl font-bold text-muted-foreground mb-1">{osDetails.etapas_total_count}</p>
+                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total de Etapas</p>
+                                            </div>
+                                        </div>
+                                        {/* Removed 'Etapa atual' block as requested */}
+                                    </CardContent>
+                                </Card>
+
+                                {/* Metadata inside the layout flow */}
+                                <Collapsible className="border border-border rounded-lg shadow-sm bg-card">
+                                    <CollapsibleTrigger className="group flex items-center justify-between w-full p-4 font-medium hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-2">
+                                            <Code className="w-4 h-4 text-muted-foreground" />
+                                            <span>Dados Técnicos</span>
+                                        </div>
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
+                                        <div className="space-y-4">
+                                            {osDetails.status_detalhado && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">Status Detalhado</h4>
+                                                    <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
+                                                        {JSON.stringify(osDetails.status_detalhado, null, 2)}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                            {osDetails.metadata && (
+                                                <div>
+                                                    <h4 className="text-sm font-medium mb-2">Metadados</h4>
+                                                    <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
+                                                        {JSON.stringify(osDetails.metadata, null, 2)}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                            {!osDetails.status_detalhado && !osDetails.metadata && (
+                                                <p className="text-sm text-muted-foreground">Nenhum dado técnico disponível.</p>
+                                            )}
+                                        </div>
+                                    </CollapsibleContent>
+                                </Collapsible>
+                            </div>
+                        </div>
+
+                        {/* 3. OS Hierarchy (Full Width, now at bottom) */}
+                        <OSHierarchyCard osId={osDetails.id} />
                     </TabsContent>
 
-                    {/* Workflow Tab */}
+                    {/* Workflow Tab - Unificado com hierarquia */}
                     <TabsContent value="workflow" className="space-y-6">
-                        <Card className="border-border rounded-lg shadow-sm">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-semibold">Etapas do Workflow</CardTitle>
-                                <p className="text-sm text-muted-foreground">
-                                    Clique em "Ir" para continuar o workflow ou visualizar etapas concluídas
-                                </p>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {workflowSteps.map((step, index) => (
-                                        <div
-                                            key={step.id}
-                                            className={`flex items-center justify-between p-4 rounded-lg border transition-all hover:shadow-md ${step.status === 'em_andamento' ? 'bg-primary/5 border-primary/20' :
-                                                step.status === 'concluida' ? 'bg-success/5 border-success/20' :
-                                                    'bg-card border-border'
-                                                }`}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-background border-2 border-current">
-                                                    {getStepStatusIcon(step.status)}
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-medium">{step.nome_etapa}</h3>
-                                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                                        <span>Etapa {step.ordem}</span>
-                                                        {(() => {
-                                                            // Extrai tipo de OS do código (ex: "OS-10-0001" → "OS-10")
-                                                            const tipoOS = osDetails?.codigo_os?.match(/^OS-\d+/)?.[0];
-                                                            const owner = tipoOS ? getStepOwner(tipoOS, step.ordem) : null;
-                                                            if (owner) {
-                                                                return <span>• Setor: {SETOR_NOMES[owner.setor]}</span>;
-                                                            }
-                                                            return null;
-                                                        })()}
-                                                        {step.ultima_atualizacao && (
-                                                            <span>• Atualizado {formatDate(step.ultima_atualizacao)}</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
+                        <UnifiedWorkflowStepper
+                            osId={osId}
+                            isNavigating={isNavigating}
+                        />
 
-                                            <div className="flex items-center gap-3">
-
-                                                <Badge variant="outline" className={getStepStatusColor(step.status)}>
-                                                    {step.status === 'concluida' ? 'Concluída' :
-                                                        step.status === 'em_andamento' ? 'Em Andamento' :
-                                                            step.status === 'bloqueada' ? 'Bloqueada' :
-                                                                step.status === 'cancelada' ? 'Cancelada' : 'Pendente'}
-                                                </Badge>
-
-                                                <WorkflowNavigationButton
-                                                    step={step}
-                                                    currentStepOrder={getCurrentStepOrder(workflowSteps)}
-                                                    onNavigate={handleWorkflowNavigation}
-                                                    isNavigating={isNavigating}
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        {/* Ações Rápidas (criar OS-09, OS-10) - apenas para contratos */}
+                        <QuickActionsPanel
+                            osId={osId}
+                            clienteId={osDetails?.cliente_id}
+                            ccId={osDetails?.cc_id}
+                            isContract={osDetails?.tipo_os_nome?.includes('OS-12') || osDetails?.tipo_os_nome?.includes('OS-13') || osDetails?.codigo_os?.startsWith('OS-12') || osDetails?.codigo_os?.startsWith('OS-13')}
+                        />
                     </TabsContent>
 
                     {/* Documents Tab */}
                     <TabsContent value="documents" className="space-y-6">
-                        <OSDocumentsTab osId={osId} />
+                        <OSDocumentsTab osId={osId} relatedOsIds={relatedOsIds} />
                     </TabsContent>
 
-                    {/* Comments Tab */}
-                    <TabsContent value="comments" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            {/* Comments List */}
-                            <div className="lg:col-span-2">
-                                <Card className="border-border rounded-lg shadow-sm">
-                                    <CardHeader>
-                                        <CardTitle className="text-xl font-semibold flex items-center gap-2">
-                                            <MessageSquare className="w-5 h-5" />
-                                            Comentários Internos ({comments.length})
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <ScrollArea className="h-[500px]">
-                                            <div className="space-y-4">
-                                                {comments.length === 0 ? (
-                                                    <div className="text-center py-8 text-muted-foreground">
-                                                        <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                                                        <p>Nenhum comentário encontrado</p>
-                                                        <p className="text-sm">Seja o primeiro a comentar.</p>
-                                                    </div>
-                                                ) : (
-                                                    comments.map(comment => (
-                                                        <div key={comment.id} className="flex gap-3 animate-in fade-in-50 duration-300">
-                                                            <Avatar className="w-8 h-8 flex-shrink-0">
-                                                                <AvatarImage
-                                                                    src={comment.usuario_avatar_url || undefined}
-                                                                    alt={comment.usuario_nome || 'Usuário'}
-                                                                />
-                                                                <AvatarFallback className="bg-primary text-white text-xs font-medium">
-                                                                    {comment.usuario_nome?.substring(0, 2).toUpperCase() || '??'}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="flex-1">
-                                                                <div className="bg-background rounded-md p-3 border border-border hover:bg-muted transition-colors">
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <p className="text-xs font-medium">{comment.usuario_nome || 'Usuário'}</p>
-                                                                        {comment.etapa_nome && (
-                                                                            <Badge variant="outline" className="text-xs">
-                                                                                {comment.etapa_nome}
-                                                                            </Badge>
-                                                                        )}
-                                                                    </div>
-                                                                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{comment.comentario}</p>
-                                                                </div>
-                                                                <p className="text-xs text-muted-foreground mt-1">
-                                                                    {formatDateTime(comment.criado_em)}
+                    {/* Comments Tab - Chat Interface */}
+                    <TabsContent value="comments" className="space-y-0">
+                        <Card className="border-border rounded-lg shadow-sm overflow-hidden">
+                            {/* Chat Header */}
+                            <div className="border-b border-border bg-muted/30 px-6 py-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <MessageSquare className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-foreground">Chat Restrito</h3>
+                                            <p className="text-sm text-muted-foreground">
+                                                {comments.length} mensage{comments.length !== 1 ? 'ns' : 'm'} • Atualizado em tempo real
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-xs">
+                                            {osDetails.codigo_os}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Chat Messages Area */}
+                            <ScrollArea className="h-[350px] bg-muted/10">
+                                <div className="p-4 space-y-4">
+                                    {comments.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center h-[280px] text-center">
+                                            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                                                <MessageSquare className="w-8 h-8 text-muted-foreground" />
+                                            </div>
+                                            <h4 className="text-lg font-medium text-foreground mb-1">Nenhuma mensagem</h4>
+                                            <p className="text-sm text-muted-foreground max-w-xs">
+                                                Inicie uma conversa sobre esta OS. Seus colegas serão notificados.
+                                            </p>
+                                        </div>
+                                    ) : (
+                                        [...comments].reverse().map((comment, index, arr) => {
+                                            // Check if this is a new day
+                                            const currentDate = new Date(comment.criado_em).toDateString();
+                                            const prevDate = index > 0 ? new Date(arr[index - 1].criado_em).toDateString() : null;
+                                            const showDateSeparator = index === 0 || currentDate !== prevDate;
+
+                                            return (
+                                                <div key={comment.id}>
+                                                    {showDateSeparator && (
+                                                        <div className="flex items-center justify-center my-4">
+                                                            <div className="bg-muted/80 px-3 py-1 rounded-full">
+                                                                <span className="text-xs font-medium text-muted-foreground">
+                                                                    {new Date(comment.criado_em).toLocaleDateString('pt-BR', {
+                                                                        day: '2-digit',
+                                                                        month: 'long',
+                                                                        year: 'numeric'
+                                                                    })}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="flex gap-3 group animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+                                                        <Avatar className="w-9 h-9 flex-shrink-0 border-2 border-background shadow-sm">
+                                                            <AvatarImage
+                                                                src={comment.usuario_avatar_url || undefined}
+                                                                alt={comment.usuario_nome || 'Usuário'}
+                                                            />
+                                                            <AvatarFallback className="bg-primary text-primary-foreground text-xs font-semibold">
+                                                                {comment.usuario_nome?.substring(0, 2).toUpperCase() || '??'}
+                                                            </AvatarFallback>
+                                                        </Avatar>
+
+                                                        <div className="flex-1 max-w-[85%]">
+                                                            <div className="flex items-center gap-2 mb-1">
+                                                                <span className="text-sm font-semibold text-foreground">
+                                                                    {comment.usuario_nome || 'Usuário'}
+                                                                </span>
+                                                                {comment.etapa_nome && (
+                                                                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                                                                        {comment.etapa_nome}
+                                                                    </Badge>
+                                                                )}
+                                                                <span className="text-[11px] text-muted-foreground">
+                                                                    {new Date(comment.criado_em).toLocaleTimeString('pt-BR', {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit'
+                                                                    })}
+                                                                </span>
+                                                            </div>
+
+                                                            <div className="bg-background rounded-2xl rounded-tl-sm px-4 py-2.5 shadow-sm border border-border/50 hover:border-border transition-colors">
+                                                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
+                                                                    {comment.comentario}
                                                                 </p>
                                                             </div>
                                                         </div>
-                                                    ))
-                                                )}
-                                            </div>
-                                        </ScrollArea>
-                                    </CardContent>
-                                </Card>
-                            </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </ScrollArea>
 
-                            {/* Add Comment */}
-                            <div>
-                                <Card className="border-border rounded-lg shadow-sm sticky top-24">
-                                    <CardHeader>
-                                        <CardTitle className="text-lg font-semibold">Adicionar Comentário</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
+                            {/* Chat Input Area */}
+                            <div className="border-t border-border bg-background p-4">
+                                <div className="flex gap-3 items-end">
+                                    <div className="flex-1 relative">
                                         <Textarea
-                                            placeholder="Digite seu comentário..."
+                                            placeholder="Digite sua mensagem..."
                                             value={newComment}
                                             onChange={(e) => setNewComment(e.target.value)}
-                                            rows={4}
-                                            className="border-border rounded-md resize-none"
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' && !e.shiftKey) {
+                                                    e.preventDefault();
+                                                    if (newComment.trim()) {
+                                                        handleAddComment();
+                                                    }
+                                                }
+                                            }}
+                                            rows={1}
+                                            className="min-h-[44px] max-h-32 resize-none pr-12 rounded-2xl border-border/60 focus:border-primary/50 bg-muted/30 transition-all"
                                         />
-                                        <Button
-                                            onClick={handleAddComment}
-                                            disabled={!newComment.trim()}
-                                            className="w-full rounded-md"
-                                        >
-                                            <Send className="w-4 h-4 mr-2" />
-                                            Enviar
-                                        </Button>
-                                    </CardContent>
-                                </Card>
+                                        <div className="absolute right-2 bottom-2 flex items-center gap-1">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-8 w-8 rounded-full text-muted-foreground hover:text-primary"
+                                            >
+                                                <Paperclip className="w-4 h-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        onClick={handleAddComment}
+                                        disabled={!newComment.trim()}
+                                        size="icon"
+                                        className="h-11 w-11 rounded-full shadow-md shrink-0"
+                                    >
+                                        <Send className="w-5 h-5" />
+                                    </Button>
+                                </div>
+                                <p className="text-[11px] text-neutral-400 mt-2 text-center">
+                                    Pressione <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Enter</kbd> para enviar • <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">Shift + Enter</kbd> para nova linha
+                                </p>
                             </div>
-                        </div>
+                        </Card>
                     </TabsContent>
                 </Tabs>
             </div>
+
+            {/* Modal de Cancelamento */}
+            <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+                <AlertDialogContent className="max-w-md">
+                    <AlertDialogHeader>
+                        <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+                            <Ban className="w-5 h-5" />
+                            Cancelar Ordem de Serviço
+                        </AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Esta ação não pode ser desfeita. Por favor, selecione o motivo do cancelamento.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+
+                    <div className="space-y-4 py-4">
+                        <RadioGroup value={cancelReason} onValueChange={setCancelReason}>
+                            {CANCEL_REASONS.map((reason) => (
+                                <div key={reason} className="flex items-center space-x-3">
+                                    <RadioGroupItem value={reason} id={reason} />
+                                    <Label htmlFor={reason} className="cursor-pointer">
+                                        {reason}
+                                    </Label>
+                                </div>
+                            ))}
+                        </RadioGroup>
+
+                        {cancelReason === 'Outro' && (
+                            <Textarea
+                                placeholder="Descreva o motivo do cancelamento..."
+                                value={cancelReasonOther}
+                                onChange={(e) => setCancelReasonOther(e.target.value)}
+                                className="min-h-[100px]"
+                            />
+                        )}
+                    </div>
+
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isCancelling}>
+                            Voltar
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleCancelOS}
+                            disabled={isCancelling || !cancelReason}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            {isCancelling ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                    Cancelando...
+                                </>
+                            ) : (
+                                'Confirmar Cancelamento'
+                            )}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     );
 };

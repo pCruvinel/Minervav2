@@ -361,11 +361,11 @@ export function ControlePresencaTabelaPage() {
 
     // Identificar colaboradores com múltiplos CCs (precisam de rateio)
     const colabsComMultiplosCCs: ColaboradorRateio[] = [];
-    
+
     colaboradores.forEach(col => {
       const registro = registros[col.id];
       if (!registro || registro.status === 'FALTA') return;
-      
+
       // Só precisa de rateio se tiver mais de 1 CC
       if (registro.centrosCusto.length > 1) {
         const percentualIgual = Math.round(100 / registro.centrosCusto.length);
@@ -376,7 +376,7 @@ export function ControlePresencaTabelaPage() {
             ccId,
             ccNome: getCentroCustoNome(ccId),
             // Último CC pega o resto para garantir soma = 100
-            percentual: index === registro.centrosCusto.length - 1 
+            percentual: index === registro.centrosCusto.length - 1
               ? 100 - (percentualIgual * (registro.centrosCusto.length - 1))
               : percentualIgual
           }))
@@ -444,7 +444,7 @@ export function ControlePresencaTabelaPage() {
 
       // Criar mapa de colaborador_id -> registro_presenca_id
       const registroIdMap = new Map<string, string>();
-      
+
       // Buscar IDs dos registros criados/atualizados
       const { data: registrosComIds } = await supabase
         .from('registros_presenca')
@@ -491,7 +491,7 @@ export function ControlePresencaTabelaPage() {
       if (alocacoesParaSalvar.length > 0) {
         // Buscar IDs de registros do dia para deletar alocações antigas
         const registroIds = Array.from(registroIdMap.values());
-        
+
         // Deletar alocações existentes
         await supabase
           .from('alocacao_horas_cc')
@@ -599,7 +599,7 @@ export function ControlePresencaTabelaPage() {
 
   if (loading && colaboradores.length === 0) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-full min-h-96">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-muted-foreground">Carregando...</span>
       </div>
@@ -608,111 +608,128 @@ export function ControlePresencaTabelaPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-screen bg-background">
-        {/* Barra Superior */}
+      <div className="flex flex-col h-full bg-background">
+        {/* Header */}
         <div className="bg-white border-b px-6 py-4 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl mb-1">Controle de Presença Diária</h1>
-              <p className="text-sm text-muted-foreground">
-                Interface de alta produtividade para lançamento rápido
-              </p>
+          <div className="flex flex-col gap-4">
+            {/* Título e Ações */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-neutral-900">Controle de Presença Diária</h1>
+                <p className="text-neutral-600 mt-1">
+                  Interface de alta produtividade para lançamento rápido
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {algumRegistroConfirmado && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
+                      <CheckCircle className="mr-1 h-3 w-3" />
+                      Confirmado
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleReverterConfirmacao}
+                      disabled={saving}
+                      className="text-xs"
+                    >
+                      Reverter
+                    </Button>
+                  </div>
+                )}
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className="w-56">
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="end">
+                    <Calendar
+                      mode="single"
+                      selected={dataSelecionada}
+                      onSelect={(date) => date && setDataSelecionada(date)}
+                      locale={ptBR}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              {/* Resumo */}
-              <div className="flex items-center gap-4 px-4 py-2 bg-muted rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    <strong>Total:</strong> {colaboradores.length}
-                  </span>
+            {/* KPIs e Filtros */}
+            <div className="flex items-center justify-between">
+              {/* KPI Cards */}
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="h-4 w-4 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500">Total</p>
+                    <p className="text-lg font-bold text-neutral-900">{colaboradores.length}</p>
+                  </div>
                 </div>
-                <div className="h-4 w-px bg-border" />
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-4 w-4 text-success" />
-                  <span className="text-sm">
-                    <strong>Presentes:</strong> {stats.presentes}
-                  </span>
+
+                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success/5 border border-success/20">
+                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                    <CheckCircle className="h-4 w-4 text-success" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500">Presentes</p>
+                    <p className="text-lg font-bold text-success">{stats.presentes}</p>
+                  </div>
                 </div>
+
                 {stats.ausentes > 0 && (
-                  <>
-                    <div className="h-4 w-px bg-border" />
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/5 border border-destructive/20">
+                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
                       <XCircle className="h-4 w-4 text-destructive" />
-                      <span className="text-sm">
-                        <strong>Ausentes:</strong> {stats.ausentes}
-                      </span>
                     </div>
-                  </>
+                    <div>
+                      <p className="text-xs text-neutral-500">Ausentes</p>
+                      <p className="text-lg font-bold text-destructive">{stats.ausentes}</p>
+                    </div>
+                  </div>
                 )}
+
                 {stats.atrasados > 0 && (
-                  <>
-                    <div className="h-4 w-px bg-border" />
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-warning/5 border border-warning/20">
+                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
                       <Clock className="h-4 w-4 text-warning" />
-                      <span className="text-sm">
-                        <strong>Atrasados:</strong> {stats.atrasados}
-                      </span>
                     </div>
-                  </>
+                    <div>
+                      <p className="text-xs text-neutral-500">Atrasados</p>
+                      <p className="text-lg font-bold text-warning">{stats.atrasados}</p>
+                    </div>
+                  </div>
                 )}
               </div>
 
-              <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading || algumRegistroConfirmado}>
-                <Copy className="mr-2 h-4 w-4" />
-                Repetir Alocação de Ontem
-              </Button>
+              {/* Filtros e Ações */}
+              <div className="flex items-center gap-3">
+                <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading || algumRegistroConfirmado}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Repetir de Ontem
+                </Button>
 
-              <Select value={setorFiltro} onValueChange={setSetorFiltro}>
-                <SelectTrigger className="w-48">
-                  <SelectValue placeholder="Filtrar por setor" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos os setores</SelectItem>
-                  {setoresUnicos.map(setor => (
-                    <SelectItem key={setor} value={setor}>
-                      {setor.charAt(0).toUpperCase() + setor.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              {algumRegistroConfirmado && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                    <CheckCircle className="mr-1 h-3 w-3" />
-                    Confirmado
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReverterConfirmacao}
-                    disabled={saving}
-                    className="text-xs"
-                  >
-                    Reverter Confirmação
-                  </Button>
-                </div>
-              )}
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-64">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={dataSelecionada}
-                    onSelect={(date) => date && setDataSelecionada(date)}
-                    locale={ptBR}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+                <Select value={setorFiltro} onValueChange={setSetorFiltro}>
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="Filtrar por setor" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os setores</SelectItem>
+                    {setoresUnicos.map(setor => (
+                      <SelectItem key={setor} value={setor || ''}>
+                        {setor ? setor.charAt(0).toUpperCase() + setor.slice(1) : 'Sem setor'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </div>
@@ -917,43 +934,47 @@ export function ControlePresencaTabelaPage() {
         </div>
 
         {/* Rodapé Fixo */}
-        <div className="bg-white border-t px-6 py-4 shadow-lg">
+        <div className="bg-white/95 backdrop-blur-sm border-t px-6 py-4 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-3">
-                <DollarSign className="h-6 w-6 text-primary" />
+              {/* Custo Total */}
+              <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Custo Total do Dia (Rateado)</p>
-                  <p className="text-2xl font-medium text-primary">{formatCurrency(custoTotalDia)}</p>
+                  <p className="text-xs text-neutral-500">Custo Total do Dia</p>
+                  <p className="text-xl font-bold text-primary">{formatCurrency(custoTotalDia)}</p>
                 </div>
               </div>
 
-              <div className="h-12 w-px bg-border" />
+              <div className="h-10 w-px bg-border" />
 
+              {/* Resumo */}
               <div className="text-sm space-y-1">
-                <p className="text-muted-foreground">
-                  <strong>{stats.presentes}</strong> presentes •
-                  <strong className="ml-2">{stats.ausentes}</strong> ausentes
+                <p className="text-neutral-600">
+                  <strong className="text-success">{stats.presentes}</strong> presentes •
+                  <strong className="text-neutral-900 ml-2">{stats.ausentes}</strong> ausentes
                   {stats.atrasados > 0 && (
                     <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
                   )}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-neutral-500">
                   {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} colaboradores com CC alocado
                 </p>
               </div>
             </div>
 
-            <Button size="lg" onClick={handleAbrirModalConfirmacao} className="px-8" disabled={saving || algumRegistroConfirmado}>
+            <Button size="lg" onClick={handleAbrirModalConfirmacao} className="px-8 shadow-md" disabled={saving || algumRegistroConfirmado}>
               {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
-              {algumRegistroConfirmado ? 'Presenças Já Confirmadas' : 'Registrar'}
+              {algumRegistroConfirmado ? 'Presenças Já Confirmadas' : 'Registrar Presenças'}
             </Button>
           </div>
         </div>
 
         {/* Modal de Confirmação */}
         <Dialog open={modalConfirmacaoOpen} onOpenChange={setModalConfirmacaoOpen}>
-          <DialogContent>
+          <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Confirmar Registro de Presenças</DialogTitle>
               <DialogDescription>
@@ -1044,7 +1065,7 @@ function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, st
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>
             {tipo === 'STATUS' ? 'Justificativa Obrigatória' : 'Justifique a Performance'}
@@ -1117,13 +1138,13 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
 
   const handlePercentualChange = (colaboradorId: string, ccId: string, novoValor: string) => {
     const valor = parseInt(novoValor) || 0;
-    
+
     setRateiosLocal(prev => prev.map(colab => {
       if (colab.colaboradorId !== colaboradorId) return colab;
-      
+
       return {
         ...colab,
-        centrosCusto: colab.centrosCusto.map(cc => 
+        centrosCusto: colab.centrosCusto.map(cc =>
           cc.ccId === ccId ? { ...cc, percentual: valor } : cc
         )
       };
@@ -1139,10 +1160,10 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
 
   const validarRateios = (): boolean => {
     const novosErros: Record<string, string> = {};
-    
+
     rateiosLocal.forEach(colab => {
       const soma = colab.centrosCusto.reduce((acc, cc) => acc + cc.percentual, 0);
-      
+
       if (soma !== 100) {
         novosErros[colab.colaboradorId] = `Soma deve ser 100% (atual: ${soma}%)`;
       }
@@ -1173,11 +1194,11 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
   const distribuirIgualmente = (colaboradorId: string) => {
     setRateiosLocal(prev => prev.map(colab => {
       if (colab.colaboradorId !== colaboradorId) return colab;
-      
+
       const qtdCCs = colab.centrosCusto.length;
       const percentualBase = Math.floor(100 / qtdCCs);
       const resto = 100 - (percentualBase * qtdCCs);
-      
+
       return {
         ...colab,
         centrosCusto: colab.centrosCusto.map((cc, idx) => ({
@@ -1216,12 +1237,12 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
             const somaCorreta = soma === 100;
 
             return (
-              <div 
-                key={colab.colaboradorId} 
+              <div
+                key={colab.colaboradorId}
                 className={cn(
                   "p-4 rounded-lg border transition-all",
-                  temErro ? "border-destructive bg-destructive/5" : 
-                  somaCorreta ? "border-success/50 bg-success/5" : "border-border"
+                  temErro ? "border-destructive bg-destructive/5" :
+                    somaCorreta ? "border-success/50 bg-success/5" : "border-border"
                 )}
               >
                 {/* Header do Colaborador */}
@@ -1235,17 +1256,17 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
                       {colab.centrosCusto.length} CCs
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => distribuirIgualmente(colab.colaboradorId)}
                       className="text-xs"
                     >
                       Distribuir igual
                     </Button>
-                    <Badge 
+                    <Badge
                       variant={somaCorreta ? "default" : "destructive"}
                       className={cn(
                         "text-xs font-mono",
@@ -1260,8 +1281,8 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
                 {/* Inputs de Percentual */}
                 <div className="grid gap-2">
                   {colab.centrosCusto.map((cc) => (
-                    <div 
-                      key={cc.ccId} 
+                    <div
+                      key={cc.ccId}
                       className="flex items-center gap-3 p-2 rounded bg-muted/50"
                     >
                       <div className="flex-1 min-w-0">
@@ -1276,8 +1297,8 @@ function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRatei
                           max="100"
                           value={cc.percentual}
                           onChange={(e) => handlePercentualChange(
-                            colab.colaboradorId, 
-                            cc.ccId, 
+                            colab.colaboradorId,
+                            cc.ccId,
                             e.target.value
                           )}
                           className="w-20 text-center font-mono"

@@ -42,18 +42,18 @@ export function HomePage() {
             </div>
 
             {/* Grid de Widgets - 2 colunas */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
                 {/* Widget 1: Quadro de Avisos - primeira coluna */}
-                <div className="min-h-[720px]">
+                <div>
                     <SystemAnnouncementsWidget />
                 </div>
 
                 {/* Widget 2: Segunda coluna - Minha Agenda e Aniversariantes empilhados */}
                 <div className="flex flex-col gap-6">
-                    <div className="min-h-[350px]">
+                    <div className="flex-1">
                         <WeeklyCalendarWidget />
                     </div>
-                    <div className="min-h-[350px]">
+                    <div className="flex-1">
                         <BirthdaysWidget />
                     </div>
                 </div>

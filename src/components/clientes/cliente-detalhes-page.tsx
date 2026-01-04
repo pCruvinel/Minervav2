@@ -165,6 +165,10 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
   const [modalStatusOpen, setModalStatusOpen] = useState(false);
   const [isTogglingStatus, setIsTogglingStatus] = useState(false);
 
+  // Estado do modal de toggle de acesso ao portal
+  const [modalToggleAcessoOpen, setModalToggleAcessoOpen] = useState(false);
+  const [isTogglingPortalAccess, setIsTogglingPortalAccess] = useState(false);
+
   // Preencher form de edição quando cliente carregar
   useEffect(() => {
     if (cliente) {
@@ -295,6 +299,31 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
     }
   };
 
+  // Handler para toggle de acesso ao portal do cliente
+  const handleTogglePortalAccess = async () => {
+    if (!inviteStatus) return;
+
+    setIsTogglingPortalAccess(true);
+    try {
+      const novoAcesso = !inviteStatus.portalAtivo;
+      const result = await ClientInviteService.togglePortalAccess(clienteId, novoAcesso);
+
+      if (result.success) {
+        toast.success(`Acesso ao portal ${novoAcesso ? 'ativado' : 'desativado'} com sucesso!`);
+        // Atualizar status localmente
+        setInviteStatus(prev => prev ? { ...prev, portalAtivo: novoAcesso } : null);
+        setModalToggleAcessoOpen(false);
+      } else {
+        toast.error(result.error || 'Erro ao alterar acesso ao portal');
+      }
+    } catch (err) {
+      logger.error('Erro ao toggle acesso portal:', err);
+      toast.error('Erro ao alterar acesso ao portal');
+    } finally {
+      setIsTogglingPortalAccess(false);
+    }
+  };
+
   // Loading state
   if (isLoadingCliente) {
     return <PageLoading onBack={onBack} />;
@@ -367,22 +396,37 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
             )}
           </Button>
 
-          {/* Botão de Convite de Acesso */}
+          {/* Botão de Convite de Acesso / Toggle */}
           {cliente.email && (
             <Button
               variant="outline"
-              onClick={() => setModalConviteOpen(true)}
-              disabled={isLoadingInvite || inviteStatus?.inviteAccepted}
+              onClick={() => {
+                if (inviteStatus?.inviteAccepted) {
+                  // Se tem acesso, abrir modal de toggle
+                  setModalToggleAcessoOpen(true);
+                } else {
+                  // Se não tem acesso, abrir modal de convite
+                  setModalConviteOpen(true);
+                }
+              }}
+              disabled={isLoadingInvite}
+              className={cn(
+                inviteStatus?.inviteAccepted && !inviteStatus?.portalAtivo && "text-destructive hover:text-destructive"
+              )}
             >
               {isLoadingInvite ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : inviteStatus?.inviteAccepted ? (
+              ) : inviteStatus?.inviteAccepted && inviteStatus?.portalAtivo ? (
                 <CheckCircle className="mr-2 h-4 w-4 text-success" />
+              ) : inviteStatus?.inviteAccepted && !inviteStatus?.portalAtivo ? (
+                <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
               ) : (
                 <Mail className="mr-2 h-4 w-4" />
               )}
               {inviteStatus?.inviteAccepted
-                ? 'Acesso Ativo'
+                ? inviteStatus?.portalAtivo
+                  ? 'Acesso Ativo'
+                  : 'Acesso Desativado'
                 : inviteStatus?.hasInvite
                   ? 'Reenviar Convite'
                   : 'Enviar Convite de Acesso'}
@@ -894,6 +938,59 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
                 <>
                   <UserCheck className="mr-2 h-4 w-4" />
                   Ativar
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Modal de Toggle Acesso ao Portal - NOVO */}
+      <AlertDialog open={modalToggleAcessoOpen} onOpenChange={setModalToggleAcessoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className={cn(
+              "mx-auto w-12 h-12 rounded-full flex items-center justify-center mb-3",
+              inviteStatus?.portalAtivo ? "bg-warning/10" : "bg-success/10"
+            )}>
+              {inviteStatus?.portalAtivo ? (
+                <UserMinus className="h-6 w-6 text-warning" />
+              ) : (
+                <UserCheck className="h-6 w-6 text-success" />
+              )}
+            </div>
+            <AlertDialogTitle className="text-center">
+              {inviteStatus?.portalAtivo ? 'Desativar Acesso ao Portal' : 'Reativar Acesso ao Portal'}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              {inviteStatus?.portalAtivo
+                ? `Tem certeza que deseja desativar o acesso de ${cliente.nome_razao_social} ao Portal? O cliente não poderá mais acessar suas informações online.`
+                : `Tem certeza que deseja reativar o acesso de ${cliente.nome_razao_social} ao Portal? O cliente voltará a poder acessar suas informações online.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:justify-center">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleTogglePortalAccess}
+              disabled={isTogglingPortalAccess}
+              className={cn(
+                inviteStatus?.portalAtivo
+                  ? "bg-warning text-warning-foreground hover:bg-warning/90"
+                  : "bg-success text-success-foreground hover:bg-success/90"
+              )}
+            >
+              {isTogglingPortalAccess ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : inviteStatus?.portalAtivo ? (
+                <>
+                  <UserMinus className="mr-2 h-4 w-4" />
+                  Desativar Acesso
+                </>
+              ) : (
+                <>
+                  <UserCheck className="mr-2 h-4 w-4" />
+                  Reativar Acesso
                 </>
               )}
             </AlertDialogAction>

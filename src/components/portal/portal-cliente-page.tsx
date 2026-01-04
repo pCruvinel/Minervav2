@@ -65,7 +65,7 @@ export function PortalClientePage() {
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const clienteId = currentUser?.user_metadata?.cliente_id
+    const clienteId = currentUser?.cliente_id
 
     useEffect(() => {
         if (!clienteId) {

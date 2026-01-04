@@ -1,8 +1,10 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
-import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
+import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
+import { steps } from './constants';
 import {
   CadastrarClienteObra,
   type CadastrarClienteObraHandle,
@@ -11,6 +13,7 @@ import {
   StepImagemAreas,
   StepCronogramaObra,
   StepAgendarVisitaInicial,
+  type StepAgendarVisitaInicialHandle,
   StepRealizarVisitaInicial,
   StepHistograma,
   StepPlacaObra,
@@ -21,34 +24,20 @@ import {
   StepSeguroObras,
   StepDocumentosSST,
   StepAgendarVisitaFinal,
+  type StepAgendarVisitaFinalHandle,
   StepRealizarVisitaFinal
 } from '@/components/os/obras/os-13/steps';
 import { cadastrarClienteObraDefaults, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
-import { ChevronLeft, Info } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
+import { TransferenciaInfo } from '@/types/os-setor-config';
+import { logger } from '@/lib/utils/logger';
+import { supabase } from '@/lib/supabase-client';
 
-export const steps: WorkflowStep[] = [
-  { id: 1, title: 'Dados do Cliente', short: 'Cliente', responsible: 'Comercial', status: 'active' },
-  { id: 2, title: 'Anexar ART', short: 'ART', responsible: 'Engenharia', status: 'pending' },
-  { id: 3, title: 'Relatório Fotográfico', short: 'Fotos', responsible: 'Engenharia', status: 'pending' },
-  { id: 4, title: 'Imagem de Áreas', short: 'Áreas', responsible: 'Engenharia', status: 'pending' },
-  { id: 5, title: 'Cronograma', short: 'Cronograma', responsible: 'Engenharia', status: 'pending' },
-  { id: 6, title: 'Agendar Visita Inicial', short: 'Ag. Visita', responsible: 'Engenharia', status: 'pending' },
-  { id: 7, title: 'Realizar Visita Inicial', short: 'Visita', responsible: 'Engenharia', status: 'pending' },
-  { id: 8, title: 'Histograma', short: 'Histograma', responsible: 'Engenharia', status: 'pending' },
-  { id: 9, title: 'Placa de Obra', short: 'Placa', responsible: 'Engenharia', status: 'pending' },
-  { id: 10, title: 'Requisição de Compras', short: 'Compras', responsible: 'Compras', status: 'pending' },
-  { id: 11, title: 'Requisição de Mão de Obra', short: 'RH', responsible: 'RH', status: 'pending' },
-  { id: 12, title: 'Evidência Mobilização', short: 'Mobilização', responsible: 'Engenharia', status: 'pending' },
-  { id: 13, title: 'Diário de Obra', short: 'Diário', responsible: 'Engenharia', status: 'pending' },
-  { id: 14, title: 'Seguro de Obras', short: 'Seguro', responsible: 'Financeiro', status: 'pending' },
-  { id: 15, title: 'Documentos SST', short: 'SST', responsible: 'Segurança', status: 'pending' },
-  { id: 16, title: 'Agendar Visita Final', short: 'Ag. Final', responsible: 'Engenharia', status: 'pending' },
-  { id: 17, title: 'Realizar Visita Final', short: 'Visita Final', responsible: 'Engenharia', status: 'pending' },
-];
 
 interface OS13WorkflowPageProps {
   onBack?: () => void;
@@ -59,12 +48,19 @@ interface OS13WorkflowPageProps {
 
 export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId }: OS13WorkflowPageProps) {
   const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
-  const stepAgendarVisitaInicialRef = useRef<unknown>(null);
-  const stepAgendarVisitaFinalRef = useRef<unknown>(null);
+  const stepAgendarVisitaInicialRef = useRef<StepAgendarVisitaInicialHandle>(null);
+  const stepAgendarVisitaFinalRef = useRef<StepAgendarVisitaFinalHandle>(null);
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
 
-  // Obter usuário atual para delegação
-  const { currentUser } = useAuth();
+  // Estado para feedback de transferência de setor
+  const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
+  const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+  // Hook de transferência
+  const { executarTransferencia } = useTransferenciaSetor();
+
+  // Hook de autenticação removido - currentUser não é usado diretamente aqui
+  useAuth();
 
   // Atualizar internalOsId se prop mudar
   useEffect(() => {
@@ -110,6 +106,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     console.log('🔍 handleNextStep chamado', { currentStep, formDataByStep1: formDataByStep[1] });
 
     // Etapa 1: Validar e salvar componente CadastrarClienteObra
+    let savedOsId: string | null = null;
     if (currentStep === 1) {
       console.log('✅ Etapa 1 detectada, iniciando validação e salvamento...');
 
@@ -128,7 +125,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
 
         // Salvar dados (cliente, documentos, centro de custo, metadata)
         console.log('💾 Salvando dados da obra...');
-        const savedOsId = await stepLeadRef.current.saveData();
+        savedOsId = await stepLeadRef.current.saveData();
 
         if (!savedOsId) {
           console.log('❌ Salvamento falhou');
@@ -145,18 +142,40 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
       }
 
       // Salvar a etapa no banco (marcar como concluída)
-      console.log('💾 Salvando etapa 1 no banco...');
+      // ✅ FIX: Usar savedOsId diretamente, não depender do hook que ainda tem osId undefined
+      logger.log('💾 Marcando etapa 1 como concluída no banco...');
       try {
-        // Se tivermos um novo ID, vamos atualizar a etapa diretamente para garantir
-        if (stepLeadRef.current && typeof stepLeadRef.current.saveData === 'function') {
-          // Já salvamos os dados. Agora só precisamos marcar a etapa como completa.
-          // O saveStep do hook pode não funcionar se o osId for undefined no render atual.
+        // Buscar a etapa 1 da OS recém-criada
+        const { data: etapa1, error: fetchError } = await supabase
+          .from('os_etapas')
+          .select('id')
+          .eq('os_id', savedOsId)
+          .eq('ordem', 1)
+          .single();
+
+        if (fetchError || !etapa1) {
+          logger.error('❌ Etapa 1 não encontrada:', fetchError);
+          throw new Error('Etapa 1 não encontrada');
         }
 
-        await saveStep(1, true); // true = mark as complete
-        console.log('✅ Etapa 1 salva no banco');
+        // Marcar como concluída
+        const { error: updateError } = await supabase
+          .from('os_etapas')
+          .update({
+            status: 'concluida',
+            data_conclusao: new Date().toISOString(),
+            dados_etapa: formDataByStep[1] || {}
+          })
+          .eq('id', etapa1.id);
+
+        if (updateError) {
+          logger.error('❌ Erro ao atualizar etapa 1:', updateError);
+          throw updateError;
+        }
+
+        logger.log('✅ Etapa 1 marcada como concluída');
       } catch (error) {
-        console.error('❌ Erro ao salvar etapa:', error);
+        logger.error('❌ Erro ao salvar etapa:', error);
         toast.error('Erro ao salvar dados. Tente novamente.');
         return;
       }
@@ -174,11 +193,31 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     }
 
     // Avançar para próxima etapa manualmente
-    console.log('➡️ Avançando para próxima etapa...');
+    logger.log('➡️ Avançando para próxima etapa...');
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-      setLastActiveStep(currentStep + 1);
-      console.log('✅ Avançado para etapa:', currentStep + 1);
+      const nextStep = currentStep + 1;
+
+      // Verificar transferência de setor (OS-13 tem múltiplos handoffs)
+      if (internalOsId) {
+        const resultado = await executarTransferencia({
+          osId: internalOsId,
+          osType: 'OS-13',
+          etapaAtual: currentStep,
+          proximaEtapa: nextStep,
+          clienteNome: (etapa1Data?.clienteNome as string) || 'Cliente',
+          codigoOS: undefined
+        });
+
+        if (resultado.success && resultado.transferencia) {
+          setTransferenciaInfo(resultado.transferencia);
+          setIsTransferenciaModalOpen(true);
+          return;
+        }
+      }
+
+      setCurrentStep(nextStep);
+      setLastActiveStep(nextStep);
+      logger.log('✅ Avançado para etapa:', nextStep);
     }
   };
 
@@ -227,22 +266,22 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
   // Regras de completude
   const completionRules = useMemo(() => ({
     1: () => true, // Validação detalhada é feita no handleNextStep ao clicar em Avançar
-    2: (data: Record<string, any>) => !!(data.arquivos && data.arquivos.length > 0),
-    3: (data: Record<string, any>) => !!data.relatorioAnexado,
-    4: (data: Record<string, any>) => !!data.imagemAnexada,
-    5: (data: Record<string, any>) => !!data.cronogramaAnexado,
-    6: (data: Record<string, any>) => !!(data.agendamentoId || data.dataVisita),
-    7: (data: Record<string, any>) => !!data.visitaRealizada,
-    8: (data: Record<string, any>) => !!data.histogramaAnexado,
-    9: (data: Record<string, any>) => !!data.placaAnexada,
-    10: (data: Record<string, any>) => !!(data.os09Criada && data.os09Id),
-    11: (data: Record<string, any>) => !!(data.os10Criada && data.os10Id),
-    12: (data: Record<string, any>) => !!data.evidenciaAnexada,
-    13: (data: Record<string, any>) => !!data.diarioAnexado,
-    14: (data: Record<string, any>) => !!data.decisaoSeguro,
-    15: (data: Record<string, any>) => !!(data.arquivos && data.arquivos.length > 0),
-    16: (data: Record<string, any>) => !!(data.agendamentoId || data.dataVisitaFinal),
-    17: (data: Record<string, any>) => !!data.visitaFinalRealizada,
+    2: (data: Record<string, unknown>) => !!(data.arquivos && Array.isArray(data.arquivos) && data.arquivos.length > 0),
+    3: (data: Record<string, unknown>) => !!data.relatorioAnexado,
+    4: (data: Record<string, unknown>) => !!data.imagemAnexada,
+    5: (data: Record<string, unknown>) => !!data.cronogramaAnexado,
+    6: (data: Record<string, unknown>) => !!(data.agendamentoId || data.dataVisita),
+    7: (data: Record<string, unknown>) => !!data.visitaRealizada,
+    8: (data: Record<string, unknown>) => !!data.histogramaAnexado,
+    9: (data: Record<string, unknown>) => !!data.placaAnexada,
+    10: (data: Record<string, unknown>) => !!(data.os09Criada && data.os09Id),
+    11: (data: Record<string, unknown>) => !!(data.os10Criada && data.os10Id),
+    12: (data: Record<string, unknown>) => !!data.evidenciaAnexada,
+    13: (data: Record<string, unknown>) => !!data.diarioAnexado,
+    14: (data: Record<string, unknown>) => !!data.decisaoSeguro,
+    15: (data: Record<string, unknown>) => !!(data.arquivos && Array.isArray(data.arquivos) && data.arquivos.length > 0),
+    16: (data: Record<string, unknown>) => !!(data.agendamentoId || data.dataVisitaFinal),
+    17: (data: Record<string, unknown>) => !!data.visitaFinalRealizada,
   }), [formDataByStep]);
 
   const { completedSteps } = useWorkflowCompletion({
@@ -342,8 +381,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
             {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
             {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto} />}
-            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto} />}
+            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
+            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
             {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
             {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
@@ -366,6 +405,16 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
         isFormInvalid={isCurrentStepInvalid}
         invalidFormMessage={currentStep === 6 || currentStep === 16 ? "Por favor, selecione um horário no calendário para continuar" : "Complete todos os campos obrigatórios desta etapa antes de continuar"}
       />
+
+      {/* Modal de Feedback de Transferência */}
+      {transferenciaInfo && (
+        <FeedbackTransferencia
+          isOpen={isTransferenciaModalOpen}
+          onClose={() => setIsTransferenciaModalOpen(false)}
+          transferencia={transferenciaInfo}
+          osId={internalOsId || ''}
+        />
+      )}
     </div>
   );
 }

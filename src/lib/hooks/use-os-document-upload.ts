@@ -214,10 +214,30 @@ export function useOSDocumentUpload(osId: string) {
     return (data || []) as OSDocumento[];
   };
 
+  /**
+   * Atualiza a visibilidade de um documento
+   */
+  const updateDocumentVisibility = async (documentoId: string, novaVisibilidade: VisibilidadeDocumento): Promise<void> => {
+    try {
+      const { error } = await supabase
+        .from('os_documentos')
+        .update({ visibilidade: novaVisibilidade })
+        .eq('id', documentoId);
+
+      if (error) {
+        throw new Error(`Falha ao atualizar visibilidade: ${error.message}`);
+      }
+    } catch (error) {
+      logger.error('Erro ao atualizar visibilidade:', error);
+      throw error;
+    }
+  };
+
   return {
     uploadDocument,
     deleteDocument,
     listDocuments,
+    updateDocumentVisibility,
     isUploading,
     uploadProgress
   };

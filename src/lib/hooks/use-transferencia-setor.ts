@@ -176,19 +176,31 @@ export function useTransferenciaSetor() {
       }
 
       // 6. Registrar na timeline (os_atividades)
-      await supabase.from('os_atividades').insert({
-        os_id: osId,
-        usuario_id: currentUser?.id,
-        tipo_atividade: 'transferencia_setor',
-        descricao: `Transferido para setor ${SETOR_NOMES[setorDestinoSlug]} (Etapa ${proximaEtapa})`,
-        dados_adicionais: {
-          etapa_origem: etapaAtual,
-          etapa_destino: proximaEtapa,
-          setor_origem: setorOrigemSlug || 'indefinido',
-          setor_destino: setorDestinoSlug,
-          coordenador_notificado: coordenador?.nome_completo || null, // ✅ FIX: Handle undefined
-        },
-      });
+      // ✅ FIX: Wrap in try-catch to prevent errors from breaking the transfer flow
+      // ✅ FIX: Use correct field names from actual DB schema: 'tipo', 'metadados', 'criado_em'
+      try {
+        const { error: atividadeError } = await supabase.from('os_atividades').insert({
+          os_id: osId,
+          etapa_id: null, // Não temos etapa_id no contexto de transferência
+          usuario_id: currentUser?.id || null, // Ensure null instead of undefined
+          tipo: 'transferencia_setor', // ✅ Campo correto é 'tipo', não 'tipo_atividade'
+          descricao: `Transferido para setor ${SETOR_NOMES[setorDestinoSlug]} (Etapa ${proximaEtapa})`,
+          metadados: { // ✅ Campo correto é 'metadados', não 'dados_adicionais'
+            etapa_origem: etapaAtual,
+            etapa_destino: proximaEtapa,
+            setor_origem: setorOrigemSlug || 'indefinido',
+            setor_destino: setorDestinoSlug,
+            coordenador_notificado: coordenador?.nome_completo || null,
+          },
+        });
+
+        if (atividadeError) {
+          logger.warn('⚠️ Erro ao registrar atividade (não crítico):', atividadeError);
+        }
+      } catch (atividadeErr) {
+        logger.warn('⚠️ Exceção ao registrar atividade (não crítico):', atividadeErr);
+        // Continue - o registro de atividade é opcional
+      }
 
       // 7. Notificar coordenador
       if (coordenador) {

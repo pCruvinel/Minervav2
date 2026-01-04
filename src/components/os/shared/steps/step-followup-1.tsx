@@ -40,6 +40,7 @@ interface StepFollowup1Props {
   readOnly?: boolean;
   osId?: string;
   colaboradorId?: string;
+  etapaId?: string; // ✅ Recebe ID real da etapa
 }
 
 export interface StepFollowup1Handle {
@@ -48,7 +49,7 @@ export interface StepFollowup1Handle {
 }
 
 export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>(
-  function StepFollowup1({ data, onDataChange, readOnly = false, osId, colaboradorId }, ref) {
+  function StepFollowup1({ data, onDataChange, readOnly = false, osId, colaboradorId, etapaId }, ref) {
     // Ensure data has default values to prevent undefined issues
     const safeData = {
       anexos: data.anexos || [],
@@ -406,6 +407,8 @@ export const StepFollowup1 = forwardRef<StepFollowup1Handle, StepFollowup1Props>
             }}
             disabled={readOnly}
             osId={osId}
+            etapaId={etapaId} // ✅ Passando ID da etapa para registro (Fix 966)
+            etapaNome="Follow-up 1"
           />
         </div>
       </div>

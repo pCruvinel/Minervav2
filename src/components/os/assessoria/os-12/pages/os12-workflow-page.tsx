@@ -17,6 +17,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
+import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
 import {
     StepCadastroClientePortal,
     StepAnexarART,
@@ -37,6 +38,8 @@ import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
+import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
+import { TransferenciaInfo } from '@/types/os-setor-config';
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastro do Cliente e Portal', short: 'Cliente', responsible: 'Administrativo', status: 'active' },
@@ -52,13 +55,22 @@ const steps: WorkflowStep[] = [
 interface OS12WorkflowPageProps {
     onBack?: () => void;
     osId?: string;
+    parentOSId?: string;
+    clienteId?: string;
 }
 
-export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPageProps) {
+export function OS12WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOSId, clienteId: propClienteId }: OS12WorkflowPageProps) {
     // Estado interno para osId
     const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
     const finalOsId = propOsId || internalOsId;
     const [isCreatingOS, setIsCreatingOS] = useState(false);
+
+    // Estado para feedback de transferência de setor
+    const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
+    const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+    // Hook de transferência
+    const { executarTransferencia } = useTransferenciaSetor();
 
     // Ref para validação da Etapa 1
     const stepCadastroRef = useRef<StepCadastroClientePortalHandle>(null);
@@ -166,7 +178,18 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
     });
 
     // Data para cada etapa
-    const etapa1Data = formDataByStep[1] || { clienteId: '', senhaPortal: '', documentos: [] };
+    // ✅ Pré-selecionar cliente se vier da OS pai
+    const etapa1Data = formDataByStep[1] || { clienteId: propClienteId || '', senhaPortal: '', documentos: [] };
+
+    // Pré-selecionar cliente quando clienteId é fornecido via prop (vindo de OS pai)
+    const hasPreselectedClient = useRef(false);
+    useEffect(() => {
+        if (propClienteId && !hasPreselectedClient.current && !etapa1Data.clienteId) {
+            logger.log('🔗 [OS12] Pré-selecionando cliente da OS pai:', propClienteId);
+            setStepData(1, { ...formDataByStep[1], clienteId: propClienteId });
+            hasPreselectedClient.current = true;
+        }
+    }, [propClienteId]);
     const etapa2Data = formDataByStep[2] || { arquivos: [] };
     const etapa3Data = formDataByStep[3] || { arquivos: [], descricao: '' };
     const etapa4Data = formDataByStep[4] || { dataVisita: '', horaVisita: '', localVisita: '' };
@@ -251,7 +274,26 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
             return;
         }
 
-        // Para outras etapas, usar o handler normal de navegação
+        // Para outras etapas, verificar transferência de setor
+        if (finalOsId && currentStep < steps.length) {
+            const nextStep = currentStep + 1;
+            const resultado = await executarTransferencia({
+                osId: finalOsId,
+                osType: 'OS-12',
+                etapaAtual: currentStep,
+                proximaEtapa: nextStep,
+                clienteNome: (etapa1Data.clienteNome as string) || 'Cliente',
+                codigoOS: undefined
+            });
+
+            if (resultado.success && resultado.transferencia) {
+                setTransferenciaInfo(resultado.transferencia);
+                setIsTransferenciaModalOpen(true);
+                return;
+            }
+        }
+
+        // Handler normal de navegação
         handleNextStep();
     };
 
@@ -366,6 +408,16 @@ export function OS12WorkflowPage({ onBack, osId: propOsId }: OS12WorkflowPagePro
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData || isCreatingOS}
             />
+
+            {/* Modal de Feedback de Transferência */}
+            {transferenciaInfo && (
+                <FeedbackTransferencia
+                    isOpen={isTransferenciaModalOpen}
+                    onClose={() => setIsTransferenciaModalOpen(false)}
+                    transferencia={transferenciaInfo}
+                    osId={finalOsId || ''}
+                />
+            )}
         </div>
     );
 }

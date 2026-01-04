@@ -4,12 +4,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FileText, CheckCircle, Upload, Download, Loader2, X } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { supabase } from '@/lib/supabase-client';
+import { uploadAndRegisterDocument, deleteRegisteredDocument } from '@/lib/utils/upload-and-register';
+import { logger } from '@/lib/utils/logger';
 
 interface StepGerarContratoProps {
   data: {
     contratoFile?: File | null;
     contratoUrl?: string;
+    contratoDocumentoId?: string; // ID do registro em os_documentos
     dataUpload?: string;
     // Dados necessários para o modelo
     osId: string;
@@ -22,11 +24,13 @@ interface StepGerarContratoProps {
     objetoContrato?: string;
     [key: string]: unknown;
   };
-  onDataChange: (data: any) => void;
+  /** ID da etapa atual (para rastreabilidade) */
+  etapaId?: string;
+  onDataChange: (data: Record<string, unknown>) => void;
   readOnly?: boolean;
 }
 
-export function StepGerarContrato({ data, onDataChange, readOnly = false }: StepGerarContratoProps) {
+export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = false }: StepGerarContratoProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -50,26 +54,22 @@ export function StepGerarContrato({ data, onDataChange, readOnly = false }: Step
     setUploading(true);
 
     try {
-      // Upload para Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `contrato-${Date.now()}.${fileExt}`;
-      const filePath = `os/${data.osId}/contratos/${fileName}`;
+      // Usar helper centralizado para upload + registro em os_documentos
+      const result = await uploadAndRegisterDocument({
+        osId: data.osId,
+        etapaId,
+        file,
+        tipoDocumento: 'contrato',
+        descricao: `Contrato - ${data.codigoOS || ''}`,
+        visibilidade: 'cliente'
+      });
 
-      const { error: uploadError } = await supabase.storage
-        .from('uploads')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      // Obter URL pública
-      const { data: urlData } = supabase.storage
-        .from('uploads')
-        .getPublicUrl(filePath);
-
+      // Dupla persistência: salvar em dados_etapa também (compatibilidade)
       onDataChange({
         ...data,
         contratoFile: file,
-        contratoUrl: urlData.publicUrl,
+        contratoUrl: result.url,
+        contratoDocumentoId: result.documentoId,
         dataUpload: new Date().toISOString().split('T')[0]
       });
 
@@ -79,8 +79,8 @@ export function StepGerarContrato({ data, onDataChange, readOnly = false }: Step
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-    } catch (error: any) {
-      console.error('Erro ao fazer upload:', error);
+    } catch (error) {
+      logger.error('Erro ao fazer upload:', error);
       toast.error('Erro ao enviar contrato. Tente novamente.');
     } finally {
       setUploading(false);
@@ -91,7 +91,7 @@ export function StepGerarContrato({ data, onDataChange, readOnly = false }: Step
     // Aqui você pode implementar o download do modelo de contrato
     // Por exemplo, um PDF template hospedado no Supabase Storage
     toast.info('Baixando modelo de contrato...');
-    
+
     // Exemplo: link para modelo
     const modeloUrl = '/modelos/modelo-contrato.pdf';
     const link = document.createElement('a');
@@ -104,28 +104,22 @@ export function StepGerarContrato({ data, onDataChange, readOnly = false }: Step
     if (!data.contratoUrl) return;
 
     try {
-      // Extrair path do URL
-      const urlParts = data.contratoUrl.split('/uploads/');
-      if (urlParts.length > 1) {
-        const filePath = urlParts[1];
-        
-        const { error } = await supabase.storage
-          .from('uploads')
-          .remove([filePath]);
-
-        if (error) throw error;
+      // Se temos o ID do documento, usar o helper para deletar
+      if (data.contratoDocumentoId) {
+        await deleteRegisteredDocument(data.contratoDocumentoId as string);
       }
 
       onDataChange({
         ...data,
         contratoFile: null,
         contratoUrl: undefined,
+        contratoDocumentoId: undefined,
         dataUpload: undefined
       });
 
       toast.success('Contrato removido com sucesso');
-    } catch (error: any) {
-      console.error('Erro ao remover arquivo:', error);
+    } catch (error) {
+      logger.error('Erro ao remover arquivo:', error);
       toast.error('Erro ao remover contrato');
     }
   };
