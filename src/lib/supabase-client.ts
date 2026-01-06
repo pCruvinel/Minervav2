@@ -51,7 +51,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: true,
+    // IMPORTANTE: Desabilitado para processar tokens manualmente no callback
+    // Isso permite preservar o "type" (invite, recovery) antes de criar a sessão
+    detectSessionInUrl: false,
   },
 });
 

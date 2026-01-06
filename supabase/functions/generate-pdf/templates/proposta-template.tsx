@@ -1,34 +1,13 @@
 /**
  * Template de Proposta Comercial em React PDF
- * Baseado no modelo Minerva Engenharia
- *
- * Estrutura:
- * - Header com logo e dados da empresa (REFATORADO: usa SharedHeader)
- * - Dados do Cliente
- * - Objetivo
- * - Especificações Técnicas (Etapas e Subetapas - REFATORADO: usa Table components)
- * - Prazo - Cronograma de Obra
- * - Garantia
- * - Investimentos
- * - Pagamento
- * - Footer (REFATORADO: usa SharedFooter)
+ * Design Premium Refinado (Minerva V2)
  */
 
 import React from 'react';
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
-import { colors, spacing, fonts, fontSize, commonStyles } from './shared-styles.ts';
-import { formatarMoeda, formatarData, formatarCpfCnpj } from '../utils/pdf-formatter.ts';
-import { SharedHeader } from './components/shared-header.tsx';
-import {
-  Table,
-  TableHeaderRow,
-  TableHeaderCell,
-  TableRow,
-  TableCell,
-  CategoryRow,
-  SummaryRow,
-} from './components/table-components.tsx';
-import { SharedFooter } from './components/shared-footer.tsx';
+import { colors } from './shared-styles.ts';
+import { LOGO_BASE64 } from './assets.ts';
+import { formatarMoeda, formatarData, formatarCpfCnpj, formatarTelefone } from '../utils/pdf-formatter.ts';
 
 // ============================================
 // INTERFACES
@@ -37,7 +16,7 @@ import { SharedFooter } from './components/shared-footer.tsx';
 export interface Subetapa {
   nome: string;
   m2?: string;
-  unidade?: string; // UNID, m², m³, etc.
+  unidade?: string;
   quantidade?: number;
   total: string | number;
   diasUteis?: string | number;
@@ -50,8 +29,6 @@ export interface Etapa {
 
 export interface DadosFinanceiros {
   precoFinal: string | number;
-  maoObraCusto?: string | number;
-  materialCusto?: string | number;
   numeroParcelas?: string | number;
   percentualLucro?: string | number;
   percentualEntrada?: string | number;
@@ -68,13 +45,11 @@ export interface DadosCronograma {
 }
 
 export interface PropostaData {
-  // Dados da OS/Proposta
   codigoOS: string;
   codigoProposta?: string;
   dataEmissao: string;
-  validadeProposta?: number; // dias
+  validadeProposta?: number;
 
-  // Dados do Cliente
   clienteNome: string;
   clienteCpfCnpj: string;
   clienteEmail?: string;
@@ -85,789 +60,726 @@ export interface PropostaData {
   clienteEstado?: string;
   clienteResponsavel?: string;
 
-  // Dados específicos (para condomínios, etc.)
   quantidadeUnidades?: number;
   quantidadeBlocos?: number;
 
-  // Objetivo da Proposta
   objetivo: string;
   tituloProposta?: string;
 
-  // Dados do Cronograma (etapas e subetapas)
   dadosCronograma: DadosCronograma;
-
-  // Dados Financeiros
   dadosFinanceiros: DadosFinanceiros;
-
-  // Garantia
   garantias?: string[];
 
-  // Dados da Empresa
   empresaNome?: string;
   empresaCnpj?: string;
   empresaEndereco?: string;
   empresaTelefone?: string;
   empresaEmail?: string;
   empresaSite?: string;
-  empresaLogo?: string;
 }
 
 // ============================================
-// ESTILOS
+// ESTILOS PREMIUM
 // ============================================
 
 const styles = StyleSheet.create({
-  ...commonStyles,
-
-  // Page com margens menores para mais conteúdo
   page: {
     flexDirection: 'column',
     backgroundColor: colors.white,
-    padding: spacing.xl,
-    paddingBottom: spacing['3xl'],
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.neutral900,
+    paddingTop: 30, // Margem superior
+    paddingBottom: 40, // Espaço footer
+    paddingHorizontal: 30, // Margens laterais
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: colors.black,
   },
 
-  // Header estilo Minerva
+  // --- HEADER EXCLUSIVO ---
   headerContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottom: `3 solid ${colors.primary}`,
+    alignItems: 'flex-start',
+    marginBottom: 5,
   },
-
-  headerLeft: {
-    flexDirection: 'column',
-    width: '30%',
+  headerLogo: {
+    width: 120, // Ajuste conforme a logo real
+    height: 60,
+    objectFit: 'contain',
   },
-
-  headerRight: {
+  headerInfoContainer: {
     flexDirection: 'column',
     alignItems: 'flex-end',
-    width: '65%',
+    justifyContent: 'center',
+    marginTop: 10,
+    width: '60%',
   },
-
-  logo: {
-    width: 100,
-    height: 60,
-    marginBottom: spacing.xs,
-  },
-
-  empresaInfo: {
-    fontSize: fontSize.xs,
-    color: colors.neutral600,
+  headerAddress: {
+    fontSize: 9,
     textAlign: 'right',
-    lineHeight: 1.4,
+    color: colors.black,
+    marginBottom: 2,
   },
-
-  dataEmissao: {
-    fontSize: fontSize.xs,
-    color: colors.neutral500,
+  headerContact: {
+    fontSize: 9,
     textAlign: 'right',
-    marginTop: spacing.sm,
+    color: colors.black,
+    marginBottom: 2,
+  },
+  headerWeb: {
+    fontSize: 9,
+    textAlign: 'right',
+    color: colors.black,
+  },
+  goldBar: {
+    height: 4,
+    backgroundColor: colors.primary, // MINERVA GOLD
+    width: '100%',
+    marginBottom: 10,
+    marginTop: 5,
   },
 
-  // Dados do Cliente - Grid estilo tabela
-  clienteGrid: {
+  // --- DADOS DO CLIENTE (GRID DENSO) ---
+  clientGridContainer: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  clientDateRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: spacing.md,
+    justifyContent: 'flex-end',
+    marginBottom: 5,
   },
-
-  clienteRow: {
+  clientDateText: {
+    fontSize: 8,
+    color: colors.black,
+  },
+  // Linhas do grid
+  gridRow: {
     flexDirection: 'row',
     width: '100%',
   },
-
-  clienteCell: {
-    padding: spacing.xs,
+  // Células sem bordas explícitas, apenas alinhamento limpo conforme foto
+  gridCellLabel: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 8,
+    color: colors.black,
+    textTransform: 'uppercase',
   },
-
-  clienteLabel: {
-    fontSize: fontSize.xs,
-    fontFamily: fonts.bold,
-    color: colors.neutral700,
+  gridCellValue: {
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: colors.black,
+    marginLeft: 4,
   },
+  // Layout específico das colunas
+  colLeft: { width: '45%' },
+  colCenter: { width: '25%' },
+  colRight: { width: '30%' }, // Ajustado
 
-  clienteValue: {
-    fontSize: fontSize.sm,
-    color: colors.neutral900,
-  },
-
-  // Título da Proposta
-  tituloPropostaContainer: {
-    backgroundColor: colors.neutral100,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-    textAlign: 'center',
-  },
-
-  tituloProposta: {
-    fontSize: fontSize.lg,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-  },
-
-  // Seção Objetivo
-  objetivoContainer: {
-    backgroundColor: colors.primary,
-    padding: spacing.sm,
-    marginBottom: spacing.md,
-  },
-
-  objetivoLabel: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  objetivoText: {
-    fontSize: fontSize.sm,
-    color: colors.white,
-    marginTop: spacing.xs,
-  },
-
-  // Tabela de Especificações Técnicas
-  sectionHeader: {
-    backgroundColor: colors.neutral800,
-    padding: spacing.sm,
-    marginTop: spacing.md,
-  },
-
-  sectionHeaderText: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  // Tabela de itens
-  tableContainer: {
-    borderWidth: 1,
-    borderColor: colors.neutral300,
-    marginBottom: spacing.md,
-  },
-
-  tableHeaderRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.neutral200,
+  // --- SESSÃO TITULO DESTAQUE (CINZA) ---
+  greyBar: {
+    backgroundColor: colors.neutral200, // Cinza claro #E5E7EB
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginBottom: 0,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral300,
+    borderBottomColor: colors.white,
+  },
+  greyBarText: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
+    color: colors.black,
   },
 
+  // --- CABEÇALHOS DE SEÇÃO (AZUL) ---
+  blueHeader: {
+    backgroundColor: colors.minervaBlue, // MINERVA BLUE
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginTop: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  blueHeaderText: {
+    color: colors.white,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 9,
+    textTransform: 'uppercase',
+  },
+  whiteTextRegular: {
+    color: colors.white,
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    marginLeft: 4,
+  },
+
+  // --- TABELAS ---
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.neutral200, // Cinza claro para header de tabela interna
+    borderBottomWidth: 1,
+    borderBottomColor: colors.neutral400,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
   tableHeaderCell: {
-    fontSize: fontSize.xs,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    padding: spacing.xs,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 8,
+    color: colors.black,
     textAlign: 'center',
   },
-
-  // Linha de categoria/etapa
-  etapaRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.neutral100,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral300,
-  },
-
-  etapaCell: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    padding: spacing.xs,
-  },
-
-  // Linha de subetapa
-  subetapaRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-  },
-
-  subetapaCell: {
-    fontSize: fontSize.xs,
-    color: colors.neutral700,
-    padding: spacing.xs,
-  },
-
-  // Colunas da tabela de especificações
+  // Colunas ESPECIFICAÇÕES
   colItem: { width: '8%', textAlign: 'center' },
-  colDescricao: { width: '52%' },
-  colUnidade: { width: '12%', textAlign: 'center' },
-  colTotal: { width: '28%', textAlign: 'right' },
+  colDesc: { width: '62%', textAlign: 'left', paddingLeft: 5 },
+  colUnit: { width: '10%', textAlign: 'center' },
+  colTotal: { width: '20%', textAlign: 'right', paddingRight: 5 },
 
-  // Seção Prazo/Cronograma
-  cronogramaContainer: {
-    marginTop: spacing.md,
-  },
-
-  cronogramaRow: {
+  // Linhas da tabela
+  rowSection: {
+    backgroundColor: colors.tableRowGray, // Cinza bem claro para etapas
     flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-    paddingVertical: spacing.xs,
-  },
-
-  cronogramaAtividade: {
-    width: '70%',
-    fontSize: fontSize.xs,
-    color: colors.neutral700,
-    paddingLeft: spacing.sm,
-  },
-
-  cronogramaDias: {
-    width: '30%',
-    fontSize: fontSize.xs,
-    color: colors.neutral800,
-    textAlign: 'right',
-    paddingRight: spacing.sm,
-  },
-
-  prazoTotal: {
-    flexDirection: 'row',
-    backgroundColor: colors.primary,
-    padding: spacing.sm,
-    justifyContent: 'space-between',
-    marginTop: spacing.xs,
-  },
-
-  prazoTotalLabel: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  prazoTotalValue: {
-    fontSize: fontSize.lg,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  // Seção Garantia
-  garantiaContainer: {
-    backgroundColor: colors.neutral50,
-    padding: spacing.md,
-    marginTop: spacing.md,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.success,
-  },
-
-  garantiaTitle: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    marginBottom: spacing.xs,
-  },
-
-  garantiaItem: {
-    fontSize: fontSize.xs,
-    color: colors.neutral700,
-    marginBottom: spacing.xs,
-    paddingLeft: spacing.sm,
-  },
-
-  // Seção Investimentos
-  investimentoContainer: {
-    marginTop: spacing.md,
-  },
-
-  investimentoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-    borderBottomWidth: 1,
+    paddingVertical: 3,
+    borderBottomWidth: 0.5,
     borderBottomColor: colors.neutral200,
   },
-
-  investimentoLabel: {
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-  },
-
-  investimentoValue: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-  },
-
-  investimentoTotalRow: {
+  rowItem: {
+    backgroundColor: colors.white,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.primary,
-    padding: spacing.sm,
-    marginTop: spacing.xs,
+    paddingVertical: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.tableRowGray,
+    minHeight: 14,
+    alignItems: 'center',
   },
+  cellText: { fontSize: 8, color: colors.black },
+  cellTextBold: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: colors.black },
 
-  investimentoTotalLabel: {
-    fontSize: fontSize.base,
-    fontFamily: fonts.bold,
-    color: colors.white,
+  // --- CRONOGRAMA (AMARELO) ---
+  yellowHeader: {
+    backgroundColor: colors.tableRowYellow, // Amarelo/Gold claro
+    borderBottomWidth: 1,
+    borderBottomColor: colors.warning, // Gold mais escuro
   },
-
-  investimentoTotalValue: {
-    fontSize: fontSize.lg,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  // Impostos
-  impostosRow: {
+  rowYellow: {
+    backgroundColor: '#FEF3C7', // Amarelo muito claro (keeping specific hex for row bg not in shared)
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.warning,
-    padding: spacing.sm,
+    paddingVertical: 2,
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.tableRowYellow,
+  },
+  // Colunas Cronograma
+  colCronAtiv: { width: '75%', paddingLeft: 5 },
+  colCronDias: { width: '25%', textAlign: 'center' },
+
+  // --- GARANTIA ---
+  garantiaBox: {
+    marginTop: 0,
+    padding: 5,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    marginBottom: 2,
+  },
+  bulletText: {
+    fontSize: 8,
   },
 
-  // Seção Pagamento
-  pagamentoContainer: {
-    marginTop: spacing.md,
-    padding: spacing.md,
+  // --- INVESTIMENTOS ---
+  investRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: colors.neutral200,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+  },
+  investLabel: { width: '75%', fontSize: 9 },
+  investValue: { width: '25%', textAlign: 'right', fontSize: 9 },
+
+  // Linha Impostos (Laranja)
+  taxRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.warning, // Laranja
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+    marginTop: 0,
+  },
+  taxLabel: { width: '75%', fontSize: 9, fontFamily: 'Helvetica-Bold', color: colors.black }, // Preto no laranja para contraste
+
+  // Linha Total (Verde/Escura)
+  totalRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.success, // Verde Sucesso
+    paddingVertical: 4,
+    paddingHorizontal: 5,
+  },
+  totalLabel: { width: '75%', fontSize: 9, fontFamily: 'Helvetica-Bold', color: colors.white },
+  totalValue: { width: '25%', textAlign: 'right', fontSize: 9, fontFamily: 'Helvetica-Bold', color: colors.white },
+
+  // --- PAGAMENTO ---
+  paymentTerms: {
+    flexDirection: 'row',
+    padding: 5,
     backgroundColor: colors.neutral50,
-    borderWidth: 1,
-    borderColor: colors.neutral300,
+    marginBottom: 5,
   },
+  paymentColLeft: { width: '50%' },
+  paymentColRight: { width: '50%' },
+  paymentText: { fontSize: 8, marginBottom: 2 },
 
-  pagamentoTitle: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    marginBottom: spacing.sm,
+  // Box Investimento Unitário (Cinza Escuro)
+  unitBox: {
+    backgroundColor: colors.neutral400, // Cinza médio/escuro
+    padding: 5,
+    marginTop: 5,
+    alignSelf: 'flex-start',
+    width: '40%',
   },
+  unitTitle: { fontSize: 8, fontFamily: 'Helvetica-Bold', textAlign: 'center', marginBottom: 3, color: colors.black },
+  unitRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  unitLabel: { fontSize: 8, color: colors.black },
+  unitVal: { fontSize: 8, fontFamily: 'Helvetica-Bold', color: colors.black },
 
-  pagamentoRow: {
-    flexDirection: 'row',
-    marginBottom: spacing.xs,
-  },
-
-  pagamentoLabel: {
-    width: '50%',
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-  },
-
-  pagamentoValue: {
-    width: '50%',
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
+  validityText: {
     textAlign: 'right',
+    fontSize: 8,
+    marginTop: 10,
+    color: colors.black,
   },
 
-  // Investimento por unidade
-  unidadeBox: {
-    backgroundColor: colors.neutral100,
-    padding: spacing.sm,
-    marginTop: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.neutral300,
-  },
-
-  unidadeTitle: {
-    fontSize: fontSize.xs,
-    fontFamily: fonts.bold,
-    color: colors.neutral600,
+  legalText: {
+    fontSize: 7,
     textAlign: 'center',
-    marginBottom: spacing.xs,
-  },
-
-  // Validade
-  validadeText: {
-    fontSize: fontSize.xs,
     color: colors.neutral500,
-    textAlign: 'right',
-    marginTop: spacing.sm,
+    marginTop: 15,
+    fontStyle: 'italic',
   },
 
-  // Footer
-  footer: {
+  // --- FOOTER ---
+  footerContainer: {
     position: 'absolute',
-    bottom: spacing.md,
-    left: spacing.xl,
-    right: spacing.xl,
-    paddingTop: spacing.sm,
-    borderTopWidth: 2,
-    borderTopColor: colors.primary,
+    bottom: 20,
+    left: 30,
+    right: 30,
   },
-
-  footerText: {
-    fontSize: fontSize.xs,
-    color: colors.neutral500,
-    textAlign: 'center',
+  footerPageWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 5,
   },
+  pagePill: {
+    backgroundColor: colors.black, // Pílula preta estilo print
+    paddingVertical: 2,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  pageText: {
+    color: colors.white,
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+  },
+  footerGoldBar: {
+    height: 10, // Barra grossa dourada no final
+    backgroundColor: colors.primary,
+    width: '100%',
+  }
 });
 
 // ============================================
-// COMPONENTES AUXILIARES
+// COMPONENTES DO TEMPLATE
 // ============================================
 
-function DadosCliente({ data }: { data: PropostaData }) {
-  return (
-    <View style={styles.clienteGrid}>
-      {/* Linha 1 */}
-      <View style={styles.clienteRow}>
-        <View style={[styles.clienteCell, { width: '60%' }]}>
-          <Text style={styles.clienteLabel}>CLIENTE: <Text style={styles.clienteValue}>{data.clienteNome}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '40%', borderRightWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>E-MAIL: <Text style={styles.clienteValue}>{data.clienteEmail || '-'}</Text></Text>
-        </View>
-      </View>
-
-      {/* Linha 2 */}
-      <View style={styles.clienteRow}>
-        <View style={[styles.clienteCell, { width: '30%' }]}>
-          <Text style={styles.clienteLabel}>RESPO <Text style={styles.clienteValue}>{data.clienteResponsavel || '-'}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '30%' }]}>
-          <Text style={styles.clienteLabel}>CPF/CNPJ: <Text style={styles.clienteValue}>{formatarCpfCnpj(data.clienteCpfCnpj)}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '40%', borderRightWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>END.: <Text style={styles.clienteValue}>{data.clienteEndereco || '-'}</Text></Text>
-        </View>
-      </View>
-
-      {/* Linha 3 */}
-      <View style={styles.clienteRow}>
-        <View style={[styles.clienteCell, { width: '30%' }]}>
-          <Text style={styles.clienteLabel}>TEL: <Text style={styles.clienteValue}>{data.clienteTelefone || '-'}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '30%' }]}>
-          <Text style={styles.clienteLabel}>BAIRRO: <Text style={styles.clienteValue}>{data.clienteBairro || '-'}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '40%', borderRightWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>CIDADE/ESTADO: <Text style={styles.clienteValue}>{data.clienteCidade || '-'}/{data.clienteEstado || '-'}</Text></Text>
-        </View>
-      </View>
-
-      {/* Linha 4 - Código da proposta e quantidades */}
-      <View style={[styles.clienteRow, { borderBottomWidth: 0 }]}>
-        <View style={[styles.clienteCell, { width: '30%', borderBottomWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>CODIGO DA PROPOSTA: <Text style={styles.clienteValue}>{data.codigoProposta || data.codigoOS}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '35%', borderBottomWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>QUANTIDADE DE UNIDADES: <Text style={styles.clienteValue}>{data.quantidadeUnidades || '-'}</Text></Text>
-        </View>
-        <View style={[styles.clienteCell, { width: '35%', borderRightWidth: 0, borderBottomWidth: 0 }]}>
-          <Text style={styles.clienteLabel}>QUANTIDADE DE BLOCOS: <Text style={styles.clienteValue}>{data.quantidadeBlocos || '-'}</Text></Text>
-        </View>
+const Header = ({ data }: { data: PropostaData }) => (
+  <View>
+    <View style={styles.headerContainer}>
+      <Image
+        style={styles.headerLogo}
+        src={LOGO_BASE64}
+      />
+      <View style={styles.headerInfoContainer}>
+        <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, color: colors.black, textAlign: 'right', marginBottom: 4 }}>
+          {data.empresaNome || 'MINERVA ENGENHARIA E REPRESENTAÇÕES'}
+        </Text>
+        <Text style={styles.headerAddress}>
+          Av. Colares Moreira, Edifício Los Angeles, Nº100, Loja 01{'\n'}
+          Renascença, São Luís - MA, CEP: 65075-144
+        </Text>
+        <Text style={styles.headerContact}>
+          (98) 98226-7909 / (98) 98151-3355
+        </Text>
+        <Text style={styles.headerWeb}>
+          www.minerva-eng.com.br / contato@minerva-eng.com.br
+        </Text>
       </View>
     </View>
-  );
-}
+    <View style={styles.goldBar} />
+  </View>
+);
 
-function TituloProposta({ titulo }: { titulo?: string }) {
-  if (!titulo) return null;
-  return (
-    <View style={styles.tituloPropostaContainer}>
-      <Text style={styles.tituloProposta}>{titulo}</Text>
+const ClientInfo = ({ data }: { data: PropostaData }) => (
+  <View style={styles.clientGridContainer}>
+    <View style={styles.clientDateRow}>
+      <Text style={styles.clientDateText}>{formatarData(data.dataEmissao)}</Text>
     </View>
-  );
-}
 
-function Objetivo({ objetivo }: { objetivo: string }) {
-  return (
-    <View style={styles.objetivoContainer}>
-      <Text style={styles.objetivoLabel}>1. OBJETIVO: <Text style={{ fontFamily: fonts.regular }}>• {objetivo}</Text></Text>
-    </View>
-  );
-}
-
-function EspecificacoesTecnicas({ etapas }: { etapas: Etapa[] }) {
-  let itemCounter = 0;
-
-  return (
-    <View>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS:</Text>
+    {/* Linha 1 */}
+    <View style={styles.gridRow}>
+      <View style={styles.colLeft}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>CLIENTE: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteNome?.toUpperCase()}</Text>
+        </Text>
       </View>
-
-      <View style={styles.tableContainer}>
-        {/* Header da tabela */}
-        <View style={styles.tableHeaderRow}>
-          <Text style={[styles.tableHeaderCell, styles.colItem]}>ITEM</Text>
-          <Text style={[styles.tableHeaderCell, styles.colDescricao]}>DESCRIÇÃO DE SERVIÇOS</Text>
-          <Text style={[styles.tableHeaderCell, styles.colUnidade]}>UNID.</Text>
-          <Text style={[styles.tableHeaderCell, styles.colTotal]}>TOTAL</Text>
-        </View>
-
-        {/* Etapas e Subetapas */}
-        {etapas.map((etapa, etapaIndex) => {
-          itemCounter++;
-          const etapaNumero = itemCounter;
-
-          return (
-            <View key={etapaIndex}>
-              {/* Linha da Etapa (categoria) */}
-              <View style={styles.etapaRow}>
-                <Text style={[styles.etapaCell, { width: '100%' }]}>
-                  {etapaNumero}. {etapa.nome.toUpperCase()}
-                </Text>
-              </View>
-
-              {/* Subetapas */}
-              {etapa.subetapas.map((subetapa, subIndex) => (
-                <View key={subIndex} style={styles.subetapaRow}>
-                  <Text style={[styles.subetapaCell, styles.colItem]}>
-                    {etapaNumero}.{subIndex + 1}
-                  </Text>
-                  <Text style={[styles.subetapaCell, styles.colDescricao]}>
-                    {subetapa.nome}
-                  </Text>
-                  <Text style={[styles.subetapaCell, styles.colUnidade]}>
-                    {subetapa.quantidade || subetapa.m2 || '1'} {subetapa.unidade || 'UNID'}
-                  </Text>
-                  <Text style={[styles.subetapaCell, styles.colTotal]}>
-                    R$ {formatarValor(subetapa.total)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          );
-        })}
+      <View style={{ width: '55%' }}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>E-MAIL: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteEmail}</Text>
+        </Text>
       </View>
     </View>
-  );
-}
 
-function CronogramaObra({ dados, etapas }: { dados: DadosCronograma; etapas: Etapa[] }) {
-  // Calcular total de dias
-  let totalDias = 0;
-
-  const diasPlanejamento = Number(dados.planejamentoInicial) || 0;
-  const diasLogistica = Number(dados.logisticaTransporte) || 0;
-  const diasPreparacao = Number(dados.preparacaoArea) || 0;
-
-  totalDias += diasPlanejamento + diasLogistica + diasPreparacao;
-
-  // Dias das subetapas
-  const diasSubetapas: { nome: string; dias: number }[] = [];
-  etapas.forEach((etapa) => {
-    etapa.subetapas.forEach((sub) => {
-      const dias = Number(sub.diasUteis) || 0;
-      totalDias += dias;
-      diasSubetapas.push({ nome: `${etapa.nome} - ${sub.nome}`, dias });
-    });
-  });
-
-  return (
-    <View style={styles.cronogramaContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>3. PRAZO - CRONOGRAMA DE OBRA:</Text>
+    {/* Linha 2 */}
+    <View style={styles.gridRow}>
+      <View style={styles.colLeft}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>RESPO: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteResponsavel}</Text>
+        </Text>
       </View>
+      <View style={styles.colCenter}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>CPF/CNPJ: </Text>
+          <Text style={styles.gridCellValue}>{formatarCpfCnpj(data.clienteCpfCnpj)}</Text>
+        </Text>
+      </View>
+      <View style={styles.colRight}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>END.: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteEndereco}</Text>
+        </Text>
+      </View>
+    </View>
 
-      <View style={{ borderWidth: 1, borderColor: colors.neutral300 }}>
-        {/* Header */}
-        <View style={[styles.cronogramaRow, { backgroundColor: colors.neutral100 }]}>
-          <Text style={[styles.cronogramaAtividade, { fontFamily: fonts.bold }]}>atividade</Text>
-          <Text style={[styles.cronogramaDias, { fontFamily: fonts.bold }]}>em dias úteis</Text>
-        </View>
+    {/* Linha 3 */}
+    <View style={styles.gridRow}>
+      <View style={styles.colLeft}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>TEL: </Text>
+          <Text style={styles.gridCellValue}>{formatarTelefone(data.clienteTelefone || '')}</Text>
+        </Text>
+      </View>
+      <View style={styles.colCenter}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>BAIRRO: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteBairro}</Text>
+        </Text>
+      </View>
+      <View style={styles.colRight}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>CIDADE/ESTADO: </Text>
+          <Text style={styles.gridCellValue}>{data.clienteCidade}/{data.clienteEstado}</Text>
+        </Text>
+      </View>
+    </View>
 
-        {/* Atividades iniciais */}
-        {diasPlanejamento > 0 && (
-          <View style={styles.cronogramaRow}>
-            <Text style={styles.cronogramaAtividade}>planejamento inicial:</Text>
-            <Text style={styles.cronogramaDias}>{diasPlanejamento}</Text>
-          </View>
-        )}
-        {diasLogistica > 0 && (
-          <View style={styles.cronogramaRow}>
-            <Text style={styles.cronogramaAtividade}>Logística e transporte de materiais:</Text>
-            <Text style={styles.cronogramaDias}>{diasLogistica}</Text>
-          </View>
-        )}
-        {diasPreparacao > 0 && (
-          <View style={styles.cronogramaRow}>
-            <Text style={styles.cronogramaAtividade}>Preparação de área de trabalho:</Text>
-            <Text style={styles.cronogramaDias}>{diasPreparacao}</Text>
-          </View>
-        )}
+    {/* Linha 4 */}
+    <View style={[styles.gridRow, { marginTop: 5 }]}>
+      <View style={styles.colLeft}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>CODIGO DA PROPOSTA: </Text>
+          <Text style={styles.gridCellValue}>{data.codigoProposta || data.codigoOS}</Text>
+        </Text>
+      </View>
+      <View style={styles.colCenter}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>QUANTIDADE DE UNIDADES: </Text>
+          <Text style={styles.gridCellValue}>{data.quantidadeUnidades || '-'}</Text>
+        </Text>
+      </View>
+      <View style={styles.colRight}>
+        <Text style={{ flexDirection: 'row' }}>
+          <Text style={styles.gridCellLabel}>QUANTIDADE DE BLOCOS: </Text>
+          <Text style={styles.gridCellValue}>{data.quantidadeBlocos || '-'}</Text>
+        </Text>
+      </View>
+    </View>
 
-        {/* Execução de obra */}
-        <View style={[styles.cronogramaRow, { backgroundColor: colors.neutral100 }]}>
-          <Text style={[styles.cronogramaAtividade, { fontFamily: fonts.bold }]}>Execução de obra:</Text>
-          <Text style={styles.cronogramaDias}></Text>
+    {/* Título da Proposta */}
+    {data.tituloProposta && (
+      <View style={[styles.greyBar, { marginTop: 10 }]}>
+        <Text style={styles.greyBarText}>
+          Proposta para {data.tituloProposta}
+        </Text>
+      </View>
+    )}
+  </View>
+);
+
+const SpecsTable = ({ etapas }: { etapas: Etapa[] }) => (
+  <View>
+    {/* 1. OBJETIVO (renderizado como cabeçalho simples aqui, mas o conteúdo real pode vir em DadosCronograma ou similar se estruturado diferente) */}
+    {/* Ajuste: O objetivo pode ser grande, então idealmente seria um bloco de texto. Vamos manter só o cabeçalho se não houver texto explícito passado para este componente. */}
+    {/* Por layout, vamos omitir o item 1 aqui se ele deve ser renderizado antes. */}
+    {/* Assumindo que este componente é o item 2. */}
+
+    <View style={[styles.blueHeader, { justifyContent: 'space-between', marginTop: 15 }]}>
+      <Text style={styles.blueHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
+    </View>
+
+    {/* Header Tabela */}
+    <View style={styles.tableHeader}>
+      <Text style={[styles.tableHeaderCell, styles.colItem]}>ITEM</Text>
+      <Text style={[styles.tableHeaderCell, styles.colDesc]}>DESCRIÇÃO DE SERVIÇOS</Text>
+      <Text style={[styles.tableHeaderCell, styles.colUnit]}>UNID.</Text>
+      <Text style={[styles.tableHeaderCell, styles.colTotal]}>TOTAL</Text>
+    </View>
+
+    {etapas.map((etapa, idx) => (
+      <View key={idx} wrap={false}>
+        {/* Linha da Etapa */}
+        <View style={styles.rowSection}>
+          <Text style={[styles.cellTextBold, styles.colItem]}>{idx + 1}</Text>
+          <Text style={[styles.cellTextBold, styles.colDesc]}>{etapa.nome.toUpperCase()}</Text>
+          <Text style={[styles.cellTextBold, styles.colUnit]}></Text>
+          <Text style={[styles.cellTextBold, styles.colTotal]}></Text>
         </View>
 
         {/* Subetapas */}
-        {diasSubetapas.map((item, index) => (
-          <View key={index} style={styles.cronogramaRow}>
-            <Text style={styles.cronogramaAtividade}>{item.nome}</Text>
-            <Text style={styles.cronogramaDias}>{item.dias}</Text>
+        {etapa.subetapas.map((sub, sIdx) => (
+          <View key={sIdx} style={styles.rowItem}>
+            <Text style={[styles.cellText, styles.colItem]}>{idx + 1}.{sIdx + 1}</Text>
+            <Text style={[styles.cellText, styles.colDesc]}>{sub.nome}</Text>
+            <Text style={[styles.cellText, styles.colUnit]}>{sub.quantidade || sub.m2 || 1}</Text>
+            <Text style={[styles.cellText, styles.colTotal]}>R$ {formatarMoeda(sub.total)}</Text>
           </View>
         ))}
       </View>
+    ))}
+  </View>
+);
 
-      {/* Total */}
-      <View style={styles.prazoTotal}>
-        <Text style={styles.prazoTotalLabel}>PRAZO TOTAL:</Text>
-        <Text style={styles.prazoTotalValue}>{totalDias} dias úteis</Text>
-      </View>
-    </View>
-  );
-}
+const Cronograma = ({ dados }: { dados: DadosCronograma }) => {
+  // Calculo simples de dias
+  let totalDias = (Number(dados.planejamentoInicial) || 0) +
+    (Number(dados.logisticaTransporte) || 0) +
+    (Number(dados.preparacaoArea) || 0);
 
-function Garantia({ garantias }: { garantias?: string[] }) {
-  const garantiasPadrao = [
-    'Seguro de obra incluso (cobertura de danos materiais causados ao proprietário da obra e erro de projeto);',
-    'Serviço garantido por nota fiscal e emissão de ART (anotação de responsabilidade técnica) - CREA-MA;',
-    'Garantia conforme NBR 15571-1;',
-  ];
+  const listaAtividades: { nome: string, dias: number }[] = [];
 
-  const listaGarantias = garantias && garantias.length > 0 ? garantias : garantiasPadrao;
-
-  return (
-    <View style={styles.garantiaContainer}>
-      <Text style={styles.garantiaTitle}>4. GARANTIA:</Text>
-      {listaGarantias.map((item, index) => (
-        <Text key={index} style={styles.garantiaItem}>• {item}</Text>
-      ))}
-    </View>
-  );
-}
-
-function Investimentos({ dados, etapas }: { dados: DadosFinanceiros; etapas: Etapa[] }) {
-  // Calcular subtotal das etapas
-  let subtotal = 0;
-  etapas.forEach((etapa) => {
-    etapa.subetapas.forEach((sub) => {
-      subtotal += Number(sub.total) || 0;
+  if (dados.etapasPrincipais) {
+    dados.etapasPrincipais.forEach((e: Etapa) => {
+      e.subetapas.forEach((s: Subetapa) => {
+        const d = Number(s.diasUteis) || 0;
+        totalDias += d;
+      });
+      // Adicionando etapa como resumo
+      const diasEtapa = e.subetapas.reduce((acc: number, curr: Subetapa) => acc + (Number(curr.diasUteis) || 0), 0);
+      if (diasEtapa > 0) {
+        listaAtividades.push({ nome: e.nome, dias: diasEtapa });
+      }
     });
-  });
-
-  const precoFinal = Number(dados.precoFinal) || subtotal;
-  const percentualImposto = Number(dados.percentualImposto) || 0;
-  const impostos = precoFinal * (percentualImposto / 100);
-  const totalComImpostos = precoFinal + impostos;
+  }
 
   return (
-    <View style={styles.investimentoContainer}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionHeaderText}>5. INVESTIMENTOS</Text>
+    <View wrap={false} style={{ marginTop: 15 }}>
+      <View style={styles.blueHeader}>
+        <Text style={styles.blueHeaderText}>3. PRAZO - CRONOGRAMA DE OBRA:</Text>
+        <Text style={[styles.whiteTextRegular, { flex: 1, textAlign: 'right', fontWeight: 'bold' }]}>
+          {totalDias} dias úteis
+        </Text>
       </View>
 
-      <View style={{ borderWidth: 1, borderColor: colors.neutral300, padding: spacing.sm }}>
-        <Text style={{ fontSize: fontSize.xs, fontFamily: fonts.bold, color: colors.neutral600, marginBottom: spacing.sm }}>
-          DESCRIÇÃO:{'\n'}ITEM  INCLUSO MATERIAL, MÃO DE OBRA, LOGÍSTICA E EVENTUALIDADES
-        </Text>
-
-        <View style={styles.investimentoRow}>
-          <Text style={styles.investimentoLabel}>1   Execução de obra e entrega de serviço concluído;</Text>
-          <Text style={styles.investimentoValue}>R$ {formatarValor(precoFinal)}</Text>
+      {/* Tabela Cronograma */}
+      <View style={{ borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.neutral300 }}>
+        <View style={[styles.rowSection, { backgroundColor: colors.neutral300 }]}>
+          <Text style={[styles.cellTextBold, styles.colCronAtiv, { textAlign: 'center' }]}>ATIVIDADE</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>EM DIAS ÚTEIS</Text>
         </View>
 
-        {percentualImposto > 0 && (
-          <View style={styles.impostosRow}>
-            <Text style={styles.investimentoTotalLabel}>IMPOSTOS (EMISSÃO DE NOTA FISCAL DE SERVIÇOS):</Text>
-            <Text style={styles.investimentoTotalValue}>R$ {formatarValor(impostos)}</Text>
+        {/* Atividades Prévias */}
+        {(Number(dados.planejamentoInicial) > 0) && (
+          <View style={styles.rowYellow}>
+            <Text style={[styles.cellText, styles.colCronAtiv]}>Planejamento Inicial</Text>
+            <Text style={[styles.cellText, styles.colCronDias]}>{dados.planejamentoInicial}</Text>
+          </View>
+        )}
+        {(Number(dados.logisticaTransporte) > 0) && (
+          <View style={styles.rowYellow}>
+            <Text style={[styles.cellText, styles.colCronAtiv]}>Logística e Transporte</Text>
+            <Text style={[styles.cellText, styles.colCronDias]}>{dados.logisticaTransporte}</Text>
           </View>
         )}
 
-        <View style={styles.investimentoTotalRow}>
-          <Text style={styles.investimentoTotalLabel}>INVESTIMENTO + IMPOSTOS:</Text>
-          <Text style={styles.investimentoTotalValue}>R$ {formatarValor(totalComImpostos)}</Text>
+        {/* Etapas */}
+        {listaAtividades.map((item, idx) => (
+          <View key={idx} style={styles.rowYellow}>
+            <Text style={[styles.cellText, styles.colCronAtiv]}>{item.nome}</Text>
+            <Text style={[styles.cellText, styles.colCronDias]}>{item.dias}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const Investimento = ({ financeiro, data }: { financeiro: DadosFinanceiros, data: PropostaData }) => {
+  const preco = Number(financeiro.precoFinal);
+  const valImposto = Number(financeiro.percentualImposto || 0); // Se for valor absoluto, ou calcular se for %
+  // Se percentualImposto for string com %, tratar. Aqui assumindo valor monetário já calculado ou simples.
+  // simplificação: assumindo que financeiro.precoFinal já é o total.
+
+  const valEntrada = (Number(financeiro.percentualEntrada || 30) / 100) * preco;
+  const pcEntrada = financeiro.percentualEntrada || 30;
+
+  const parcelas = Number(financeiro.numeroParcelas || 1);
+  const valParcela = (preco - valEntrada) / parcelas;
+
+  const qtdUnidades = data.quantidadeUnidades || 1;
+  const unitario = preco / qtdUnidades;
+
+  return (
+    <View wrap={false} style={{ marginTop: 15 }}>
+      <View style={styles.blueHeader}>
+        <Text style={styles.blueHeaderText}>5. INVESTIMENTO:</Text>
+      </View>
+
+      {/* Tabela de Investimento */}
+      <View style={{ marginTop: 5 }}>
+        {/* Linha Investimento Obra */}
+        <View style={styles.investRow}>
+          <Text style={[styles.investLabel, { fontFamily: 'Helvetica-Bold' }]}>INVESTIMENTO PARA EXECUÇÃO DA OBRA:</Text>
+          <Text style={styles.investValue}>{formatarMoeda(preco)}</Text>
+        </View>
+
+        {/* Linha Impostos */}
+        <View style={styles.taxRow}>
+          <Text style={styles.taxLabel}>IMPOSTOS (Nota Fiscal): {financeiro.percentualImposto}% (já incluso)</Text>
+          <Text style={styles.investValue}> - </Text>
+        </View>
+
+        {/* Linha Total */}
+        <View style={styles.totalRow}>
+          <Text style={styles.totalLabel}>VALOR TOTAL DA PROPOSTA:</Text>
+          <Text style={styles.totalValue}>{formatarMoeda(preco)}</Text>
+        </View>
+
+        {/* Box Unitário se houver mais de 1 unidade */}
+        {qtdUnidades > 1 && (
+          <View style={styles.unitBox}>
+            <Text style={styles.unitTitle}>Valor por Unidade</Text>
+            <View style={styles.unitRow}>
+              <Text style={styles.unitLabel}>Material + Mão de Obra:</Text>
+              <Text style={styles.unitVal}>{formatarMoeda(unitario)}</Text>
+            </View>
+          </View>
+        )}
+      </View>
+
+      {/* Condições de Pagamento */}
+      <View style={[styles.blueHeader, { marginTop: 15 }]}>
+        <Text style={styles.blueHeaderText}>6. FORMA DE PAGAMENTO:</Text>
+      </View>
+      <View style={styles.paymentTerms}>
+        <View style={styles.paymentColLeft}>
+          <Text style={[styles.paymentText, { fontFamily: 'Helvetica-Bold' }]}>• ENTRADA ({pcEntrada}%) NO INÍCIO:</Text>
+          <Text style={[styles.paymentText, { fontFamily: 'Helvetica-Bold' }]}>• SALDO EM {parcelas}x SEM JUROS:</Text>
+        </View>
+        <View style={styles.paymentColRight}>
+          <Text style={styles.paymentText}>{formatarMoeda(valEntrada)}</Text>
+          <Text style={styles.paymentText}>{formatarMoeda(valParcela)} (boletos/pix quinzenais)</Text>
         </View>
       </View>
     </View>
   );
-}
+};
 
-function Pagamento({ dados, quantidadeUnidades }: { dados: DadosFinanceiros; quantidadeUnidades?: number }) {
-  const precoFinal = Number(dados.precoFinal) || 0;
-  const percentualImposto = Number(dados.percentualImposto) || 0;
-  const impostos = precoFinal * (percentualImposto / 100);
-  const totalComImpostos = precoFinal + impostos;
+const Footer = () => (
+  <View fixed style={styles.footerContainer}>
+    {/* Page X of Y */}
+    <View style={styles.footerPageWrapper}>
+      <View style={styles.pagePill}>
+        <Text style={styles.pageText} render={({ pageNumber, totalPages }: { pageNumber: number, totalPages: number }) => (
+          `PÁGINA ${pageNumber} / ${totalPages}`
+        )} />
+      </View>
+    </View>
 
-  const percentualEntrada = Number(dados.percentualEntrada) || 40;
-  const numeroParcelas = Number(dados.numeroParcelas) || 2;
+    {/* Barra Dourada Final */}
+    <View style={styles.footerGoldBar} />
+  </View>
+);
 
-  const valorEntrada = totalComImpostos * (percentualEntrada / 100);
-  const valorRestante = totalComImpostos - valorEntrada;
-  const valorParcela = valorRestante / numeroParcelas;
+// --- COMPONENTE PRINCIPAL ---
+export const PropostaTemplate = ({ data }: { data: PropostaData }) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
 
-  // Calcular por unidade (se aplicável)
-  const unidades = quantidadeUnidades || 1;
-  const entradaPorUnidade = valorEntrada / unidades;
-  const parcelaPorUnidade = valorParcela / unidades;
+      {/* 1. Header Fixo */}
+      <View fixed>
+        <Header data={data} />
+      </View>
 
-  return (
-    <View style={styles.pagamentoContainer}>
-      <Text style={styles.pagamentoTitle}>6. PAGAMENTO</Text>
-      <Text style={{ fontSize: fontSize.sm, fontFamily: fonts.bold, color: colors.neutral700, marginBottom: spacing.sm }}>
-        6.1 PARCELAMENTO:
+
+      {/* 2. Dados do Cliente e Título */}
+      <ClientInfo data={data} />
+
+      {/* 3. Objetivo */}
+      <View wrap={false}>
+        <View style={styles.blueHeader}>
+          <Text style={styles.blueHeaderText}>1. OBJETIVO:</Text>
+        </View>
+        <View style={{ padding: 5, marginBottom: 10 }}>
+          <Text style={{ fontSize: 9, textAlign: 'justify', lineHeight: 1.4 }}>
+            {data.objetivo || 'Execução de serviços de engenharia conforme especificações abaixo.'}
+          </Text>
+        </View>
+      </View>
+
+      {/* 4. Especificações (Etapas) */}
+      <SpecsTable etapas={data.dadosCronograma.etapasPrincipais} />
+
+      {/* 5. Cronograma */}
+      <Cronograma dados={data.dadosCronograma} />
+
+      {/* 6. Garantias (Item 4) */}
+      <View wrap={false} style={{ marginTop: 15 }}>
+        <View style={styles.blueHeader}>
+          <Text style={styles.blueHeaderText}>4. GARANTIA:</Text>
+        </View>
+        <View style={styles.garantiaBox}>
+          {data.garantias && data.garantias.length > 0 ? (
+            data.garantias.map((g, i) => (
+              <View key={i} style={styles.bulletPoint}>
+                <Text style={styles.bulletText}>• </Text>
+                <Text style={styles.bulletText}>{g}</Text>
+              </View>
+            ))
+          ) : (
+            <View style={styles.bulletPoint}>
+              <Text style={styles.bulletText}>• 05 (cinco) anos para solidez e segurança da obra;</Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* 7. Investimento */}
+      <Investimento financeiro={data.dadosFinanceiros} data={data} />
+
+      {/* Validade */}
+      <Text style={styles.validityText}>
+        Validade desta proposta: {data.validadeProposta || 15} dias.
       </Text>
 
-      <View style={styles.pagamentoRow}>
-        <Text style={styles.pagamentoLabel}>R$ {formatarValor(valorEntrada)} {percentualEntrada}% de entrada</Text>
-        <Text style={styles.pagamentoValue}>7 dias após assinatura de contrato</Text>
-      </View>
+      {/* Texto Legal */}
+      <Text style={styles.legalText}>
+        Este documento é de propriedade intelectual da Minerva Engenharia. Sua reprodução parcial ou total é proibida.
+      </Text>
 
-      <View style={styles.pagamentoRow}>
-        <Text style={styles.pagamentoLabel}>R$ {formatarValor(valorRestante)} {numeroParcelas} parcelas mensais</Text>
-        <Text style={styles.pagamentoValue}>Execução de obra e entrega de serviço concluído;</Text>
-      </View>
+      {/* Footer Fixo */}
+      <Footer />
 
-      {quantidadeUnidades && quantidadeUnidades > 1 && (
-        <View style={styles.unidadeBox}>
-          <Text style={styles.unidadeTitle}>INVESTIMENTO POR UNIDADE AUTÔNOMA</Text>
-          <View style={styles.pagamentoRow}>
-            <Text style={styles.pagamentoLabel}>entrada</Text>
-            <Text style={styles.pagamentoValue}>R$ {formatarValor(entradaPorUnidade)}</Text>
-          </View>
-          <View style={styles.pagamentoRow}>
-            <Text style={styles.pagamentoLabel}>cada parcela</Text>
-            <Text style={styles.pagamentoValue}>R$ {formatarValor(parcelaPorUnidade)}</Text>
-          </View>
-        </View>
-      )}
+    </Page>
+  </Document>
+);
 
-      <Text style={styles.validadeText}>Validade da Proposta: 30 dias</Text>
-    </View>
-  );
-}
-
-// ============================================
-// UTILITÁRIOS
-// ============================================
-
-function formatarValor(valor: string | number): string {
-  const num = typeof valor === 'string' ? parseFloat(valor) : valor;
-  if (isNaN(num)) return '0,00';
-  return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// ============================================
-// TEMPLATE PRINCIPAL
-// ============================================
-
-export function PropostaTemplate({ data }: { data: PropostaData }) {
-  const etapas = data.dadosCronograma?.etapasPrincipais || [];
-
-  return (
-    <Document>
-      <Page size="A4" style={styles.page}>
-        <SharedHeader
-          documentTitle="PROPOSTA COMERCIAL"
-          documentSubtitle={`Proposta Nº ${data.codigoProposta || data.codigoOS}`}
-          documentDate={formatarData(data.dataEmissao)}
-          dividerColor="primary"
-        />
-        <DadosCliente data={data} />
-        <TituloProposta titulo={data.tituloProposta} />
-        <Objetivo objetivo={data.objetivo} />
-        <EspecificacoesTecnicas etapas={etapas} />
-        <CronogramaObra dados={data.dadosCronograma} etapas={etapas} />
-        <Garantia garantias={data.garantias} />
-        <Investimentos dados={data.dadosFinanceiros} etapas={etapas} />
-        <Pagamento dados={data.dadosFinanceiros} quantidadeUnidades={data.quantidadeUnidades} />
-        <SharedFooter
-          leftText={`Proposta Comercial - OS ${data.codigoOS}`}
-          rightText={formatarData(data.dataEmissao)}
-          fixed={true}
-        />
-      </Page>
-    </Document>
-  );
-}
+export default PropostaTemplate;

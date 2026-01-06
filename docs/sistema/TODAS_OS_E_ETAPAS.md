@@ -63,7 +63,7 @@ SENÃO → status_situacao = 'acao_pendente'
 
 | OS | Etapa # | Nome da Etapa | Aprovador |
 |----|:-------:|---------------|-----------|
-| OS-01 a 04 | 9 | Gerar Proposta Comercial | Coord. Obras |
+| OS-01 a 04 | 9 | Gerar Proposta Comercial | Coord. Administrativo |
 | OS-01 a 04 | 13 | Gerar Contrato (Upload) | Diretor |
 | OS-05/06 | 6 | Gerar Proposta Comercial | Coord. Assessoria |
 | OS-05/06 | 10 | Gerar Contrato (Upload) | Diretor |
@@ -111,7 +111,7 @@ Toda aprovação/reprovação gera um registro na tabela `os_atividades`:
 - **Setor**: Obras
 - **Responsável Inicial**: Coordenador Administrativo
 - **Workflow**: 15 etapas compartilhadas entre OS-01, OS-02, OS-03 e OS-04
-- **Arquivo Principal**: `os-details-workflow-page.tsx`
+- **Arquivo Principal**: `os-details-workflow-page.tsx` (1997 linhas)
 - **Constantes**: `src/constants/os-workflow.ts`
 - **% Concluída**: 95% ✅
 
@@ -120,7 +120,7 @@ Toda aprovação/reprovação gera um registro na tabela `os_atividades`:
 > **Prazo Total do Ciclo Comercial**: 24 dias úteis
 
 | # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
-|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+|----|-------|--------|------------|-------------|:-----:|--------------|--------------------|
 | 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
 | 2 | Seleção do Tipo de OS | ✅ | Select interno | Administrativo | 1 dia | Em Triagem | Ação Pendente |
 | 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1.tsx` | Administrativo | 4 dias | Em Andamento | Ação Pendente |
@@ -133,7 +133,7 @@ Toda aprovação/reprovação gera um registro na tabela `os_atividades`:
 | 10 | Agendar Visita (Apresentação) | ✅ | `step-agendar-apresentacao.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
 | 11 | Realizar Visita (Apresentação) | ✅ | `step-realizar-apresentacao.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
 | 12 | Follow-up 3 (Pós-Apresentação) | ✅ | `step-analise-relatorio.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
-| 13 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
+**DUVIDA**| 13 | Gerar Contrato (Upload) | ✅ | `step-gerar-contrato.tsx` | Administrativo | 1 dia | Em Andamento | **Aguard. Aprovação** |
 | 14 | Contrato Assinado | ✅ | `step-contrato-assinado.tsx` | Administrativo | 1 dia | Em Andamento | Ação Pendente |
 | 15 | Iniciar Contrato de Obra | ✅ | Gatilho → OS-13 | Sistema | -- | Concluído | Finalizado |
 
@@ -143,15 +143,58 @@ Toda aprovação/reprovação gera um registro na tabela `os_atividades`:
 - **OS 03**: Reforço Estrutural
 - **OS 04**: Outros
 
+### 🔀 Handoffs Automáticos (Transferência de Setor)
+
+> **Novo em v2.7**: Sistema automatizado de transferência entre setores com notificações e audit trail
+
+#### 1️⃣ **Handoff: Etapa 4 → 5** (Administrativo → Obras)
+
+```
+Administrativo (Etapa 4: Agendar Visita)
+        │
+        ├─── Transferência Automática ───┐
+        │                                  │
+        ▼                                  ▼
+Obras (Etapa 5: Realizar Visita)    Coord. Obras Notificado
+```
+
+**Ações Executadas:**
+- Atualiza `ordens_servico.setor_atual_id` → Obras
+- Atualiza `ordens_servico.responsavel_id` → Coordenador de Obras
+- Cria registro em `os_transferencias`
+- Registra na timeline (`os_atividades` com tipo `'transferencia_setor'`)
+- Notifica Coordenador de Obras
+
+**Hook:** `use-transferencia-setor.ts::executarTransferencia()`
+
+#### 2️⃣ **Handoff: Etapa 9** (Solicitação Aprovação: Obras → Administrativo)
+
+```
+Obras (Etapa 9: Gerar Proposta)
+        │
+        ├─── Solicitar Aprovação ───┐
+        │                           │
+        ▼                           ▼
+Administrativo (Etapa 9: Aprovação)    Coord. Admin Notificado
+```
+
+**Ações Executadas:**
+- Atualiza `ordens_servico.setor_atual_id` → Administrativo
+- Atualiza `ordens_servico.responsavel_id` → Coordenador Administrativo
+- Cria registro em `os_transferencias`
+- Status muda para `solicitada`
+- **Nota:** Se reprovado, retorna para Obras (Etapa 7). Se aprovado, transfere para Admin (Etapa 10).
+
 ### 📁 Arquivos no Sistema
 ```
 src/components/os/shared/
 ├── pages/
-│   └── os-details-workflow-page.tsx     # Página principal unificada
+│   └── os-details-workflow-page.tsx     # Página principal unificada (1997 linhas)
 ├── components/
 │   ├── workflow-stepper.tsx             # Stepper visual
 │   ├── workflow-footer.tsx              # Footer com ações
-│   └── feedback-transferencia.tsx       # Modal de feedback pós-transferência (NOVO v2.7)
+│   ├── feedback-transferencia.tsx       # Modal de feedback pós-transferência (NOVO v2.7)
+│   └── aprovacao-modal.tsx              # Modal de aprovação hierárquica (NOVO v2.7)
 └── steps/
     ├── cadastrar-lead.tsx               # Etapa 1
     ├── step-followup-1.tsx              # Etapa 3
@@ -166,12 +209,63 @@ src/components/os/shared/
     └── step-contrato-assinado.tsx       # Etapa 14
 
 src/lib/hooks/
+├── use-workflow-state.ts                # Estado do workflow (gerenciamento centralizado)
+├── use-workflow-navigation.ts           # Navegação entre etapas
+├── use-workflow-completion.ts           # Validação de completude
 ├── use-transferencia-setor.ts           # Hook de transferência automática (NOVO v2.7)
+├── use-aprovacao-etapa.ts               # Sistema de aprovação (NOVO v2.7)
 └── use-notificar-coordenador.ts         # Notificar coordenador (NOVO v2.7)
+
+src/lib/constants/
+└── os-ownership-rules.ts                # Regras de responsabilidade por etapa (NOVO v2.7)
 
 src/constants/
 └── os-workflow.ts                       # Definição de etapas e tipos
 ```
+
+### 🔐 Ownership Rules (Responsabilidade por Etapa)
+
+**Arquivo:** `os-ownership-rules.ts` (506 linhas)
+
+```typescript
+const OS_OBRAS_RULE: OSOwnershipRule = {
+  osType: 'OS-01-04',
+  osName: 'Obras (Perícia, Revitalização, Reforço, Outros)',
+  initiator: 'coord_administrativo',
+  totalSteps: 15,
+  stageOwners: [
+    { range: [1, 4], cargo: 'coord_administrativo', setor: 'administrativo' },
+    { range: [5, 8], cargo: 'coord_obras', setor: 'obras' },
+    { range: [9, 15], cargo: 'coord_administrativo', setor: 'administrativo' },
+  ],
+  handoffPoints: [
+    { fromStep: 4, toStep: 5, toCargo: 'coord_obras', toSetor: 'obras' },
+    { fromStep: 8, toStep: 9, toCargo: 'coord_administrativo', toSetor: 'administrativo', autoReturn: true },
+  ],
+};
+```
+
+### 💾 Dados por Etapa
+
+**Etapa 1:** `leadId`, dados do cliente, endereço, tipo de edificação  
+**Etapa 2:** `tipoOS` (mapeia para OS-01, OS-02, OS-03, OS-04)  
+**Etapa 3:** Entrevista inicial, anexos, idade da edificação, motivo da procura  
+**Etapa 4:** `dataAgendamento` (integra com tabela `agendamentos`)  
+**Etapa 5:** `visitaRealizada` (boolean)  
+**Etapa 6:** Follow-up pós-visita, fotos de ancoragem, avaliação  
+**Etapa 7:** Memorial descritivo: `etapasPrincipais[]` com `subetapas[]`  
+**Etapa 8:** Precificação: margens (imprevisto, lucro, imposto), entrada, parcelas  
+**Etapa 9:** Geração de PDF da proposta (Edge Function `generate-pdf`)  
+**Etapa 10-14:** Apresentação, follow-up, contrato, assinatura  
+**Etapa 15:** Criação automática de OS-13 via `parent_os_id`
+
+### 📊 Documentação Técnica
+
+Para detalhes completos de implementação, consulte:  
+**[OS_01_04_TECHNICAL_DOCUMENTATION.md](../technical/OS_01_04_TECHNICAL_DOCUMENTATION.md)**
+
+---
+
 
 ---
 
@@ -183,7 +277,7 @@ src/constants/
 - **Workflow**: 12 etapas completas compartilhadas
 - **OS-05**: Assessoria Recorrente → Gera **OS-12** ao final
 - **OS-06**: Assessoria Pontual → Gera **OS-11** ao final
-- **Arquivo Principal**: `os-details-assessoria-page.tsx`
+- **Arquivo Principal**: `os-details-assessoria-page.tsx` (821 linhas)
 - **% Concluída**: 95% ✅
 
 ### 📝 Passo-a-Passo das Etapas
@@ -191,7 +285,7 @@ src/constants/
 > **Prazo Total do Ciclo Comercial**: 19 dias úteis
 
 | # | Etapa | Status | Componente | Responsável | Prazo | Status Geral | Status Situação |
-|----|-------|--------|------------|-------------|:-----:|--------------|-----------------|
+|----|-------|--------|------------|-------------|:-----:|--------------|--------------------|
 | 1 | Identifique o Lead | ✅ | `cadastrar-lead.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
 | 2 | Seleção do Tipo de OS | ✅ | `step-selecao-tipo-assessoria.tsx` | Administrativo | 1 dia | Em Triagem | Ação Pendente |
 | 3 | Follow-up 1 (Entrevista Inicial) | ✅ | `step-followup-1-os5.tsx` / `step-followup-1-os6.tsx` | Administrativo | 4 dias | Em Andamento | Ação Pendente |
@@ -389,7 +483,7 @@ Formalizar a solicitação de compra de materiais/serviços e coletar orçamento
 | # | Etapa | Status | Componente | Responsável |
 |----|-------|--------|------------|-------------|
 | 1 | Requisição de Compra | ✅ | `step-requisicao-compra.tsx` | Solicitante |
-| 2 | Upload de Orçamentos | ✅ | `step-upload-orcamentos.tsx` | Administrativo |
+| 2 | Upload de Orçamentos 🔒 | ✅ | `step-upload-orcamentos.tsx` | Administrativo |
 
 ### ⚙️ Regras de Negócio Específicas
 
@@ -441,7 +535,7 @@ Formalizar a necessidade de contratação de novos colaboradores com gerenciamen
 | # | Etapa | Status | Componente | Responsável |
 |----|-------|--------|------------|-------------|
 | 1 | Abertura da Solicitação | ✅ | `step-abertura-solicitacao.tsx` | Solicitante |
-| 2 | Seleção do Centro de Custo | ✅ | `step-selecao-centro-custo.tsx` | Administrativo |
+| 2 | Seleção do Centro de Custo 🔒 | ✅ | `step-selecao-centro-custo.tsx` | Administrativo |
 | 3 | Gerenciador de Vagas | ✅ | `step-gerenciador-vagas.tsx` | Administrativo |
 | 4 | Revisão e Envio | ✅ | `step-revisao-envio.tsx` | Administrativo |
 
@@ -511,7 +605,7 @@ Executar contrato de assessoria limitada focado na entrega de documento técnico
 | 2 | **Agendar Visita** | ✅ | `StepAgendarVisita` | Agendamento da visita técnica | Assessoria |
 | 3 | **Realizar Visita** | ✅ | `StepRealizarVisita` | Visita in-loco + checklist | Técnico |
 | 4 | **Anexar RT** | ✅ | `StepAnexarRT` | Responsabilidade Técnica (documento) | Técnico |
-| 5 | **Gerar Documento** | ✅ | `StepGerarDocumento` | PDF automático do Laudo Técnico | Sistema |
+| 5 | **Gerar Documento** 🔒 | ✅ | `StepGerarDocumento` | PDF automático do Laudo Técnico | Sistema |
 | 6 | **Enviar ao Cliente** | ✅ | `StepEnviarCliente` | Envio automático do documento | Sistema |
 
 
@@ -576,7 +670,7 @@ Gerenciar contratos de assessoria de longo prazo desde a captação do cliente a
 |---|-------|--------|------------|-----------|-------------|
 | 1 | **Cadastro do Cliente e Portal** | ✅ | `StepCadastroClientePortal` | Selecionar cliente e convite (Magic Link) | Administrativo
 | 2 | **Upload de ART** | ✅ | `StepAnexarART` | Anexar Anotação de Responsabilidade Técnica | Assessoria
-| 3 | **Upload de Plano de Manutenção** | ✅ | `StepPlanoManutencao` | Upload do plano de manutenção do condomínio | Assessoria
+| 3 | **Upload de Plano de Manutenção** 🔒 | ✅ | `StepPlanoManutencao` | Upload do plano de manutenção do condomínio | Assessoria
 | 4 | **Agendar Visita** | ✅ | `StepAgendarVisita` | Agendamento da primeira visita técnica | Administrativo
 | 5 | **Realizar Visita** | ✅ | `StepRealizarVisita` | Registro de visita com data/horário e observação | Administrativo
 | 6 | **Agendar Visita Recorrente** | ✅ | `StepAgendarVisitaRecorrente` | Agendamento da próxima visita periódica | Administrativo
@@ -741,19 +835,19 @@ src/routes/_auth/os/criar/
 |----|-------|--------|------------|-------------|
 | 1 | **Dados do Cliente** | ✅ | `CadastrarClienteObra` | Administrativo |
 | 2 | **Anexar ART** | ✅ | `StepAnexarART` | Obras |
-| 3 | **Relatório Fotográfico** | ✅ | `StepRelatorioFotografico` | Obras |
+| 3 | **Relatório Fotográfico** 🔒 | ✅ | `StepRelatorioFotografico` | Obras |
 | 4 | **Imagem de Áreas** | ✅ | `StepImagemAreas` | Obras |
-| 5 | **Cronograma** | ✅ | `StepCronogramaObra` | Obras |
+| 5 | **Cronograma** 🔒 | ✅ | `StepCronogramaObra` | Obras |
 | 6 | **Agendar Visita Inicial** | ✅ | `StepAgendarVisitaInicial` | Administrativo |
 | 7 | **Realizar Visita Inicial** | ✅ | `StepRealizarVisitaInicial` | Administrativo |
-| 8 | **Histograma** | ✅ | `StepHistograma` | Obras |
+| 8 | **Histograma** 🔒 | ✅ | `StepHistograma` | Obras |
 | 9 | **Placa de Obra** | ✅ | `StepPlacaObra` | Obras |
 | 10 | **Requisição de Compras** | ✅ | `StepRequisicaoCompras` → OS-09 | Obras |
 | 11 | **Requisição de Mão de Obra** | ✅ | `StepRequisicaoMaoObra` → OS-10 | Obras |
-| 12 | **Evidência Mobilização** | ✅ | `StepEvidenciaMobilizacao` | Obras |
+| 12 | **Evidência Mobilização** 🔒 | ✅ | `StepEvidenciaMobilizacao` | Obras |
 | 13 | **Diário de Obra** | ✅ | `StepDiarioObra` | Obras |
 | 14 | **Seguro de Obras** | ✅ | `StepSeguroObras` | Administrativo |
-| 15 | **Documentos SST** | ✅ | `StepDocumentosSST` | Obras |
+| 15 | **Documentos SST** 🔒 | ✅ | `StepDocumentosSST` | Obras |
 | 16 | **Agendar Visita Final** | ✅ | `StepAgendarVisitaFinal` | Administrativo |
 | 17 | **Realizar Visita Final** | ✅ | `StepRealizarVisitaFinal` | Obras |
 

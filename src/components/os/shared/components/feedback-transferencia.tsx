@@ -5,16 +5,17 @@
  * 
  * Modal exibido após um avanço de etapa que resultou em transferência de setor.
  * Informa o usuário sobre a transferência e oferece navegação para OS Details.
+ * Inclui timer de contagem regressiva para redirecionamento automático.
  * 
  * @module feedback-transferencia
  * @author Minerva ERP
  */
 
+import { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { PrimaryButton } from '@/components/ui/primary-button';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle, ArrowRight, User, ExternalLink } from 'lucide-react';
+import { CheckCircle, ArrowRight, User, ExternalLink, Timer } from 'lucide-react';
 import { TransferenciaInfo } from '@/types/os-setor-config';
 import { useNavigate } from '@tanstack/react-router';
 
@@ -31,6 +32,8 @@ interface FeedbackTransferenciaProps {
     transferencia: TransferenciaInfo;
     /** ID da OS para navegação */
     osId: string;
+    /** Tempo em segundos para redirecionamento automático (default: 5) */
+    autoRedirectSeconds?: number;
 }
 
 // ============================================================================
@@ -42,18 +45,38 @@ export function FeedbackTransferencia({
     onClose,
     transferencia,
     osId,
+    autoRedirectSeconds = 5,
 }: FeedbackTransferenciaProps) {
     const navigate = useNavigate();
+    const [countdown, setCountdown] = useState(autoRedirectSeconds);
 
-    const handleIrParaDetalhes = () => {
+    const handleIrParaDetalhes = useCallback(() => {
         onClose();
         navigate({ to: '/os/$osId', params: { osId } });
-    };
+    }, [onClose, navigate, osId]);
 
-    const handleContinuarNavegando = () => {
-        onClose();
-        // Usuário pode continuar onde está
-    };
+    // Timer de contagem regressiva
+    useEffect(() => {
+        if (!isOpen) {
+            // Reset countdown when modal closes
+            setCountdown(autoRedirectSeconds);
+            return;
+        }
+
+        // Iniciar contagem regressiva
+        const timer = window.setInterval(() => {
+            setCountdown(prev => {
+                if (prev <= 1) {
+                    window.clearInterval(timer);
+                    handleIrParaDetalhes();
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => window.clearInterval(timer);
+    }, [isOpen, autoRedirectSeconds, handleIrParaDetalhes]);
 
     return (
         <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -99,23 +122,24 @@ export function FeedbackTransferencia({
                             </span>
                         </div>
                     )}
+
+                    {/* Timer de redirecionamento */}
+                    <div className="flex items-center justify-center gap-2 text-muted-foreground">
+                        <Timer className="h-4 w-4 animate-pulse" />
+                        <span className="text-sm">
+                            Redirecionando em <strong className="text-foreground">{countdown}</strong>...
+                        </span>
+                    </div>
                 </div>
 
-                <DialogFooter className="flex-col gap-2 sm:flex-col">
+                <DialogFooter className="sm:justify-center">
                     <PrimaryButton
                         onClick={handleIrParaDetalhes}
-                        className="w-full"
+                        className="w-full sm:w-auto"
                     >
                         <ExternalLink className="h-4 w-4 mr-2" />
-                        Ir para Detalhes da OS
+                        Ver detalhes
                     </PrimaryButton>
-                    <Button
-                        variant="ghost"
-                        onClick={handleContinuarNavegando}
-                        className="w-full"
-                    >
-                        Continuar aqui
-                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
@@ -123,3 +147,4 @@ export function FeedbackTransferencia({
 }
 
 export default FeedbackTransferencia;
+

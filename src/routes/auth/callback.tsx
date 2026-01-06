@@ -23,7 +23,7 @@ function AuthCallbackPage() {
   useEffect(() => {
     const handleCallback = async () => {
       try {
-        // Get URL parameters
+        // Get URL parameters BEFORE any Supabase processing
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const searchParams = new URLSearchParams(window.location.search);
 
@@ -38,53 +38,61 @@ function AuthCallbackPage() {
           return;
         }
 
-        // Get the type of callback (invite, recovery, signup, magiclink)
+        // IMPORTANTE: Capturar o type ANTES de processar a sessão
+        // Com detectSessionInUrl: false, precisamos processar manualmente
         const type = hashParams.get('type') || searchParams.get('type');
         logger.log('[AuthCallback] Callback type:', type);
 
-        // Wait for Supabase to process the session from URL
-        // The detectSessionInUrl: true setting handles this automatically
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Extrair tokens da URL
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
 
-        if (sessionError) {
-          logger.error('[AuthCallback] Session error:', sessionError);
-          setErrorMessage('Erro ao processar autenticação');
-          setStatus('error');
-          return;
-        }
+        // Se há tokens na URL, processar sessão manualmente
+        if (accessToken && refreshToken) {
+          logger.log('[AuthCallback] Processing tokens manually...');
 
-        if (!session) {
-          // If no session yet, wait a bit for Supabase to process
-          logger.log('[AuthCallback] No session yet, waiting...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
 
-          const { data: { session: retrySession } } = await supabase.auth.getSession();
+          if (sessionError) {
+            logger.error('[AuthCallback] Error setting session:', sessionError);
+            setErrorMessage('Erro ao processar autenticação');
+            setStatus('error');
+            return;
+          }
 
-          if (!retrySession) {
-            logger.error('[AuthCallback] Still no session after retry');
+          logger.log('[AuthCallback] Session created successfully');
+        } else {
+          // Sem tokens na URL, verificar se já existe sessão
+          const { data: { session } } = await supabase.auth.getSession();
+
+          if (!session) {
+            logger.error('[AuthCallback] No tokens in URL and no existing session');
             setErrorMessage('Sessão não encontrada. O link pode ter expirado.');
             setStatus('error');
             return;
           }
         }
 
-        // Redirect based on callback type
+        // Redirect baseado no type PRESERVADO
         if (type === 'invite' || type === 'signup') {
-          // New user from invite - needs to set password
+          // Novo usuário de convite - precisa definir senha
           logger.log('[AuthCallback] Invite/signup - redirecting to setup password');
           navigate({ to: '/auth/setup-password' });
         } else if (type === 'recovery') {
-          // Password recovery - also needs to set new password
+          // Recuperação de senha
           logger.log('[AuthCallback] Recovery - redirecting to setup password');
           navigate({ to: '/auth/setup-password' });
         } else {
-          // Magic link login or other - determine user type and redirect
+          // Magic link ou outro - determinar tipo de usuário
           logger.log('[AuthCallback] Other type - checking user type...');
 
           const { data: { user } } = await supabase.auth.getUser();
 
           if (user) {
-            // Check if user is a client
+            // Verificar se usuário é cliente
             const { data: clienteData } = await supabase
               .from('clientes')
               .select('id')
@@ -98,7 +106,7 @@ function AuthCallbackPage() {
             }
           }
 
-          // Default: redirect to dashboard (staff)
+          // Default: redirect para dashboard (staff)
           logger.log('[AuthCallback] User is staff, redirecting to dashboard');
           navigate({ to: '/' });
         }

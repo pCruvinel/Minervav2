@@ -95,5 +95,75 @@ export const NotificationService = {
       logger.error('Erro ao marcar todas notificações como lidas:', error);
       return false;
     }
+  },
+
+  /**
+   * Notifica sobre a criação de uma nova OS
+   */
+  async notifyOSCreated(params: {
+    osId: string;
+    codigoOS: string;
+    tipoOS: string;
+    clienteNome: string;
+    criadoPorId: string;
+    criadoPorNome: string;
+    responsavelId: string;
+  }): Promise<void> {
+    await NotificationService.create({
+      usuario_id: params.responsavelId,
+      titulo: `🆕 Nova OS Criada: ${params.codigoOS}`,
+      mensagem: `${params.criadoPorNome} criou uma nova ${params.tipoOS} para o cliente **${params.clienteNome}**. Aguardando sua ação.`,
+      link_acao: `/os/${params.osId}`,
+      tipo: 'tarefa',
+    });
+  },
+
+  async notifyDocumentoAnexado(params: {
+    osId: string;
+    codigoOS: string;
+    clienteNome: string;
+    tipoDocumento: string;
+    anexadoPorNome: string;
+    responsavelId: string;
+  }): Promise<void> {
+    await NotificationService.create({
+      usuario_id: params.responsavelId,
+      titulo: `📎 Documento Anexado: ${params.codigoOS}`,
+      mensagem: `${params.anexadoPorNome} anexou um(a) **${params.tipoDocumento}** na OS de **${params.clienteNome}**.`,
+      link_acao: `/os/${params.osId}`,
+      tipo: 'info',
+    });
+  },
+
+  async notifyComentarioAdicionado(params: {
+    osId: string;
+    codigoOS: string;
+    comentarioPor: string;
+    comentarioPreview: string;
+    destinatarioId: string;
+  }): Promise<void> {
+    await NotificationService.create({
+      usuario_id: params.destinatarioId,
+      titulo: `💬 Novo Comentário: ${params.codigoOS}`,
+      mensagem: `${params.comentarioPor}: "${params.comentarioPreview}..."`,
+      link_acao: `/os/${params.osId}`,
+      tipo: 'info',
+    });
+  },
+
+  async notifyChatMensagem(params: {
+    osId: string;
+    codigoOS: string;
+    remetente: string;
+    mensagemPreview: string;
+    destinatarioId: string;
+  }): Promise<void> {
+    await NotificationService.create({
+      usuario_id: params.destinatarioId,
+      titulo: `💬 Nova Mensagem: ${params.codigoOS}`,
+      mensagem: `${params.remetente}: "${params.mensagemPreview}"`,
+      link_acao: `/os/${params.osId}`,
+      tipo: 'info',
+    });
   }
 };

@@ -1,52 +1,52 @@
-import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calendar, CheckCircle } from 'lucide-react';
+/**
+ * StepRealizarApresentacao - Wrapper para StepRealizarVisita (tipo apresentacao)
+ * 
+ * Usado em:
+ * - OS 1-4 (Obras): Etapa 11 - Realizar Visita (Apresentação)
+ * 
+ * Este componente é um wrapper que reutiliza StepRealizarVisita com tipo="apresentacao"
+ */
+
+import { StepRealizarVisita, StepRealizarVisitaData } from './step-realizar-visita';
 
 interface StepRealizarApresentacaoProps {
   data: {
-    apresentacaoRealizada: boolean;
+    apresentacaoRealizada?: boolean;
+    dataApresentacao?: string;
+    observacoes?: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: StepRealizarApresentacaoProps['data']) => void;
   readOnly?: boolean;
 }
 
-export function StepRealizarApresentacao({ data, onDataChange, readOnly = false }: StepRealizarApresentacaoProps) {
+export function StepRealizarApresentacao({
+  data,
+  onDataChange,
+  readOnly = false
+}: StepRealizarApresentacaoProps) {
+  // Mapear dados para o formato do StepRealizarVisita
+  const mappedData: StepRealizarVisitaData = {
+    visitaRealizada: data.apresentacaoRealizada,
+    dataVisita: data.dataApresentacao,
+    observacoes: data.observacoes,
+  };
+
+  // Mapear callback para formato original
+  const handleDataChange = (newData: StepRealizarVisitaData) => {
+    onDataChange({
+      apresentacaoRealizada: newData.visitaRealizada,
+      dataApresentacao: newData.dataVisita,
+      observacoes: newData.observacoes,
+    });
+  };
+
   return (
-    <div className="space-y-6">
-      <Alert>
-        <Calendar className="h-4 w-4" />
-        <AlertDescription>
-          Confirme que a apresentação da proposta foi realizada.
-        </AlertDescription>
-      </Alert>
-
-      <div className="flex items-center space-x-3 border rounded-lg p-4">
-        <Checkbox
-          id="apresentacao-realizada"
-          checked={data.apresentacaoRealizada}
-          onCheckedChange={(checked: boolean | 'indeterminate') => !readOnly && onDataChange({ apresentacaoRealizada: checked === true })}
-          disabled={readOnly}
-        />
-        <Label htmlFor="apresentacao-realizada" className="cursor-pointer">
-          Confirmar que a apresentação foi realizada
-        </Label>
-      </div>
-
-      {data.apresentacaoRealizada && (
-        <Card className="bg-success/5 border-success/20">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-success" />
-              <div>
-                <div className="text-sm">Apresentação confirmada!</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+    <StepRealizarVisita
+      data={mappedData}
+      onDataChange={handleDataChange}
+      readOnly={readOnly}
+      tipoVisita="apresentacao"
+    />
   );
 }
+

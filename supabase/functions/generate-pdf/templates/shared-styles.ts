@@ -5,9 +5,13 @@
 
 export const colors = {
   // Primary colors - Gold (Minerva Brand)
-  primary: '#D3AF37',
+  primary: '#C5A55B', // Minerva Gold (from image)
   primaryDark: '#B8941E',
   primaryLight: '#E6C866',
+
+  // Secondary/Brand Colors
+  minervaBlue: '#0056b3', // Strong blue for headers
+  minervaGold: '#C5A55B', // Standard gold
 
   // Neutral colors
   neutral50: '#FAFAFA',
@@ -23,13 +27,15 @@ export const colors = {
 
   // Semantic colors
   success: '#10B981',
-  warning: '#F59E0B',
+  warning: '#F59E0B', // Orange for Impostos
   error: '#EF4444',
   info: '#3B82F6',
 
-  // Table Header Colors (Blue)
-  tableHeaderBg: '#3B82F6',
+  // Table Colors
+  tableHeaderBg: '#0056b3', // Minerva Blue
   tableHeaderText: '#FFFFFF',
+  tableRowYellow: '#FCD34D', // Yellow highlight for Cronograma
+  tableRowGray: '#F3F4F6', // Standard alternating row
 
   // Background
   white: '#FFFFFF',

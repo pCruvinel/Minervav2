@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -6,11 +6,13 @@ import { FileText, CheckCircle, Upload, Download, Loader2, X } from 'lucide-reac
 import { toast } from '@/lib/utils/safe-toast';
 import { uploadAndRegisterDocument, deleteRegisteredDocument } from '@/lib/utils/upload-and-register';
 import { logger } from '@/lib/utils/logger';
+import { supabase } from '@/lib/supabase-client';
 
 interface StepGerarContratoProps {
   data: {
     contratoFile?: File | null;
     contratoUrl?: string;
+    contratoPath?: string; // ✅ Path no storage (novo)
     contratoDocumentoId?: string; // ID do registro em os_documentos
     dataUpload?: string;
     // Dados necessários para o modelo
@@ -33,6 +35,9 @@ interface StepGerarContratoProps {
 export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = false }: StepGerarContratoProps) {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // State local para URL de exibição (prioridade: URL assinada fresca > data.contratoUrl)
+  const [displayUrl, setDisplayUrl] = useState<string | undefined>(data.contratoUrl);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -65,13 +70,16 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
       });
 
       // Dupla persistência: salvar em dados_etapa também (compatibilidade)
-      onDataChange({
+      const newData = {
         ...data,
         contratoFile: file,
         contratoUrl: result.url,
+        contratoPath: result.path, // ✅ Persistir o caminho do storage
         contratoDocumentoId: result.documentoId,
         dataUpload: new Date().toISOString().split('T')[0]
-      });
+      };
+
+      onDataChange(newData);
 
       toast.success('Contrato enviado com sucesso!');
 
@@ -86,6 +94,32 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
       setUploading(false);
     }
   };
+
+  // ✅ EFEITO: Gerar URL assinada atualizada ao carregar (se houver path e a URL antiga expirou ou é invalida)
+  // Isso corrige o erro 406 quando o link expira
+  useEffect(() => {
+    const refreshUrl = async () => {
+      // Se TEMOS path mas NÃO temos arquivo local (recarregamento de página)
+      if (data.contratoPath && !data.contratoFile) {
+        try {
+          const { data: signedData, error } = await supabase.storage
+            .from('os-documents')
+            .createSignedUrl(data.contratoPath, 3600); // 1 hora de validade
+
+          if (signedData?.signedUrl) {
+            setDisplayUrl(signedData.signedUrl);
+          }
+        } catch (e) {
+          console.error("Erro ao gerar URL assinada:", e);
+        }
+      } else if (data.contratoUrl) {
+        // Se não tem path (legado) ou tem arquivo local, usa a URL que já temos
+        setDisplayUrl(data.contratoUrl);
+      }
+    };
+
+    refreshUrl();
+  }, [data.contratoPath, data.contratoUrl, data.contratoFile]);
 
   const handleDownloadModelo = () => {
     // Aqui você pode implementar o download do modelo de contrato
@@ -113,9 +147,12 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
         ...data,
         contratoFile: null,
         contratoUrl: undefined,
+        contratoPath: undefined,
         contratoDocumentoId: undefined,
         dataUpload: undefined
       });
+
+      setDisplayUrl(undefined);
 
       toast.success('Contrato removido com sucesso');
     } catch (error) {
@@ -134,7 +171,7 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
       </Alert>
 
       {/* Área de Upload/Download */}
-      {!data.contratoUrl && (
+      {!displayUrl && (
         <div className="flex flex-col items-center justify-center py-12 gap-6 border-2 border-dashed rounded-lg bg-muted/20">
           <FileText className="h-16 w-16 text-muted-foreground" />
 
@@ -183,7 +220,7 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
       )}
 
       {/* Contrato Anexado */}
-      {data.contratoUrl && (
+      {displayUrl && (
         <Card className="bg-success/5 border-success/20">
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -203,7 +240,7 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
                   asChild
                 >
                   <a
-                    href={data.contratoUrl}
+                    href={displayUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

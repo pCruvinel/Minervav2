@@ -36,6 +36,10 @@ import { StepSelecaoTipoAssessoria } from '@/components/os/assessoria/os-5-6/ste
 import { StepAtivarContratoAssessoria } from '@/components/os/assessoria/os-5-6/steps/step-ativar-contrato-assessoria';
 import { StepEscopoAssessoria, type StepEscopoAssessoriaHandle, type StepEscopoAssessoriaData } from '@/components/os/shared/steps/step-escopo-assessoria';
 
+// Sistema de Aprovação
+import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
+import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+
 // Definição das 12 etapas do fluxo OS 05-06
 const steps: WorkflowStep[] = [
   { id: 1, title: 'Identifique o Lead', short: 'Lead', responsible: 'ADM' },
@@ -113,6 +117,10 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
   const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
 
+  // Estado para modal de aprovação
+  const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
+  const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
+
   // Hooks de transferência
   const { executarTransferencia } = useTransferenciaSetor();
   useAuth(); // Para garantir que o contexto está disponivel
@@ -123,6 +131,11 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   const stepFollowup1OS5Ref = useRef<StepFollowup1OS5Handle>(null);
   const stepFollowup1OS6Ref = useRef<StepFollowup1OS6Handle>(null);
   const stepEscopoRef = useRef<StepEscopoAssessoriaHandle>(null);
+
+  // Hook de aprovação de etapa
+  const {
+    aprovacaoInfo
+  } = useAprovacaoEtapa(osId || undefined, currentStep);
 
   // Mapeamento de dados para compatibilidade com componentes existentes
   const etapa1Data = formDataByStep[1] || { leadId: '' };
@@ -330,6 +343,25 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
       } catch (error) {
         logger.error(`❌ Erro ao salvar etapa ${currentStep}:`, error);
         toast.error('Erro ao salvar dados. Tente novamente.');
+        return;
+      }
+    }
+
+    // ============================================================================
+    // VERIFICAÇÃO DE APROVAÇÃO (Etapas 6 e 10 requerem aprovação)
+    // ============================================================================
+    if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
+      const etapaNome = steps.find(s => s.id === currentStep)?.title || `Etapa ${currentStep}`;
+
+      if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
+        // Abrir modal de aprovação
+        setEtapaNomeParaAprovacao(etapaNome);
+        setIsAprovacaoModalOpen(true);
+        return;
+      }
+
+      if (aprovacaoInfo.statusAprovacao === 'solicitada') {
+        toast.info('Aguardando aprovação do coordenador.');
         return;
       }
     }
@@ -813,6 +845,22 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
           onClose={() => setIsTransferenciaModalOpen(false)}
           transferencia={transferenciaInfo}
           osId={osId || ''}
+        />
+      )}
+
+      {/* Modal de Aprovação de Etapa */}
+      {osId && (
+        <AprovacaoModal
+          open={isAprovacaoModalOpen}
+          onOpenChange={setIsAprovacaoModalOpen}
+          osId={osId}
+          etapaOrdem={currentStep}
+          etapaNome={etapaNomeParaAprovacao}
+          onAprovado={async () => {
+            // Recarregar etapas e avançar
+            setCurrentStep(prev => prev + 1);
+            setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+          }}
         />
       )}
     </div>

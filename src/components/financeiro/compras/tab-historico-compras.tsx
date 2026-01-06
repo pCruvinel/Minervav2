@@ -43,10 +43,10 @@ import {
 import { SheetDetalhesRequisicao } from './sheet-detalhes-requisicao';
 
 const STATUS_OPTIONS = [
-  { value: 'concluido', label: 'Pendente' },
-  { value: 'em_andamento', label: 'Aprovada' },
-  { value: 'cancelado', label: 'Recusada' },
-  { value: 'em_triagem', label: 'Em Triagem' },
+  { value: 'em_triagem', label: 'Em Criação' },
+  { value: 'em_andamento', label: 'Em Andamento' },
+  { value: 'concluido', label: 'Concluído' },
+  { value: 'cancelado', label: 'Cancelado' },
 ];
 
 /**
@@ -84,10 +84,10 @@ export function TabHistoricoCompras() {
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-      concluido: { label: 'Pendente', variant: 'secondary' },
-      em_andamento: { label: 'Aprovada', variant: 'default' },
-      cancelado: { label: 'Recusada', variant: 'destructive' },
-      em_triagem: { label: 'Em Triagem', variant: 'outline' },
+      em_triagem: { label: 'Em Criação', variant: 'outline' },
+      em_andamento: { label: 'Em Andamento', variant: 'default' },
+      concluido: { label: 'Concluído', variant: 'secondary' },
+      cancelado: { label: 'Cancelado', variant: 'destructive' },
     };
 
     const config = statusConfig[status] || { label: status, variant: 'outline' as const };

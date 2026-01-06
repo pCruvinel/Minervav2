@@ -2,10 +2,11 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle } from 'lucide-react';
+import { usePrecificacaoConfig } from '@/lib/hooks/use-precificacao-config';
 
 // Função para formatar valores monetários no padrão brasileiro (R$ 30.000,00)
 const formatarMoeda = (valor: number): string => {
@@ -62,11 +63,55 @@ export function StepPrecificacao({
       ...newData,
       materialCusto: calcularCustoBase().toFixed(2), // Custo base do memorial
       maoObraCusto: '0.00', // Mão-de-obra adicional (pode ser editada depois)
-      precoFinal: calcularValorAtual().toFixed(2), // Valor calculado final
+      precoFinal: calcularValorAtual(newData).toFixed(2), // Valor calculado final
     };
 
     onDataChange(completeData);
   };
+
+  // ------------------------------------------------------
+  // Integração com Configurações Dinâmicas
+  // ------------------------------------------------------
+  const { configs, isLoading: isLoadingConfig } = usePrecificacaoConfig('OS-01-04');
+  const hasInitialized = React.useRef(false);
+
+  // Helper para buscar config de um campo
+  const getConfig = (campo: string) => configs.find(c => c.campo_nome === campo);
+
+  // Inicializar valores padrão se estiverem vazios
+  React.useEffect(() => {
+    if (!isLoadingConfig && configs.length > 0 && !hasInitialized.current) {
+      hasInitialized.current = true;
+
+      const imprevistoConfig = getConfig('percentual_imprevisto');
+      const lucroConfig = getConfig('percentual_lucro');
+      const impostoConfig = getConfig('percentual_imposto');
+
+      // Só aplicar padrão se o campo não estiver definido no data
+      const updates: any = {};
+      let hasUpdates = false;
+
+      if (!data.percentualImprevisto && imprevistoConfig) {
+        updates.percentualImprevisto = imprevistoConfig.valor_padrao.toString();
+        hasUpdates = true;
+      }
+
+      if (!data.percentualLucro && lucroConfig) {
+        updates.percentualLucro = lucroConfig.valor_padrao.toString();
+        hasUpdates = true;
+      }
+
+      if (!data.percentualImposto && impostoConfig) {
+        updates.percentualImposto = impostoConfig.valor_padrao.toString();
+        hasUpdates = true;
+      }
+
+      if (hasUpdates) {
+        handleDataChange({ ...data, ...updates });
+      }
+    }
+  }, [configs, isLoadingConfig, data, onDataChange]);
+
   // Calcular Custo Base do Memorial
   const calcularCustoBase = (): number => {
     if (!memorialData || !memorialData.etapasPrincipais) return 0;
@@ -79,11 +124,12 @@ export function StepPrecificacao({
   };
 
   // Calcular Valor Atual (Total) com percentuais
-  const calcularValorAtual = (): number => {
+  // Aceita customData opcional para usar dados mais recentes antes do state update
+  const calcularValorAtual = (customData = data): number => {
     const custoBase = calcularCustoBase();
-    const imprevisto = parseFloat(data.percentualImprevisto || '0') || 0;
-    const lucro = parseFloat(data.percentualLucro || '0') || 0;
-    const imposto = parseFloat(data.percentualImposto || '0') || 0;
+    const imprevisto = parseFloat(customData.percentualImprevisto || '0') || 0;
+    const lucro = parseFloat(customData.percentualLucro || '0') || 0;
+    const imposto = parseFloat(customData.percentualImposto || '0') || 0;
 
     // Fórmula: CustoBase * (1 + %Imprevisto/100 + %Lucro/100 + %Imposto/100)
     return custoBase * (1 + imprevisto / 100 + lucro / 100 + imposto / 100);
@@ -104,6 +150,13 @@ export function StepPrecificacao({
 
     if (numeroParcelas === 0) return 0;
     return (valorTotal - valorEntrada) / numeroParcelas;
+  };
+
+  // Helpers de editabilidade (considera readOnly geral E config específica)
+  const isFieldReadOnly = (campo: string) => {
+    if (readOnly) return true;
+    const config = getConfig(campo);
+    return config ? !config.campo_editavel : false;
   };
 
   return (
@@ -146,9 +199,9 @@ export function StepPrecificacao({
               id="percentualImprevisto"
               type="number"
               value={data.percentualImprevisto || ''}
-              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualImprevisto: e.target.value })}
-              placeholder="0"
-              disabled={readOnly}
+              onChange={(e) => handleDataChange({ ...data, percentualImprevisto: e.target.value })}
+              placeholder={isLoadingConfig ? "Carregando..." : "0"}
+              disabled={isFieldReadOnly('percentual_imprevisto')}
             />
           </div>
 
@@ -160,9 +213,9 @@ export function StepPrecificacao({
               id="percentualLucro"
               type="number"
               value={data.percentualLucro || ''}
-              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualLucro: e.target.value })}
-              placeholder="0"
-              disabled={readOnly}
+              onChange={(e) => handleDataChange({ ...data, percentualLucro: e.target.value })}
+              placeholder={isLoadingConfig ? "Carregando..." : "0"}
+              disabled={isFieldReadOnly('percentual_lucro')}
             />
           </div>
 
@@ -174,9 +227,9 @@ export function StepPrecificacao({
               id="percentualImposto"
               type="number"
               value={data.percentualImposto || ''}
-              onChange={(e) => !readOnly && handleDataChange({ ...data, percentualImposto: e.target.value })}
-              placeholder="0"
-              disabled={readOnly}
+              onChange={(e) => handleDataChange({ ...data, percentualImposto: e.target.value })}
+              placeholder={isLoadingConfig ? "Carregando..." : "0"}
+              disabled={isFieldReadOnly('percentual_imposto')}
             />
           </div>
 

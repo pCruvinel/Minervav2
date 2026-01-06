@@ -61,7 +61,14 @@ function SetupPasswordPage() {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.updateUser({ password });
+      // Atualizar senha E marcar flag no user_metadata
+      const { error } = await supabase.auth.updateUser({
+        password,
+        data: {
+          senha_definida: true,
+          senha_definida_em: new Date().toISOString()
+        }
+      });
 
       if (error) {
         logger.error('[SetupPassword] Error updating password:', error);
@@ -259,10 +266,10 @@ function ValidationItem({
     <div className="flex items-center gap-2 text-xs">
       <CheckCircle2
         className={`w-4 h-4 ${isValid
-            ? 'text-success'
-            : optional
-              ? 'text-muted-foreground/50'
-              : 'text-muted-foreground'
+          ? 'text-success'
+          : optional
+            ? 'text-muted-foreground/50'
+            : 'text-muted-foreground'
           }`}
       />
       <span

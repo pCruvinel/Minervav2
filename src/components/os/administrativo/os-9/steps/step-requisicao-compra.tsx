@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -21,6 +20,10 @@ interface StepRequisicaoCompraProps {
   onDataChange: (data: any) => void;
   readOnly?: boolean;
   etapaId?: string;
+  /** Ref para expor função de salvar itens locais antes de avançar */
+  saveItemsRef?: React.MutableRefObject<(() => Promise<void>) | undefined>;
+  /** Função para criar OS (usada quando o usuário tenta salvar item antes da OS existir) */
+  onCreateOS?: () => Promise<string | null>;
 }
 
 /**
@@ -51,7 +54,9 @@ export function StepRequisicaoCompra({
   data,
   onDataChange,
   readOnly,
-  etapaId
+  etapaId,
+  saveItemsRef,
+  onCreateOS
 }: StepRequisicaoCompraProps) {
   // Estado local para dados da OS (endereço + prazo)
   const [dadosOS, setDadosOS] = useState<Partial<DadosRequisicaoOS>>({
@@ -69,7 +74,9 @@ export function StepRequisicaoCompra({
   const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Estado local para itens (enquanto edita, antes de salvar no banco)
-  const [localItems, setLocalItems] = useState<Partial<ItemRequisicao>[]>([]);
+  // Estado local para itens (enquanto edita, antes de salvar no banco)
+  // Inicializa com itens preservados no pai (se houver) para resistir à remontagem
+  const [localItems, setLocalItems] = useState<Partial<ItemRequisicao>[]>(() => data.itens || []);
 
   // Hooks de integração com Supabase e ViaCEP
   const { items: savedItems, loading, refetch } = useRequisitionItems(etapaId);
@@ -133,7 +140,24 @@ export function StepRequisicaoCompra({
   };
 
   const handleSaveLocalItems = async () => {
-    if (!etapaId || readOnly) return;
+    if (readOnly) return;
+
+    // Se não tiver etapaId (OS não criada) e tivermos a função de criar, usamos ela
+    if (!etapaId && onCreateOS) {
+      try {
+        logger.log('Creating OS from Step 1...');
+        const newOsId = await onCreateOS();
+        if (!newOsId) return; // Erro ao criar
+        // O componente será remontado ou atualizado com o novo etapaId
+        // Mas por garantia, não continuamos aqui pois a navegação vai acontecer
+        return;
+      } catch (error) {
+        logger.error('Error auto-creating OS:', error);
+        return;
+      }
+    }
+
+    if (!etapaId) return;
 
     logger.log(`💾 Salvando ${localItems.length} itens locais...`);
 
@@ -171,6 +195,18 @@ export function StepRequisicaoCompra({
     setLocalItems([]);
     await refetch();
   };
+
+  // Registrar função de salvar itens no ref para o workflow chamar antes de avançar
+  React.useEffect(() => {
+    if (saveItemsRef) {
+      saveItemsRef.current = handleSaveLocalItems;
+    }
+    return () => {
+      if (saveItemsRef) {
+        saveItemsRef.current = undefined;
+      }
+    };
+  }, [saveItemsRef, localItems, etapaId, readOnly]);
 
   // Handlers para dados da OS
   const handleOSFieldChange = (field: keyof DadosRequisicaoOS, value: any) => {
@@ -228,9 +264,10 @@ export function StepRequisicaoCompra({
       valorTotal: valorTotalRequisicao,
       hasItems: totalItems > 0,
       dadosOSCompletos,
+      itens: localItems, // Persistir itens locais no pai
       ...dadosOS
     });
-  }, [totalItems, valorTotalRequisicao, dadosOS, dadosOSCompletos]);
+  }, [totalItems, valorTotalRequisicao, dadosOS, dadosOSCompletos, localItems]);
 
   return (
     <div className="space-y-6">
@@ -316,108 +353,108 @@ export function StepRequisicaoCompra({
                 Endereço de Entrega
               </h4>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="cep">
-                  CEP <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <FormMaskedInput
-                    id="cep"
-                    maskType="cep"
-                    value={dadosOS.cep || ''}
-                    onChange={(e) => handleOSFieldChange('cep', e.target.value)}
-                    onBlur={handleCEPBlur}
-                    placeholder="00000-000"
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cep">
+                    CEP <span className="text-destructive">*</span>
+                  </Label>
+                  <div className="relative">
+                    <FormMaskedInput
+                      id="cep"
+                      maskType="cep"
+                      value={dadosOS.cep || ''}
+                      onChange={(e) => handleOSFieldChange('cep', e.target.value)}
+                      onBlur={handleCEPBlur}
+                      placeholder="00000-000"
+                      disabled={readOnly}
+                    />
+                    {cepLoading && (
+                      <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="logradouro">
+                    Logradouro <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="logradouro"
+                    value={dadosOS.logradouro || ''}
+                    onChange={(e) => handleOSFieldChange('logradouro', e.target.value)}
+                    placeholder="Rua, Avenida, etc."
                     disabled={readOnly}
                   />
-                  {cepLoading && (
-                    <Loader2 className="w-4 h-4 animate-spin absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  )}
                 </div>
               </div>
 
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="logradouro">
-                  Logradouro <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="logradouro"
-                  value={dadosOS.logradouro || ''}
-                  onChange={(e) => handleOSFieldChange('logradouro', e.target.value)}
-                  placeholder="Rua, Avenida, etc."
-                  disabled={readOnly}
-                />
-              </div>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="numero">
+                    Número <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="numero"
+                    value={dadosOS.numero || ''}
+                    onChange={(e) => handleOSFieldChange('numero', e.target.value)}
+                    placeholder="123"
+                    disabled={readOnly}
+                  />
+                </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="numero">
-                  Número <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="numero"
-                  value={dadosOS.numero || ''}
-                  onChange={(e) => handleOSFieldChange('numero', e.target.value)}
-                  placeholder="123"
-                  disabled={readOnly}
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="complemento">Complemento</Label>
+                  <Input
+                    id="complemento"
+                    value={dadosOS.complemento || ''}
+                    onChange={(e) => handleOSFieldChange('complemento', e.target.value)}
+                    placeholder="Apto, Bloco, etc."
+                    disabled={readOnly}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="bairro">
+                    Bairro <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="bairro"
+                    value={dadosOS.bairro || ''}
+                    onChange={(e) => handleOSFieldChange('bairro', e.target.value)}
+                    placeholder="Bairro"
+                    disabled={readOnly}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="cidade">
+                    Cidade <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="cidade"
+                    value={dadosOS.cidade || ''}
+                    onChange={(e) => handleOSFieldChange('cidade', e.target.value)}
+                    placeholder="Cidade"
+                    disabled={readOnly}
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="complemento">Complemento</Label>
-                <Input
-                  id="complemento"
-                  value={dadosOS.complemento || ''}
-                  onChange={(e) => handleOSFieldChange('complemento', e.target.value)}
-                  placeholder="Apto, Bloco, etc."
-                  disabled={readOnly}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="uf">
+                    UF <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="uf"
+                    value={dadosOS.uf || ''}
+                    onChange={(e) => handleOSFieldChange('uf', e.target.value.toUpperCase())}
+                    placeholder="SP"
+                    maxLength={2}
+                    disabled={readOnly}
+                  />
+                </div>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bairro">
-                  Bairro <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="bairro"
-                  value={dadosOS.bairro || ''}
-                  onChange={(e) => handleOSFieldChange('bairro', e.target.value)}
-                  placeholder="Bairro"
-                  disabled={readOnly}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="cidade">
-                  Cidade <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="cidade"
-                  value={dadosOS.cidade || ''}
-                  onChange={(e) => handleOSFieldChange('cidade', e.target.value)}
-                  placeholder="Cidade"
-                  disabled={readOnly}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="uf">
-                  UF <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="uf"
-                  value={dadosOS.uf || ''}
-                  onChange={(e) => handleOSFieldChange('uf', e.target.value.toUpperCase())}
-                  placeholder="SP"
-                  maxLength={2}
-                  disabled={readOnly}
-                />
-              </div>
-            </div>
             </div>
           )}
         </CardContent>
@@ -438,137 +475,137 @@ export function StepRequisicaoCompra({
             </Button>
           )}
 
-      {/* Tabela de Itens Salvos */}
-      {savedItems.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Itens da Requisição</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">#</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Tipo</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Descrição</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Qtd</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Un.</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Preço Unit.</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
-                    {!readOnly && <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Ações</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {savedItems.map((item, index) => {
-                    const total = (item.quantidade || 0) * (item.preco_unitario || 0);
-                    return (
-                      <tr key={item.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                        <td className="py-3 px-4 text-sm font-mono text-muted-foreground">{index + 1}</td>
-                        <td className="py-3 px-4 text-sm">
-                          <div>
-                            <div className="font-medium">{item.tipo}</div>
-                            {item.sub_tipo && <div className="text-xs text-muted-foreground">{item.sub_tipo}</div>}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-sm max-w-md">
-                          <div className="truncate" title={item.descricao}>{item.descricao}</div>
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right font-medium">{item.quantidade}</td>
-                        <td className="py-3 px-4 text-sm">{item.unidade_medida}</td>
-                        <td className="py-3 px-4 text-sm text-right">
-                          R$ {(item.preco_unitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3 px-4 text-sm text-right font-semibold">
-                          R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </td>
-                        {!readOnly && (
-                          <td className="py-3 px-4 text-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemoveLocalItem(index)}
-                              disabled={deleting}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </td>
-                        )}
+          {/* Tabela de Itens Salvos */}
+          {savedItems.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Itens da Requisição</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">#</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Tipo</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Descrição</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Qtd</th>
+                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Un.</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Preço Unit.</th>
+                        <th className="text-right py-3 px-4 text-sm font-medium text-muted-foreground">Total</th>
+                        {!readOnly && <th className="text-center py-3 px-4 text-sm font-medium text-muted-foreground">Ações</th>}
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody>
+                      {savedItems.map((item, index) => {
+                        const total = (item.quantidade || 0) * (item.preco_unitario || 0);
+                        return (
+                          <tr key={item.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                            <td className="py-3 px-4 text-sm font-mono text-muted-foreground">{index + 1}</td>
+                            <td className="py-3 px-4 text-sm">
+                              <div>
+                                <div className="font-medium">{item.tipo}</div>
+                                {item.sub_tipo && <div className="text-xs text-muted-foreground">{item.sub_tipo}</div>}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-sm max-w-md">
+                              <div className="truncate" title={item.descricao}>{item.descricao}</div>
+                            </td>
+                            <td className="py-3 px-4 text-sm text-right font-medium">{item.quantidade}</td>
+                            <td className="py-3 px-4 text-sm">{item.unidade_medida}</td>
+                            <td className="py-3 px-4 text-sm text-right">
+                              R$ {(item.preco_unitario || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            <td className="py-3 px-4 text-sm text-right font-semibold">
+                              R$ {total.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </td>
+                            {!readOnly && (
+                              <td className="py-3 px-4 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveLocalItem(index)}
+                                  disabled={deleting}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </td>
+                            )}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Cards de Itens em Edição (Locais) */}
+          {localItems.length > 0 && (
+            <div className="space-y-4">
+              <h3 className="text-sm font-medium text-muted-foreground">Itens em Edição</h3>
+              {localItems.map((item, localIndex) => {
+                const globalIndex = savedItems.length + localIndex;
+                return (
+                  <RequisitionItemCard
+                    key={`local-${localIndex}`}
+                    item={item}
+                    index={globalIndex}
+                    onChange={(updates) => handleUpdateLocalItem(globalIndex, updates)}
+                    onRemove={() => handleRemoveLocalItem(globalIndex)}
+                    readOnly={readOnly}
+                  />
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
 
-      {/* Cards de Itens em Edição (Locais) */}
-      {localItems.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-medium text-muted-foreground">Itens em Edição</h3>
-          {localItems.map((item, localIndex) => {
-            const globalIndex = savedItems.length + localIndex;
-            return (
-              <RequisitionItemCard
-                key={`local-${localIndex}`}
-                item={item}
-                index={globalIndex}
-                onChange={(updates) => handleUpdateLocalItem(globalIndex, updates)}
-                onRemove={() => handleRemoveLocalItem(globalIndex)}
-                readOnly={readOnly}
-              />
-            );
-          })}
-        </div>
-      )}
+          {/* Empty State */}
+          {savedItems.length === 0 && localItems.length === 0 && (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="w-12 h-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">Nenhum item adicionado</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Clique no botão "Adicionar Item" para começar
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
-      {/* Empty State */}
-      {savedItems.length === 0 && localItems.length === 0 && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <Package className="w-12 h-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-2">Nenhum item adicionado</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Clique no botão "Adicionar Item" para começar
-            </p>
-          </CardContent>
-        </Card>
-      )}
+          {/* Botão Salvar Itens Locais */}
+          {localItems.length > 0 && !readOnly && (
+            <Button
+              onClick={handleSaveLocalItems}
+              disabled={creating || (!etapaId && !onCreateOS)}
+              variant="default"
+              className="w-full"
+            >
+              {creating ? 'Salvando...' : `Salvar ${localItems.length} ${localItems.length === 1 ? 'Item' : 'Itens'}`}
+            </Button>
+          )}
 
-      {/* Botão Salvar Itens Locais */}
-      {localItems.length > 0 && !readOnly && (
-        <Button
-          onClick={handleSaveLocalItems}
-          disabled={creating || !etapaId}
-          variant="default"
-          className="w-full"
-        >
-          {creating ? 'Salvando...' : `Salvar ${localItems.length} ${localItems.length === 1 ? 'Item' : 'Itens'}`}
-        </Button>
-      )}
-
-      {/* Resumo */}
-      {totalItems > 0 && (
-        <Card className="border-border">
-          <CardContent className="pt-6 pb-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between py-2 border-b border-border">
-                <span className="text-sm text-muted-foreground">Total de Itens:</span>
-                <span className="text-base font-semibold">{totalItems}</span>
-              </div>
-              <div className="flex items-center justify-between py-2">
-                <span className="text-sm text-muted-foreground">Valor Total:</span>
-                <span className="text-xl font-bold">
-                  R$ {valorTotalRequisicao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          {/* Resumo */}
+          {totalItems > 0 && (
+            <Card className="border-border">
+              <CardContent className="pt-6 pb-6">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between py-2 border-b border-border">
+                    <span className="text-sm text-muted-foreground">Total de Itens:</span>
+                    <span className="text-base font-semibold">{totalItems}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2">
+                    <span className="text-sm text-muted-foreground">Valor Total:</span>
+                    <span className="text-xl font-bold">
+                      R$ {valorTotalRequisicao.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </>
       )}
 

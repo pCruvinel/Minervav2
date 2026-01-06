@@ -17,20 +17,19 @@ import {
     MessageSquare,
     Activity,
     Paperclip,
-
     Send,
     Loader2,
-    ChevronDown,
     Code,
     Ban,
     MoreVertical,
     Layers,
-    MapPin
+    MapPin,
+    AlertTriangle
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
-import { OSDocumentsTab } from '../../tabs/os-documents-tab';
+import { OSDocumentsTab } from '@/components/os/tabs/os-documents-tab';
+import { OSNotificationsCard } from '../components/os-notifications-card';
 import { UnifiedWorkflowStepper, QuickActionsPanel } from '../../unified';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -63,13 +62,14 @@ interface OSDetails {
     cliente_nome: string;
     cliente_email?: string;
     cliente_telefone?: string;
-    cliente_endereco?: {
+    endereco_obra?: {
         logradouro?: string;
         numero?: string;
         bairro?: string;
         cidade?: string;
-        uf?: string;
+        estado?: string;
         cep?: string;
+        complemento?: string;
     };
     tipo_os_nome: string;
     responsavel_nome?: string;
@@ -84,6 +84,20 @@ interface OSDetails {
     etapas_total_count: number;
     parent_os_id?: string;
     cc_id?: string;
+    // Novos campos de dados da obra (vindos da etapa 1)
+    dados_obra?: {
+        qtdBlocos?: string;
+        qtdUnidades?: string;
+        tipoTelhado?: string;
+        possuiPiscina?: boolean;
+        qtdPavimentos?: string;
+        possuiElevador?: boolean;
+        tipoEdificacao?: string;
+        nomeResponsavel?: string;
+        cargoResponsavel?: string;
+        tipoEmpresa?: string;
+        cpfCnpj?: string;
+    };
     status_detalhado?: Record<string, unknown>;
     metadata?: Record<string, unknown>;
 }
@@ -220,25 +234,42 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         data_entrada,
                         data_prazo,
                         data_conclusao,
-                        clientes!inner(nome_razao_social),
+                        clientes!inner(nome_razao_social, email, telefone, endereco, numero, bairro, cidade, uf, cep),
                         tipos_os!inner(nome),
-                        colaboradores!ordens_servico_responsavel_id_fkey(nome_completo, avatar_url),
-                        colaboradores!ordens_servico_criado_por_id_fkey(nome_completo)
+                        responsavel:colaboradores!ordens_servico_responsavel_id_fkey(nome_completo, avatar_url),
+                        criado_por:colaboradores!ordens_servico_criado_por_id_fkey(nome_completo)
                     `)
                     .eq('id', osId)
                     .single();
 
                 if (error) throw error;
+
+                // Conversão segura dos tipos
+                const clienteData = data.clientes as any;
+                const responsavelData = data.responsavel as any;
+                const criadoPorData = data.criado_por as any;
+                const tipoOsData = data.tipos_os as any;
+
                 osData = {
                     id: data.id,
                     codigo_os: data.codigo_os,
                     status_geral: data.status_geral,
                     descricao: data.descricao,
-                    cliente_nome: (data.clientes as any)?.nome_razao_social || 'Cliente não encontrado',
-                    tipo_os_nome: (data.tipos_os as any)?.nome || 'Tipo não encontrado',
-                    responsavel_nome: (data.colaboradores?.[0] as any)?.nome_completo,
-                    responsavel_avatar_url: (data.colaboradores?.[0] as any)?.avatar_url,
-                    criado_por_nome: (data.colaboradores?.[1] as any)?.nome_completo,
+                    cliente_nome: clienteData?.nome_razao_social || 'Cliente não encontrado',
+                    cliente_email: clienteData?.email,
+                    cliente_telefone: clienteData?.telefone,
+                    cliente_endereco: {
+                        logradouro: clienteData?.endereco,
+                        numero: clienteData?.numero,
+                        bairro: clienteData?.bairro,
+                        cidade: clienteData?.cidade,
+                        uf: clienteData?.uf,
+                        cep: clienteData?.cep
+                    },
+                    tipo_os_nome: tipoOsData?.nome || 'Tipo não encontrado',
+                    responsavel_nome: responsavelData?.nome_completo,
+                    responsavel_avatar_url: responsavelData?.avatar_url,
+                    criado_por_nome: criadoPorData?.nome_completo,
                     data_entrada: data.data_entrada,
                     data_prazo: data.data_prazo,
                     data_conclusao: data.data_conclusao,
@@ -277,7 +308,8 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         responsavel_id,
                         ultima_atualizacao,
                         comentarios_count,
-                        documentos_count
+                        documentos_count,
+                        dados_etapa
                     `)
                     .eq('os_id', osId)
                     .order('ordem');
@@ -287,6 +319,48 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     setWorkflowSteps([]);
                 } else {
                     setWorkflowSteps(stepsData || []);
+
+                    // Extract data from Step 1 (Cadastro)
+                    const step1 = stepsData?.find((s: any) => s.ordem === 1 && s.dados_etapa);
+                    if (step1 && step1.dados_etapa) {
+                        const dados = step1.dados_etapa as any;
+
+                        // Update osData with Step 1 info
+                        osData = {
+                            ...osData,
+                            // Prioritize Step 1 address over Client fallback
+                            endereco_obra: {
+                                logradouro: dados.endereco || dados.logradouro || osData.endereco_obra?.logradouro,
+                                numero: dados.numero || osData.endereco_obra?.numero,
+                                bairro: dados.bairro || osData.endereco_obra?.bairro,
+                                cidade: dados.cidade || osData.endereco_obra?.cidade,
+                                estado: dados.estado || dados.uf || osData.endereco_obra?.estado,
+                                cep: dados.cep || osData.endereco_obra?.cep,
+                                complemento: dados.complemento || osData.endereco_obra?.complemento
+                            },
+                            // Update client info override if available
+                            cliente_nome: dados.nome || osData.cliente_nome,
+                            cliente_email: dados.email || osData.cliente_email,
+                            cliente_telefone: dados.telefone || osData.cliente_telefone,
+                            // Populate technical data
+                            dados_obra: {
+                                qtdBlocos: dados.qtdBlocos,
+                                qtdUnidades: dados.qtdUnidades,
+                                tipoTelhado: dados.tipoTelhado,
+                                possuiPiscina: dados.possuiPiscina,
+                                qtdPavimentos: dados.qtdPavimentos,
+                                possuiElevador: dados.possuiElevador,
+                                tipoEdificacao: dados.tipoEdificacao,
+                                nomeResponsavel: dados.nomeResponsavel,
+                                cargoResponsavel: dados.cargoResponsavel,
+                                tipoEmpresa: dados.tipoEmpresa,
+                                cpfCnpj: dados.cpfCnpj
+                            }
+                        };
+
+                        // Update state with the enriched data
+                        setOsDetails(osData);
+                    }
                 }
             } catch (stepsError) {
                 console.warn('Erro ao carregar etapas:', stepsError);
@@ -800,22 +874,27 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                         <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
                                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
                                                 <MapPin className="w-4 h-4" />
-                                                <span className="font-medium">Endereço</span>
+                                                <span className="font-medium">Endereço da Obra</span>
                                             </div>
-                                            {osDetails.cliente_endereco ? (
+                                            {osDetails.endereco_obra ? (
                                                 <div className="text-sm text-foreground">
                                                     <p className="font-medium">
-                                                        {osDetails.cliente_endereco?.logradouro || ''}
-                                                        {osDetails.cliente_endereco?.numero ? `, ${osDetails.cliente_endereco?.numero}` : ''}
+                                                        {osDetails.endereco_obra?.logradouro || ''}
+                                                        {osDetails.endereco_obra?.numero ? `, ${osDetails.endereco_obra?.numero}` : ''}
                                                     </p>
                                                     <p className="text-muted-foreground">
-                                                        {osDetails.cliente_endereco?.bairro || ''}
-                                                        {osDetails.cliente_endereco?.cidade ? ` - ${osDetails.cliente_endereco?.cidade}` : ''}
-                                                        {osDetails.cliente_endereco?.uf ? `/${osDetails.cliente_endereco?.uf}` : ''}
+                                                        {osDetails.endereco_obra?.bairro || ''}
+                                                        {osDetails.endereco_obra?.cidade ? ` - ${osDetails.endereco_obra?.cidade}` : ''}
+                                                        {osDetails.endereco_obra?.estado ? `/${osDetails.endereco_obra?.estado}` : ''}
                                                     </p>
-                                                    {(osDetails.cliente_endereco as any).cep && (
+                                                    {(osDetails.endereco_obra as any).cep && (
                                                         <p className="text-xs text-muted-foreground mt-1">
-                                                            CEP: {osDetails.cliente_endereco?.cep}
+                                                            CEP: {osDetails.endereco_obra?.cep}
+                                                        </p>
+                                                    )}
+                                                    {(osDetails.endereco_obra as any).complemento && (
+                                                        <p className="text-xs text-muted-foreground mt-0.5">
+                                                            Obs: {osDetails.endereco_obra?.complemento}
                                                         </p>
                                                     )}
                                                 </div>
@@ -824,6 +903,64 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             )}
                                         </div>
                                     </div>
+
+                                    {/* Dados da Obra (Extra Info) */}
+                                    {osDetails.dados_obra && (
+                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50 mt-4">
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                                                <Code className="w-4 h-4" />
+                                                <span className="font-medium">Detalhes da Obra</span>
+                                            </div>
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-y-4 gap-x-2">
+                                                {osDetails.dados_obra.tipoEdificacao && (
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Edificação</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.tipoEdificacao}</p>
+                                                    </div>
+                                                )}
+                                                {osDetails.dados_obra.qtdBlocos && (
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Blocos</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.qtdBlocos}</p>
+                                                    </div>
+                                                )}
+                                                {osDetails.dados_obra.qtdUnidades && (
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Unidades</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.qtdUnidades}</p>
+                                                    </div>
+                                                )}
+                                                {osDetails.dados_obra.qtdPavimentos && (
+                                                    <div>
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Pavimentos</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.qtdPavimentos}</p>
+                                                    </div>
+                                                )}
+                                                {osDetails.dados_obra.tipoTelhado && (
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Telhado</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.tipoTelhado}</p>
+                                                    </div>
+                                                )}
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-2 h-2 rounded-full ${osDetails.dados_obra.possuiPiscina ? 'bg-success' : 'bg-muted'}`} />
+                                                        <span className="text-xs">Piscina</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-2 h-2 rounded-full ${osDetails.dados_obra.possuiElevador ? 'bg-success' : 'bg-muted'}`} />
+                                                        <span className="text-xs">Elevador</span>
+                                                    </div>
+                                                </div>
+                                                {osDetails.dados_obra.nomeResponsavel && (
+                                                    <div className="col-span-2">
+                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Responsável Local</p>
+                                                        <p className="text-sm">{osDetails.dados_obra.nomeResponsavel} <span className="text-muted-foreground text-xs">({osDetails.dados_obra.cargoResponsavel})</span></p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Grid: Tipo + Datas */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -845,15 +982,51 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             </p>
                                         </div>
 
-                                        <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                                <Clock className="w-4 h-4" />
-                                                <span className="font-medium">Prazo</span>
-                                            </div>
-                                            <p className="text-sm font-medium text-foreground">
-                                                {osDetails.data_prazo ? formatDate(osDetails.data_prazo) : '-'}
-                                            </p>
-                                        </div>
+                                        {(() => {
+                                            // SLA Status Calculation
+                                            const getSLAStatus = () => {
+                                                if (!osDetails.data_prazo) return null;
+                                                if (osDetails.status_geral === 'concluido') return { status: 'concluido', days: 0, label: 'Concluído' };
+                                                const hoje = new Date();
+                                                const prazo = new Date(osDetails.data_prazo);
+                                                const diffDays = Math.ceil((prazo.getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24));
+
+                                                if (diffDays < 0) return { status: 'atrasado', days: Math.abs(diffDays), label: `${Math.abs(diffDays)}d atrasado` };
+                                                if (diffDays <= 3) return { status: 'alerta', days: diffDays, label: `${diffDays}d restantes` };
+                                                return { status: 'ok', days: diffDays, label: `${diffDays}d restantes` };
+                                            };
+                                            const sla = getSLAStatus();
+                                            const bgClass = sla?.status === 'atrasado' ? 'bg-destructive/10 border-destructive/30'
+                                                : sla?.status === 'alerta' ? 'bg-warning/10 border-warning/30'
+                                                    : sla?.status === 'concluido' ? 'bg-success/10 border-success/30'
+                                                        : 'bg-muted/30 border-border/50';
+                                            const iconClass = sla?.status === 'atrasado' ? 'text-destructive'
+                                                : sla?.status === 'alerta' ? 'text-warning'
+                                                    : sla?.status === 'concluido' ? 'text-success'
+                                                        : 'text-muted-foreground';
+                                            return (
+                                                <div className={`p-4 rounded-lg border ${bgClass}`}>
+                                                    <div className="flex items-center justify-between mb-1">
+                                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                            <Clock className={`w-4 h-4 ${iconClass}`} />
+                                                            <span className="font-medium">Prazo</span>
+                                                        </div>
+                                                        {sla && sla.status !== 'concluido' && sla.status !== 'ok' && (
+                                                            <Badge
+                                                                variant={sla.status === 'atrasado' ? 'destructive' : 'outline'}
+                                                                className="text-[10px] px-1.5 py-0"
+                                                            >
+                                                                {sla.status === 'atrasado' && <AlertTriangle className="w-3 h-3 mr-0.5" />}
+                                                                {sla.label}
+                                                            </Badge>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-sm font-medium text-foreground">
+                                                        {osDetails.data_prazo ? formatDate(osDetails.data_prazo) : '-'}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
 
                                     {/* Responsável */}
@@ -893,17 +1066,17 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                 </CardContent>
                             </Card>
 
-                            {/* Right Column: Progresso & Metadados (Span 1) */}
-                            <div className="flex flex-col gap-6 h-full lg:col-span-1">
-                                <Card className="border-border rounded-lg shadow-sm flex-1 flex flex-col">
+                            {/* Right Column: Progresso & Notificações (Span 1) */}
+                            <div className="grid grid-rows-[3fr_7fr] gap-4 h-full lg:col-span-1">
+                                <Card className="border-border rounded-lg shadow-sm flex flex-col">
                                     <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
                                         <CardTitle className="text-base font-semibold flex items-center gap-2">
                                             <Activity className="w-5 h-5 text-primary" />
                                             Progresso
                                         </CardTitle>
                                     </CardHeader>
-                                    <CardContent className="pt-6 flex-1 flex flex-col justify-center gap-8">
-                                        <div className="space-y-4">
+                                    <CardContent className="pt-6 flex-1 flex flex-col justify-center gap-6">
+                                        <div className="space-y-3">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm font-medium text-muted-foreground">Conclusão do Fluxo</span>
                                                 <span className="text-2xl font-bold text-primary">{getProgressPercentage()}%</span>
@@ -911,53 +1084,21 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                             <Progress value={getProgressPercentage()} className="h-3 w-full" />
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
-                                                <p className="text-3xl font-bold text-foreground mb-1">{osDetails.etapas_concluidas_count}</p>
-                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Etapas Concluídas</p>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                                                <p className="text-2xl font-bold text-foreground mb-0.5">{osDetails.etapas_concluidas_count}</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Concluídas</p>
                                             </div>
-                                            <div className="p-4 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
-                                                <p className="text-3xl font-bold text-muted-foreground mb-1">{osDetails.etapas_total_count}</p>
-                                                <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Total de Etapas</p>
+                                            <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                                                <p className="text-2xl font-bold text-muted-foreground mb-0.5">{osDetails.etapas_total_count}</p>
+                                                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Total</p>
                                             </div>
                                         </div>
-                                        {/* Removed 'Etapa atual' block as requested */}
                                     </CardContent>
                                 </Card>
 
-                                {/* Metadata inside the layout flow */}
-                                <Collapsible className="border border-border rounded-lg shadow-sm bg-card">
-                                    <CollapsibleTrigger className="group flex items-center justify-between w-full p-4 font-medium hover:bg-muted/50 transition-colors">
-                                        <div className="flex items-center gap-2">
-                                            <Code className="w-4 h-4 text-muted-foreground" />
-                                            <span>Dados Técnicos</span>
-                                        </div>
-                                        <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
-                                    </CollapsibleTrigger>
-                                    <CollapsibleContent className="border-t border-border bg-muted/30 p-4">
-                                        <div className="space-y-4">
-                                            {osDetails.status_detalhado && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-2">Status Detalhado</h4>
-                                                    <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
-                                                        {JSON.stringify(osDetails.status_detalhado, null, 2)}
-                                                    </pre>
-                                                </div>
-                                            )}
-                                            {osDetails.metadata && (
-                                                <div>
-                                                    <h4 className="text-sm font-medium mb-2">Metadados</h4>
-                                                    <pre className="text-xs bg-background p-2 rounded border overflow-auto max-h-40">
-                                                        {JSON.stringify(osDetails.metadata, null, 2)}
-                                                    </pre>
-                                                </div>
-                                            )}
-                                            {!osDetails.status_detalhado && !osDetails.metadata && (
-                                                <p className="text-sm text-muted-foreground">Nenhum dado técnico disponível.</p>
-                                            )}
-                                        </div>
-                                    </CollapsibleContent>
-                                </Collapsible>
+                                {/* Notifications Card */}
+                                <OSNotificationsCard osId={osId} codigoOS={osDetails.codigo_os} />
                             </div>
                         </div>
 
@@ -1194,7 +1335,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
-        </div>
+        </div >
     );
 };
 

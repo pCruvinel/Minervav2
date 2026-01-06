@@ -14,6 +14,7 @@ import { useApi, useMutation } from './use-api';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
+import { NotificationService } from '@/lib/services/notifications-service';
 
 // =====================================================
 // TYPES
@@ -511,9 +512,50 @@ export function useCreateOSWorkflow() {
       params.parentOSId
     ),
     {
-      onSuccess: (data) => {
-        const osData = data.os as { codigo_os?: string };
+      onSuccess: async (data) => {
+        const osData = data.os as any;
         toast.success(`OS ${osData.codigo_os || ''} criada com sucesso!`);
+        
+        try {
+            // Notificar responsável se for diferente do criador
+            const userId = (await supabase.auth.getUser()).data.user?.id;
+            
+            if (osData.responsavel_id && osData.responsavel_id !== userId) {
+                // Buscar dados para notificação
+                const { data: userData } = await supabase
+                    .from('colaboradores')
+                    .select('nome_completo')
+                    .eq('id', userId)
+                    .single();
+                
+                const { data: clienteData } = await supabase
+                    .from('clientes')
+                    .select('nome_fantasia, nome_razao_social')
+                    .eq('id', osData.cliente_id)
+                    .single();
+                    
+                const clienteNome = clienteData?.nome_fantasia || clienteData?.nome_razao_social || 'Cliente';
+                
+                const { data: tipoOsData } = await supabase
+                    .from('tipos_os')
+                    .select('codigo')
+                    .eq('id', osData.tipo_os_id)
+                    .single();
+                const tipoOSCodigo = tipoOsData?.codigo || 'OS';
+                
+                await NotificationService.notifyOSCreated({
+                    osId: osData.id,
+                    codigoOS: osData.codigo_os || 'Nova OS',
+                    tipoOS: tipoOSCodigo,
+                    clienteNome: clienteNome,
+                    criadoPorId: userId || '',
+                    criadoPorNome: userData?.nome_completo || 'Colaborador',
+                    responsavelId: osData.responsavel_id
+                });
+            }
+        } catch (error) {
+            console.error('Erro ao enviar notificação de criação de OS:', error);
+        }
       },
       onError: (error) => {
         logger.error('Erro ao criar OS:', error);

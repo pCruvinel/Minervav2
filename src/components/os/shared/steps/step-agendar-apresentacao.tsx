@@ -3,25 +3,36 @@ import { Loader2 } from 'lucide-react';
 import {
   CalendarioIntegracao,
   CalendarioIntegracaoHandle,
+  Agendamento,
 } from '@/components/os/shared/components/calendario-integracao';
 import { useOS } from '@/lib/hooks/use-os';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { toast } from 'sonner';
 
 // =====================================================
 // TYPES
 // =====================================================
 
+interface StepAgendarApresentacaoData {
+  dataAgendamento?: string;
+  agendamentoId?: string;
+  horarioInicio?: string;
+  horarioFim?: string;
+  duracaoHoras?: number;
+  turnoId?: string;
+  // Novos campos para UX melhorada
+  agendadoPorId?: string;
+  agendadoPorNome?: string;
+  agendadoEm?: string;
+  responsavelAgendamentoId?: string;
+  responsavelAgendamentoNome?: string;
+  notificacaoEnviada?: boolean;
+}
+
 interface StepAgendarApresentacaoProps {
   osId: string;
-  data: {
-    dataAgendamento?: string;
-    agendamentoId?: string;
-    horarioInicio?: string;
-    horarioFim?: string;
-    duracaoHoras?: number;
-    turnoId?: string;
-  };
-  onDataChange: (data: any) => void;
+  data: StepAgendarApresentacaoData;
+  onDataChange: (data: StepAgendarApresentacaoData) => void;
   readOnly?: boolean;
 }
 
@@ -42,6 +53,9 @@ export const StepAgendarApresentacao = forwardRef<
     // Buscar setor da OS
     const { os, loading } = useOS(osId);
     const setorSlug = os?.tipo_os?.setor?.slug || '';
+
+    // Buscar usuário atual para registrar quem fez o agendamento
+    const { currentUser } = useAuth();
 
     // Ref do calendário para validação
     const calendarioRef = useRef<CalendarioIntegracaoHandle>(null);
@@ -75,8 +89,8 @@ export const StepAgendarApresentacao = forwardRef<
     // HANDLERS
     // =====================================================
 
-    const handleAgendamentoChange = (agendamento: any) => {
-      const agendamentoData = agendamento
+    const handleAgendamentoChange = (agendamento: Agendamento | null) => {
+      const agendamentoData: Partial<StepAgendarApresentacaoData> = agendamento
         ? {
           agendamentoId: agendamento.id,
           dataAgendamento: agendamento.data,
@@ -84,14 +98,27 @@ export const StepAgendarApresentacao = forwardRef<
           horarioFim: agendamento.horarioFim,
           duracaoHoras: agendamento.duracaoHoras,
           turnoId: agendamento.turnoId,
+          // Novos campos: quem agendou, quando e responsável
+          agendadoPorId: currentUser?.id,
+          agendadoPorNome: currentUser?.nome_completo || 'Usuário',
+          agendadoEm: new Date().toISOString(),
+          responsavelAgendamentoId: agendamento.responsavelId,
+          responsavelAgendamentoNome: agendamento.responsavelNome,
+          notificacaoEnviada: true,
         }
-        : { 
-          agendamentoId: null,
+        : {
+          agendamentoId: undefined,
           dataAgendamento: undefined,
           horarioInicio: undefined,
           horarioFim: undefined,
           duracaoHoras: undefined,
           turnoId: undefined,
+          agendadoPorId: undefined,
+          agendadoPorNome: undefined,
+          agendadoEm: undefined,
+          responsavelAgendamentoId: undefined,
+          responsavelAgendamentoNome: undefined,
+          notificacaoEnviada: undefined,
         };
 
       onDataChange({
@@ -132,6 +159,13 @@ export const StepAgendarApresentacao = forwardRef<
                 categoria: 'Apresentação de Proposta',
                 setor: setorSlug,
                 status: 'confirmado',
+                // Passar os novos campos para exibição no card de confirmação
+                agendadoPorId: data.agendadoPorId,
+                agendadoPorNome: data.agendadoPorNome,
+                agendadoEm: data.agendadoEm,
+                responsavelId: data.responsavelAgendamentoId,
+                responsavelNome: data.responsavelAgendamentoNome,
+                notificacaoEnviada: data.notificacaoEnviada,
               }
               : undefined
           }
@@ -144,3 +178,4 @@ export const StepAgendarApresentacao = forwardRef<
 );
 
 StepAgendarApresentacao.displayName = 'StepAgendarApresentacao';
+

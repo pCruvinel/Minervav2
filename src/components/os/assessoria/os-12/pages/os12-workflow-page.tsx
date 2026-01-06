@@ -41,6 +41,10 @@ import { logger } from '@/lib/utils/logger';
 import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
 import { TransferenciaInfo } from '@/types/os-setor-config';
 
+// Sistema de Aprovação
+import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
+import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Cadastro do Cliente e Portal', short: 'Cliente', responsible: 'Administrativo', status: 'active' },
     { id: 2, title: 'Upload de ART', short: 'ART', responsible: 'Assessoria', status: 'pending' },
@@ -68,6 +72,10 @@ export function OS12WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
     // Estado para feedback de transferência de setor
     const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
     const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+    // Estado para modal de aprovação
+    const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
+    const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
 
     // Hook de transferência
     const { executarTransferencia } = useTransferenciaSetor();
@@ -176,6 +184,9 @@ export function OS12WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
         setIsHistoricalNavigation,
         onSaveStep: (step) => saveStep(step, false)
     });
+
+    // Hook de aprovação de etapa (depois que currentStep é definido)
+    const { aprovacaoInfo } = useAprovacaoEtapa(finalOsId, currentStep);
 
     // Data para cada etapa
     // ✅ Pré-selecionar cliente se vier da OS pai
@@ -289,6 +300,22 @@ export function OS12WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
             if (resultado.success && resultado.transferencia) {
                 setTransferenciaInfo(resultado.transferencia);
                 setIsTransferenciaModalOpen(true);
+                return;
+            }
+        }
+
+        // Verificação de Aprovação (Etapa 3: Plano de Manutenção requer aprovação do Coordenador)
+        if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
+            const etapaNome = steps.find(s => s.id === currentStep)?.title || `Etapa ${currentStep}`;
+
+            if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
+                setEtapaNomeParaAprovacao(etapaNome);
+                setIsAprovacaoModalOpen(true);
+                return;
+            }
+
+            if (aprovacaoInfo.statusAprovacao === 'solicitada') {
+                toast.info('Aguardando aprovação do Coordenador.');
                 return;
             }
         }
@@ -416,6 +443,21 @@ export function OS12WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
                     onClose={() => setIsTransferenciaModalOpen(false)}
                     transferencia={transferenciaInfo}
                     osId={finalOsId || ''}
+                />
+            )}
+
+            {/* Modal de Aprovação de Etapa */}
+            {finalOsId && (
+                <AprovacaoModal
+                    open={isAprovacaoModalOpen}
+                    onOpenChange={setIsAprovacaoModalOpen}
+                    osId={finalOsId}
+                    etapaOrdem={currentStep}
+                    etapaNome={etapaNomeParaAprovacao}
+                    onAprovado={async () => {
+                        setCurrentStep(prev => prev + 1);
+                        setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+                    }}
                 />
             )}
         </div>

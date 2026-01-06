@@ -42,6 +42,7 @@ interface AprovacaoModalProps {
     etapaNome: string;
     onAprovado?: () => void;
     onRejeitado?: () => void;
+    onSolicitado?: () => void;
 }
 
 export function AprovacaoModal({
@@ -51,7 +52,8 @@ export function AprovacaoModal({
     etapaOrdem,
     etapaNome,
     onAprovado,
-    onRejeitado
+    onRejeitado,
+    onSolicitado
 }: AprovacaoModalProps) {
     const [justificativa, setJustificativa] = useState('');
     const [motivoRejeicao, setMotivoRejeicao] = useState('');
@@ -70,6 +72,8 @@ export function AprovacaoModal({
         const success = await solicitarAprovacao(justificativa);
         if (success) {
             setJustificativa('');
+            onOpenChange(false);
+            onSolicitado?.();
         }
     };
 
@@ -272,7 +276,8 @@ export function AprovacaoModal({
                         </>
                     )}
 
-                    {/* Botões para coordenador - pendente ou solicitada */}\n                    {(status === 'pendente' || status === 'solicitada') && podeAprovar && (
+                    {/* Botões para coordenador - pendente ou solicitada */}
+                    {(status === 'pendente' || status === 'solicitada') && podeAprovar && (
                         <>
                             <Button
                                 variant="destructive"

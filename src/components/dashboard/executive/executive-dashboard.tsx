@@ -19,6 +19,7 @@ import { WorkloadKanban } from './workload-kanban';
 import { SystemAuditLog } from './system-audit-log';
 import { AnnouncementsManager } from './announcements-manager';
 import { SlaSettingsTab } from './sla-settings-tab';
+import { TaxasSettingsTab } from './taxas-settings-tab';
 import {
     ShieldAlert,
     BarChart3,
@@ -26,7 +27,8 @@ import {
     FileSearch,
     Megaphone,
     Timer,
-    Loader2
+    Loader2,
+    Percent
 } from 'lucide-react';
 
 // ============================================================
@@ -81,7 +83,7 @@ export function ExecutiveDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
+                <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <BarChart3 className="h-4 w-4" />
                         <span className="hidden sm:inline">Visão Geral</span>
@@ -107,6 +109,11 @@ export function ExecutiveDashboard() {
                         <span className="hidden sm:inline">SLA</span>
                         <span className="sm:hidden">SLA</span>
                     </TabsTrigger>
+                    <TabsTrigger value="taxas" className="flex items-center gap-2">
+                        <Percent className="h-4 w-4" />
+                        <span className="hidden sm:inline">Taxas</span>
+                        <span className="sm:hidden">Taxas</span>
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -127,6 +134,10 @@ export function ExecutiveDashboard() {
 
                 <TabsContent value="sla">
                     <SlaSettingsTab />
+                </TabsContent>
+
+                <TabsContent value="taxas">
+                    <TaxasSettingsTab />
                 </TabsContent>
             </Tabs>
         </div>

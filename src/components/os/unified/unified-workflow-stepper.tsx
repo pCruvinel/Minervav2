@@ -38,6 +38,7 @@ import {
     Loader2
 } from 'lucide-react';
 import { useState } from 'react';
+import { getOSRouteConfigWithFallback } from '@/lib/constants/os-routing-config';
 
 // ============================================================
 // TIPOS
@@ -170,6 +171,10 @@ function StepItem({ step, isCurrentOS, onClick, isNavigating }: StepItemProps) {
                         variant={step.status === 'em_andamento' ? 'default' : 'outline'}
                         size="sm"
                         disabled={isNavigating}
+                        onClick={(e) => {
+                            e.stopPropagation(); // Evitar duplo click no div pai
+                            onClick();
+                        }}
                     >
                         {isNavigating ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -292,56 +297,52 @@ export function UnifiedWorkflowStepper({
     } = useUnifiedWorkflow(osId);
 
     // Handler padrão de navegação
-    // Determina a rota correta baseada no tipo de OS
+    // Determina a rota correta baseada no tipo de OS usando configuração centralizada
     const handleStepClick = (step: UnifiedStep) => {
         if (onStepClick) {
             onStepClick(step, step.osId);
             return;
         }
 
-        // Buscar clienteId da fase Lead para pré-seleção
-        const leadPhase = phases.find(p => p.id === 'LEAD');
-        // O leadId pode estar nos dados da primeira etapa da fase Lead
-        const leadStep = leadPhase?.etapas[0];
-        const clienteId = (leadStep?.dadosEtapa as Record<string, string> | undefined)?.leadId || '';
+        // Obter configuração de rota usando tipoOS (ex: 'OS-01', 'OS-09')
+        // tipoOS já vem normalizado do banco de dados
+        const routeConfig = getOSRouteConfigWithFallback(step.tipoOS || '');
 
-        // Navegação baseada no código da OS (tipo)
-        const osCodigo = step.osCodigo?.toUpperCase() || '';
+        switch (routeConfig.mode) {
+            case 'WORKFLOW_PAGE':
+                // Navegação para página de workflow (produção: /os/details-workflow/$id)
+                navigate({
+                    to: routeConfig.route,
+                    params: { id: step.osId },
+                    search: { step: step.ordemOriginal, readonly: false }
+                });
+                break;
 
-        if (osCodigo.startsWith('OS11') || osCodigo.includes('OS-11')) {
-            // OS-11: Laudo Pontual → usar rota específica com clienteId
-            navigate({
-                to: '/os/criar/laudo-pontual',
-                search: {
-                    parentOSId: leadPhase?.osId || step.osId,
-                    clienteId
-                }
-            });
-        } else if (osCodigo.startsWith('OS12') || osCodigo.includes('OS-12')) {
-            // OS-12: Assessoria Recorrente → usar rota específica com clienteId
-            navigate({
-                to: '/os/criar/assessoria-recorrente',
-                search: {
-                    parentOSId: leadPhase?.osId || step.osId,
-                    clienteId
-                }
-            });
-        } else if (osCodigo.startsWith('OS13') || osCodigo.includes('OS-13')) {
-            // OS-13: Start Contrato Obra → usar rota específica com clienteId
-            navigate({
-                to: '/os/criar/start-contrato-obra',
-                search: {
-                    parentOSId: leadPhase?.osId || step.osId,
-                    clienteId
-                }
-            });
-        } else {
-            // Outros tipos: usar rota genérica de workflow
-            navigate({
-                to: '/os/details-workflow/$id',
-                params: { id: step.osId },
-                search: { step: step.ordemOriginal }
-            });
+            case 'CREATE_PAGE': {
+                // Navegação para página de criação (OS-11, 12, 13)
+                // Buscar clienteId da fase Lead para pré-seleção
+                const leadPhase = phases.find(p => p.id === 'LEAD');
+                const leadStep = leadPhase?.etapas[0];
+                const clienteId = (leadStep?.dadosEtapa as Record<string, string> | undefined)?.leadId || '';
+
+                navigate({
+                    to: routeConfig.route,
+                    search: {
+                        parentOSId: leadPhase?.osId || step.osId,
+                        clienteId
+                    }
+                });
+                break;
+            }
+
+            case 'DETAILS_PAGE':
+            default:
+                // Fallback para página de detalhes genérica
+                navigate({
+                    to: routeConfig.route,
+                    params: { osId: step.osId }
+                });
+                break;
         }
     };
 

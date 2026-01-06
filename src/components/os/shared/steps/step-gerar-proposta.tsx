@@ -13,7 +13,7 @@
  * - OS 6 (Assessoria Pontual): tipo = 'proposta-ass-pontual'
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -29,7 +29,6 @@ type PDFType = 'proposta' | 'proposta-ass-anual' | 'proposta-ass-pontual';
 
 interface StepGerarPropostaProps {
   osId: string;
-  etapaId?: string; // ✅ Recebe ID real da etapa
   /**
    * Tipo da OS para determinar qual template usar:
    * - 'OS-01' | 'OS-02' | 'OS-03' | 'OS-04' → proposta (obras)
@@ -70,7 +69,7 @@ interface StepGerarPropostaProps {
   data: {
     propostaGerada?: boolean;
     dataGeracao?: string;
-    pdfUrl?: string;
+    pdfUrl?: string; // Pode ser link temporário ou expirado
     codigoProposta?: string;
     validadeDias?: string;
     garantiaMeses?: string;
@@ -115,14 +114,66 @@ export function StepGerarProposta({
   valorParcela = 0,
   data,
   onDataChange,
-  readOnly = false,
-  etapaId
+  readOnly = false
 }: StepGerarPropostaProps) {
   // Hook de geração de PDF
   const { generating, generate } = usePDFGeneration();
 
   // Estado local do PDF gerado
   const [pdfUrl, setPdfUrl] = useState<string | null>(data.pdfUrl || null);
+
+  // ✅ Estado separado para URL de exibição (que precisa ser signed e válida)
+  const [displayUrl, setDisplayUrl] = useState<string | null>(data.pdfUrl || null);
+
+  // ✅ PERSISTÊNCIA: Sincronizar pdfUrl quando data muda
+  useEffect(() => {
+    if (data.pdfUrl && data.pdfUrl !== pdfUrl) {
+      setPdfUrl(data.pdfUrl);
+    }
+  }, [data.pdfUrl]);
+
+  // ✅ Efeito de Recuperação Inteligente:
+  // Se a proposta foi gerada mas a URL expirou (406), busca path no banco e gera nova URL fresca
+  useEffect(() => {
+    const refreshUrl = async () => {
+      // Se sabe que tem proposta gerada + osId
+      if (data.propostaGerada && osId) {
+        try {
+          // 1. Tentar buscar o documento mais recente no banco para pegar o path real
+          // O Edge Function salva com tipo=proposta no bucket 'uploads'
+          const { data: doc } = await supabase
+            .from('os_documentos')
+            .select('caminho_arquivo, criado_em')
+            .eq('os_id', osId)
+            .eq('tipo', 'proposta')
+            .order('criado_em', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (doc && doc.caminho_arquivo) {
+            // 2. Gerar URL assinada usando o bucket 'uploads' (usado pelo Edge Function)
+            const { data: signed } = await supabase.storage
+              .from('uploads') // IMPORTANTE: Edge Function usa 'uploads', não 'os-documents'
+              .createSignedUrl(doc.caminho_arquivo, 3600);
+
+            if (signed?.signedUrl) {
+              setDisplayUrl(signed.signedUrl);
+              return; // Sucesso, nova URL definida
+            }
+          }
+        } catch (err) {
+          console.error('Erro ao buscar URL fresca da proposta:', err);
+        }
+      }
+
+      // Fallback: Se não conseguiu gerar nova, usa a salva (que pode estar expirada)
+      if (data.pdfUrl) {
+        setDisplayUrl(data.pdfUrl);
+      }
+    };
+
+    refreshUrl();
+  }, [data.propostaGerada, osId, data.pdfUrl]);
 
   // Validar se osId é um UUID válido
   const osIdValido = osId && isValidUUID(osId);
@@ -137,6 +188,17 @@ export function StepGerarProposta({
   // Dados comuns
   const propostaData: Record<string, unknown> = {
     clienteCpfCnpj: cpfCnpjLimpo,
+    // Passar dados do cliente para garantir que o PDF use os dados mais recentes do frontend
+    clienteNome: etapa1Data.nome || '',
+    clienteEmail: etapa1Data.email || '',
+    clienteTelefone: etapa1Data.telefone || '',
+    clienteEndereco: etapa1Data.endereco || '',
+    clienteBairro: etapa1Data.bairro || '',
+    clienteCidade: etapa1Data.cidade || '',
+    clienteEstado: etapa1Data.estado || '',
+    clienteResponsavel: etapa1Data.nomeResponsavel || '',
+    quantidadeUnidades: etapa1Data.qtdUnidades || '0',
+    quantidadeBlocos: etapa1Data.qtdBlocos || '0',
   };
 
   // Dados específicos por tipo
@@ -149,6 +211,15 @@ export function StepGerarProposta({
       numeroParcelas: etapa8Data.numeroParcelas || '1',
       percentualEntrada: etapa8Data.percentualEntrada || '0',
       percentualImposto: etapa8Data.percentualImposto || '0',
+    };
+
+    // Mapear dados do memorial (cronograma)
+    // O backend espera dadosCronograma com etapasPrincipais
+    propostaData.dadosCronograma = {
+      etapasPrincipais: etapa7Data.etapasPrincipais || [],
+      preparacaoArea: etapa7Data.preparacaoArea || 0,
+      planejamentoInicial: etapa7Data.planejamentoInicial || 0,
+      logisticaTransporte: etapa7Data.logisticaTransporte || 0,
     };
   } else {
     // Assessoria (OS 5-6) - usa estrutura simplificada
@@ -179,41 +250,26 @@ export function StepGerarProposta({
       const result = await generate(pdfType, osId, propostaData);
 
       if (result?.success && result.url) {
+        // Atualizar estados locais
         setPdfUrl(result.url);
+        setDisplayUrl(result.url); // Usar link direto inicialmente
+
+        // Salvar dados da etapa com persistência (incluindo valores financeiros)
         onDataChange({
           ...data,
           propostaGerada: true,
           dataGeracao: new Date().toISOString().split('T')[0],
-          pdfUrl: result.url
+          pdfUrl: result.url,
+          pdfMetadata: result.metadata,
+          // ✅ Persistir valores financeiros para referência futura
+          valorTotal: valorTotal,
+          valorEntrada: valorEntrada,
+          valorParcela: valorParcela,
         });
-        // ✅ Registrar documento na tabela os_documentos
-        if (etapaId) {
-          try {
-            const { error: regError } = await supabase
-              .from('os_documentos')
-              .insert({
-                os_id: osId,
-                etapa_id: etapaId,
-                nome_arquivo: `Proposta_${osId.substring(0, 8)}.pdf`,
-                caminho_arquivo: result.url, // URL pública ou path relativo se for bucket
-                tipo_documento: 'proposta',
-                descricao: 'Proposta Comercial Gerada',
-                tamanho_bytes: 0, // Não temos o tamanho aqui, mas ok
-                content_type: 'application/pdf',
-                uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-                visibilidade: 'interno'
-              });
 
-            if (regError) {
-              console.error('Erro ao registrar documento:', regError);
-              // Não bloqueia o sucesso da geração, apenas loga erro
-            } else {
-              console.log('Documento registrado com sucesso em os_documentos');
-            }
-          } catch (err) {
-            console.error('Erro ao tentar registrar documento:', err);
-          }
-        }
+        // NOTA: O Edge Function JÁ DEVE salvar em os_documentos.
+        // Se quisermos redundância, ok, mas cuidado com duplicação.
+        // Vamos confiar no Edge Function + Busca na montagem.
 
         toast.success('Proposta gerada com sucesso!');
       } else {
@@ -295,9 +351,10 @@ export function StepGerarProposta({
       )}
 
       {/* Visualizador de PDF Embarcado */}
-      {pdfUrl ? (
+      {/* Usa displayUrl (assinado/link real) se disponível, senão pdfUrl */}
+      {(displayUrl || pdfUrl) ? (
         <PDFViewerEmbedded
-          pdfUrl={pdfUrl}
+          pdfUrl={(displayUrl || pdfUrl) as string}
           filename={filename}
           height={600}
           showToolbar={true}

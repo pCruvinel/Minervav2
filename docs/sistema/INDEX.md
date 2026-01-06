@@ -1,7 +1,7 @@
 # 📚 ÍNDICE DA DOCUMENTAÇÃO - ERP Minerva
 
-**Última atualização:** 11/12/2025
-**Status:** Documentação atualizada com schema v2.7 e sistema de transferência automática
+**Última atualização:** 04/01/2026
+**Status:** Documentação atualizada com schema v2.7, sistema de transferência automática e documentação técnica completa OS 1-4
 
 ---
 
@@ -26,6 +26,16 @@
 | [USUARIOS_SCHEMA.md](./technical/USUARIOS_SCHEMA.md) | Schema da tabela de usuários | `/docs/technical/` |
 | [BACKEND_ANALYSIS_REPORT.md](./BACKEND_ANALYSIS_REPORT.md) | Análise técnica do backend | `/docs/` |
 | [BACKEND_ANALYSIS_DIAGRAM_ER.md](./BACKEND_ANALYSIS_DIAGRAM_ER.md) | Diagrama ER do banco | `/docs/` |
+
+### 📋 Ordens de Serviço (OS)
+
+| Arquivo | Descrição | Localização |
+|---------|-----------|-------------|
+| [OS_01_04_TECHNICAL_DOCUMENTATION.md](./technical/OS_01_04_TECHNICAL_DOCUMENTATION.md) | Documentação técnica completa OS 1-4 (Obras) | `/docs/technical/` |
+| [OS_05_06_TECHNICAL_DOCUMENTATION.md](./technical/OS_05_06_TECHNICAL_DOCUMENTATION.md) | Documentação técnica completa OS 5-6 (Assessoria Lead) | `/docs/technical/` |
+| [OS_07_08_09_TECHNICAL_DOCUMENTATION.md](./technical/OS_07_08_09_TECHNICAL_DOCUMENTATION.md) | Doc técnica OS 7-9 (Reforma/Visita/Compras) | `/docs/technical/` |
+| [OS_10_11_12_13_TECHNICAL_DOCUMENTATION.md](./technical/OS_10_11_12_13_TECHNICAL_DOCUMENTATION.md) | **NOVO** - Doc técnica OS 10-13 (RH/Laudo/Anual/Obra) | `/docs/technical/` |
+| [TODAS_OS_E_ETAPAS.md](./sistema/TODAS_OS_E_ETAPAS.md) | Visão geral de todas as 13 Ordens de Serviço | `/docs/sistema/` |
 
 ### 🔌 Integração Supabase
 
@@ -202,30 +212,42 @@
 ## 📊 ESTATÍSTICAS
 
 ```
-Total de Documentos Ativos: ~43
-├── Técnicos: 9 (Schema v2.5 atualizado)
+Total de Documentos Ativos: ~48
+├── Técnicos: 14 (Schema v2.7 + OS 1-13 em 4 docs)
 ├── Planejamento: 13
 ├── Implementação: 10
 ├── Regras de Negócio: 1
 ├── Deploy: 3
-└── Geral: 6
+└── Geral: 7
 
 Arquivados (sprints_passadas): 31
 
-🆕 Funcionalidades v2.5:
-├── Sistema de Comentários (OS)
+🆕 Funcionalidades v2.7:
+├── Sistema de Transferência Automática (OS)
+├── Aprovação Hierárquica (OS) - Todas 13 OS documentadas
 ├── Timeline de Atividades (OS)
 ├── Gestão de Documentos (OS)
 ├── Controle de Presença
 ├── Documentos de Clientes/Colaboradores
+├── Ownership Rules Centralizadas
 └── Schema expandido com 8 novas tabelas
+
+📋 Documentação Técnica de OS (04/01/2026):
+├── OS_01_04 (56KB) - Obras
+├── OS_05_06 (45KB) - Assessoria Lead
+├── OS_07_08_09 (35KB) - Reforma/Visita/Compras
+└── OS_10_11_12_13 (25KB) - RH/Laudo/Anual/Obra
+    = TOTAL: ~161KB de documentação técnica
 ```
+
+
 
 ---
 
 ## 🔍 BUSCA RÁPIDA POR PALAVRA-CHAVE
 
 - **Status Executivo:** `BACKLOG_PROJETO_MINERVA_ERP.md` (Visão completa do projeto)
+- **Ordens de Serviço:** `technical/OS_01_04_TECHNICAL_DOCUMENTATION.md`, `sistema/TODAS_OS_E_ETAPAS.md`
 - **Supabase:** `technical/SUPABASE_*`, `planning/RESUMO_SUPABASE.md`
 - **Banco de Dados:** `technical/DATABASE_SCHEMA.md`, `technical/USUARIOS_SCHEMA.md`
 - **Deploy:** `planning/CHECKLIST_DEPLOY.md`, `DEPLOYMENT_PRODUCTION.md`
@@ -253,6 +275,6 @@ Scripts utilitários Python foram movidos para `/scripts/utils/`.
 
 ---
 
-**Última Organização:** 03/12/2025
-**Sistema:** ERP Minerva Engenharia v2.5
-**Documentação:** Atualizada com novas funcionalidades e schema v2.5
+**Última Organização:** 04/01/2026
+**Sistema:** ERP Minerva Engenharia v2.7
+**Documentação:** Atualizada com novas funcionalidades, schema v2.7 e documentação técnica completa OS 1-4

@@ -17,6 +17,30 @@ export interface RequisicaoFilters {
 }
 
 /** Interface para dados de requisição com valores calculados */
+/**
+ * Helper: Busca itens de uma OS via os_etapa_id (etapa ordem 1)
+ * Items são salvos com os_etapa_id, não os_id diretamente
+ */
+async function fetchItemsByOsId(osId: string): Promise<{ quantidade: number; preco_unitario: number }[]> {
+  // Primeiro, buscar o ID da etapa 1 desta OS
+  const { data: etapa } = await supabase
+    .from('os_etapas')
+    .select('id')
+    .eq('os_id', osId)
+    .eq('ordem', 1)
+    .single();
+
+  if (!etapa?.id) return [];
+
+  // Buscar itens pela etapa
+  const { data: items } = await supabase
+    .from('os_requisition_items')
+    .select('quantidade, preco_unitario')
+    .eq('os_etapa_id', etapa.id);
+
+  return items || [];
+}
+
 export interface RequisicaoCompra {
   id: string;
   codigo_os: string;
@@ -65,10 +89,7 @@ export function useRequisicoesPendentes() {
       // Buscar itens e calcular valor total para cada OS
       const osComValores = await Promise.all(
         (data || []).map(async (os) => {
-          const { data: items } = await supabase
-            .from('os_requisition_items')
-            .select('quantidade, preco_unitario')
-            .eq('os_id', os.id);
+          const items = await fetchItemsByOsId(os.id);
 
           const valorTotal = items?.reduce(
             (sum, item) => sum + (item.quantidade * item.preco_unitario),
@@ -238,10 +259,7 @@ export function useHistoricoRequisicoes(pageSize = 10) {
       // Buscar valores totais para cada OS
       const osComValores = await Promise.all(
         (data || []).map(async (os) => {
-          const { data: items } = await supabase
-            .from('os_requisition_items')
-            .select('quantidade, preco_unitario')
-            .eq('os_id', os.id);
+          const items = await fetchItemsByOsId(os.id);
 
           const valorTotal = items?.reduce(
             (sum, item) => sum + (item.quantidade * item.preco_unitario),
@@ -348,10 +366,7 @@ export function useComprasKPIs() {
       let valorTotalPendente = 0;
 
       for (const os of osPendentes) {
-        const { data: items } = await supabase
-          .from('os_requisition_items')
-          .select('quantidade, preco_unitario')
-          .eq('os_id', os.id);
+        const items = await fetchItemsByOsId(os.id);
 
         valorTotalPendente += items?.reduce(
           (sum, item) => sum + (item.quantidade * item.preco_unitario),

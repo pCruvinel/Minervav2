@@ -89,12 +89,19 @@ export async function handlePropostaGeneration(
     // Dados da etapa 1 (Lead) - contém informações adicionais do cliente
     const dadosLead = (etapaLead?.dados_etapa as any) || {};
 
-    if (!etapaMemorial?.dados_etapa?.etapasPrincipais) {
-      throw new Error('Memorial descritivo não preenchido (Etapa 7)');
+    // Verificação de dados: Aceitar se vier do DB ou do Frontend (dados)
+    const temDadosMemorialFrontend = !!(dados.dadosCronograma as any)?.etapasPrincipais;
+    const temDadosMemorialDB = !!etapaMemorial?.dados_etapa?.etapasPrincipais;
+    
+    if (!temDadosMemorialFrontend && !temDadosMemorialDB) {
+      throw new Error('Memorial descritivo não preenchido (Etapa 7). Preencha os dados na interface.');
     }
 
-    if (!etapaPrecificacao?.dados_etapa) {
-      throw new Error('Precificação não preenchida (Etapa 8)');
+    const temDadosPrecificacaoFrontend = !!(dados.dadosFinanceiros as any)?.precoFinal;
+    const temDadosPrecificacaoDB = !!etapaPrecificacao?.dados_etapa;
+
+    if (!temDadosPrecificacaoFrontend && !temDadosPrecificacaoDB) {
+      throw new Error('Precificação não preenchida (Etapa 8). Preencha os dados na interface.');
     }
 
     // 3. Extrair dados do cliente (Supabase retorna array ou objeto dependendo da query)
@@ -104,12 +111,12 @@ export async function handlePropostaGeneration(
     }
     const endereco = (clienteData.endereco as any) || {};
 
-    // 4. Extrair dados do memorial (Etapa 7)
-    const dadosMemorial = etapaMemorial.dados_etapa as any;
+    // 4. Extrair dados do memorial (Etapa 7) - Fallback seguro
+    const dadosMemorial = (etapaMemorial?.dados_etapa as any) || {};
     const etapasPrincipais = dadosMemorial.etapasPrincipais || [];
 
-    // 5. Extrair dados de precificação (Etapa 8)
-    const dadosPrecificacao = etapaPrecificacao.dados_etapa as any;
+    // 5. Extrair dados de precificação (Etapa 8) - Fallback seguro
+    const dadosPrecificacao = (etapaPrecificacao?.dados_etapa as any) || {};
 
     // 6. Extrair metadata
     const metadata = (os.metadata as any) || {};
@@ -125,21 +132,21 @@ export async function handlePropostaGeneration(
       tituloProposta: dadosMemorial.tituloProposta,
 
       // Cliente - usa dados da etapa 1 (dadosLead) como fallback para dados do cliente
-      clienteNome: clienteData.nome_razao_social || dadosLead.nome || '',
-      // ✅ FIX: Usar dados do parâmetro 'dados' que vem do frontend
+      // Cliente - priorizar dados enviados pelo frontend
+      clienteNome: (dados.clienteNome as string) || clienteData.nome_razao_social || dadosLead.nome || '',
       clienteCpfCnpj: (dados.clienteCpfCnpj as string) || clienteData.cpf_cnpj || dadosLead.cpfCnpj || '',
-      clienteEmail: clienteData.email || dadosLead.email || '',
-      clienteTelefone: clienteData.telefone || dadosLead.telefone || '',
-      clienteEndereco: endereco.logradouro || endereco.rua || dadosLead.endereco || '',
-      clienteBairro: endereco.bairro || dadosLead.bairro || '',
-      clienteCidade: endereco.cidade || dadosLead.cidade || '',
-      clienteEstado: endereco.estado || dadosLead.estado || '',
-      clienteResponsavel: clienteData.nome_responsavel || dadosLead.nomeResponsavel || endereco.cargo_responsavel || '',
-      quantidadeUnidades: parseInt(endereco.qtd_unidades || dadosLead.qtdUnidades || '0') || undefined,
-      quantidadeBlocos: parseInt(endereco.qtd_blocos || dadosLead.qtdBlocos || '0') || undefined,
+      clienteEmail: (dados.clienteEmail as string) || clienteData.email || dadosLead.email || '',
+      clienteTelefone: (dados.clienteTelefone as string) || clienteData.telefone || dadosLead.telefone || '',
+      clienteEndereco: (dados.clienteEndereco as string) || endereco.logradouro || endereco.rua || dadosLead.endereco || '',
+      clienteBairro: (dados.clienteBairro as string) || endereco.bairro || dadosLead.bairro || '',
+      clienteCidade: (dados.clienteCidade as string) || endereco.cidade || dadosLead.cidade || '',
+      clienteEstado: (dados.clienteEstado as string) || endereco.estado || dadosLead.estado || '',
+      clienteResponsavel: (dados.clienteResponsavel as string) || clienteData.nome_responsavel || dadosLead.nomeResponsavel || endereco.cargo_responsavel || '',
+      quantidadeUnidades: parseInt((dados.quantidadeUnidades as string) || endereco.qtd_unidades || dadosLead.qtdUnidades || '0') || undefined,
+      quantidadeBlocos: parseInt((dados.quantidadeBlocos as string) || endereco.qtd_blocos || dadosLead.qtdBlocos || '0') || undefined,
 
       // Cronograma
-      dadosCronograma: {
+      dadosCronograma: (dados.dadosCronograma as any) || {
         preparacaoArea: dadosMemorial.preparacaoArea || cronograma.preparacaoArea || 0,
         planejamentoInicial: dadosMemorial.planejamentoInicial || cronograma.planejamentoInicial || 0,
         logisticaTransporte: dadosMemorial.logisticaTransporte || cronograma.logisticaTransporte || 0,

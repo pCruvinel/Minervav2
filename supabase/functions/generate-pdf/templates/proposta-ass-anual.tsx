@@ -1,24 +1,13 @@
 /**
  * Template de Proposta de Assessoria Anual (OS 05)
- *
- * Estrutura baseada no documento de referência:
- * - Header com divisória AZUL (SharedHeader)
- * - 1. OBJETIVO (bullets dinâmicos)
- * - 2. ESPECIFICAÇÕES TÉCNICAS (tabela ITEM | DESCRIÇÃO)
- * - METODOLOGIA (texto editável)
- * - 3. PRAZO (horário de funcionamento + suporte emergencial)
- * - 4. GARANTIA (texto editável)
- * - 5. INVESTIMENTOS (execução + impostos = total)
- * - 6. PAGAMENTO (desconto por pagamento antecipado)
- * - Footer com assinatura
+ * Design Premium Refinado (Minerva V2)
  */
 
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { colors, spacing, fonts, fontSize, commonStyles } from './shared-styles.ts';
-import { formatarData, formatarCpfCnpj, formatarMoeda } from '../utils/pdf-formatter.ts';
-import { SharedHeader } from './components/shared-header.tsx';
-import { SharedFooter } from './components/shared-footer.tsx';
+import { Document, Page, Text, View, Image, StyleSheet, Font } from '@react-pdf/renderer';
+import { colors } from './shared-styles.ts';
+import { LOGO_BASE64 } from './assets.ts';
+import { formatarMoeda, formatarData, formatarCpfCnpj, formatarTelefone } from '../utils/pdf-formatter.ts';
 
 // ============================================
 // INTERFACES
@@ -29,8 +18,8 @@ export interface EspecificacaoTecnica {
 }
 
 export interface DadosPrazoAnual {
-  horarioFuncionamento: string; // Ex: "Segunda a sexta de 8h às 18h"
-  suporteEmergencial: string;   // Ex: "Suporte técnico emergencial - atuação máxima de 2h"
+  horarioFuncionamento: string;
+  suporteEmergencial: string;
 }
 
 export interface DadosPrecificacao {
@@ -41,14 +30,14 @@ export interface DadosPrecificacao {
 export interface DadosPagamento {
   percentualDesconto: number;
   diaVencimento: number;
+  percentualEntrada?: number;
+  numeroParcelas?: number;
 }
 
 export interface PropostaAssAnualData {
-  // Dados da OS
   codigoOS: string;
   dataEmissao: string;
 
-  // Cliente
   clienteNome: string;
   clienteCpfCnpj: string;
   clienteEmail?: string;
@@ -57,8 +46,11 @@ export interface PropostaAssAnualData {
   clienteBairro?: string;
   clienteCidade?: string;
   clienteEstado?: string;
+  clienteResponsavel?: string; // Novo campo
 
-  // Conteúdo Dinâmico
+  quantidadeUnidades?: number; // Novo campo
+  quantidadeBlocos?: number;   // Novo campo
+
   objetivo: string;
   especificacoesTecnicas: EspecificacaoTecnica[];
   metodologia: string;
@@ -68,7 +60,7 @@ export interface PropostaAssAnualData {
   pagamento: DadosPagamento;
 }
 
-// Textos padrão (usados como fallback)
+// Textos padrão
 const METODOLOGIA_PADRAO = `• Acompanhamento semanal in loco
 • Relatório mensal de acompanhamento de plano de manutenção
 • Mais de 35 equipamentos de diagnóstico`;
@@ -81,262 +73,271 @@ const PRAZO_PADRAO: DadosPrazoAnual = {
 };
 
 // ============================================
-// ESTILOS
+// ESTILOS PREMIUM (Baseado em proposta-template.tsx)
 // ============================================
 
 const styles = StyleSheet.create({
-  ...commonStyles,
-
   page: {
     flexDirection: 'column',
     backgroundColor: colors.white,
-    padding: spacing.xl,
-    paddingBottom: spacing['4xl'],
-    fontFamily: fonts.regular,
-    fontSize: fontSize.sm,
-    color: colors.neutral900,
+    paddingTop: 30,
+    paddingBottom: 40,
+    paddingHorizontal: 30,
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: colors.black,
   },
 
-  // Seção
-  section: {
-    marginBottom: spacing.lg,
-  },
-
-  sectionTitleContainer: {
-    backgroundColor: colors.info,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-
-  sectionTitle: {
-    fontSize: fontSize.md,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  sectionContent: {
-    paddingHorizontal: spacing.sm,
-  },
-
-  // Bullets
-  bulletItem: {
+  // --- HEADER ---
+  headerContainer: {
     flexDirection: 'row',
-    marginBottom: spacing.xs,
-    paddingLeft: spacing.sm,
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 5,
+  },
+  headerLogo: {
+    width: 120,
+    height: 60,
+    objectFit: 'contain',
+  },
+  headerInfoContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    marginTop: 10,
+    width: '60%',
+  },
+  headerAddress: {
+    fontSize: 8,
+    textAlign: 'right',
+    color: colors.black,
+    marginBottom: 1,
+  },
+  goldBar: {
+    height: 4,
+    backgroundColor: colors.primary,
+    width: '100%',
+    marginBottom: 10,
+    marginTop: 5,
   },
 
-  bulletPoint: {
-    width: 12,
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
+  // --- CLIENTE GRID ---
+  clientGridContainer: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  clientDateRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 5,
+  },
+  clientDateText: {
+    fontSize: 8,
+    color: colors.black,
+  },
+  gridRow: {
+    flexDirection: 'row',
+    width: '100%',
+    marginBottom: 2,
+  },
+  gridCellLabel: {
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 8,
+    color: colors.black,
+    textTransform: 'uppercase',
+  },
+  gridCellValue: {
+    fontFamily: 'Helvetica',
+    fontSize: 9,
+    color: colors.black,
+    marginLeft: 4,
+  },
+  // Colunas
+  colHalf: { width: '50%' },
+  colThird: { width: '33.33%' },
+
+  // --- SEÇÕES ---
+  blueHeader: {
+    backgroundColor: '#0056b3', // Azul escuro Minerva
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+    marginTop: 10,
+    marginBottom: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  blueHeaderText: {
+    color: colors.white,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 9,
+    textTransform: 'uppercase',
+  },
+  sectionContent: {
+    paddingVertical: 5,
+    paddingHorizontal: 5,
   },
 
-  bulletText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-    lineHeight: 1.4,
-  },
-
-  // Tabela de Especificações
+  // --- TABELAS ---
   table: {
     borderWidth: 1,
     borderColor: colors.neutral300,
+    marginTop: 0,
   },
-
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: colors.info,
+    backgroundColor: colors.neutral200,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral300,
+    borderBottomColor: colors.neutral400,
+    paddingVertical: 4,
+    alignItems: 'center',
   },
-
   tableHeaderCell: {
-    padding: spacing.sm,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral400,
+    fontFamily: 'Helvetica-Bold',
+    fontSize: 8,
+    color: colors.black,
+    textAlign: 'center',
   },
-
-  tableHeaderText: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
   tableRow: {
     flexDirection: 'row',
-    borderBottomWidth: 1,
+    borderBottomWidth: 0.5,
     borderBottomColor: colors.neutral200,
+    paddingVertical: 3,
   },
-
-  tableRowAlternate: {
+  tableRowAlt: {
     backgroundColor: colors.neutral50,
   },
-
-  tableCell: {
-    padding: spacing.sm,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral200,
-  },
-
   tableCellText: {
-    fontSize: fontSize.sm,
-    color: colors.neutral800,
+    fontSize: 9,
+    fontFamily: 'Helvetica',
+    color: colors.black,
   },
 
-  // Metodologia
-  metodologiaContainer: {
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.sm,
-  },
-
-  metodologiaTitle: {
-    fontSize: fontSize.md,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    marginBottom: spacing.sm,
-  },
-
-  // Prazo
-  prazoRow: {
+  // --- LISTAS ---
+  bulletItem: {
     flexDirection: 'row',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
+    marginBottom: 2,
+    paddingLeft: 5,
   },
-
-  prazoLabel: {
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
+  bulletPoint: {
+    fontSize: 9,
+    marginRight: 5,
+    color: colors.black,
   },
-
-  // Garantia
-  garantiaTitleContainer: {
-    backgroundColor: colors.info,
-    padding: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-
-  garantiaTitle: {
-    fontSize: fontSize.md,
-    fontFamily: fonts.bold,
-    color: colors.white,
-  },
-
-  garantiaText: {
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-    lineHeight: 1.5,
-    paddingHorizontal: spacing.sm,
-    textAlign: 'justify',
-  },
-
-  // Investimentos
-  investimentoTable: {
-    borderWidth: 1,
-    borderColor: colors.neutral300,
-    marginTop: spacing.sm,
-  },
-
-  investimentoRow: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral200,
-  },
-
-  investimentoDescricao: {
-    flex: 3,
-    padding: spacing.sm,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral200,
-  },
-
-  investimentoValor: {
+  bulletText: {
+    fontSize: 9,
+    color: colors.black,
     flex: 1,
-    padding: spacing.sm,
-    alignItems: 'flex-end',
   },
 
-  investimentoTotalRow: {
+  // --- INVESTIMENTOS ---
+  investTotalRow: {
     flexDirection: 'row',
     backgroundColor: colors.success,
+    paddingVertical: 4,
+    paddingHorizontal: 5,
   },
 
-  investimentoTotalLabel: {
-    flex: 3,
-    padding: spacing.sm,
-    borderRightWidth: 1,
-    borderRightColor: colors.neutral300,
+  // --- FOOTER ---
+  footerContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 30,
+    right: 30,
   },
-
-  investimentoTotalValue: {
-    flex: 1,
-    padding: spacing.sm,
-    alignItems: 'flex-end',
-  },
-
-  investimentoImpostoRow: {
-    flexDirection: 'row',
-    backgroundColor: colors.warning,
-  },
-
-  // Pagamento
-  pagamentoContainer: {
-    marginTop: spacing.lg,
-  },
-
-  pagamentoSubtitle: {
-    fontSize: fontSize.sm,
-    fontFamily: fonts.bold,
-    color: colors.neutral800,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xs,
-  },
-
-  pagamentoText: {
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-  },
-
-  // Assinatura
-  assinaturaContainer: {
-    marginTop: spacing['2xl'],
-    alignItems: 'center',
-  },
-
-  assinaturaLinha: {
-    width: '60%',
-    borderTopWidth: 1,
-    borderTopColor: colors.neutral400,
-    paddingTop: spacing.sm,
-    marginTop: spacing.xl,
-    alignItems: 'center',
-  },
-
-  assinaturaTexto: {
-    fontSize: fontSize.sm,
-    color: colors.neutral700,
-  },
+  footerGoldBar: {
+    height: 10,
+    backgroundColor: colors.primary,
+    width: '100%',
+  }
 });
 
 // ============================================
 // COMPONENTES
 // ============================================
 
-function Objetivo({ objetivo }: { objetivo: string }) {
-  // Dividir objetivo em bullets por quebra de linha ou ponto e vírgula
-  const bullets = objetivo
-    .split(/[;\n]/)
-    .map(item => item.replace(/^[•\-*]\s*/, '').trim())
-    .filter(item => item.length > 0);
+const Header = ({ data }: { data: PropostaAssAnualData }) => (
+  <View>
+    <View style={styles.headerContainer}>
+      <Image style={styles.headerLogo} src={LOGO_BASE64} />
+      <View style={styles.headerInfoContainer}>
+        <Text style={styles.headerAddress}>Av. Colares Moreira, Edifício Los Angeles, Nº100, Loja 01</Text>
+        <Text style={styles.headerAddress}>Renascença, São Luís - MA, CEP: 65075-144</Text>
+        <Text style={styles.headerAddress}>(98) 98226-7909 / (98) 98151-3355</Text>
+        <Text style={styles.headerAddress}>www.minerva-eng.com.br / contato@minerva-eng.com.br</Text>
+      </View>
+    </View>
+    <View style={styles.goldBar} />
+  </View>
+);
 
+const ClientInfo = ({ data }: { data: PropostaAssAnualData }) => (
+  <View style={styles.clientGridContainer}>
+    {/* Data e Hora */}
+    <View style={styles.clientDateRow}>
+      <Text style={styles.clientDateText}>{formatarData(data.dataEmissao)}</Text>
+    </View>
+
+    {/* Linha 1: Cliente | Email */}
+    <View style={styles.gridRow}>
+      <View style={styles.colHalf}>
+        <Text style={styles.gridCellLabel}>CLIENTE: <Text style={styles.gridCellValue}>{data.clienteNome}</Text></Text>
+      </View>
+      <View style={styles.colHalf}>
+        <Text style={styles.gridCellLabel}>E-MAIL: <Text style={styles.gridCellValue}>{data.clienteEmail}</Text></Text>
+      </View>
+    </View>
+
+    {/* Linha 2: Responsável | CPF/CNPJ | Endereço */}
+    <View style={styles.gridRow}>
+      <View style={{ width: '30%' }}>
+        <Text style={styles.gridCellLabel}>RESPONSÁVEL: <Text style={styles.gridCellValue}>{data.clienteResponsavel || '---'}</Text></Text>
+      </View>
+      <View style={{ width: '30%' }}>
+        <Text style={styles.gridCellLabel}>CPF/CNPJ: <Text style={styles.gridCellValue}>{formatarCpfCnpj(data.clienteCpfCnpj)}</Text></Text>
+      </View>
+      <View style={{ width: '40%' }}>
+        <Text style={styles.gridCellLabel}>END.: <Text style={styles.gridCellValue}>{data.clienteEndereco}</Text></Text>
+      </View>
+    </View>
+
+    {/* Linha 3: Tel | Bairro | Cidade */}
+    <View style={styles.gridRow}>
+      <View style={{ width: '30%' }}>
+        <Text style={styles.gridCellLabel}>TEL: <Text style={styles.gridCellValue}>{formatarTelefone(data.clienteTelefone || '')}</Text></Text>
+      </View>
+      <View style={{ width: '30%' }}>
+        <Text style={styles.gridCellLabel}>BAIRRO: <Text style={styles.gridCellValue}>{data.clienteBairro}</Text></Text>
+      </View>
+      <View style={{ width: '40%' }}>
+        <Text style={styles.gridCellLabel}>CIDADE/ESTADO: <Text style={styles.gridCellValue}>{data.clienteCidade}/{data.clienteEstado || 'MA'}</Text></Text>
+      </View>
+    </View>
+
+    {/* Linha 4: Código | Unidades | Blocos */}
+    <View style={[styles.gridRow, { backgroundColor: colors.neutral100, paddingVertical: 2, marginTop: 4 }]}>
+      <View style={styles.colThird}>
+        <Text style={styles.gridCellLabel}>CÓDIGO DA PROPOSTA: <Text style={styles.gridCellValue}>{data.codigoOS}</Text></Text>
+      </View>
+      <View style={styles.colThird}>
+        <Text style={styles.gridCellLabel}>QUANTIDADE DE UNIDADES: <Text style={styles.gridCellValue}>{data.quantidadeUnidades || 0}</Text></Text>
+      </View>
+      <View style={styles.colThird}>
+        <Text style={styles.gridCellLabel}>QUANTIDADE DE BLOCOS: <Text style={styles.gridCellValue}>{data.quantidadeBlocos || 0}</Text></Text>
+      </View>
+    </View>
+  </View>
+);
+
+const Objetivo = ({ objetivo }: { objetivo: string }) => {
+  const bullets = objetivo ? objetivo.split(/[;\n]/).map(i => i.trim()).filter(i => i) : [];
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionTitleContainer}>
-        <Text style={styles.sectionTitle}>1. OBJETIVO:</Text>
+    <View>
+      <View style={styles.blueHeader}>
+        <Text style={styles.blueHeaderText}>1. OBJETIVO:</Text>
       </View>
       <View style={styles.sectionContent}>
-        {bullets.map((item, index) => (
-          <View key={index} style={styles.bulletItem}>
+        {bullets.map((item, i) => (
+          <View key={i} style={styles.bulletItem}>
             <Text style={styles.bulletPoint}>•</Text>
             <Text style={styles.bulletText}>{item}</Text>
           </View>
@@ -344,251 +345,180 @@ function Objetivo({ objetivo }: { objetivo: string }) {
       </View>
     </View>
   );
-}
+};
 
-function EspecificacoesTecnicas({ especificacoes }: { especificacoes: EspecificacaoTecnica[] }) {
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionTitleContainer}>
-        <Text style={styles.sectionTitle}>2. ESPECIFICAÇÕES TÉCNICAS:</Text>
-      </View>
-
-      <View style={styles.table}>
-        {/* Header */}
-        <View style={styles.tableHeader}>
-          <View style={[styles.tableHeaderCell, { width: 40 }]}>
-            <Text style={styles.tableHeaderText}>ITEM</Text>
-          </View>
-          <View style={[styles.tableHeaderCell, { flex: 1, borderRightWidth: 0 }]}>
-            <Text style={styles.tableHeaderText}>DESCRIÇÃO</Text>
-          </View>
-        </View>
-
-        {/* Rows */}
-        {especificacoes.map((especificacao, index) => (
-          <View
-            key={index}
-            style={[
-              styles.tableRow,
-              index % 2 === 1 && styles.tableRowAlternate,
-              index === especificacoes.length - 1 && { borderBottomWidth: 0 },
-            ]}
-          >
-            <View style={[styles.tableCell, { width: 40 }]}>
-              <Text style={styles.tableCellText}>{index + 1}</Text>
-            </View>
-            <View style={[styles.tableCell, { flex: 1, borderRightWidth: 0 }]}>
-              <Text style={styles.tableCellText}>{especificacao.descricao}</Text>
-            </View>
-          </View>
-        ))}
-      </View>
+const Especificacoes = ({ itens }: { itens: EspecificacaoTecnica[] }) => (
+  <View>
+    <View style={styles.blueHeader}>
+      <Text style={styles.blueHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
     </View>
-  );
-}
+    <View style={styles.table}>
+      <View style={styles.tableHeader}>
+        <Text style={[styles.tableHeaderCell, { width: 40 }]}>ITEM</Text>
+        <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'left', paddingLeft: 5 }]}>DESCRIÇÃO</Text>
+      </View>
+      {itens.map((item, i) => (
+        <View key={i} style={[styles.tableRow, i % 2 === 1 && styles.tableRowAlt]}>
+          <Text style={[styles.tableCellText, { width: 40, textAlign: 'center' }]}>{i + 1}</Text>
+          <Text style={[styles.tableCellText, { flex: 1, paddingLeft: 5 }]}>{item.descricao}</Text>
+        </View>
+      ))}
+    </View>
+  </View>
+);
 
-function Metodologia({ texto }: { texto: string }) {
-  const textoFinal = texto || METODOLOGIA_PADRAO;
-
-  const bullets = textoFinal
-    .split('\n')
-    .map(item => item.replace(/^[•\-*]\s*/, '').trim())
-    .filter(item => item.length > 0);
-
+const Metodologia = ({ texto }: { texto: string }) => {
+  const final = texto || METODOLOGIA_PADRAO;
+  const bullets = final.split('\n').map(i => i.trim()).filter(i => i);
   return (
-    <View style={styles.metodologiaContainer}>
-      <Text style={styles.metodologiaTitle}>METODOLOGIA:</Text>
-      {bullets.map((item, index) => (
-        <View key={index} style={styles.bulletItem}>
+    <View style={{ marginTop: 10 }}>
+      <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 4 }}>METODOLOGIA:</Text>
+      {bullets.map((item, i) => (
+        <View key={i} style={styles.bulletItem}>
           <Text style={styles.bulletPoint}>•</Text>
-          <Text style={styles.bulletText}>{item}</Text>
+          <Text style={styles.bulletText}>{item.replace(/^[•\-*]\s*/, '')}</Text>
         </View>
       ))}
     </View>
   );
-}
+};
 
-function Prazo({ prazo }: { prazo: DadosPrazoAnual }) {
-  const prazoFinal = {
-    horarioFuncionamento: prazo?.horarioFuncionamento || PRAZO_PADRAO.horarioFuncionamento,
-    suporteEmergencial: prazo?.suporteEmergencial || PRAZO_PADRAO.suporteEmergencial,
-  };
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.sectionTitleContainer}>
-        <Text style={styles.sectionTitle}>3. PRAZO:</Text>
+const Prazo = ({ prazo }: { prazo: DadosPrazoAnual }) => (
+  <View>
+    <View style={styles.blueHeader}>
+      <Text style={styles.blueHeaderText}>3. PRAZO:</Text>
+    </View>
+    <View style={styles.sectionContent}>
+      <View style={styles.bulletItem}>
+        <Text style={styles.bulletPoint}>•</Text>
+        <Text style={styles.bulletText}>{prazo.horarioFuncionamento || PRAZO_PADRAO.horarioFuncionamento}</Text>
       </View>
-      <View style={styles.sectionContent}>
-        <View style={styles.prazoRow}>
-          <Text style={styles.prazoLabel}>• {prazoFinal.horarioFuncionamento}</Text>
-        </View>
-        <View style={styles.prazoRow}>
-          <Text style={styles.prazoLabel}>• {prazoFinal.suporteEmergencial}</Text>
-        </View>
+      <View style={styles.bulletItem}>
+        <Text style={styles.bulletPoint}>•</Text>
+        <Text style={styles.bulletText}>{prazo.suporteEmergencial || PRAZO_PADRAO.suporteEmergencial}</Text>
       </View>
     </View>
-  );
-}
+  </View>
+);
 
-function Garantia({ texto }: { texto: string }) {
-  const textoFinal = texto || GARANTIA_PADRAO;
-
-  return (
-    <View style={styles.section}>
-      <View style={styles.garantiaTitleContainer}>
-        <Text style={styles.garantiaTitle}>4. GARANTIA:</Text>
-      </View>
-      <Text style={styles.garantiaText}>{textoFinal}</Text>
+const Garantia = ({ texto }: { texto: string }) => (
+  <View>
+    <View style={styles.blueHeader}>
+      <Text style={styles.blueHeaderText}>4. GARANTIA:</Text>
     </View>
-  );
-}
+    <View style={styles.sectionContent}>
+      <Text style={{ fontSize: 9, textAlign: 'justify', lineHeight: 1.4 }}>
+        {texto || GARANTIA_PADRAO}
+      </Text>
+    </View>
+  </View>
+);
 
-function Investimentos({ precificacao }: { precificacao: DadosPrecificacao }) {
-  const valorImposto = (precificacao.valorParcial * precificacao.percentualImposto) / 100;
-  const valorTotal = precificacao.valorParcial + valorImposto;
+const Investimentos = ({ precificacao }: { precificacao: DadosPrecificacao }) => {
+  const imposto = (precificacao.valorParcial * precificacao.percentualImposto) / 100;
+  const total = precificacao.valorParcial + imposto;
 
   return (
-    <View style={styles.section}>
-      <View style={styles.sectionTitleContainer}>
-        <Text style={styles.sectionTitle}>5. INVESTIMENTOS</Text>
+    <View>
+      <View style={styles.blueHeader}>
+        <Text style={styles.blueHeaderText}>5. INVESTIMENTOS</Text>
       </View>
-
-      <View style={styles.investimentoTable}>
+      <View style={styles.table}>
         {/* Header */}
-        <View style={[styles.investimentoRow, { backgroundColor: colors.info }]}>
-          <View style={[styles.investimentoDescricao]}>
-            <Text style={[styles.tableCellText, { color: colors.white, fontFamily: fonts.bold }]}>
-              DESCRIÇÃO
-            </Text>
-            <Text style={[styles.tableCellText, { color: colors.white, fontSize: fontSize.xs }]}>
-              ITEM INCLUSO MATERIAL, MÃO DE OBRA, LOGÍSTICA E EVENTUALIDADES
-            </Text>
+        <View style={[styles.tableHeader, { backgroundColor: colors.neutral200 }]}>
+          <View style={{ width: '70%', paddingLeft: 5 }}>
+            <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold' }}>DESCRIÇÃO:</Text>
+            <Text style={{ fontSize: 7 }}>ITEM INCLUSO MATERIAL, MÃO DE OBRA, LOGISTICA E EVENTUALIDADES</Text>
           </View>
-          <View style={[styles.investimentoValor]}>
-            <Text style={[styles.tableCellText, { color: colors.white, fontFamily: fonts.bold }]}>
-              TOTAL
-            </Text>
-          </View>
+          <Text style={[styles.tableHeaderCell, { width: '30%', textAlign: 'right', paddingRight: 5 }]}>TOTAL</Text>
         </View>
 
-        {/* Valor Parcial */}
-        <View style={styles.investimentoRow}>
-          <View style={styles.investimentoDescricao}>
-            <Text style={styles.tableCellText}>1</Text>
-            <Text style={styles.tableCellText}>Execução de obra e entrega de serviço concluído;</Text>
-          </View>
-          <View style={styles.investimentoValor}>
-            <Text style={styles.tableCellText}>{formatarMoeda(precificacao.valorParcial)}</Text>
-          </View>
+        {/* Item 1 */}
+        <View style={styles.tableRow}>
+          <View style={{ width: '10%', alignItems: 'center' }}><Text style={styles.tableCellText}>1</Text></View>
+          <Text style={[styles.tableCellText, { width: '60%' }]}>Execução de obra e entrega de serviço concluído;</Text>
+          <Text style={[styles.tableCellText, { width: '30%', textAlign: 'right', paddingRight: 5 }]}>{formatarMoeda(precificacao.valorParcial)}</Text>
         </View>
 
-        {/* Impostos */}
-        <View style={styles.investimentoImpostoRow}>
-          <View style={styles.investimentoDescricao}>
-            <Text style={[styles.tableCellText, { fontFamily: fonts.bold }]}>
-              IMPOSTOS (EMISSÃO DE NOTA FISCAL DE SERVIÇOS):
-            </Text>
-          </View>
-          <View style={styles.investimentoValor}>
-            <Text style={styles.tableCellText}>{formatarMoeda(valorImposto)}</Text>
-          </View>
+        {/* Impostos (row laranja) */}
+        <View style={{ flexDirection: 'row', backgroundColor: '#FDBA74', paddingVertical: 4 }}>
+          <Text style={{ width: '70%', textAlign: 'right', paddingRight: 5, fontSize: 8, fontFamily: 'Helvetica-Bold' }}>IMPOSTOS (EMISSÃO DE NOTA FISCAL DE SERVIÇOS):</Text>
+          <Text style={{ width: '30%', textAlign: 'right', paddingRight: 5, fontSize: 9 }}>{formatarMoeda(imposto)}</Text>
         </View>
 
-        {/* Total */}
-        <View style={styles.investimentoTotalRow}>
-          <View style={styles.investimentoTotalLabel}>
-            <Text style={[styles.tableCellText, { color: colors.white, fontFamily: fonts.bold }]}>
-              INVESTIMENTO + IMPOSTOS:
-            </Text>
-          </View>
-          <View style={styles.investimentoTotalValue}>
-            <Text style={[styles.tableCellText, { color: colors.white, fontFamily: fonts.bold }]}>
-              {formatarMoeda(valorTotal)}
-            </Text>
-          </View>
+        {/* Total (row verde) */}
+        <View style={{ flexDirection: 'row', backgroundColor: '#22C55E', paddingVertical: 4 }}>
+          <Text style={{ width: '70%', textAlign: 'right', paddingRight: 5, fontSize: 8, fontFamily: 'Helvetica-Bold', color: 'white' }}>INVESTIMENTO + IMPOSTOS:</Text>
+          <Text style={{ width: '30%', textAlign: 'right', paddingRight: 5, fontSize: 9, fontFamily: 'Helvetica-Bold', color: 'white' }}>{formatarMoeda(total)}</Text>
         </View>
       </View>
     </View>
   );
-}
+};
 
-function Pagamento({ pagamento, valorTotal }: { pagamento: DadosPagamento; valorTotal: number }) {
-  const valorComDesconto = valorTotal * (1 - pagamento.percentualDesconto / 100);
+const Pagamento = ({ data, valorTotal }: { data: DadosPagamento; valorTotal: number }) => {
+  const imposto = (data.percentualEntrada || 0); // Warning, this mapping might be confusing in props. Using valorTotal calculated outside.
+  // Recalculating totals locally
+  const valorDesconto = (valorTotal * (data.percentualDesconto || 0)) / 100;
+  const totalComDesconto = valorTotal - valorDesconto;
 
   return (
-    <View style={styles.pagamentoContainer}>
-      <View style={styles.sectionTitleContainer}>
-        <Text style={styles.sectionTitle}>6. PAGAMENTO</Text>
+    <View>
+      <View style={styles.blueHeader}>
+        <Text style={styles.blueHeaderText}>6. PAGAMENTO</Text>
       </View>
+      <View style={{ backgroundColor: colors.neutral100, padding: 5 }}>
+        <Text style={{ fontSize: 8, fontFamily: 'Helvetica-Bold', marginBottom: 5 }}>6.1 PROPOSTAS:</Text>
 
-      <View style={styles.sectionContent}>
-        <Text style={styles.pagamentoSubtitle}>6.1 PROPOSTAS:</Text>
-        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginTop: spacing.xs }}>
-          <Text style={[styles.tableCellText, { fontFamily: fonts.bold, marginRight: spacing.sm }]}>
-            R$
-          </Text>
-          <Text style={[styles.tableCellText, { fontSize: fontSize.lg, fontFamily: fonts.bold }]}>
-            {formatarMoeda(valorComDesconto).replace('R$', '').trim()}
-          </Text>
-          <Text style={[styles.pagamentoText, { marginLeft: spacing.md }]}>
-            {pagamento.percentualDesconto}% de desconto para pagamento no quinto dia útil do Mês
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FEF08A', padding: 5, marginBottom: 5 }}>
+          <Text style={{ fontSize: 10, fontFamily: 'Helvetica-Bold', marginRight: 10 }}>{formatarMoeda(totalComDesconto)}</Text>
+          <Text style={{ fontSize: 9 }}>{data.percentualDesconto}% de desconto para pagamento no quinto dia útil do Mês</Text>
         </View>
       </View>
+
+      {/* Aviso legal igual a imagem */}
+      <View style={{ marginTop: 20, backgroundColor: '#d4af37', height: 20, width: '100%', position: 'absolute', bottom: -30 }}></View>
     </View>
   );
-}
+};
 
-function Assinatura({ clienteNome, dataEmissao }: { clienteNome: string; dataEmissao: string }) {
-  return (
-    <View style={styles.assinaturaContainer}>
-      <View style={styles.assinaturaLinha}>
-        <Text style={styles.assinaturaTexto}>{clienteNome}</Text>
-        <Text style={[styles.assinaturaTexto, { fontSize: fontSize.xs }]}>Contratante</Text>
-      </View>
-
-      <View style={styles.assinaturaLinha}>
-        <Text style={styles.assinaturaTexto}>Minerva Engenharia e Representações</Text>
-        <Text style={[styles.assinaturaTexto, { fontSize: fontSize.xs }]}>Contratada</Text>
-      </View>
-    </View>
-  );
-}
 
 // ============================================
 // TEMPLATE PRINCIPAL
 // ============================================
 
 export function PropostaAssAnualTemplate({ data }: { data: PropostaAssAnualData }) {
-  const valorImposto = (data.precificacao.valorParcial * data.precificacao.percentualImposto) / 100;
-  const valorTotal = data.precificacao.valorParcial + valorImposto;
+  const imposto = (data.precificacao.valorParcial * data.precificacao.percentualImposto) / 100;
+  const valorTotal = data.precificacao.valorParcial + imposto;
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        <SharedHeader
-          documentTitle="PROPOSTA PARA ASSESSORIA E SUPERVISÃO TÉCNICA DE ENGENHARIA"
-          documentSubtitle={`Proposta Nº ${data.codigoOS}`}
-          documentDate={formatarData(data.dataEmissao)}
-          dividerColor="info"
-        />
+        <Header data={data} />
 
+        <View style={{ backgroundColor: '#E5E7EB', padding: 4, marginBottom: 10 }}>
+          <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 10, textAlign: 'center' }}>
+            PROPOSTA PARA ASSESSORIA E SUPERVISÃO TÉCNICA DE ENGENHARIA
+          </Text>
+        </View>
+
+        <ClientInfo data={data} />
         <Objetivo objetivo={data.objetivo} />
-        <EspecificacoesTecnicas especificacoes={data.especificacoesTecnicas} />
+        <Especificacoes itens={data.especificacoesTecnicas} />
         <Metodologia texto={data.metodologia} />
         <Prazo prazo={data.prazo} />
         <Garantia texto={data.garantia} />
-        <Investimentos precificacao={data.precificacao} />
-        <Pagamento pagamento={data.pagamento} valorTotal={valorTotal} />
-        <Assinatura clienteNome={data.clienteNome} dataEmissao={data.dataEmissao} />
 
-        <SharedFooter
-          leftText={`Proposta de Assessoria Anual - OS ${data.codigoOS}`}
-          rightText={formatarData(data.dataEmissao)}
-          borderColor="info"
-          fixed={true}
-        />
+        {/* Quebra de página se necessário */}
+        <View break={false}>
+          <Investimentos precificacao={data.precificacao} />
+          <Pagamento data={data.pagamento} valorTotal={valorTotal} />
+        </View>
+
+        {/* Footer Bar Decoration */}
+        <View style={styles.footerContainer}>
+          <View style={styles.footerGoldBar} />
+        </View>
       </Page>
     </Document>
   );

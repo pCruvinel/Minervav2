@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../supabase-client';
 import { logger } from '../utils/logger';
+import { NotificationService } from '../services/notifications-service';
 
 export type VisibilidadeDocumento = 'interno' | 'publico' | 'cliente';
 
@@ -135,7 +136,39 @@ export function useOSDocumentUpload(osId: string) {
       }
 
       setUploadProgress(100);
-      
+
+      // 6. Notificar responsável
+      try {
+        const { data: osData } = await supabase
+          .from('ordens_servico')
+          .select('codigo_os, responsavel_id, clientes(nome_fantasia, nome_razao_social)')
+          .eq('id', osId)
+          .single();
+          
+        if (osData) {
+           const responsavelId = osData.responsavel_id;
+           
+           if (responsavelId && responsavelId !== user.id) {
+               const clienteObj = osData.clientes as any;
+               const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+               
+               const { data: uploaderData } = await supabase.from('colaboradores').select('nome_completo').eq('id', user.id).single();
+               const anexadoPorNome = uploaderData?.nome_completo || 'Colaborador';
+
+               await NotificationService.notifyDocumentoAnexado({
+                   osId,
+                   codigoOS: osData.codigo_os || 'OS',
+                   clienteNome,
+                   tipoDocumento,
+                   anexadoPorNome,
+                   responsavelId
+               });
+           }
+        }
+      } catch (notifError) {
+          logger.error('Erro ao notificar upload:', notifError);
+      }
+
       return {
         ...documento,
         url: urlData.publicUrl

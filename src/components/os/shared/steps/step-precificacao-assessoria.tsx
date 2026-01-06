@@ -3,6 +3,7 @@
  * 
  * Versão simplificada onde o Custo Base é editável manualmente
  * (não calculado automaticamente a partir de sub-etapas)
+ * Atualizado para incluir Imprevisto e Lucro configuráveis.
  */
 
 import { useEffect, useRef } from 'react';
@@ -12,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { AlertCircle, DollarSign } from 'lucide-react';
+import { usePrecificacaoConfig } from '@/lib/hooks/use-precificacao-config';
 
 // Função para formatar valores monetários no padrão brasileiro (R$ 30.000,00)
 const formatarMoeda = (valor: number): string => {
@@ -37,6 +39,8 @@ const parseMoeda = (valor: string): number => {
 interface StepPrecificacaoAssessoriaProps {
     data: {
         custoBase?: string;
+        percentualImprevisto?: string;
+        percentualLucro?: string;
         percentualImposto?: string;
         percentualEntrada?: string;
         numeroParcelas?: string;
@@ -51,58 +55,141 @@ export function StepPrecificacaoAssessoria({
     onDataChange,
     readOnly = false,
 }: StepPrecificacaoAssessoriaProps) {
-    // Ref para controlar se já sincronizamos os dados iniciais
+    // ------------------------------------------------------
+    // Integração com Configurações Dinâmicas
+    // ------------------------------------------------------
+    const { configs, isLoading: isLoadingConfig } = usePrecificacaoConfig('OS-05-06');
     const hasInitialized = useRef(false);
 
-    // Parsear custo base
+    // Parsear valores
     const custoBase = parseMoeda(data.custoBase || '0');
-    const percentualImposto = parseFloat(data.percentualImposto || '14') || 14;
+    const percentualImprevisto = parseFloat(data.percentualImprevisto || '0') || 0;
+    const percentualLucro = parseFloat(data.percentualLucro || '0') || 0;
+    const percentualImposto = parseFloat(data.percentualImposto || '0') || 0;
     const percentualEntrada = parseFloat(data.percentualEntrada || '40') || 40;
     const numeroParcelas = parseInt(data.numeroParcelas || '2') || 2;
 
-    // Calcular valores
+    // Helper para buscar config
+    const getConfig = (campo: string) => configs.find(c => c.campo_nome === campo);
+
+    // Inicializar valores padrão da config
+    useEffect(() => {
+        if (!isLoadingConfig && configs.length > 0 && !hasInitialized.current) {
+            hasInitialized.current = true;
+
+            const imprevistoConfig = getConfig('percentual_imprevisto');
+            const lucroConfig = getConfig('percentual_lucro');
+            const impostoConfig = getConfig('percentual_imposto');
+
+            const updates: any = {};
+            let hasUpdates = false;
+
+            // Só aplica padrão se o valor não existir no data
+            if (!data.percentualImprevisto && imprevistoConfig) {
+                updates.percentualImprevisto = imprevistoConfig.valor_padrao.toString();
+                hasUpdates = true;
+            }
+            if (!data.percentualLucro && lucroConfig) {
+                updates.percentualLucro = lucroConfig.valor_padrao.toString();
+                hasUpdates = true;
+            }
+            if (!data.percentualImposto && impostoConfig) {
+                updates.percentualImposto = impostoConfig.valor_padrao.toString();
+                hasUpdates = true;
+            }
+
+            // Garantir defaults de entrada/parcelas se não existirem
+            if (!data.percentualEntrada) {
+                updates.percentualEntrada = '40';
+                hasUpdates = true;
+            }
+            if (!data.numeroParcelas) {
+                updates.numeroParcelas = '2';
+                hasUpdates = true;
+            }
+
+            if (hasUpdates) {
+                // Ao atualizar defaults, precisamos recalcular os totais
+                // Mas o handleChange já fará isso quando os valores mudarem via update
+                // Como estamos atualizando via parent, passamos o objeto completo
+                const mergedData = { ...data, ...updates };
+                const newCusto = parseMoeda(mergedData.custoBase || '0');
+                const newImp = parseFloat(mergedData.percentualImprevisto || '0');
+                const newLuc = parseFloat(mergedData.percentualLucro || '0');
+                const newIss = parseFloat(mergedData.percentualImposto || '0');
+
+                const vImprevisto = newCusto * (newImp / 100);
+                const vLucro = newCusto * (newLuc / 100);
+                const vImposto = newCusto * (newIss / 100);
+                const vTotal = newCusto + vImprevisto + vLucro + vImposto;
+                const vEntrada = vTotal * (parseFloat(mergedData.percentualEntrada) / 100);
+                const vParcela = (vTotal - vEntrada) / parseInt(mergedData.numeroParcelas);
+
+                onDataChange({
+                    ...mergedData,
+                    valorImprevisto: vImprevisto.toFixed(2),
+                    valorLucro: vLucro.toFixed(2),
+                    valorImposto: vImposto.toFixed(2),
+                    valorTotal: vTotal.toFixed(2),
+                    valorEntrada: vEntrada.toFixed(2),
+                    valorParcela: vParcela.toFixed(2),
+                });
+            }
+        }
+    }, [configs, isLoadingConfig, data, onDataChange]);
+
+
+    // Calcular valores derivados
+    const valorImprevisto = custoBase * (percentualImprevisto / 100);
+    const valorLucro = custoBase * (percentualLucro / 100);
     const valorImposto = custoBase * (percentualImposto / 100);
-    const valorTotal = custoBase + valorImposto;
+
+    // Total = Custo + Taxas
+    const valorTotal = custoBase + valorImprevisto + valorLucro + valorImposto;
+
     const valorEntrada = valorTotal * (percentualEntrada / 100);
     const valorRemanescente = valorTotal - valorEntrada;
     const valorParcela = numeroParcelas > 0 ? valorRemanescente / numeroParcelas : 0;
 
-    // Sincronizar valores padrão quando componente monta
-    // Isso garante que os dados sejam salvos mesmo se o usuário não editar nada
-    useEffect(() => {
-        if (!hasInitialized.current) {
-            hasInitialized.current = true;
-
-            // Se não há dados, inicializar com padrões
-            const shouldInitialize = !data.percentualImposto || !data.percentualEntrada || !data.numeroParcelas;
-
-            if (shouldInitialize) {
-                const initialData = {
-                    custoBase: data.custoBase || '',
-                    percentualImposto: data.percentualImposto || '14',
-                    percentualEntrada: data.percentualEntrada || '40',
-                    numeroParcelas: data.numeroParcelas || '2',
-                    valorImposto: valorImposto.toFixed(2),
-                    valorTotal: valorTotal.toFixed(2),
-                    valorEntrada: valorEntrada.toFixed(2),
-                    valorParcela: valorParcela.toFixed(2),
-                };
-                onDataChange(initialData);
-            }
-        }
-    }, [data, onDataChange, valorImposto, valorTotal, valorEntrada, valorParcela]);
-
     // Handler para mudanças
     const handleChange = (field: string, value: string) => {
-        onDataChange({
+        // Criar objeto temporário para cálculo
+        const tempValues = {
             ...data,
-            [field]: value,
-            // Sempre recalcular valores calculados
-            valorImposto: valorImposto.toFixed(2),
-            valorTotal: valorTotal.toFixed(2),
-            valorEntrada: valorEntrada.toFixed(2),
-            valorParcela: valorParcela.toFixed(2),
+            [field]: value
+        };
+
+        const tCusto = parseMoeda(field === 'custoBase' ? value : (tempValues.custoBase || '0'));
+        const tImprevisto = parseFloat(field === 'percentualImprevisto' ? value : (tempValues.percentualImprevisto || '0')) || 0;
+        const tLucro = parseFloat(field === 'percentualLucro' ? value : (tempValues.percentualLucro || '0')) || 0;
+        const tImposto = parseFloat(field === 'percentualImposto' ? value : (tempValues.percentualImposto || '0')) || 0;
+        const tEntradaPct = parseFloat(field === 'percentualEntrada' ? value : (tempValues.percentualEntrada || '0')) || 0;
+        const tParcelas = parseInt(field === 'numeroParcelas' ? value : (tempValues.numeroParcelas || '1')) || 1;
+
+        const vImprevisto = tCusto * (tImprevisto / 100);
+        const vLucro = tCusto * (tLucro / 100);
+        const vImposto = tCusto * (tImposto / 100);
+        const vTotal = tCusto + vImprevisto + vLucro + vImposto;
+        const vEntrada = vTotal * (tEntradaPct / 100);
+        const vParcela = tParcelas > 0 ? (vTotal - vEntrada) / tParcelas : 0;
+
+        onDataChange({
+            ...tempValues,
+            // Persistir valores calculados para facilitar exibição em outras etapas
+            valorImprevisto: vImprevisto.toFixed(2),
+            valorLucro: vLucro.toFixed(2),
+            valorImposto: vImposto.toFixed(2),
+            valorTotal: vTotal.toFixed(2),
+            valorEntrada: vEntrada.toFixed(2),
+            valorParcela: vParcela.toFixed(2),
         });
+    };
+
+    // Helper de editabilidade
+    const isFieldReadOnly = (campo: string) => {
+        if (readOnly) return true;
+        const config = getConfig(campo);
+        return config ? !config.campo_editavel : false;
     };
 
     return (
@@ -110,7 +197,7 @@ export function StepPrecificacaoAssessoria({
             <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                    Defina o valor do serviço e as condições de pagamento. O imposto é calculado automaticamente.
+                    Defina o valor do serviço e as taxas aplicáveis. O valor total é calculado somando custo base + taxas.
                 </AlertDescription>
             </Alert>
 
@@ -134,7 +221,6 @@ export function StepPrecificacaoAssessoria({
                                 type="text"
                                 value={data.custoBase || ''}
                                 onChange={(e) => {
-                                    // Permitir apenas números, vírgula e ponto
                                     const value = e.target.value.replace(/[^\d,.]/g, '');
                                     handleChange('custoBase', value);
                                 }}
@@ -144,38 +230,66 @@ export function StepPrecificacaoAssessoria({
                             />
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            Informe o valor parcial do serviço (antes dos impostos)
+                            Informe o valor parcial do serviço (antes das taxas)
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {/* Imprevisto */}
                         <div className="space-y-2">
-                            <Label htmlFor="percentualImposto">% Imposto (ISS/NFSe)</Label>
+                            <Label htmlFor="percentualImprevisto">% Imprevisto</Label>
+                            <Input
+                                id="percentualImprevisto"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                value={data.percentualImprevisto || ''}
+                                onChange={(e) => handleChange('percentualImprevisto', e.target.value)}
+                                placeholder={isLoadingConfig ? "..." : "0"}
+                                disabled={isFieldReadOnly('percentual_imprevisto')}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Valor: {formatarMoeda(valorImprevisto)}
+                            </p>
+                        </div>
+
+                        {/* Lucro */}
+                        <div className="space-y-2">
+                            <Label htmlFor="percentualLucro">% Lucro</Label>
+                            <Input
+                                id="percentualLucro"
+                                type="number"
+                                min="0"
+                                max="100"
+                                step="0.1"
+                                value={data.percentualLucro || ''}
+                                onChange={(e) => handleChange('percentualLucro', e.target.value)}
+                                placeholder={isLoadingConfig ? "..." : "0"}
+                                disabled={isFieldReadOnly('percentual_lucro')}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Valor: {formatarMoeda(valorLucro)}
+                            </p>
+                        </div>
+
+                        {/* Imposto */}
+                        <div className="space-y-2">
+                            <Label htmlFor="percentualImposto">% Imposto (ISS)</Label>
                             <Input
                                 id="percentualImposto"
                                 type="number"
                                 min="0"
                                 max="100"
                                 step="0.1"
-                                value={data.percentualImposto || '14'}
+                                value={data.percentualImposto || ''}
                                 onChange={(e) => handleChange('percentualImposto', e.target.value)}
-                                placeholder="14"
-                                disabled={readOnly}
+                                placeholder={isLoadingConfig ? "..." : "14"}
+                                disabled={isFieldReadOnly('percentual_imposto')}
                             />
                             <p className="text-xs text-muted-foreground">
-                                Padrão: 14%
+                                Valor: {formatarMoeda(valorImposto)}
                             </p>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="valorImposto">Valor do Imposto</Label>
-                            <Input
-                                id="valorImposto"
-                                type="text"
-                                value={formatarMoeda(valorImposto)}
-                                disabled
-                                className="bg-muted"
-                            />
                         </div>
                     </div>
 
@@ -183,7 +297,7 @@ export function StepPrecificacaoAssessoria({
                     <Card className="bg-success/10 border-success/30">
                         <CardContent className="pt-4">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Valor Total (com impostos):</span>
+                                <span className="text-sm font-medium">Valor Total (com taxas):</span>
                                 <span className="text-xl font-bold text-success">
                                     {formatarMoeda(valorTotal)}
                                 </span>
@@ -268,6 +382,14 @@ export function StepPrecificacaoAssessoria({
                     <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Custo Base:</span>
                         <span className="text-sm font-medium">{formatarMoeda(custoBase)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Imprevisto ({percentualImprevisto}%):</span>
+                        <span className="text-sm font-medium">{formatarMoeda(valorImprevisto)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-sm text-muted-foreground">Lucro ({percentualLucro}%):</span>
+                        <span className="text-sm font-medium">{formatarMoeda(valorLucro)}</span>
                     </div>
                     <div className="flex justify-between">
                         <span className="text-sm text-muted-foreground">Impostos ({percentualImposto}%):</span>

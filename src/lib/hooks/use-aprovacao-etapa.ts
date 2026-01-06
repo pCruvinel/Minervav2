@@ -122,6 +122,51 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
 
             if (data?.success) {
                 toast.success('Aprovação solicitada! Aguardando coordenador.');
+                
+                // ✅ NOTIFICAR: Coord Admin + Diretoria
+                try {
+                    // 1. Buscar dados para notificação
+                    const { data: osData } = await supabase
+                        .from('ordens_servico')
+                        .select('codigo_os, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .eq('id', osId)
+                        .single();
+
+                    const { data: etapaData } = await supabase
+                        .from('os_etapas')
+                        .select('nome')
+                        .eq('os_id', osId)
+                        .eq('ordem', Number(etapaOrdem))
+                        .maybeSingle();
+                    
+                    const codigoOS = osData?.codigo_os || 'OS';
+                    const clienteObj = osData?.cliente as any;
+                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
+                    const tipoDocumento = etapaNome;
+
+                    const { data: destinatarios } = await supabase
+                        .from('colaboradores')
+                        .select('id, nome_completo')
+                        .eq('ativo', true)
+                        .in('funcao', ['coord_administrativo', 'diretor', 'admin']);
+                    
+                    if (destinatarios && destinatarios.length > 0) {
+                        const notificacoes = destinatarios.map(dest => ({
+                            usuario_id: dest.id,
+                            titulo: `⚠️ Aprovação Pendente: ${tipoDocumento} | ${codigoOS}`,
+                            mensagem: `${currentUser?.nome_completo || 'Usuário'} solicita aprovação de ${tipoDocumento} para o cliente **${clienteNome}**.${justificativa ? `\n💬 Justificativa: ${justificativa}` : ''}`,
+                            link_acao: `/os/details-workflow/${osId}`,
+                            tipo: 'aprovacao',
+                            lida: false,
+                        }));
+                        
+                        await supabase.from('notificacoes').insert(notificacoes);
+                    }
+                } catch (notifError) {
+                    console.error('Erro ao enviar notificações (não bloqueante):', notifError);
+                }
+                
                 await verificarAprovacao();
                 return true;
             } else {
@@ -135,7 +180,7 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
         } finally {
             setIsProcessing(false);
         }
-    }, [osId, etapaOrdem, verificarAprovacao]);
+    }, [osId, etapaOrdem, verificarAprovacao, currentUser]);
 
     // Confirmar aprovação
     const confirmarAprovacao = useCallback(async (): Promise<boolean> => {
@@ -153,6 +198,65 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
 
             if (data?.success) {
                 toast.success('Aprovado! Etapa concluída e avançada.');
+                
+                // ✅ NOTIFICAR: Coord Admin + Solicitante + Diretoria
+                try {
+                    // 1. Buscar dados para notificação
+                    const { data: osData } = await supabase
+                        .from('ordens_servico')
+                        .select('codigo_os, descricao, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .eq('id', osId)
+                        .single();
+
+                    const { data: etapaData } = await supabase
+                        .from('os_etapas')
+                        .select('nome')
+                        .eq('os_id', osId)
+                        .eq('ordem', Number(etapaOrdem))
+                        .maybeSingle();
+                        
+                    const { data: proximaEtapaData } = await supabase
+                        .from('os_etapas')
+                        .select('nome')
+                        .eq('os_id', osId)
+                        .eq('ordem', Number(etapaOrdem) + 1)
+                        .maybeSingle();
+                    
+                    const clienteObj = osData?.cliente as any;
+                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+                    const osDescricao = osData?.descricao || 'OS';
+                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
+                    const proximaEtapaNome = proximaEtapaData?.nome || 'próxima etapa';
+                    const aprovadorNome = currentUser?.nome_completo || 'Coordenador';
+                    const aprovadorCargo = currentUser?.cargo_slug?.replace(/_/g, ' ') || 'Coordenador';
+
+                    const solicitanteId = aprovacaoInfo?.solicitanteId;
+                    const { data: destinatarios } = await supabase
+                        .from('colaboradores')
+                        .select('id, nome_completo')
+                        .eq('ativo', true)
+                        .in('funcao', ['coord_administrativo', 'diretor', 'admin']);
+                    
+                    const idsParaNotificar = new Set<string>();
+                    destinatarios?.forEach(d => idsParaNotificar.add(d.id));
+                    if (solicitanteId) idsParaNotificar.add(solicitanteId);
+                    
+                    if (idsParaNotificar.size > 0) {
+                        const notificacoes = Array.from(idsParaNotificar).map(id => ({
+                            usuario_id: id,
+                            titulo: `✅ ${etapaNome} Aprovada!`,
+                            mensagem: `A ${etapaNome} de *${osDescricao}* para o cliente *${clienteNome}* foi aprovada por *${aprovadorNome}* - ${aprovadorCargo}. O processo agora pode seguir para a etapa de *${proximaEtapaNome}*.`,
+                            link_acao: `/os/details-workflow/${osId}`,
+                            tipo: 'aprovacao',
+                            lida: false,
+                        }));
+                        
+                        await supabase.from('notificacoes').insert(notificacoes);
+                    }
+                } catch (notifError) {
+                    console.error('Erro ao enviar notificações (não bloqueante):', notifError);
+                }
+                
                 await verificarAprovacao();
                 return true;
             } else {
@@ -166,7 +270,7 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
         } finally {
             setIsProcessing(false);
         }
-    }, [osId, etapaOrdem, verificarAprovacao]);
+    }, [osId, etapaOrdem, verificarAprovacao, currentUser, aprovacaoInfo]);
 
     // Rejeitar aprovação
     const rejeitarAprovacao = useCallback(async (motivo: string): Promise<boolean> => {
@@ -188,6 +292,57 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
 
             if (data?.success) {
                 toast.success('Aprovação rejeitada. Solicitante será notificado.');
+                
+                // ✅ NOTIFICAR: Coord Admin + Solicitante + Diretoria
+                try {
+                    // 1. Buscar dados para notificação
+                    const { data: osData } = await supabase
+                        .from('ordens_servico')
+                        .select('codigo_os, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .eq('id', osId)
+                        .single();
+
+                    const { data: etapaData } = await supabase
+                        .from('os_etapas')
+                        .select('nome')
+                        .eq('os_id', osId)
+                        .eq('ordem', Number(etapaOrdem))
+                        .maybeSingle();
+                    
+                    const codigoOS = osData?.codigo_os || 'OS';
+                    const clienteObj = osData?.cliente as any;
+                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
+                    const reprovadorNome = currentUser?.nome_completo || 'Coordenador';
+                    const reprovadorCargo = currentUser?.cargo_slug?.replace(/_/g, ' ') || 'Coordenador';
+
+                    const solicitanteId = aprovacaoInfo?.solicitanteId;
+                    const { data: destinatarios } = await supabase
+                        .from('colaboradores')
+                        .select('id, nome_completo')
+                        .eq('ativo', true)
+                        .in('funcao', ['coord_administrativo', 'diretor', 'admin']);
+                    
+                    const idsParaNotificar = new Set<string>();
+                    destinatarios?.forEach(d => idsParaNotificar.add(d.id));
+                    if (solicitanteId) idsParaNotificar.add(solicitanteId);
+                    
+                    if (idsParaNotificar.size > 0) {
+                        const notificacoes = Array.from(idsParaNotificar).map(id => ({
+                            usuario_id: id,
+                            titulo: `❌ Ajuste Necessário em ${etapaNome}`,
+                            mensagem: `A ${etapaNome} de *${clienteNome}* - ${codigoOS} não foi aprovada por *${reprovadorNome}* - ${reprovadorCargo}.\n🚩 **Motivo:** ${motivo}`,
+                            link_acao: `/os/details-workflow/${osId}`,
+                            tipo: 'aprovacao',
+                            lida: false,
+                        }));
+                        
+                        await supabase.from('notificacoes').insert(notificacoes);
+                    }
+                } catch (notifError) {
+                    console.error('Erro ao enviar notificações (não bloqueante):', notifError);
+                }
+                
                 await verificarAprovacao();
                 return true;
             } else {
@@ -201,7 +356,7 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
         } finally {
             setIsProcessing(false);
         }
-    }, [osId, etapaOrdem, verificarAprovacao]);
+    }, [osId, etapaOrdem, verificarAprovacao, currentUser, aprovacaoInfo]);
 
     return {
         aprovacaoInfo,

@@ -137,6 +137,11 @@ export async function handlePropostaAssAnualGeneration(
       clienteBairro: endereco.bairro || '',
       clienteCidade: endereco.cidade || 'São Luís',
       clienteEstado: endereco.estado || 'MA',
+      clienteResponsavel: (dados.clienteResponsavel as string) || '',
+
+      // Dados de Quantitativos (Imagem OS 05)
+      quantidadeUnidades: Number(dados.quantidadeUnidades) || 0,
+      quantidadeBlocos: Number(dados.quantidadeBlocos) || 0,
 
       // Conteúdo
       objetivo: (dados.objetivo as string) || dadosEscopo.objetivo || os.descricao || '',

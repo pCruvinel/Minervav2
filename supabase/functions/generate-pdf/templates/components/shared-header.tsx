@@ -107,8 +107,10 @@ const styles = StyleSheet.create({
  * />
  * ```
  */
+import { LOGO_BASE64 } from '../assets.ts';
+
 export function SharedHeader({
-  logoUrl = 'https://zxfevlkssljndqqhxkjb.supabase.co/storage/v1/object/public/uploads/logo.png',
+  logoUrl = LOGO_BASE64,
   logoWidth = 150,
   logoHeight = 80,
   documentTitle,

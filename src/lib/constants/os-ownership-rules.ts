@@ -114,12 +114,25 @@ const OS_OBRAS_RULE: OSOwnershipRule = {
       description: 'Transferir para Coordenação de Obras para realizar visita técnica',
     },
     {
-      fromStep: 8,
+      fromStep: 9,
       toStep: 9,
       toCargo: 'coord_administrativo',
       toSetor: 'administrativo',
-      autoReturn: true,
-      description: 'Retornar para Coordenação Administrativa para gerar proposta',
+      description: 'Transferir para Coordenação Administrativa para aprovação da proposta',
+    },
+    {
+      fromStep: 9,
+      toStep: 10,
+      toCargo: 'coord_administrativo',
+      toSetor: 'administrativo',
+      description: 'Proposta aprovada - Transferir para Coordenação Administrativa',
+    },
+    {
+      fromStep: 9,
+      toStep: 7,
+      toCargo: 'coord_obras',
+      toSetor: 'obras',
+      description: 'Retornar para Obras para revisão do memorial após rejeição',
     },
   ],
 };

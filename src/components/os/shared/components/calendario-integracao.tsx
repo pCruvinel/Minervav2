@@ -29,13 +29,11 @@ import {
   useImperativeHandle,
   useState,
   useCallback,
-  useMemo,
   useRef,
   useEffect,
 } from 'react';
 import { CalendarioSemanaCustom } from '@/components/calendario/calendario-semana-custom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
   Calendar,
   CalendarCheck,
@@ -43,8 +41,9 @@ import {
   MapPin,
   AlertCircle,
   CheckCircle2,
+  User,
+  Bell,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
 
 // =====================================================
@@ -61,6 +60,13 @@ export interface Agendamento {
   categoria: string;
   setor: string;
   status: 'confirmado' | 'cancelado';
+  // Novos campos para UX melhorada
+  agendadoPorId?: string;
+  agendadoPorNome?: string;
+  agendadoEm?: string;
+  responsavelId?: string;
+  responsavelNome?: string;
+  notificacaoEnviada?: boolean;
 }
 
 export interface CalendarioIntegracaoHandle {
@@ -105,9 +111,6 @@ export const CalendarioIntegracao = forwardRef<
 >(
   (
     {
-      osId,
-      categoria,
-      setorSlug,
       agendamentoExistente,
       onAgendamentoChange,
       readOnly = false,
@@ -199,7 +202,7 @@ export const CalendarioIntegracao = forwardRef<
                 style={{
                   backgroundColor: agendamentoSelecionado
                     ? 'var(--success)'
-                    : '#3b82f6',
+                    : 'var(--primary)',
                 }}
               >
                 {agendamentoSelecionado ? (
@@ -222,7 +225,8 @@ export const CalendarioIntegracao = forwardRef<
                 </div>
 
                 {agendamentoSelecionado ? (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
+                    {/* Data e Hora do agendamento */}
                     <div className="flex items-center gap-2 text-sm">
                       <Calendar className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
@@ -251,10 +255,52 @@ export const CalendarioIntegracao = forwardRef<
                       <span className="font-medium">{agendamentoSelecionado.setor}</span>
                     </div>
 
-                    <div className="mt-3 pt-3 border-t border-success/20">
-                      <p className="text-xs text-success font-medium">
-                        ✓ Agendamento concluído com sucesso! Você pode avançar para a próxima etapa.
+                    {/* Novas informações: Quem agendou, quando e responsável */}
+                    {agendamentoSelecionado.agendadoPorNome && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          Agendado por: <strong>{agendamentoSelecionado.agendadoPorNome}</strong>
+                        </span>
+                      </div>
+                    )}
+
+                    {agendamentoSelecionado.agendadoEm && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          Em: {new Date(agendamentoSelecionado.agendadoEm).toLocaleString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                    )}
+
+                    {agendamentoSelecionado.responsavelNome && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span>
+                          Responsável: <strong>{agendamentoSelecionado.responsavelNome}</strong>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Mensagem de confirmação de calendário e notificação */}
+                    <div className="mt-3 pt-3 border-t border-success/20 space-y-2">
+                      <p className="text-xs text-success font-medium flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Agendamento concluído com sucesso!
                       </p>
+                      {agendamentoSelecionado.notificacaoEnviada !== false && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          <Bell className="h-4 w-4" />
+                          Adicionado ao calendário do responsável e notificação enviada.
+                        </p>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -268,12 +314,12 @@ export const CalendarioIntegracao = forwardRef<
           </CardContent>
         </Card>
 
-        {/* Calendário Integrado */}
-        {!readOnly && (
+        {/* Calendário Integrado - OCULTAR APÓS CONFIRMAÇÃO */}
+        {!readOnly && !agendamentoSelecionado && (
           <Card className="border-border">
             <CardContent className="p-6">
-              <CalendarioSemanaCustom 
-                dataInicial={dataInicial} 
+              <CalendarioSemanaCustom
+                dataInicial={dataInicial}
                 setorFiltro={setorFiltro}
                 onAgendamentoCriado={handleAgendamentoChange}
               />

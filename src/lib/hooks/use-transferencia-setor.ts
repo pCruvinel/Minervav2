@@ -215,8 +215,12 @@ export function useTransferenciaSetor() {
           setorDestinoNome: SETOR_NOMES[setorDestinoSlug],
           linkOS: `/os/${osId}`,
         };
-
-        await notificarCoordenador(payload);
+        // ✅ FIX: Capturar resultado e logar warning em caso de falha (fallback UX)
+        const notificacaoResult = await notificarCoordenador(payload);
+        if (!notificacaoResult.success) {
+          logger.warn('⚠️ Falha ao notificar coordenador (não crítico):', notificacaoResult.error);
+          // Não bloquear transferência - apenas logar e continuar
+        }
       }
 
       // 8. Montar resultado de sucesso

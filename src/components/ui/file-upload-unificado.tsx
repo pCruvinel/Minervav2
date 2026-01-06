@@ -280,11 +280,32 @@ export function FileUploadUnificado({
         setTempComment(currentComment);
     };
 
-    const saveComment = (fileId: string) => {
+    const saveComment = async (fileId: string) => {
+        // Update local state
         const updatedFiles = files.map(file =>
             file.id === fileId ? { ...file, comentario: tempComment } : file
         );
         onFilesChange(updatedFiles);
+
+        // Update in database if we have osId (it's a persisted document)
+        if (osId) {
+            try {
+                const { error } = await supabase
+                    .from('os_documentos')
+                    .update({ descricao: tempComment })
+                    .eq('id', fileId);
+
+                if (error) {
+                    logger.error('Erro ao atualizar descrição do documento:', error);
+                    toast.error('Erro ao salvar comentário no banco.');
+                } else {
+                    toast.success('Comentário salvo com sucesso!');
+                }
+            } catch (err) {
+                console.error('Erro ao atualizar documento:', err);
+            }
+        }
+
         setEditingComment(null);
         setTempComment('');
     };

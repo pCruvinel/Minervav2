@@ -11,14 +11,11 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { PrimaryButton } from '@/components/ui/primary-button';
-import { Label } from '@/components/ui/label';
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Switch } from '@/components/ui/switch';
 import {
   Check,
-  Send,
   ChevronLeft,
   AlertCircle,
   Loader2
@@ -41,6 +38,8 @@ import { StepAnaliseRelatorio } from '@/components/os/shared/steps/step-analise-
 import { StepRealizarApresentacao } from '@/components/os/shared/steps/step-realizar-apresentacao';
 import { StepGerarContrato } from '@/components/os/shared/steps/step-gerar-contrato';
 import { StepContratoAssinado } from '@/components/os/shared/steps/step-contrato-assinado';
+import { StepRealizarVisita } from '@/components/os/shared/steps/step-realizar-visita';
+import { EtapaStartContrato } from '@/components/os/shared/components/etapa-start-contrato';
 import { ordensServicoAPI, clientesAPI } from '@/lib/api-client';
 import { useOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { toast } from '@/lib/utils/safe-toast';
@@ -51,7 +50,7 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '@/constants/os-workflow';
-import { isValidUUID, mapearTipoOSParaCodigo, calcularValoresPrecificacao } from '@/lib/utils/os-workflow-helpers';
+import { isValidUUID, mapearTipoOSParaCodigo } from '@/lib/utils/os-workflow-helpers';
 import { getSetorIdBySlug, SETOR_SLUG_TO_ID } from '@/lib/constants/colaboradores';
 import { supabase } from '@/lib/supabase-client';
 import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
@@ -225,7 +224,7 @@ const steps = OS_WORKFLOW_STEPS;
 
 interface OSDetailsWorkflowPageProps {
   onBack?: () => void;
-  osId?: string; // ID da OS sendo editada
+  osId?: string;
   initialStep?: number;
   readonly?: boolean;
   parentOSId?: string;
@@ -338,7 +337,8 @@ export function OSDetailsWorkflowPage({
   // Hook de aprovação de etapa (usando currentStep)
   const {
     aprovacaoInfo,
-    recarregar: recarregarAprovacao
+    podeAprovar,
+    solicitarAprovacao,
   } = useAprovacaoEtapa(osId || undefined, currentStep);
 
   // Refs para componentes com validação imperativa
@@ -381,6 +381,9 @@ export function OSDetailsWorkflowPage({
       // Retornar estruturas padrão para etapas que precisam de arrays inicializados
       // Garantir que todos os campos string sejam '' e não undefined para evitar warnings de uncontrolled/controlled
       const defaults: Record<number, any> = {
+        2: {
+          tipoOS: '', // ✅ Evitar undefined no Select (controlled/uncontrolled warning)
+        },
         3: {
           anexos: [],
           idadeEdificacao: '',
@@ -428,6 +431,15 @@ export function OSDetailsWorkflowPage({
           quemEstavaNaApresentacao: '',
           nivelSatisfacao: '',
         },
+        11: {
+          visitaRealizada: false,
+          observacoes: '',
+        },
+        14: {
+          contratoAssinado: false,
+          dataAssinatura: '',
+          observacoes: '',
+        },
       };
 
       return defaults[stepNum] || {};
@@ -435,6 +447,9 @@ export function OSDetailsWorkflowPage({
 
     // Garantir que campos string nunca sejam undefined (evitar warnings uncontrolled/controlled)
     const defaults: Record<number, any> = {
+      2: {
+        tipoOS: '', // ✅ Evitar undefined no Select
+      },
       3: {
         anexos: [],
         idadeEdificacao: '',
@@ -472,6 +487,10 @@ export function OSDetailsWorkflowPage({
         percentualEntrada: '',
         numeroParcelas: '',
       },
+      11: {
+        visitaRealizada: false, // ✅ Evitar undefined no Checkbox
+        observacoes: '',
+      },
       12: {
         propostaApresentada: '',
         metodoApresentacao: '',
@@ -482,6 +501,11 @@ export function OSDetailsWorkflowPage({
         quemEstavaNaApresentacao: '',
         nivelSatisfacao: '',
       },
+      14: {
+        contratoAssinado: false, // ✅ Evitar undefined no Checkbox
+        dataAssinatura: '',
+        observacoes: '',
+      },
     };
 
     // Merge data with defaults to ensure no undefined string fields
@@ -489,14 +513,10 @@ export function OSDetailsWorkflowPage({
     return { ...defaultData, ...data };
   };
 
-  // Atualizar dados de uma etapa
+  // Atualizar dados de uma etapa (síncrono para inputs controlados)
   const setStepData = (stepNum: number, data: EtapaData) => {
-    logger.log('📝 setStepData called', {
-      stepNum,
-      dataKeys: Object.keys(data),
-      hasOsId: !!osId,
-      timestamp: new Date().toISOString()
-    });
+    // Remover debounce no UI update - causa lag em inputs controlados!
+    // O debounce deve ser apenas no salvamento (autosave), não no estado local.
     hookSetStepData(stepNum, data);
   };
 
@@ -516,17 +536,14 @@ export function OSDetailsWorkflowPage({
   const etapa13Data = useMemo(() => getStepData(13), [formDataByStep]);
   const etapa14Data = useMemo(() => getStepData(14), [formDataByStep]);
 
-  // Calcular valores financeiros para a proposta (Etapa 9)
-  const { valorTotal, valorEntrada, valorParcela } = useMemo(() =>
-    calcularValoresPrecificacao(etapa7Data, etapa8Data),
-    [etapa7Data, etapa8Data]
-  );
+  // Valores financeiros agora são calculados diretamente na renderização da Etapa 9
+  // para garantir consistência e evitar erros de parsing.
 
   const setEtapa1Data = (data: Etapa1Data) => setStepData(1, data);
   const setEtapa2Data = (data: Etapa2Data) => setStepData(2, data);
   const setEtapa3Data = (data: Etapa3Data) => setStepData(3, data);
   const setEtapa4Data = (data: Etapa4Data) => setStepData(4, data);
-  const setEtapa5Data = (data: Etapa5Data | ((_prev: Etapa5Data) => Etapa5Data)) => {
+  const setEtapa5Data = (data: Etapa5Data | ((_: Etapa5Data) => Etapa5Data)) => {
     if (typeof data === 'function') {
       const currentData = getStepData(5) as Etapa5Data;
       setStepData(5, data(currentData));
@@ -1200,31 +1217,9 @@ export function OSDetailsWorkflowPage({
     }
   };
 
-  // Auto-concluir etapa 15 quando ela for carregada
-  const hasAutoCompletedStep15 = useRef(false);
-  useEffect(() => {
-    // Só executar se:
-    // 1. Estamos na etapa 15
-    // 2. Não está em modo histórico
-    // 3. Tem osId
-    // 4. Não está processando
-    // 5. Ainda não foi auto-concluída
-    if (
-      currentStep === 15 &&
-      !isHistoricalNavigation &&
-      osId &&
-      !isCreatingOS &&
-      !hasAutoCompletedStep15.current
-    ) {
-      logger.log('🎯 Etapa 15 detectada - Iniciando conclusão automática...');
-      hasAutoCompletedStep15.current = true;
-      handleConcluirOS().catch((error) => {
-        logger.error('❌ Erro na conclusão automática da etapa 15:', error);
-        hasAutoCompletedStep15.current = false; // Reset para tentar novamente se necessário
-      });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep, isHistoricalNavigation, osId, isCreatingOS]);
+  // Auto-redirect removido (Requisito: Apenas clique manual)
+  // const hasAutoCompletedStep15 = useRef(false);
+  // useEffect removed to prevent auto-redirect
 
   /**
    * Avançar para próxima etapa (com validação e salvamento)
@@ -1490,69 +1485,136 @@ export function OSDetailsWorkflowPage({
     }
 
     // ========================================
-    // VERIFICAÇÃO DE APROVAÇÃO
+    // SALVAR DADOS DA ETAPA ANTES DE VERIFICAR APROVAÇÃO
+    // ========================================
+    try {
+      if (osId) {
+        const currentData = getStepData(currentStep);
+        logger.log(`💾 Etapa ${currentStep}: Salvando dados...`, {
+          fieldsCount: Object.keys(currentData || {}).length
+        });
+        await saveStep(currentStep, false, currentData);
+
+        // ✅ Atualizar valor_proposta na OS quando salvar etapa 9
+        if (currentStep === 9 && currentData?.valorTotal) {
+          const valorNumerico = typeof currentData.valorTotal === 'number'
+            ? currentData.valorTotal
+            : parseFloat(String(currentData.valorTotal).replace(/[^\d.,]/g, '').replace(',', '.')) || 0;
+
+          if (valorNumerico > 0) {
+            await supabase
+              .from('ordens_servico')
+              .update({ valor_proposta: valorNumerico })
+              .eq('id', osId);
+            logger.log(`💰 Etapa 9: valor_proposta atualizado para ${valorNumerico}`);
+          }
+        }
+      }
+    } catch (saveError) {
+      logger.error('❌ Erro ao salvar dados da etapa:', saveError);
+      toast.error('Erro ao salvar dados. Tente novamente.');
+      return;
+    }
+
+    // ========================================
+    // VERIFICAÇÃO DE APROVAÇÃO (APÓS SALVAR)
     // ========================================
     if (aprovacaoInfo?.requerAprovacao && osId) {
       const status = aprovacaoInfo.statusAprovacao;
+      // podeAprovar já vem do hook useAprovacaoEtapa
 
-      if (status === 'pendente' || status === 'rejeitada') {
-        // Precisa solicitar aprovação - abrir modal
+      // 🔀 CASO 1: STATUS PENDENTE → SEMPRE TRANSFERE PRIMEIRO
+      // Independente de quem está logado, quando status é 'pendente',
+      // a proposta ainda não foi solicitada para aprovação
+      if (status === 'pendente') {
+        logger.log('🔀 Status pendente - Transferindo para aprovação');
+
+        // Executar transferência para Admin (handoff 9→9)
+        if (os?.tipo_os_codigo) {
+          const resultado = await executarTransferencia({
+            osId,
+            osType: os.tipo_os_codigo,
+            etapaAtual: currentStep,
+            proximaEtapa: currentStep, // Mesma etapa, muda responsável
+            clienteNome: os.cliente_nome || etapa1Data.nome,
+            codigoOS: os.codigo_os,
+            nomeProximaEtapa: `Aprovação: ${steps[currentStep - 1]?.title || `Etapa ${currentStep}`}`,
+          });
+
+          if (resultado.success && resultado.transferencia) {
+            // Marcar status como 'solicitada' na base
+            await solicitarAprovacao('Proposta pronta para revisão e aprovação');
+
+            setTransferenciaInfo(resultado.transferencia);
+            setIsTransferenciaModalOpen(true);
+            return; // Modal de transferência vai redirecionar
+          }
+        }
+
+        // Fallback se não houver handoff: Abrir modal de solicitação
         const stepInfo = steps[currentStep - 1];
         setEtapaNomeParaAprovacao(stepInfo?.title || `Etapa ${currentStep}`);
         setIsAprovacaoModalOpen(true);
         return;
       }
 
-      if (status === 'solicitada') {
-        // Aguardando aprovação do coordenador
+      // 🔀 CASO 2: STATUS SOLICITADA → USUÁRIO QUE PODE APROVAR VÊ MODAL
+      // A proposta já foi solicitada, agora quem pode aprovar decide
+      if (status === 'solicitada' && podeAprovar) {
+        const stepInfo = steps[currentStep - 1];
+        setEtapaNomeParaAprovacao(stepInfo?.title || `Etapa ${currentStep}`);
+        setIsAprovacaoModalOpen(true);
+        return;
+      }
+
+      // 🔀 CASO 3: STATUS SOLICITADA → USUÁRIO QUE NÃO PODE APROVAR AGUARDA
+      if (status === 'solicitada' && !podeAprovar) {
         toast.info('Aguardando aprovação do coordenador para avançar.');
+        return;
+      }
+
+      // 🔀 CASO 4: STATUS REJEITADA → TRANSFERE DE VOLTA PARA REVISÃO
+      if (status === 'rejeitada') {
+        logger.log('🔀 Status rejeitada - Transferindo para revisão');
+        // Neste cenário, a lógica de rejeição já foi executada no onRejeitado
+        // Apenas mostrar mensagem
+        toast.info('Proposta rejeitada. Revise os itens indicados.');
         return;
       }
 
       // Se status === 'aprovada', continua normalmente
     }
 
-    // Salvar dados da etapa atual
-    try {
-      if (osId) {
-        // ✅ FIX: Passar dados explícitos para evitar timing issue do React state
-        const currentData = getStepData(currentStep);
-        logger.log(`💾 Etapa ${currentStep}: Salvando dados...`, {
-          fieldsCount: Object.keys(currentData || {}).length
+    // ========================================
+    // AVANÇAR PARA PRÓXIMA ETAPA (APÓS SALVAR E SEM APROVAÇÃO PENDENTE)
+    // ========================================
+    const nextStep = currentStep + 1;
+    if (nextStep <= steps.length) {
+      // Verificar se há transferência de setor
+      if (osId && os?.tipo_os_codigo) {
+        const resultado = await executarTransferencia({
+          osId,
+          osType: os.tipo_os_codigo,
+          etapaAtual: currentStep,
+          proximaEtapa: nextStep,
+          clienteNome: os.cliente_nome || etapa1Data.nome,
+          codigoOS: os.codigo_os,
+          nomeProximaEtapa: steps[nextStep - 1]?.title || `Etapa ${nextStep}`,
         });
-        await saveStep(currentStep, false, currentData);
-      }
 
-      // Avançar para próxima etapa
-      const nextStep = currentStep + 1;
-      if (nextStep <= steps.length) {
-        // Verificar se há transferência de setor
-        if (osId && os?.tipo_os_codigo) {
-          const resultado = await executarTransferencia({
-            osId,
-            osType: os.tipo_os_codigo,
-            etapaAtual: currentStep,
-            proximaEtapa: nextStep,
-            clienteNome: os.cliente_nome || etapa1Data.nome,
-            codigoOS: os.codigo_os
-          });
-
-          if (resultado.success && resultado.transferencia) {
-            // Mostrar modal de feedback
-            setTransferenciaInfo(resultado.transferencia);
-            setIsTransferenciaModalOpen(true);
-            // O modal redireciona ao fechar, então não avançamos aqui
-            return;
-          }
+        if (resultado.success && resultado.transferencia) {
+          // Mostrar modal de feedback
+          setTransferenciaInfo(resultado.transferencia);
+          setIsTransferenciaModalOpen(true);
+          // O modal redireciona ao fechar, então não avançamos aqui
+          return;
         }
-
-        // Fluxo normal (sem transferência)
-        setCurrentStep(prev => prev + 1);
-        setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
       }
-    } catch {
-      // Não avança se houver erro ao salvar
-      logger.error('❌ Não foi possível avançar devido a erro ao salvar');
+
+      // Fluxo normal (sem transferência)
+      logger.log('✅ Sem mudança de setor, avanço normal');
+      setCurrentStep(prev => prev + 1);
+      setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
     }
 
     const duration = performance.now() - startTime;
@@ -1573,6 +1635,12 @@ export function OSDetailsWorkflowPage({
   // ✅ Calcular ID da etapa atual para passar aos componentes filhos
   const currentStepEtapa = etapas?.find(e => e.ordem === currentStep);
   const currentEtapaId = currentStepEtapa?.id;
+
+  // ✅ FIX: ReadOnly deve ser ativado APENAS se:
+  // 1. É navegação histórica (usuário vendo etapa anterior)
+  // 2. A OS inteira está concluída (Etapa 15 finalizada)
+  const isOsConcluded = etapas?.some(e => e.ordem === TOTAL_WORKFLOW_STEPS && e.status === 'concluida');
+  const isReadOnly = isHistoricalNavigation || !!isOsConcluded;
 
   return (
     <div className="h-screen flex flex-col bg-background">
@@ -1632,7 +1700,7 @@ export function OSDetailsWorkflowPage({
                     onShowNewLeadDialogChange={setShowNewLeadDialog}
                     formData={formData}
                     onFormDataChange={handleFormDataChange}
-                    readOnly={isHistoricalNavigation}
+                    readOnly={isReadOnly}
                   />
                 </ErrorBoundary>
               )}
@@ -1701,7 +1769,7 @@ export function OSDetailsWorkflowPage({
                   ref={stepFollowup1Ref}
                   data={etapa3Data}
                   onDataChange={setEtapa3Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                   osId={osId || undefined}
                   colaboradorId={currentUserId}
                   etapaId={currentEtapaId}
@@ -1716,58 +1784,18 @@ export function OSDetailsWorkflowPage({
                   osId={osId}
                   data={etapa4Data}
                   onDataChange={setEtapa4Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
-              {/* ETAPA 5: Realizar Visita */}
+              {/* ETAPA 5: Realizar Visita (Técnica) */}
               {currentStep === 5 && (
-                <div className="space-y-6">
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Confirme a realização da visita técnica ao local.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Check className="h-10 w-10 text-primary" />
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-medium mb-2">Confirmar Realização da Visita</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Marque a caixa abaixo para confirmar que a visita técnica foi realizada.
-                      </p>
-                      <div className="flex items-center space-x-3 justify-center">
-                        <Switch
-                          id="visitaRealizada"
-                          checked={etapa5Data.visitaRealizada}
-                          onCheckedChange={(checked: boolean) => {
-                            setEtapa5Data((prev: Etapa5Data) => ({ ...prev, visitaRealizada: checked }));
-                          }}
-                        />
-                        <Label htmlFor="visitaRealizada" className="cursor-pointer">
-                          Visita técnica realizada
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {etapa5Data.visitaRealizada && (
-                    <Card className="bg-success/5 border-success/20">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-success" />
-                          <div>
-                            <p className="text-sm font-medium">Visita confirmada!</p>
-                            <p className="text-sm text-muted-foreground">Data: {new Date().toLocaleDateString('pt-BR')}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
-                </div>
+                <StepRealizarVisita
+                  data={etapa5Data}
+                  onDataChange={setEtapa5Data}
+                  readOnly={isReadOnly}
+                  tipoVisita="tecnica"
+                />
               )}
 
               {/* ETAPA 6: Follow-up 2 (Pós-Visita) */}
@@ -1776,7 +1804,7 @@ export function OSDetailsWorkflowPage({
                 <StepPrepararOrcamentos
                   data={etapa6Data}
                   onDataChange={setEtapa6Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                   osId={osId || undefined}
                 />
               )}
@@ -1788,7 +1816,7 @@ export function OSDetailsWorkflowPage({
                   ref={stepMemorialRef}
                   data={etapa7Data}
                   onDataChange={setEtapa7Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
@@ -1798,26 +1826,43 @@ export function OSDetailsWorkflowPage({
                   memorialData={etapa7Data}
                   data={etapa8Data}
                   onDataChange={setEtapa8Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
               {/* ETAPA 9: Gerar Proposta Comercial */}
               {currentStep === 9 && (
-                <StepGerarPropostaOS0104
-                  osId={osId!}
-                  etapa1Data={etapa1Data}
-                  etapa2Data={etapa2Data}
-                  etapa7Data={etapa7Data}
-                  etapa8Data={etapa8Data}
-                  valorTotal={valorTotal}
-                  valorEntrada={valorEntrada}
-                  valorParcela={valorParcela}
-                  data={etapa9Data}
-                  onDataChange={setEtapa9Data}
-                  readOnly={isHistoricalNavigation}
-                  etapaId={currentEtapaId}
-                />
+                (() => {
+                  // ✅ FIX: Parsing robusto dos valores financeiros da Etapa 8
+                  const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
+                  // Remove R$, espaços e converte vírgula para ponto se não houver ponto
+                  const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
+                  const valorTotalCalc = parseFloat(precoClean) || 0;
+
+                  const pcEntrada = parseFloat(etapa8Data.percentualEntrada?.toString() || '40');
+                  const numParcelas = parseInt(etapa8Data.numeroParcelas?.toString() || '2');
+
+                  const valorEntradaCalc = valorTotalCalc * (pcEntrada / 100);
+                  const valorParcelaCalc = (valorTotalCalc - valorEntradaCalc) / (numParcelas || 1);
+
+                  return (
+                    <StepGerarPropostaOS0104
+                      osId={osId!}
+                      etapa1Data={etapa1Data}
+                      etapa2Data={etapa2Data}
+                      etapa7Data={etapa7Data}
+                      etapa8Data={etapa8Data}
+                      // Passar valores calculados para garantir consistência
+                      valorTotal={valorTotalCalc}
+                      valorEntrada={valorEntradaCalc}
+                      valorParcela={valorParcelaCalc}
+                      data={etapa9Data}
+                      onDataChange={setEtapa9Data}
+                      readOnly={isReadOnly}
+                      etapaId={currentEtapaId}
+                    />
+                  );
+                })()
               )}
 
               {/* ETAPA 10: Agendar Visita (Apresentação) */}
@@ -1827,7 +1872,7 @@ export function OSDetailsWorkflowPage({
                   osId={osId}
                   data={etapa10Data}
                   onDataChange={setEtapa10Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
@@ -1836,7 +1881,7 @@ export function OSDetailsWorkflowPage({
                 <StepRealizarApresentacao
                   data={etapa11Data}
                   onDataChange={setEtapa11Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
@@ -1846,18 +1891,35 @@ export function OSDetailsWorkflowPage({
                 <StepAnaliseRelatorio
                   data={etapa12Data}
                   onDataChange={setEtapa12Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
               {/* ETAPA 13: Gerar Contrato (Upload) */}
+              {/* ETAPA 13: Gerar Contrato (Upload) */}
               {currentStep === 13 && (
-                <StepGerarContrato
-                  data={etapa13Data}
-                  onDataChange={setEtapa13Data}
-                  readOnly={isHistoricalNavigation}
-                  etapaId={currentEtapaId}
-                />
+                (() => {
+                  const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
+                  const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
+                  const valorTotalCalc = parseFloat(precoClean) || 0;
+
+                  return (
+                    <StepGerarContrato
+                      data={{
+                        ...etapa13Data,
+                        osId: osId!, // ✅ FIX: Passar osId para upload funcionar
+                        codigoOS: os?.codigo_os || '',
+                        clienteNome: etapa1Data?.nome || os?.cliente?.nome_razao_social || '',
+                        clienteCpfCnpj: etapa1Data?.cpfCnpj || '',
+                        valorContrato: valorTotalCalc,
+                        dataInicio: new Date().toISOString().split('T')[0],
+                      }}
+                      onDataChange={setEtapa13Data}
+                      readOnly={isReadOnly}
+                      etapaId={currentEtapaId}
+                    />
+                  );
+                })()
               )}
 
               {/* ETAPA 14: Contrato Assinado */}
@@ -1865,78 +1927,20 @@ export function OSDetailsWorkflowPage({
                 <StepContratoAssinado
                   data={etapa14Data}
                   onDataChange={setEtapa14Data}
-                  readOnly={isHistoricalNavigation}
+                  readOnly={isReadOnly}
                 />
               )}
 
               {/* ETAPA 15: Iniciar Contrato de Obra */}
               {currentStep === 15 && (
-                <div className="space-y-6">
-                  <Alert className="border-success/20 bg-success/5">
-                    <Check className="h-4 w-4 text-success" />
-                    <AlertDescription className="text-success">
-                      <strong>Parabéns!</strong> Você chegou à última etapa do fluxo comercial.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="flex flex-col items-center justify-center py-12 gap-6">
-                    <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
-                      {isCreatingOS ? (
-                        <Loader2 className="h-10 w-10 text-success animate-spin" />
-                      ) : (
-                        <Send className="h-10 w-10 text-success" />
-                      )}
-                    </div>
-                    <div className="text-center">
-                      <h3 className="font-medium mb-2">Start de Contrato</h3>
-                      <p className="text-sm text-muted-foreground mb-4 max-w-md">
-                        {isCreatingOS
-                          ? 'Concluindo OS automaticamente e iniciando Start de Obra...'
-                          : 'Sucesso! Contrato assinado e Start de Obra iniciada. O status do cliente foi atualizado para \'Ativo\'.'
-                        }
-                      </p>
-                      {!isCreatingOS && (
-                        <PrimaryButton
-                          size="lg"
-                          disabled={isHistoricalNavigation}
-                          onClick={handleConcluirOS}
-                        >
-                          <Send className="h-4 w-4 mr-2" />
-                          Concluir Manualmente (Fallback)
-                        </PrimaryButton>
-                      )}
-                    </div>
-                  </div>
-
-                  <Card className="bg-primary/5 border-primary/20">
-                    <CardHeader>
-                      <CardTitle className="text-base">O que acontecerá:</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">OS atual marcada como "Concluída"</p>
-                          <p className="text-xs text-muted-foreground">Esta OS-001 será arquivada com sucesso</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">Lead convertido em Cliente</p>
-                          <p className="text-xs text-muted-foreground">Status alterado de "lead" para "cliente" no sistema</p>
-                        </div>
-                      </div>
-                      <div className="flex items-start gap-3">
-                        <Check className="h-5 w-5 text-primary mt-0.5" />
-                        <div>
-                          <p className="text-sm font-medium">OS-13 criada automaticamente</p>
-                          <p className="text-xs text-muted-foreground">Nova OS do tipo 13 (Contrato de Obra) gerada para execução interna</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                <EtapaStartContrato
+                  onStart={handleConcluirOS}
+                  isLoading={isCreatingOS}
+                  isProcessing={isCreatingOS}
+                  readOnly={isReadOnly}
+                  isCompleted={os?.status === 'concluida'}
+                  clienteNome={os?.cliente?.nome_razao_social || 'Cliente'}
+                />
               )}
 
             </CardContent>
@@ -1964,8 +1968,8 @@ export function OSDetailsWorkflowPage({
         </div>
       </div>
 
-      {/* Modal de Feedback de Transferência de Setor */}
-      {osId && transferenciaInfo && (
+      {/* Modal de Feedback de Transferência de Setor - NÃO EXIBIR EM READONLY (Histórico ou OS Concluída) */}
+      {osId && transferenciaInfo && !isReadOnly && (
         <FeedbackTransferencia
           isOpen={isTransferenciaModalOpen}
           onClose={() => {
@@ -1977,17 +1981,93 @@ export function OSDetailsWorkflowPage({
         />
       )}
 
-      {/* Modal de Aprovação de Etapa */}
-      {osId && (
+      {/* Modal de Aprovação de Etapa - NÃO EXIBIR EM READONLY */}
+      {osId && !isReadOnly && (
         <AprovacaoModal
           open={isAprovacaoModalOpen}
           onOpenChange={setIsAprovacaoModalOpen}
           osId={osId}
           etapaOrdem={currentStep}
           etapaNome={etapaNomeParaAprovacao}
-          onAprovado={() => {
-            // Recarregar info de aprovação e avançar
-            recarregarAprovacao();
+          onSolicitado={async () => {
+            // 🚀 Transferir para Administrativo (Regra 9->9)
+            if (osId && os?.tipo_os_codigo) {
+              const resultado = await executarTransferencia({
+                osId,
+                osType: os.tipo_os_codigo,
+                etapaAtual: 9,
+                proximaEtapa: 9, // Transferência na mesma etapa
+                clienteNome: os.cliente_nome || etapa1Data.nome,
+                codigoOS: os.codigo_os,
+                nomeProximaEtapa: 'Aprovação da Proposta',
+              });
+
+              if (resultado.success && resultado.transferencia) {
+                setTransferenciaInfo(resultado.transferencia);
+                setIsTransferenciaModalOpen(true);
+              }
+            }
+            await refreshEtapas();
+          }}
+          onAprovado={async () => {
+            // Recarregar etapas do banco (RPC já avançou)
+            await refreshEtapas();
+
+            // 🚀 Executar transferência 9→10 (Obras → Admin) após aprovação
+            if (osId && os?.tipo_os_codigo) {
+              const resultado = await executarTransferencia({
+                osId,
+                osType: os.tipo_os_codigo,
+                etapaAtual: 9,
+                proximaEtapa: 10,
+                clienteNome: os.cliente_nome || etapa1Data.nome,
+                codigoOS: os.codigo_os,
+                nomeProximaEtapa: steps[9]?.title || 'Agendar Visita (Apresentação)',
+              });
+
+              if (resultado.success && resultado.transferencia) {
+                setTransferenciaInfo(resultado.transferencia);
+                setIsTransferenciaModalOpen(true);
+                return; // Modal de transferência vai redirecionar
+              }
+            }
+
+            // Avançar para próxima etapa no frontend (caso não haja transfer)
+            setCurrentStep(prev => prev + 1);
+            setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+          }}
+          onRejeitado={async () => {
+            // 🚀 Transferir de volta para Obras (Regra 9->7)
+            if (osId && os?.tipo_os_codigo) {
+              await executarTransferencia({
+                osId,
+                osType: os.tipo_os_codigo,
+                etapaAtual: 9,
+                proximaEtapa: 7, // Retorno para etapa 7
+                clienteNome: os.cliente_nome || etapa1Data.nome,
+                codigoOS: os.codigo_os,
+                nomeProximaEtapa: 'Memorial (Escopo) - Revisão',
+              });
+              // Não mostramos modal aqui pois vamos redirecionar
+            }
+
+            // Resetar status das etapas 7-9
+            const { error } = await supabase
+              .from('os_etapas')
+              .update({ status: 'em_andamento' })
+              .in('ordem', [7, 8, 9])
+              .eq('os_id', osId);
+
+            if (error) {
+              logger.error('Erro ao resetar etapas:', error);
+              toast.error('Erro ao resetar etapas para revisão');
+              return;
+            }
+
+            toast.success('Proposta rejeitada. Retornando para revisão.');
+            await refreshEtapas();
+            setCurrentStep(7);
+            setLastActiveStep(prev => Math.max(prev ?? 0, 7));
           }}
         />
       )}

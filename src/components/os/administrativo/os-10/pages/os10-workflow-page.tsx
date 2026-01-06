@@ -19,6 +19,10 @@ import { ordensServicoAPI } from '@/lib/api-client';
 import { supabase } from '@/lib/supabase-client';
 import { logger } from '@/lib/utils/logger';
 
+// Sistema de Aprovação
+import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
+import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Abertura da Solicitação', short: 'Abertura', responsible: 'Solicitante', status: 'active' },
     { id: 2, title: 'Seleção do Centro de Custo', short: 'Centro Custo', responsible: 'RH', status: 'pending' },
@@ -36,6 +40,10 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
     const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
     const finalOsId = propOsId || internalOsId;
     const [isCreatingOS, setIsCreatingOS] = useState(false);
+
+    // Estado para modal de aprovação
+    const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
+    const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
 
     // Obter usuário atual para delegação
     const { currentUser } = useAuth();
@@ -138,6 +146,9 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
         onSaveStep: (step) => saveStep(step, false)
     });
 
+    // Hook de aprovação de etapa (depois que currentStep é definido)
+    const { aprovacaoInfo } = useAprovacaoEtapa(finalOsId, currentStep);
+
     // Mapeamento de dados para compatibilidade - Etapa 1: Abertura
     const etapa1Data = formDataByStep[1] || {
         dataAbertura: new Date().toISOString(),
@@ -208,6 +219,22 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
             // Salvar dados das etapas 1 e 2
             await saveStep(1, true);
             await saveStep(2, true);
+        }
+
+        // Verificação de Aprovação (Etapa 2: Consolidação de Dados requer aprovação)
+        if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
+            const etapaNome = steps.find(s => s.id === currentStep)?.title || `Etapa ${currentStep}`;
+
+            if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
+                setEtapaNomeParaAprovacao(etapaNome);
+                setIsAprovacaoModalOpen(true);
+                return;
+            }
+
+            if (aprovacaoInfo.statusAprovacao === 'solicitada') {
+                toast.info('Aguardando aprovação do RH.');
+                return;
+            }
         }
 
         // Chamar o handler normal de navegação
@@ -306,6 +333,21 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
                 onReturnToActive={handleReturnToActive}
                 isLoading={isLoadingData || isCreatingOS}
             />
+
+            {/* Modal de Aprovação de Etapa */}
+            {finalOsId && (
+                <AprovacaoModal
+                    open={isAprovacaoModalOpen}
+                    onOpenChange={setIsAprovacaoModalOpen}
+                    osId={finalOsId}
+                    etapaOrdem={currentStep}
+                    etapaNome={etapaNomeParaAprovacao}
+                    onAprovado={async () => {
+                        setCurrentStep(prev => prev + 1);
+                        setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+                    }}
+                />
+            )}
         </div>
     );
 }

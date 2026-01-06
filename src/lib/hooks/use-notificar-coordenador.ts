@@ -40,6 +40,7 @@ interface NotificarResult {
 export function useNotificarCoordenador() {
   /**
    * Busca o coordenador ativo de um setor
+   * Se não encontrar, faz fallback para admin/diretor
    */
   const buscarCoordenador = useCallback(async (setorSlug: SetorSlug): Promise<CoordenadorInfo | null> => {
     try {
@@ -58,24 +59,53 @@ export function useNotificarCoordenador() {
         .eq('cargos.slug', cargoSlug)
         .eq('ativo', true)
         .limit(1)
-        .maybeSingle(); // ✅ FIX: Use maybeSingle to avoid 406/PGRST116 errors
+        .maybeSingle();
 
       if (error) {
         throw error;
       }
 
-      if (!data) {
-        logger.warn(`⚠️ Nenhum coordenador encontrado para o setor ${setorSlug}`);
-        return null;
+      if (data) {
+        logger.log(`✅ Coordenador encontrado: ${data.nome_completo}`);
+        return {
+          id: data.id,
+          nome_completo: data.nome_completo,
+          email: data.email,
+        };
       }
 
-      logger.log(`✅ Coordenador encontrado: ${data.nome_completo}`);
+      // ✅ FALLBACK: Se não encontrar coordenador específico, buscar admin/diretor
+      logger.warn(`⚠️ Coordenador de ${setorSlug} não encontrado, buscando fallback (admin/diretor)...`);
+      
+      const { data: fallback, error: fallbackError } = await supabase
+        .from('colaboradores')
+        .select(`
+          id,
+          nome_completo,
+          email,
+          cargo:cargos!inner(slug)
+        `)
+        .in('cargos.slug', ['admin', 'diretor'])
+        .eq('ativo', true)
+        .limit(1)
+        .maybeSingle();
 
-      return {
-        id: data.id,
-        nome_completo: data.nome_completo,
-        email: data.email,
-      };
+      if (fallbackError) {
+        throw fallbackError;
+      }
+
+      if (fallback) {
+        const cargoData = fallback.cargo as unknown as { slug: string } | null;
+        logger.log(`✅ Fallback encontrado: ${fallback.nome_completo} (${cargoData?.slug || 'N/A'})`);
+        return {
+          id: fallback.id,
+          nome_completo: fallback.nome_completo,
+          email: fallback.email,
+        };
+      }
+
+      logger.warn(`⚠️ Nenhum coordenador ou fallback encontrado para o setor ${setorSlug}`);
+      return null;
     } catch (error) {
       logger.error('Erro ao buscar coordenador:', error);
       return null;
@@ -103,30 +133,28 @@ export function useNotificarCoordenador() {
       // 2. Criar notificação
       const notificacao = {
         usuario_id: coordenador.id,
-        titulo: `Nova OS para ${payload.setorDestinoNome}`,
-        mensagem: `${payload.codigoOS} - ${payload.clienteNome} está na Etapa ${payload.etapaNumero}: ${payload.etapaNome}`,
+        titulo: `📍 Nova Visita Técnica - ${payload.setorDestinoNome}`,
+        mensagem: `OS ${payload.codigoOS} (${payload.clienteNome}) aguarda sua confirmação de execução na Etapa ${payload.etapaNumero}.`,
         link_acao: payload.linkOS,
         tipo: 'tarefa',
       };
 
       logger.log('📧 Criando notificação para coordenador:', notificacao);
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('notificacoes')
-        .insert(notificacao)
-        .select('id')
-        .single();
+        .insert(notificacao);
 
       if (error) {
         throw error;
       }
 
-      logger.log(`✅ Notificação criada com sucesso (ID: ${data.id})`);
+      logger.log('✅ Notificação enviada para fila');
 
       return {
         success: true,
         coordenador,
-        notificacaoId: data.id,
+        notificacaoId: 'sent-async',
       };
     } catch (error) {
       // ✅ FIX: Log error but don't break the flow - notifications are not critical

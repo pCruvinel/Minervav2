@@ -38,6 +38,10 @@ import { TransferenciaInfo } from '@/types/os-setor-config';
 import { logger } from '@/lib/utils/logger';
 import { supabase } from '@/lib/supabase-client';
 
+// Sistema de Aprovação
+import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
+import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+
 
 interface OS13WorkflowPageProps {
   onBack?: () => void;
@@ -55,6 +59,10 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
   // Estado para feedback de transferência de setor
   const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
   const [transferenciaInfo, setTransferenciaInfo] = useState<TransferenciaInfo | null>(null);
+
+  // Estado para modal de aprovação
+  const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
+  const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
 
   // Hook de transferência
   const { executarTransferencia } = useTransferenciaSetor();
@@ -100,6 +108,9 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     setIsHistoricalNavigation,
     onSaveStep: (step) => saveStep(step, false)
   });
+
+  // Hook de aprovação de etapa (deve vir depois de currentStep ser definido)
+  const { aprovacaoInfo } = useAprovacaoEtapa(internalOsId, currentStep);
 
   // Handler customizado para validação da Etapa 1
   const handleNextStep = async () => {
@@ -189,6 +200,24 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
         console.error(`❌ Erro ao salvar etapa ${currentStep}:`, error);
         toast.error('Erro ao salvar dados. Tente novamente.');
         return; // Não avançar se falhar
+      }
+    }
+
+    // ============================================================================
+    // VERIFICAÇÃO DE APROVAÇÃO (Etapas 3, 5, 8, 12, 15 requerem aprovação)
+    // ============================================================================
+    if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
+      const etapaNome = steps.find(s => s.id === currentStep)?.title || `Etapa ${currentStep}`;
+
+      if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
+        setEtapaNomeParaAprovacao(etapaNome);
+        setIsAprovacaoModalOpen(true);
+        return;
+      }
+
+      if (aprovacaoInfo.statusAprovacao === 'solicitada') {
+        toast.info('Aguardando aprovação do coordenador.');
+        return;
       }
     }
 
@@ -413,6 +442,21 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
           onClose={() => setIsTransferenciaModalOpen(false)}
           transferencia={transferenciaInfo}
           osId={internalOsId || ''}
+        />
+      )}
+
+      {/* Modal de Aprovação de Etapa */}
+      {internalOsId && (
+        <AprovacaoModal
+          open={isAprovacaoModalOpen}
+          onOpenChange={setIsAprovacaoModalOpen}
+          osId={internalOsId}
+          etapaOrdem={currentStep}
+          etapaNome={etapaNomeParaAprovacao}
+          onAprovado={async () => {
+            setCurrentStep(prev => prev + 1);
+            setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
+          }}
         />
       )}
     </div>

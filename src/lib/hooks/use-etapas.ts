@@ -147,6 +147,64 @@ export function useEtapas() {
   };
 
   /**
+   * Criar múltiplas etapas em batch
+   * ✅ Performance: Usa Promise.all para criar todas de uma vez
+   * 
+   * @param osId - ID da Ordem de Serviço
+   * @param etapasData - Array de dados das etapas
+   * @returns Array de etapas criadas
+   * 
+   * @example
+   * ```tsx
+   * const etapas = await createEtapasBatch(osId, [
+   *   { ordem: 1, nome_etapa: 'Cadastrar Lead' },
+   *   { ordem: 2, nome_etapa: 'Classificar OS' },
+   * ]);
+   * ```
+   */
+  const createEtapasBatch = async (
+    osId: string, 
+    etapasData: CreateEtapaData[]
+  ): Promise<OsEtapa[]> => {
+    // Validar osId
+    if (!osId || osId.trim() === '' || osId === 'undefined' || osId === 'null') {
+      const errorMsg = `createEtapasBatch: osId inválido: ${osId}`;
+      logger.error('❌', errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+      logger.log(`➕ Criando ${etapasData.length} etapas em batch na OS ${osId}...`);
+
+      // Criar todas as etapas em paralelo
+      const createdEtapas = await Promise.all(
+        etapasData.map(data =>
+          ordensServicoAPI.createEtapa(osId, {
+            ...data,
+            status: data.status || 'pendente',
+          })
+        )
+      );
+
+      logger.log(`✅ ${createdEtapas.length} etapas criadas em batch`);
+      
+      // Atualizar lista local
+      setEtapas((prev) => prev ? [...prev, ...createdEtapas] : createdEtapas);
+      
+      return createdEtapas;
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Erro ao criar etapas em batch';
+      logger.error('❌ Erro ao criar etapas em batch:', err);
+      setError(errorMsg);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  /**
    * Atualizar etapa existente
    * 
    * @param etapaId - ID da etapa
@@ -278,6 +336,7 @@ export function useEtapas() {
     // Ações
     fetchEtapas,
     createEtapa,
+    createEtapasBatch,
     updateEtapa,
     saveFormData,
 

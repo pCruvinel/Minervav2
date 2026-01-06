@@ -24,9 +24,16 @@ const requisitionItemsAPI = {
   ): Promise<ItemRequisicao> {
     logger.log(`➕ Criando item de requisição...`, item);
 
+    // Normalizar valores numéricos para evitar overflow
+    const normalizedItem = {
+      ...item,
+      quantidade: Number(item.quantidade) || 0,
+      preco_unitario: Number(item.preco_unitario) || 0
+    };
+
     const { data, error } = await supabase
       .from('os_requisition_items')
-      .insert({ os_etapa_id: etapaId, ...item })
+      .insert({ os_etapa_id: etapaId, ...normalizedItem })
       .select()
       .single();
 

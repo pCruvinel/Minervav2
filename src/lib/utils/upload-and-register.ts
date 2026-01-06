@@ -103,7 +103,7 @@ export async function uploadAndRegisterDocument({
       .select('id')
       .eq('os_id', osId)
       .eq('caminho_arquivo', path)
-      .single();
+      .maybeSingle();
 
     if (existingDoc) {
       // Documento já existe, retornar sem criar duplicata
