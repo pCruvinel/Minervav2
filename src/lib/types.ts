@@ -48,41 +48,32 @@ export type EtapaStatus =
   | 'bloqueada'
   | 'cancelada';
 
-// Status situacional computado (via view vw_os_status_completo)
+// Status situacional (coluna física em ordens_servico)
 export type StatusSituacao =
-  | 'no_prazo'
-  | 'alerta_prazo'
-  | 'atrasado'
-  | 'aguardando_info'
-  | 'aguardando_aprovacao' // Deprecated
-  | 'em_validacao'
   | 'acao_pendente'
-  | 'sem_responsavel'
+  | 'aguardando_aprovacao'
+  | 'aguardando_info'
+  | 'atrasado'
+  | 'alerta_prazo'
   | 'finalizado';
 
 export const STATUS_SITUACAO_LABELS: Record<StatusSituacao, string> = {
-  'no_prazo': 'No Prazo',
-  'alerta_prazo': 'Alerta Prazo',
-  'atrasado': 'Atrasado',
-  'aguardando_info': 'Aguard. Info',
-  'aguardando_aprovacao': 'Aguard. Aprovação',
-  'em_validacao': 'Em Validação',
   'acao_pendente': 'Ação Pendente',
-  'sem_responsavel': 'Sem Responsável',
+  'aguardando_aprovacao': 'Aguard. Aprovação',
+  'aguardando_info': 'Aguard. Info',
+  'atrasado': 'Atrasado',
+  'alerta_prazo': 'Alerta Prazo',
   'finalizado': 'Finalizado',
 };
 
-// Semáforo: Verde -> Amarelo -> Vermelho -> Roxo -> Azul -> Cinza
+// Configuração visual dos badges de situação (cores do Design System)
 export const STATUS_SITUACAO_CONFIG: Record<StatusSituacao, { label: string; className: string }> = {
-  'no_prazo': { label: 'No Prazo', className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20' },
-  'alerta_prazo': { label: 'Alerta Prazo', className: 'bg-amber-500/10 text-amber-600 border-amber-500/20' },
-  'atrasado': { label: 'Atrasado', className: 'bg-red-500/10 text-red-600 border-red-500/20' },
-  'aguardando_info': { label: 'Aguard. Info', className: 'bg-orange-500/10 text-orange-600 border-orange-500/20' },
-  'em_validacao': { label: 'Em Validação', className: 'bg-purple-500/10 text-purple-600 border-purple-500/20' },
-  'acao_pendente': { label: 'Ação Pendente', className: 'bg-blue-500/10 text-blue-600 border-blue-500/20' },
-  'sem_responsavel': { label: 'Sem Resp.', className: 'bg-neutral-500/10 text-neutral-600 border-neutral-500/20' },
-  'finalizado': { label: 'Finalizado', className: 'bg-neutral-100 text-neutral-400 border-neutral-200' },
-  'aguardando_aprovacao': { label: 'Depercated', className: 'hidden' }
+  'atrasado': { label: 'Atrasado', className: 'bg-destructive text-destructive-foreground' },
+  'aguardando_aprovacao': { label: 'Aguard. Aprovação', className: 'bg-secondary text-secondary-foreground' },
+  'aguardando_info': { label: 'Aguard. Info', className: 'bg-warning/20 text-warning' },
+  'alerta_prazo': { label: 'Alerta Prazo', className: 'bg-warning text-warning-foreground' },
+  'acao_pendente': { label: 'Ação Pendente', className: 'bg-primary/10 text-primary' },
+  'finalizado': { label: 'Finalizado', className: 'bg-muted text-muted-foreground' },
 };
 
 export interface Etapa {
@@ -92,6 +83,10 @@ export interface Etapa {
   status: EtapaStatus;
   ordem: number;
   responsavel_id?: string;
+  dados_etapa?: Record<string, unknown>;
+  ultima_atualizacao?: string;
+  comentarios_count?: number;
+  documentos_count?: number;
   created_at: string;
   updated_at: string;
 }
@@ -896,6 +891,7 @@ export interface PDFGenerationRequest {
 export interface PDFGenerationResponse {
   success: boolean;
   url?: string;
+  path?: string; // Caminho no Storage (para referência backend)
   error?: string;
   metadata?: {
     filename: string;

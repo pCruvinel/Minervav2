@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -16,29 +17,26 @@ import {
   CheckCircle,
   XCircle,
   Package,
-  Eye,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   useRequisicoesPendentes,
-  useAprovarRequisicao,
-  useRecusarRequisicao,
   type RequisicaoCompra,
 } from '@/lib/hooks/use-aprovacao-requisicoes';
-import { SheetDetalhesRequisicao } from './sheet-detalhes-requisicao';
-import { toast } from 'sonner';
+import { AprovacaoRequisicaoModal } from './aprovacao-requisicao-modal';
 
 /**
  * Aba de requisições pendentes de aprovação
  */
 export function TabPendentesAprovacao() {
+  const navigate = useNavigate();
   const { requisicoes, loading, refetch } = useRequisicoesPendentes();
-  const { mutate: aprovar } = useAprovarRequisicao();
-  const { mutate: recusar } = useRecusarRequisicao();
 
+  // Estado para o modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalTipo, setModalTipo] = useState<'aprovar' | 'recusar'>('aprovar');
   const [selectedRequisicao, setSelectedRequisicao] = useState<RequisicaoCompra | null>(null);
-  const [actionInProgress, setActionInProgress] = useState<string | null>(null);
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString('pt-BR', {
@@ -56,39 +54,10 @@ export function TabPendentesAprovacao() {
       .toUpperCase();
   };
 
-  const handleQuickApprove = async (req: RequisicaoCompra) => {
-    setActionInProgress(req.id);
-    try {
-      await aprovar({
-        osId: req.id,
-        valorTotal: req.valorTotal,
-        ccId: req.cc_id || '',
-        codigoOS: req.codigo_os,
-      });
-      refetch();
-    } finally {
-      setActionInProgress(null);
-    }
-  };
-
-  const handleQuickReject = async (req: RequisicaoCompra) => {
-    const motivo = window.prompt('Informe o motivo da recusa:');
-    if (!motivo?.trim()) {
-      toast.error('Motivo é obrigatório para recusar');
-      return;
-    }
-
-    setActionInProgress(req.id);
-    try {
-      await recusar({
-        osId: req.id,
-        motivo,
-        codigoOS: req.codigo_os,
-      });
-      refetch();
-    } finally {
-      setActionInProgress(null);
-    }
+  const handleOpenModal = (req: RequisicaoCompra, tipo: 'aprovar' | 'recusar') => {
+    setSelectedRequisicao(req);
+    setModalTipo(tipo);
+    setModalOpen(true);
   };
 
   if (loading) {
@@ -135,6 +104,7 @@ export function TabPendentesAprovacao() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead>Solicitante</TableHead>
                   <TableHead>Centro de Custo</TableHead>
                   <TableHead className="text-center">Itens</TableHead>
@@ -143,101 +113,93 @@ export function TabPendentesAprovacao() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {requisicoes.map((req) => {
-                  const isProcessing = actionInProgress === req.id;
-
-                  return (
-                    <TableRow
-                      key={req.id}
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => setSelectedRequisicao(req)}
-                    >
-                      <TableCell>
-                        <div>
-                          <Badge variant="outline" className="font-mono">
-                            {req.codigo_os}
-                          </Badge>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {req.data_entrada
-                              ? format(new Date(req.data_entrada), 'dd/MM/yyyy', { locale: ptBR })
-                              : '-'}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Avatar className="h-8 w-8">
-                            <AvatarFallback className="text-xs">
-                              {req.criado_por?.nome_completo
-                                ? getInitials(req.criado_por.nome_completo)
-                                : '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="text-sm">
-                            {req.criado_por?.nome_completo || '-'}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {req.centro_custo?.nome || '-'}
+                {requisicoes.map((req) => (
+                  <TableRow
+                    key={req.id}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate({ to: '/os/$osId', params: { osId: req.id } })}
+                  >
+                    <TableCell>
+                      <div>
+                        <Badge variant="outline" className="font-mono">
+                          {req.codigo_os}
                         </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline">{req.qtdItens}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-semibold">
-                        {formatCurrency(req.valorTotal)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div
-                          className="flex items-center justify-end gap-1"
-                          onClick={(e) => e.stopPropagation()}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {req.data_entrada
+                            ? format(new Date(req.data_entrada), 'dd/MM/yyyy', { locale: ptBR })
+                            : '-'}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className="bg-secondary text-secondary-foreground">
+                        Aguard. Aprovação
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="text-xs">
+                            {req.criado_por?.nome_completo
+                              ? getInitials(req.criado_por.nome_completo)
+                              : '?'}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm">
+                          {req.criado_por?.nome_completo || '-'}
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">
+                        {req.centro_custo?.nome || '-'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Badge variant="outline">{req.qtdItens}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {formatCurrency(req.valorTotal)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div
+                        className="flex items-center justify-end gap-1"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleOpenModal(req, 'recusar')}
+                          title="Recusar"
                         >
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => setSelectedRequisicao(req)}
-                            title="Ver detalhes"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleQuickReject(req)}
-                            disabled={isProcessing}
-                            title="Recusar"
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
-                            onClick={() => handleQuickApprove(req)}
-                            disabled={isProcessing}
-                            title="Aprovar"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-success hover:text-success hover:bg-success/10"
+                          onClick={() => handleOpenModal(req, 'aprovar')}
+                          title="Aprovar"
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      <SheetDetalhesRequisicao
-        open={!!selectedRequisicao}
-        onClose={() => setSelectedRequisicao(null)}
+      {/* Modal de Aprovação/Rejeição */}
+      <AprovacaoRequisicaoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
         requisicao={selectedRequisicao}
+        tipo={modalTipo}
         onSuccess={refetch}
       />
     </>

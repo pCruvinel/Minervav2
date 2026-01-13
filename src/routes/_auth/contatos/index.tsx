@@ -1,16 +1,16 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { ClientesListaPage } from '../../../components/clientes/clientes-lista-page'
 
-export const Route = createFileRoute('/_auth/clientes/')({
-  component: ClientesListaRoute,
+export const Route = createFileRoute('/_auth/contatos/')({
+  component: ContatosListaRoute,
 })
 
-function ClientesListaRoute() {
+function ContatosListaRoute() {
   const router = useRouter()
 
   return (
     <ClientesListaPage
-      onClienteClick={(clienteId) => router.navigate({ to: '/clientes/$clienteId', params: { clienteId } })}
+      onClienteClick={(clienteId) => router.navigate({ to: '/contatos/$clienteId', params: { clienteId } })}
     />
   )
 }

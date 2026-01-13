@@ -34,6 +34,7 @@ export async function handlePropostaGeneration(
         id,
         codigo_os,
         descricao,
+        tipo_os_id,
         valor_proposta,
         data_entrada,
         metadata,
@@ -44,6 +45,10 @@ export async function handlePropostaGeneration(
           telefone,
           endereco,
           nome_responsavel
+        ),
+        tipo_os:tipos_os (
+          codigo,
+          nome
         )
       `)
       .eq('id', osId)
@@ -123,13 +128,26 @@ export async function handlePropostaGeneration(
     const cronograma = metadata.cronograma || {};
     const financeiro = metadata.financeiro || {};
 
-    // 7. Montar PropostaData completo
+    // 7. Gerar título baseado no tipo da OS
+    const TITULOS_OS: Record<string, string> = {
+      'OS-01': 'PERÍCIA DE FACHADA',
+      'OS-02': 'REVITALIZAÇÃO DE FACHADA',
+      'OS-03': 'REFORÇO ESTRUTURAL',
+      'OS-04': 'SERVIÇOS DE OBRAS',
+    };
+    // Extrair codigo do tipo_os (resultado do JOIN pode ser array ou objeto)
+    const tipoOSData = Array.isArray(os.tipo_os) ? os.tipo_os[0] : os.tipo_os;
+    const codigoTipo = tipoOSData?.codigo || '';
+    const nomeTipo = tipoOSData?.nome || '';
+    const tituloAutoGerado = TITULOS_OS[codigoTipo] || nomeTipo?.toUpperCase() || os.descricao?.toUpperCase() || 'PROPOSTA COMERCIAL';
+
+    // 8. Montar PropostaData completo
     const propostaData: PropostaData = {
       // Dados da OS
       codigoOS: os.codigo_os,
       dataEmissao: os.data_entrada,
       objetivo: dadosMemorial.objetivo || os.descricao,
-      tituloProposta: dadosMemorial.tituloProposta,
+      tituloProposta: tituloAutoGerado,
 
       // Cliente - usa dados da etapa 1 (dadosLead) como fallback para dados do cliente
       // Cliente - priorizar dados enviados pelo frontend

@@ -81,7 +81,8 @@ export function useRequisicoesPendentes() {
           centro_custo:cc_id (nome, cliente:cliente_id (nome_razao_social))
         `)
         .eq('tipo_os_id', OS_09_ID)
-        .eq('status_geral', 'concluido') // Concluídas mas não aprovadas
+        .eq('status_geral', 'em_andamento')
+        .eq('status_situacao', 'aguardando_aprovacao') // Aguardando aprovação do Financeiro
         .order('data_entrada', { ascending: false });
 
       if (error) throw error;
@@ -340,14 +341,18 @@ export function useComprasKPIs() {
       // Buscar todas as OS-09
       const { data: allOS, error: osError } = await supabase
         .from('ordens_servico')
-        .select('id, status_geral, data_entrada')
+        .select('id, status_geral, status_situacao, data_entrada')
         .eq('tipo_os_id', OS_09_ID);
 
       if (osError) throw osError;
 
       // Contar por status
-      const pendentes = (allOS || []).filter(os => os.status_geral === 'concluido').length;
-      const emAndamento = (allOS || []).filter(os => os.status_geral === 'em_andamento').length;
+      const pendentes = (allOS || []).filter(os => 
+        os.status_geral === 'em_andamento' && os.status_situacao === 'aguardando_aprovacao'
+      ).length;
+      const emAndamento = (allOS || []).filter(os => 
+        os.status_geral === 'em_andamento' && os.status_situacao !== 'aguardando_aprovacao'
+      ).length;
       const canceladas = (allOS || []).filter(os => os.status_geral === 'cancelado').length;
 
       // Aprovadas este mês
@@ -356,13 +361,15 @@ export function useComprasKPIs() {
       inicioMes.setHours(0, 0, 0, 0);
 
       const aprovadasMes = (allOS || []).filter(os => {
-        if (os.status_geral !== 'em_andamento') return false;
+        if (os.status_geral !== 'concluido') return false; // OS totalmente concluídas
         const dataOS = new Date(os.data_entrada);
         return dataOS >= inicioMes;
       }).length;
 
       // Calcular valor total das pendentes
-      const osPendentes = (allOS || []).filter(os => os.status_geral === 'concluido');
+      const osPendentes = (allOS || []).filter(os => 
+        os.status_geral === 'em_andamento' && os.status_situacao === 'aguardando_aprovacao'
+      );
       let valorTotalPendente = 0;
 
       for (const os of osPendentes) {

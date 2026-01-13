@@ -2,16 +2,18 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users } from 'lucide-react';
+import { Users, Lock } from 'lucide-react';
+import { useEffect } from 'react';
 
-const DEPARTAMENTOS = [
-    'Obras',
-    'Assessoria',
-    'Administrativo',
-    'Financeiro',
-    'RH',
-    'Diretoria',
-];
+// Mapeamento de setor_slug para nome legível
+const SETOR_LABELS: Record<string, string> = {
+    'obras': 'Obras',
+    'assessoria': 'Assessoria',
+    'administrativo': 'Administrativo',
+    'financeiro': 'Financeiro',
+    'rh': 'RH',
+    'diretoria': 'Diretoria',
+};
 
 const URGENCIAS = [
     { value: 'baixa', label: 'Baixa - Até 30 dias' },
@@ -24,17 +26,41 @@ interface StepAberturaSolicitacaoProps {
     data: {
         dataAbertura: string;
         solicitante: string;
+        solicitanteId?: string;
         departamento: string;
         urgencia: string;
         justificativa: string;
     };
     onDataChange: (data: any) => void;
     readOnly?: boolean;
+    currentUser?: {
+        id: string;
+        nome_completo: string;
+        setor_slug?: string;
+    };
 }
 
-export function StepAberturaSolicitacao({ data, onDataChange, readOnly }: StepAberturaSolicitacaoProps) {
+export function StepAberturaSolicitacao({ data, onDataChange, readOnly, currentUser }: StepAberturaSolicitacaoProps) {
+    // Auto-preencher dados do usuário logado quando o componente monta
+    useEffect(() => {
+        if (currentUser && !data.solicitanteId) {
+            const setorDisplay = currentUser.setor_slug
+                ? (SETOR_LABELS[currentUser.setor_slug] || currentUser.setor_slug)
+                : '';
+
+            onDataChange({
+                ...data,
+                solicitante: currentUser.nome_completo,
+                solicitanteId: currentUser.id,
+                departamento: setorDisplay,
+            });
+        }
+    }, [currentUser]);
+
     const handleInputChange = (field: string, value: any) => {
         if (readOnly) return;
+        // Não permitir alteração de solicitante e departamento
+        if (field === 'solicitante' || field === 'departamento') return;
         onDataChange({ ...data, [field]: value });
     };
 
@@ -101,38 +127,31 @@ export function StepAberturaSolicitacao({ data, onDataChange, readOnly }: StepAb
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="solicitante">
-                            Nome do Solicitante <span className="text-destructive">*</span>
+                        <Label htmlFor="solicitante" className="flex items-center gap-1">
+                            Nome do Solicitante
+                            <Lock className="w-3 h-3 text-muted-foreground" />
                         </Label>
                         <Input
                             id="solicitante"
                             value={data.solicitante}
-                            onChange={(e) => handleInputChange('solicitante', e.target.value)}
-                            placeholder="Nome completo do solicitante"
-                            disabled={readOnly}
+                            disabled
+                            className="bg-muted"
                         />
+                        <p className="text-xs text-muted-foreground">Preenchido automaticamente com o usuário logado</p>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="departamento">
-                            Departamento/Setor <span className="text-destructive">*</span>
+                        <Label htmlFor="departamento" className="flex items-center gap-1">
+                            Departamento/Setor
+                            <Lock className="w-3 h-3 text-muted-foreground" />
                         </Label>
-                        <Select
+                        <Input
+                            id="departamento"
                             value={data.departamento}
-                            onValueChange={(value: string) => handleInputChange('departamento', value)}
-                            disabled={readOnly}
-                        >
-                            <SelectTrigger id="departamento">
-                                <SelectValue placeholder="Selecione o departamento" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {DEPARTAMENTOS.map((dept) => (
-                                    <SelectItem key={dept} value={dept}>
-                                        {dept}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                            disabled
+                            className="bg-muted"
+                        />
+                        <p className="text-xs text-muted-foreground">Preenchido automaticamente com o setor do usuário</p>
                     </div>
                 </div>
 

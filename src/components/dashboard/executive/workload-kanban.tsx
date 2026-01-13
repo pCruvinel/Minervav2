@@ -11,6 +11,7 @@
 
 import { useState, useMemo } from 'react';
 import { useCoordinatorsWorkload, WorkloadOS, CoordinatorWorkload } from '@/lib/hooks/use-coordinators-workload';
+import { STATUS_SITUACAO_CONFIG, StatusSituacao } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -259,8 +260,8 @@ interface WorkloadColumnProps {
 
 function WorkloadColumn({ workload }: WorkloadColumnProps) {
     const getStatusColor = () => {
-        if (workload.atrasadas > 0) return 'border-red-200 bg-red-50/50';
-        if (workload.total > 10) return 'border-amber-200 bg-amber-50/50';
+        if (workload.atrasadas > 0) return 'border-destructive/20 bg-destructive/5';
+        if (workload.total > 10) return 'border-warning/20 bg-warning/5';
         return 'border-border bg-card';
     };
 
@@ -333,7 +334,7 @@ function OSCard({ os }: OSCardProps) {
         >
             <Card className={cn(
                 'p-3 hover:shadow-md transition-shadow cursor-pointer',
-                os.prazoVencido && 'border-red-400 bg-red-50'
+                os.prazoVencido && 'border-destructive/40 bg-destructive/10'
             )}>
                 {/* Header do Card */}
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -343,7 +344,7 @@ function OSCard({ os }: OSCardProps) {
                                 {os.codigo_os}
                             </span>
                             {os.prazoVencido && (
-                                <AlertTriangle className="h-3 w-3 text-red-500" />
+                                <AlertTriangle className="h-3 w-3 text-destructive" />
                             )}
                         </div>
                         <p className="text-sm font-medium truncate mt-1">
@@ -359,11 +360,26 @@ function OSCard({ os }: OSCardProps) {
                     <span className="truncate">{os.tipo_os_nome}</span>
                 </div>
 
-                {os.etapa_atual && (
-                    <Badge variant="outline" className="text-xs mb-2">
-                        {os.etapa_atual.nome}
-                    </Badge>
-                )}
+                {/* Badge de Situação e Etapa */}
+                <div className="flex flex-wrap gap-1 mb-2">
+                    {os.status_situacao && STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao] && (
+                        <Badge
+                            variant="outline"
+                            className={cn(
+                                "text-[10px] px-1.5 h-5",
+                                STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao].className
+                            )}
+                        >
+                            {STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao].label}
+                        </Badge>
+                    )}
+
+                    {os.etapa_atual && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 h-5">
+                            {os.etapa_atual.nome}
+                        </Badge>
+                    )}
+                </div>
 
                 {/* Barra de Progresso do Prazo */}
                 <div className="space-y-1">
@@ -374,7 +390,7 @@ function OSCard({ os }: OSCardProps) {
                         </span>
                         <span className={cn(
                             'font-medium',
-                            os.prazoVencido ? 'text-red-600' : 'text-muted-foreground'
+                            os.prazoVencido ? 'text-destructive' : 'text-muted-foreground'
                         )}>
                             {os.progresso}%
                         </span>
@@ -383,7 +399,7 @@ function OSCard({ os }: OSCardProps) {
                         value={os.progresso}
                         className={cn(
                             'h-1.5',
-                            os.prazoVencido && '[&>div]:bg-red-500'
+                            os.prazoVencido && '[&>div]:bg-destructive'
                         )}
                     />
                 </div>
@@ -392,13 +408,13 @@ function OSCard({ os }: OSCardProps) {
                 {os.data_prazo && (
                     <p className={cn(
                         'text-xs mt-2',
-                        os.prazoVencido ? 'text-red-600 font-medium' : 'text-muted-foreground'
+                        os.prazoVencido ? 'text-destructive font-medium' : 'text-muted-foreground'
                     )}>
                         Prazo: {formatDate(os.data_prazo)}
                     </p>
                 )}
             </Card>
-        </Link>
+        </Link >
     );
 }
 

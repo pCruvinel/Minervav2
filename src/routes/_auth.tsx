@@ -68,7 +68,7 @@ function AuthLayoutContent() {
     if (path.startsWith('/os/criar')) return 'os-criar'
     if (path.startsWith('/os')) return 'os-list'
     if (path.startsWith('/financeiro')) return 'financeiro-dashboard'
-    if (path.startsWith('/clientes')) return 'clientes-lista'
+    if (path.startsWith('/contatos')) return 'contatos-lista'
     if (path.startsWith('/colaboradores')) return 'colaboradores-lista'
     if (path.startsWith('/calendario')) return 'calendario'
     if (path.startsWith('/configuracoes')) return 'configuracoes'
@@ -92,8 +92,8 @@ function AuthLayoutContent() {
       crumbs.push({ label: 'Criar Nova OS', href: '/os/criar' })
     } else if (currentPage === 'financeiro-dashboard') {
       crumbs.push({ label: 'Financeiro', href: '/financeiro' })
-    } else if (currentPage === 'clientes-lista') {
-      crumbs.push({ label: 'Clientes', href: '/clientes' })
+    } else if (currentPage === 'contatos-lista') {
+      crumbs.push({ label: 'Contatos', href: '/contatos' })
     }
 
     return crumbs

@@ -2,12 +2,12 @@
 trigger: always_on
 ---
 
-# Diretrizes do Projeto MinervaV2
+# CLAUDE.md - Diretrizes do Projeto MinervaV2
 
 > **FOCO ATUAL:** Estabilidade, Produção e Eliminação de Dívida Técnica.
 > **REGRA DE OURO:** Não use dados mockados para novas funcionalidades. Conecte ao Supabase.
 
-## 📊 Status do Projeto (Atualizado 02/01/2026)
+## 📊 Status do Projeto (Atualizado 08/01/2026)
 
 ### Supabase - Projeto MinervaV2
 - **Project ID**: `zxfevlkssljndqqhxkjb`
@@ -95,6 +95,28 @@ import {
 - `use-agendamentos.ts` - Agendamentos e turnos
 - `use-contratos.ts` - Gestão de contratos
 - `use-cliente-contratos.ts` - Contratos específicos do cliente
+
+#### Centro de Custo (CC)
+
+**Nomenclatura**
+- **Formato:** `CC{TIPO}{SEQ:3}-{APELIDO}`
+- **Exemplos:** `CC13001-SOLAR_I`, `CC09015-JOAO`
+
+**Componente Reutilizável**
+```typescript
+import { CentroCustoSelector } from '@/components/shared/centro-custo-selector';
+
+<CentroCustoSelector
+  value={selectedCCId}
+  onChange={(ccId, ccData) => handleChange(ccId)}
+  showDetails  // Mostrar card de detalhes
+  required     // Campo obrigatório
+/>
+```
+
+**Uso nas OSs**
+- **OS-09/10**: Seleção manual via componente
+- **OS-11/12/13**: Geração automática no start do contrato
 
 #### Hooks de Documentos (Upload/Download)
 - `use-cliente-documentos.ts` - **Upload de docs do cliente** (RG, CNH, Contrato Social, etc.)
@@ -307,17 +329,5 @@ tipoContrato: 'ASSESSORIA',
 // ❌ Evitar - TODO genérico
 // TODO: fix this
 ```
-
-### Performance
-- **Logger:** Logs de debug removidos automaticamente em produção
 - **Imports:** Use `@/` para facilitar tree-shaking
-- **Componentes:** Evite re-renders desnecessários com `memo` quando apropriado
-
-### Referências de Documentação
-- **Checklist Desenvolvimento:** Ver `docs/planning/CHECKLIST_DESENVOLVIMENTO_COMPLETO.md`
-- **Integração OS 10/11/12:** Ver `docs/planning/INTEGRACAO_OS_10_11_12_SUPABASE.md`
-- **Regras de Negócio:** Ver `docs/sistema/REGRAS_NEGOCIO_FUNCIONALIDADES.md`
-- **Todas as OS e Etapas:** Ver `docs/sistema/TODAS_OS_E_ETAPAS.md`
-- **Audit Completo:** Ver `COMPONENT_AUDIT.md`
-- **Plano de Limpeza:** Ver `COMPONENT_CLEANUP_PLAN.md`
-- **Análise de Código Morto:** Ver `UNUSED_COMPONENTS_ANALYSIS.md`
+- **Componentes:** Evite re-renders desnecessários com `m

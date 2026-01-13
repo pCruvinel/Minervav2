@@ -8,9 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertCircle, Plus, Package, Loader2, Trash2 } from 'lucide-react';
 import { FormMaskedInput } from '@/components/ui/form-masked-input';
 import { RequisitionItemCard } from '../components';
+import { CentroCustoSelector } from '@/components/shared/centro-custo-selector';
 import { useRequisitionItems, useCreateRequisitionItem, useDeleteRequisitionItem } from '@/lib/hooks/use-requisition-items';
 import { useViaCEP } from '@/lib/hooks/use-viacep';
-import { useCentrosCusto } from '@/lib/hooks/use-os-workflows';
 import type { ItemRequisicao, DadosRequisicaoOS } from '@/lib/types';
 import { PRAZOS_NECESSIDADE } from '@/lib/types';
 import { logger } from '@/lib/utils/logger';
@@ -83,7 +83,6 @@ export function StepRequisicaoCompra({
   const { mutate: createItem, loading: creating } = useCreateRequisitionItem();
   const { mutate: deleteItem, loading: deleting } = useDeleteRequisitionItem();
   const { fetchCEP, loading: cepLoading } = useViaCEP();
-  const { centrosCusto, loading: loadingCC } = useCentrosCusto();
 
   // Combinar itens salvos + itens locais (novos)
   const allItems = [...savedItems, ...localItems];
@@ -146,13 +145,23 @@ export function StepRequisicaoCompra({
     if (!etapaId && onCreateOS) {
       try {
         logger.log('Creating OS from Step 1...');
+        // ✅ FIX: Limpar itens locais ANTES de criar a OS
+        // Os itens foram copiados para o pai e serão salvos em createOSWithCC
+        setLocalItems([]);
+
         const newOsId = await onCreateOS();
-        if (!newOsId) return; // Erro ao criar
+        if (!newOsId) {
+          // Se falhou, restaurar os itens locais (foram limpos mas salvos no pai)
+          setLocalItems(data.itens || []);
+          return;
+        }
         // O componente será remontado ou atualizado com o novo etapaId
-        // Mas por garantia, não continuamos aqui pois a navegação vai acontecer
+        // Os itens já foram salvos no banco dentro de createOSWithCC
         return;
       } catch (error) {
         logger.error('Error auto-creating OS:', error);
+        // Restaurar itens locais em caso de erro
+        setLocalItems(data.itens || []);
         return;
       }
     }
@@ -286,42 +295,24 @@ export function StepRequisicaoCompra({
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Centro de Custo */}
-          <div className="space-y-2">
-            <Label htmlFor="centro-custo">
-              Centro de Custo <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={dadosOS.centro_custo_id || ''}
-              onValueChange={(value) => handleOSFieldChange('centro_custo_id', value)}
-              disabled={readOnly || loadingCC}
-            >
-              <SelectTrigger id="centro-custo">
-                <SelectValue placeholder={
-                  loadingCC ? 'Carregando centros de custo...' : 'Selecione o centro de custo'
-                } />
-              </SelectTrigger>
-              <SelectContent>
-                {centrosCusto?.map((cc) => (
-                  <SelectItem key={cc.id} value={cc.id}>
-                    <div className="flex items-center gap-2">
-                      <span>{cc.nome}</span>
-                      {cc.cliente?.nome_razao_social && (
-                        <span className="text-xs text-muted-foreground">
-                          ({cc.cliente.nome_razao_social})
-                        </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {!dadosOS.centro_custo_id && touched.centro_custo_id && (
-              <p className="text-sm text-destructive flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                Centro de custo é obrigatório
-              </p>
-            )}
-          </div>
+          <CentroCustoSelector
+            value={dadosOS.centro_custo_id}
+            onChange={(ccId, ccData) => {
+              setDadosOS(prev => ({
+                ...prev,
+                centro_custo_id: ccId
+              }));
+              // Armazenar nome do CC no data pai para confirmação
+              onDataChange({
+                ...data,
+                centro_custo_id: ccId,
+                centro_custo_nome: ccData?.nome || ''
+              });
+            }}
+            disabled={readOnly}
+            required
+            error={!dadosOS.centro_custo_id && touched.centro_custo_id ? 'Centro de custo é obrigatório' : undefined}
+          />
 
           {/* Prazo de Necessidade */}
           <div className="space-y-2">

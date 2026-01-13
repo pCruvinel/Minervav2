@@ -5,10 +5,18 @@ import { isValidUUID } from '@/lib/utils/os-workflow-helpers'
 // Import de todas as páginas de workflow
 import { OSDetailsWorkflowPage } from '@/components/os/shared/pages/os-details-workflow-page'
 import { OSDetailsAssessoriaPage } from '@/components/os/assessoria/os-5-6/pages/os-details-assessoria-page'
+import { OS56WorkflowPage } from '@/components/os/assessoria/os-5-6/pages/os-5-6-workflow-page'
 import { OS07WorkflowPage } from '@/components/os/assessoria/os-7/pages/os07-workflow-page'
 import { OS08WorkflowPage } from '@/components/os/assessoria/os-8/pages/os08-workflow-page'
 import { OS09WorkflowPage } from '@/components/os/administrativo/os-9/pages/os09-workflow-page'
 import { OS10WorkflowPage } from '@/components/os/administrativo/os-10/pages/os10-workflow-page'
+
+/**
+ * Feature Flag: Usar novo sistema de Accordion para OS 5-6
+ * Defina como `true` para usar o novo componente
+ * Defina como `false` para rollback ao componente legado
+ */
+const USE_OS56_ACCORDION = true;
 
 export const Route = createFileRoute('/_auth/os/details-workflow/$id')({
   component: OSDetailsWorkflowRoute,
@@ -87,9 +95,21 @@ function OSDetailsWorkflowRoute() {
     case 5:
     case 6:
       // OS 5-6: Assessoria Lead (12 etapas)
-      return (
+      // Feature Flag: USE_OS56_ACCORDION
+      return USE_OS56_ACCORDION ? (
+        <OS56WorkflowPage
+          osId={id}
+          tipoOS={osNumber === 5 ? 'OS-05' : 'OS-06'}
+          initialStep={step}
+          readonly={readonly}
+          codigoOS={os.codigo_os}
+          tipoOSNome={os.tipo_os_nome}
+          onBack={handleBack}
+        />
+      ) : (
         <OSDetailsAssessoriaPage
           osId={id}
+          tipoOS={osNumber === 5 ? 'OS-05' : 'OS-06'}
           onBack={handleBack}
         />
       )
@@ -107,6 +127,10 @@ function OSDetailsWorkflowRoute() {
       return (
         <OS08WorkflowPage
           osId={id}
+          initialStep={step}
+          readonly={readonly}
+          codigoOS={os.codigo_os}
+          tipoOSNome={os.tipo_os_nome}
           onBack={handleBack}
         />
       )

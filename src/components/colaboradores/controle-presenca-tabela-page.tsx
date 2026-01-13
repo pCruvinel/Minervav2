@@ -11,7 +11,7 @@ import { Checkbox } from '../ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar } from '../ui/calendar';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../ui/dialog';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip';
+import { TooltipProvider } from '../ui/tooltip';
 import {
   Calendar as CalendarIcon,
   User,
@@ -25,7 +25,12 @@ import {
   ChevronDown,
   Loader2,
   PieChart,
-  AlertTriangle
+  AlertTriangle,
+  Star,
+  Building,
+  X,
+  Paperclip,
+  History
 } from 'lucide-react';
 import { cn } from '../ui/utils';
 import { format, subDays } from 'date-fns';
@@ -35,6 +40,7 @@ import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
 import { CentroCusto } from '@/lib/hooks/use-centro-custo';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { Link } from '@tanstack/react-router';
 
 interface RegistroPresenca {
   colaboradorId: string;
@@ -78,6 +84,14 @@ export function ControlePresencaTabelaPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [colaboradoresRateio, setColaboradoresRateio] = useState<ColaboradorRateio[]>([]);
+
+  // Estados para Bulk Actions
+  const [bulkCCOpen, setBulkCCOpen] = useState(false);
+  const [bulkPerformanceOpen, setBulkPerformanceOpen] = useState(false);
+  const [bulkCCSelection, setBulkCCSelection] = useState<string[]>([]);
+  const [bulkJustificativaOpen, setBulkJustificativaOpen] = useState(false);
+  const [bulkJustificativaTexto, setBulkJustificativaTexto] = useState('');
+  const [bulkJustificativaArquivo, setBulkJustificativaArquivo] = useState<File | null>(null);
 
   // Carregar dados iniciais (Colaboradores e Centros de Custo)
   useEffect(() => {
@@ -234,6 +248,9 @@ export function ControlePresencaTabelaPage() {
   };
 
   const handleStatusChange = (colaboradorId: string, status: RegistroPresenca['status']) => {
+    // Se status é FALTA, limpar performance (não faz sentido avaliar quem faltou)
+    const novaPerformance = status === 'FALTA' ? undefined : registros[colaboradorId]?.performance;
+
     if (status === 'FALTA' || status === 'ATRASADO') {
       setColaboradorAtual(colaboradorId);
       setTipoJustificativa('STATUS');
@@ -245,7 +262,9 @@ export function ControlePresencaTabelaPage() {
       [colaboradorId]: {
         ...prev[colaboradorId],
         status,
+        performance: novaPerformance as RegistroPresenca['performance'],
         justificativaStatus: status === 'OK' ? undefined : prev[colaboradorId].justificativaStatus,
+        justificativaPerformance: status === 'FALTA' ? undefined : prev[colaboradorId].justificativaPerformance,
         minutosAtraso: status === 'ATRASADO' ? prev[colaboradorId].minutosAtraso : undefined,
       }
     }));
@@ -285,7 +304,7 @@ export function ControlePresencaTabelaPage() {
     });
   };
 
-  const handleSalvarJustificativa = (justificativa: string, minutosAtraso?: number) => {
+  const handleSalvarJustificativa = (justificativa: string, minutosAtraso?: number, anexoUrl?: string) => {
     if (!colaboradorAtual) return;
 
     setRegistros(prev => ({
@@ -293,7 +312,7 @@ export function ControlePresencaTabelaPage() {
       [colaboradorAtual]: {
         ...prev[colaboradorAtual],
         ...(tipoJustificativa === 'STATUS'
-          ? { justificativaStatus: justificativa, minutosAtraso }
+          ? { justificativaStatus: justificativa, minutosAtraso, anexoUrl }
           : { justificativaPerformance: justificativa }
         ),
       }
@@ -301,6 +320,136 @@ export function ControlePresencaTabelaPage() {
 
     setModalJustificativaOpen(false);
     setColaboradorAtual(null);
+  };
+
+  // Bulk Actions
+  const handleBulkSetStatus = (status: RegistroPresenca['status']) => {
+    if (selecionados.size === 0) return;
+
+    // Se FALTA, abrir modal de justificativa em massa
+    if (status === 'FALTA') {
+      setBulkJustificativaOpen(true);
+      return;
+    }
+
+    setRegistros(prev => {
+      const novos = { ...prev };
+      selecionados.forEach(id => {
+        novos[id] = {
+          ...novos[id],
+          status,
+          performance: status === 'FALTA' ? undefined : novos[id].performance,
+          justificativaPerformance: status === 'FALTA' ? undefined : novos[id].justificativaPerformance,
+        } as RegistroPresenca;
+      });
+      return novos;
+    });
+
+    toast.success(`${selecionados.size} colaborador(es) marcado(s) como ${status}`);
+  };
+
+  // Confirmar justificativa em massa (para FALTA)
+  const handleBulkJustificativaConfirm = async () => {
+    if (!bulkJustificativaTexto.trim()) {
+      toast.error('Preencha a justificativa');
+      return;
+    }
+
+    let anexoUrl: string | undefined;
+
+    // Upload do arquivo se existir
+    if (bulkJustificativaArquivo) {
+      try {
+        const fileName = `bulk/${Date.now()}_${bulkJustificativaArquivo.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('comprovantes-presenca')
+          .upload(fileName, bulkJustificativaArquivo);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('comprovantes-presenca')
+          .getPublicUrl(fileName);
+
+        anexoUrl = publicUrl;
+      } catch (error) {
+        console.error('Erro upload:', error);
+        toast.error('Erro ao fazer upload do arquivo');
+        return;
+      }
+    }
+
+    // Aplicar FALTA a todos os selecionados
+    setRegistros(prev => {
+      const novos = { ...prev };
+      selecionados.forEach(id => {
+        novos[id] = {
+          ...novos[id],
+          status: 'FALTA',
+          performance: 'BOA', // Default para satisfazer constraint NOT NULL
+          justificativaStatus: bulkJustificativaTexto,
+          anexoUrl: anexoUrl,
+        };
+      });
+      return novos;
+    });
+
+    toast.success(`${selecionados.size} colaborador(es) marcado(s) como FALTA`);
+    setBulkJustificativaOpen(false);
+    setBulkJustificativaTexto('');
+    setBulkJustificativaArquivo(null);
+  };
+
+  const handleBulkSetCC = (ccIds: string[]) => {
+    if (selecionados.size === 0) return;
+
+    setRegistros(prev => {
+      const novos = { ...prev };
+      selecionados.forEach(id => {
+        // Só atribui CC se não estiver como FALTA
+        if (novos[id].status !== 'FALTA') {
+          novos[id] = {
+            ...novos[id],
+            centrosCusto: ccIds,
+          };
+        }
+      });
+      return novos;
+    });
+
+    setBulkCCOpen(false);
+    setBulkCCSelection([]);
+    toast.success(`CCs atribuídos a ${selecionados.size} colaborador(es)`);
+  };
+
+  const handleBulkSetPerformance = (performance: RegistroPresenca['performance']) => {
+    if (selecionados.size === 0) return;
+
+    setRegistros(prev => {
+      const novos = { ...prev };
+      selecionados.forEach(id => {
+        // Só atribui performance se não estiver como FALTA
+        if (novos[id].status !== 'FALTA') {
+          novos[id] = {
+            ...novos[id],
+            performance,
+          };
+        }
+      });
+      return novos;
+    });
+
+    setBulkPerformanceOpen(false);
+    toast.success(`Performance atribuída a ${selecionados.size} colaborador(es)`);
+  };
+
+  const handleSelectBySetor = (setor: string) => {
+    const idsDoSetor = colaboradores
+      .filter(c => c.setor === setor)
+      .map(c => c.id);
+    setSelecionados(new Set(idsDoSetor));
+    toast.info(`${idsDoSetor.length} colaborador(es) de ${setor} selecionado(s)`);
   };
 
   const calcularCustoDia = (colaborador: Colaborador) => {
@@ -409,7 +558,7 @@ export function ControlePresencaTabelaPage() {
           status: reg.status,
           minutos_atraso: reg.minutosAtraso || null,
           justificativa: reg.justificativaStatus || null,
-          performance: reg.performance,
+          performance: reg.performance || 'BOA', // Default para 'BOA' quando FALTA (campo obrigatório no banco)
           performance_justificativa: reg.justificativaPerformance || null,
           centros_custo: reg.centrosCusto,
           anexo_url: reg.anexoUrl || null,
@@ -640,6 +789,14 @@ export function ControlePresencaTabelaPage() {
                   </div>
                 )}
 
+                {/* Link para Histórico */}
+                <Link to="/colaboradores/presenca-historico">
+                  <Button variant="outline">
+                    <History className="mr-2 h-4 w-4" />
+                    Ver Histórico
+                  </Button>
+                </Link>
+
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button variant="outline" className="w-56">
@@ -736,6 +893,138 @@ export function ControlePresencaTabelaPage() {
 
         {/* Tabela Grid */}
         <div className="flex-1 overflow-auto px-6 py-4">
+          {/* Bulk Actions Bar */}
+          {selecionados.size > 0 && !algumRegistroConfirmado && (
+            <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm font-medium">
+                  <CheckCircle className="inline-block mr-2 h-4 w-4 text-primary" />
+                  {selecionados.size} selecionado{selecionados.size > 1 ? 's' : ''}
+                </span>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkSetStatus('OK')}
+                    className="bg-success/10 border-success/30 text-success hover:bg-success/20"
+                  >
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    Marcar OK
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleBulkSetStatus('FALTA')}
+                    className="bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Marcar Falta
+                  </Button>
+
+                  <Popover open={bulkCCOpen} onOpenChange={setBulkCCOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Building className="mr-2 h-4 w-4" />
+                        Atribuir CC
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-80">
+                      <div className="space-y-2">
+                        <Label>Selecione os CCs</Label>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {centrosCusto.map(cc => (
+                            <label key={cc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                              <Checkbox
+                                checked={bulkCCSelection.includes(cc.id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setBulkCCSelection([...bulkCCSelection, cc.id]);
+                                  } else {
+                                    setBulkCCSelection(bulkCCSelection.filter(id => id !== cc.id));
+                                  }
+                                }}
+                              />
+                              <span className="text-sm">{cc.nome}</span>
+                            </label>
+                          ))}
+                        </div>
+                        <Button
+                          className="w-full mt-2"
+                          onClick={() => handleBulkSetCC(bulkCCSelection)}
+                          disabled={bulkCCSelection.length === 0}
+                        >
+                          Aplicar a {selecionados.size} colaborador(es)
+                        </Button>
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+
+                  <Popover open={bulkPerformanceOpen} onOpenChange={setBulkPerformanceOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Star className="mr-2 h-4 w-4" />
+                        Performance
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-48">
+                      <div className="space-y-1">
+                        {(['OTIMA', 'BOA', 'REGULAR', 'RUIM'] as const).map(perf => (
+                          <Button
+                            key={perf}
+                            variant="ghost"
+                            className="w-full justify-start"
+                            onClick={() => handleBulkSetPerformance(perf)}
+                          >
+                            {perf === 'OTIMA' ? 'Ótima' : perf === 'BOA' ? 'Boa' : perf === 'REGULAR' ? 'Regular' : 'Ruim'}
+                          </Button>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Selecionar por Setor */}
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      Selecionar por Setor
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-48">
+                    <div className="space-y-1">
+                      {setoresUnicos.map(setor => (
+                        <Button
+                          key={setor}
+                          variant="ghost"
+                          className="w-full justify-start capitalize"
+                          onClick={() => handleSelectBySetor(setor || '')}
+                        >
+                          {setor || 'Sem setor'}
+                        </Button>
+                      ))}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+
+                {/* Limpar seleção */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSelecionados(new Set())}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          )}
+
           <Card>
             <CardContent className="p-0">
               <Table>
@@ -819,12 +1108,16 @@ export function ControlePresencaTabelaPage() {
 
                         <TableCell>
                           <Select
-                            value={registro.performance}
+                            value={registro.status === 'FALTA' ? '' : (registro.performance || '')}
                             onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
-                            disabled={isRegistroConfirmado(registro)}
+                            disabled={isRegistroConfirmado(registro) || registro.status === 'FALTA'}
                           >
-                            <SelectTrigger className={cn("w-full", getValidationClass(colaborador, registro, 'performance'))}>
-                              <SelectValue />
+                            <SelectTrigger className={cn(
+                              "w-full",
+                              getValidationClass(colaborador, registro, 'performance'),
+                              registro.status === 'FALTA' && "opacity-50 cursor-not-allowed bg-muted"
+                            )}>
+                              <SelectValue placeholder={registro.status === 'FALTA' ? 'N/A' : 'Selecione'} />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="OTIMA">Ótima</SelectItem>
@@ -1020,8 +1313,86 @@ export function ControlePresencaTabelaPage() {
           onSalvar={handleSalvarJustificativa}
           tipo={tipoJustificativa}
           colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome_completo || ''}
+          colaboradorId={colaboradorAtual || undefined}
           status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
         />
+
+        {/* Modal de Justificativa em Massa */}
+        <Dialog open={bulkJustificativaOpen} onOpenChange={setBulkJustificativaOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Justificativa de Falta em Massa</DialogTitle>
+              <DialogDescription>
+                Informe a justificativa que será aplicada a <strong>{selecionados.size} colaborador(es)</strong> selecionados.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="bulk-justificativa">Justificativa *</Label>
+                <Textarea
+                  id="bulk-justificativa"
+                  placeholder="Descreva o motivo da falta..."
+                  value={bulkJustificativaTexto}
+                  onChange={(e) => setBulkJustificativaTexto(e.target.value)}
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Anexar Comprovante (Opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        if (file.size > 5 * 1024 * 1024) {
+                          toast.error('Arquivo muito grande. Máximo 5MB.');
+                          return;
+                        }
+                        setBulkJustificativaArquivo(file);
+                      }
+                    }}
+                    className="flex-1"
+                  />
+                  {bulkJustificativaArquivo && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setBulkJustificativaArquivo(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                {bulkJustificativaArquivo && (
+                  <p className="text-xs text-muted-foreground">
+                    📎 {bulkJustificativaArquivo.name} ({(bulkJustificativaArquivo.size / 1024).toFixed(1)} KB)
+                  </p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  Formatos aceitos: PDF, JPG, PNG (máx. 5MB)
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => {
+                setBulkJustificativaOpen(false);
+                setBulkJustificativaTexto('');
+                setBulkJustificativaArquivo(null);
+              }}>
+                Cancelar
+              </Button>
+              <Button onClick={handleBulkJustificativaConfirm}>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Confirmar Faltas
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
@@ -1031,35 +1402,88 @@ export function ControlePresencaTabelaPage() {
 interface ModalJustificativaProps {
   open: boolean;
   onClose: () => void;
-  onSalvar: (justificativa: string, minutosAtraso?: number) => void;
+  onSalvar: (justificativa: string, minutosAtraso?: number, anexoUrl?: string) => void;
   tipo: 'STATUS' | 'PERFORMANCE';
   colaboradorNome: string;
+  colaboradorId?: string;
   status: RegistroPresenca['status'];
 }
 
-function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, status }: ModalJustificativaProps) {
+function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, colaboradorId, status }: ModalJustificativaProps) {
   const [justificativa, setJustificativa] = useState('');
   const [minutosAtraso, setMinutosAtraso] = useState('');
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
-  const handleSalvar = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tipo
+      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        toast.error('Formato não suportado. Use PDF, JPG ou PNG.');
+        e.target.value = '';
+        return;
+      }
+      // Validar tamanho (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Arquivo muito grande. Máximo 5MB.');
+        e.target.value = '';
+        return;
+      }
+      setArquivo(file);
+    }
+  };
+
+  const handleSalvar = async () => {
     if (!justificativa.trim()) {
       toast.error('Preencha a justificativa');
       return;
     }
 
-    if (status === 'ATRASADO' && !minutosAtraso) {
+    if (status === 'ATRASADO' && tipo === 'STATUS' && !minutosAtraso) {
       toast.error('Informe os minutos de atraso');
       return;
     }
 
-    onSalvar(justificativa, minutosAtraso ? parseInt(minutosAtraso) : undefined);
+    let anexoUrl: string | undefined;
+
+    // Upload do arquivo se existir
+    if (arquivo && colaboradorId) {
+      setUploading(true);
+      try {
+        const fileName = `${colaboradorId}/${Date.now()}_${arquivo.name}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('comprovantes-presenca')
+          .upload(fileName, arquivo);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('comprovantes-presenca')
+          .getPublicUrl(fileName);
+
+        anexoUrl = publicUrl;
+      } catch (error) {
+        console.error('Erro ao fazer upload:', error);
+        toast.error('Erro ao fazer upload do arquivo. Tente novamente.');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+
+    onSalvar(justificativa, minutosAtraso ? parseInt(minutosAtraso) : undefined, anexoUrl);
     setJustificativa('');
     setMinutosAtraso('');
+    setArquivo(null);
   };
 
   const handleClose = () => {
     setJustificativa('');
     setMinutosAtraso('');
+    setArquivo(null);
     onClose();
   };
 
@@ -1101,13 +1525,51 @@ function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, st
               onChange={(e) => setJustificativa(e.target.value)}
             />
           </div>
+
+          {/* Campo de anexo - só para STATUS (falta/atraso) */}
+          {tipo === 'STATUS' && (
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Anexar Comprovante (Opcional)
+              </Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={handleFileChange}
+                  className="flex-1"
+                />
+                {arquivo && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setArquivo(null)}
+                    type="button"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              {arquivo && (
+                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Paperclip className="h-3 w-3" />
+                  {arquivo.name} ({(arquivo.size / 1024).toFixed(1)} KB)
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Formatos aceitos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="outline" onClick={handleClose} disabled={uploading}>
             Cancelar
           </Button>
-          <Button onClick={handleSalvar}>
+          <Button onClick={handleSalvar} disabled={uploading}>
+            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Salvar Justificativa
           </Button>
         </DialogFooter>

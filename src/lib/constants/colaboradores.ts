@@ -31,18 +31,37 @@ export const TIPOS_CONTRATACAO = [
 export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
 
 export const DOCUMENTOS_OBRIGATORIOS = [
-  { value: 'RG', label: 'RG' },
-  { value: 'CPF', label: 'CPF' },
-  { value: 'CNH', label: 'CNH' },
-  { value: 'CTPS', label: 'Carteira de Trabalho (CTPS)' },
-  { value: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de Residência' },
-  { value: 'TITULO_ELEITOR', label: 'Título de Eleitor' },
-  { value: 'RESERVISTA', label: 'Certificado de Reservista' },
-  { value: 'PIS_PASEP', label: 'PIS/PASEP' },
-  { value: 'CERTIDAO_NASCIMENTO', label: 'Certidão de Nascimento' },
-  { value: 'CERTIDAO_CASAMENTO', label: 'Certidão de Casamento' },
-  { value: 'CERTIFICADOS', label: 'Certificados e Cursos' },
-  { value: 'EXAME_ADMISSIONAL', label: 'Exame Admissional' },
+  // Documentos Pessoais
+  { value: 'RG', label: 'RG', categoria: 'pessoal' },
+  { value: 'CPF', label: 'CPF', categoria: 'pessoal' },
+  { value: 'CNH', label: 'CNH', categoria: 'pessoal' },
+  { value: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de Residência', categoria: 'pessoal' },
+  { value: 'TITULO_ELEITOR', label: 'Título de Eleitor', categoria: 'pessoal' },
+  { value: 'RESERVISTA', label: 'Certificado de Reservista', categoria: 'pessoal' },
+  { value: 'CERTIDAO_NASCIMENTO', label: 'Certidão de Nascimento', categoria: 'pessoal' },
+  { value: 'CERTIDAO_CASAMENTO', label: 'Certidão de Casamento', categoria: 'pessoal' },
+  
+  // Documentos CLT
+  { value: 'CTPS', label: 'Carteira de Trabalho (CTPS)', categoria: 'clt' },
+  { value: 'PIS_PASEP', label: 'PIS/PASEP', categoria: 'clt' },
+  { value: 'EXAME_ADMISSIONAL', label: 'Exame Admissional', categoria: 'clt' },
+  
+  // Documentos MEI/PJ
+  { value: 'CNPJ', label: 'Cartão CNPJ', categoria: 'pj' },
+  { value: 'CCMEI', label: 'Certificado MEI (CCMEI)', categoria: 'pj' },
+  { value: 'CONTRATO_SOCIAL', label: 'Contrato Social / Requerimento MEI', categoria: 'pj' },
+  { value: 'ALVARA_FUNCIONAMENTO', label: 'Alvará de Funcionamento', categoria: 'pj' },
+  { value: 'COMPROVANTE_INSCRICAO_MUNICIPAL', label: 'Inscrição Municipal', categoria: 'pj' },
+  { value: 'CERTIDAO_NEGATIVA_FEDERAL', label: 'Certidão Negativa Federal', categoria: 'pj' },
+  { value: 'CERTIDAO_NEGATIVA_ESTADUAL', label: 'Certidão Negativa Estadual', categoria: 'pj' },
+  { value: 'CERTIDAO_NEGATIVA_MUNICIPAL', label: 'Certidão Negativa Municipal', categoria: 'pj' },
+  { value: 'RPA', label: 'Recibo de Pagamento Autônomo (RPA)', categoria: 'pj' },
+  { value: 'DADOS_BANCARIOS_PJ', label: 'Comprovante Conta PJ', categoria: 'pj' },
+  
+  // Outros
+  { value: 'CERTIFICADOS', label: 'Certificados e Cursos', categoria: 'outros' },
+  { value: 'FOTO_3X4', label: 'Foto 3x4', categoria: 'outros' },
+  { value: 'CONTRATO_TRABALHO', label: 'Contrato de Prestação de Serviços', categoria: 'outros' },
 ];
 
 export const BANCOS = [

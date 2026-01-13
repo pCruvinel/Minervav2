@@ -154,11 +154,11 @@ export function GestaoComprasPage() {
         <TabsList>
           <TabsTrigger value="pendentes" className="gap-2">
             <Clock className="h-4 w-4" />
-            Pendentes de Aprovação
+            Aguardando Aprovação
           </TabsTrigger>
           <TabsTrigger value="historico" className="gap-2">
             <CheckCircle className="h-4 w-4" />
-            Histórico e Status
+            Histórico
           </TabsTrigger>
         </TabsList>
 

@@ -129,7 +129,7 @@ O sistema de notificações do Minerva ERP utiliza:
 {
   titulo: `✅ ${etapaNome} Aprovada!`,
   mensagem: `A ${etapaNome} de *${osDescricao}* para o cliente *${clienteNome}* foi aprovada por *${aprovadorNome}* - ${aprovadorCargo}. O processo agora pode seguir para a etapa de *${proximaEtapaNome}*.`,
-  link_acao: `/os/details-workflow/${osId}`,
+  link_acao: `/os/details-workflow/${osId}?step=${proximaEtapa}`,
   tipo: 'aprovacao',
 }
 ```
@@ -137,7 +137,7 @@ O sistema de notificações do Minerva ERP utiliza:
 **Exemplo Real:**
 - **Título:** "✅ Proposta Aprovada!"
 - **Mensagem:** "A Proposta de *Revitalização de Fachada* para o cliente *João Dias* foi aprovada por *Pedro Cruvinel* - Coord Administrativo. O processo agora pode seguir para a etapa de *Agendar Visita (Apresentação)*."
-- **Link:** `/os/details-workflow/uuid-da-os`
+- **Link:** `/os/details-workflow/uuid?step=10` (direciona para a próxima etapa)
 
 ---
 
@@ -158,7 +158,7 @@ O sistema de notificações do Minerva ERP utiliza:
 {
   titulo: `❌ Ajuste Necessário em ${etapaNome}`,
   mensagem: `A ${etapaNome} de *${clienteNome}* - ${codigoOS} não foi aprovada por *${reprovadorNome}* - ${reprovadorCargo}.\n🚩 **Motivo:** ${motivo}`,
-  link_acao: `/os/details-workflow/${osId}`,
+  link_acao: `/os/details-workflow/${osId}?step=${etapaAtual}`,
   tipo: 'aprovacao',
 }
 ```
@@ -166,7 +166,7 @@ O sistema de notificações do Minerva ERP utiliza:
 **Exemplo Real:**
 - **Título:** "❌ Ajuste Necessário em Proposta"
 - **Mensagem:** "A Proposta de *João Dias* - OS-01-0042 não foi aprovada por *Maria Coordenadora* - Coord Administrativo.\n🚩 **Motivo:** Valores incorretos na proposta"
-- **Link:** `/os/details-workflow/uuid-da-os`
+- **Link:** `/os/details-workflow/uuid?step=9` (direciona para a etapa que precisa de ajuste)
 
 ---
 

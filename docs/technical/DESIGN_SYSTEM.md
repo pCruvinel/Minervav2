@@ -637,6 +637,41 @@ O sistema detecta automaticamente a preferência do usuário por movimento reduz
 <Badge className="bg-info text-white">Informação</Badge>
 ```
 
+### Badges de Status de OS
+
+> **📖 Documentação completa:** [STATUS_SYSTEM.md](./STATUS_SYSTEM.md)
+
+#### Status Geral (Ciclo de Vida)
+
+| Status | Classes | Uso |
+|--------|---------|-----|
+| Em Triagem | `bg-muted text-muted-foreground` | `<Badge className="bg-muted text-muted-foreground">Em Triagem</Badge>` |
+| Em Andamento | `bg-primary/10 text-primary` | `<Badge className="bg-primary/10 text-primary">Em Andamento</Badge>` |
+| Concluído | `bg-success/10 text-success` | `<Badge className="bg-success/10 text-success">Concluído</Badge>` |
+| Cancelado | `bg-destructive/10 text-destructive` | `<Badge variant="destructive">Cancelado</Badge>` |
+
+#### Status Situação (Ação Pendente)
+
+| Situação | Classes | Prioridade |
+|----------|---------|:----------:|
+| Atrasado | `bg-destructive text-destructive-foreground` | 1 |
+| Aguard. Aprovação | `bg-secondary text-secondary-foreground` | 2 |
+| Aguard. Info | `bg-warning/20 text-warning` | 3 |
+| Alerta Prazo | `bg-warning text-warning-foreground` | 4 |
+| Ação Pendente | `bg-primary/10 text-primary` | 5 |
+| Finalizado | `bg-muted text-muted-foreground` | 6 |
+
+**Uso via Configuração:**
+```tsx
+import { STATUS_SITUACAO_CONFIG, type StatusSituacao } from '@/lib/types';
+
+function SituacaoBadge({ situacao }: { situacao: StatusSituacao }) {
+    const config = STATUS_SITUACAO_CONFIG[situacao];
+    if (!config || situacao === 'finalizado') return null;
+    return <Badge className={config.className}>{config.label}</Badge>;
+}
+```
+
 ### Cards
 
 ```tsx

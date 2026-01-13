@@ -4,7 +4,7 @@ import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
-import { CadastrarLead, CadastrarLeadHandle, FormDataCompleto } from '@/components/os/shared/steps/cadastrar-lead';
+import { LeadCadastro, LeadCadastroHandle, LeadCompleto } from '@/components/os/shared/lead-cadastro';
 import { StepAgendarVisita } from '@/components/os/assessoria/os-11/steps/step-agendar-visita';
 import { StepRealizarVisita } from '@/components/os/assessoria/os-11/steps/step-realizar-visita';
 import { StepAnexarRT } from '@/components/os/assessoria/os-11/steps/step-anexar-rt';
@@ -62,11 +62,10 @@ export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
     // Refs para validação imperativa de steps
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const stepAgendarVisitaRef = useRef<any>(null);
-    const cadastrarLeadRef = useRef<CadastrarLeadHandle>(null);
+    const leadCadastroRef = useRef<LeadCadastroHandle>(null);
 
     // Estado para CadastrarLead
-    const [showCombobox, setShowCombobox] = useState(false);
-    const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
 
     // Obter usuário atual para delegação
     const { currentUser } = useAuth();
@@ -189,31 +188,8 @@ export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
         }
     }, [propClienteId]);
 
-    // Etapa 1: Cadastrar Lead (compatível com CadastrarLead)
-    const etapa1Data: FormDataCompleto = formDataByStep[1] || {
-        nome: '',
-        cpfCnpj: '',
-        tipo: '',
-        tipoEmpresa: '',
-        nomeResponsavel: '',
-        cargoResponsavel: '',
-        telefone: '',
-        email: '',
-        tipoEdificacao: '',
-        qtdUnidades: '',
-        qtdBlocos: '',
-        qtdPavimentos: '',
-        tipoTelhado: '',
-        possuiElevador: false,
-        possuiPiscina: false,
-        cep: '',
-        endereco: '',
-        numero: '',
-        complemento: '',
-        bairro: '',
-        cidade: '',
-        estado: '',
-    };
+    // Etapa 1: LeadCadastro Data
+    const etapa1Data = formDataByStep[1] || null;
 
     // Etapa 2: Agendar Visita
     const etapa2Data = formDataByStep[2] || {
@@ -273,7 +249,7 @@ export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
 
     const completionRules = useMemo(() => ({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        1: (d: any) => !!(d.nome && d.cpfCnpj && d.endereco && selectedLeadId),
+        1: (d: any) => !!(d?.identificacao?.nome && d?.identificacao?.cpfCnpj && selectedLeadId),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         2: (d: any) => !!(d.dataVisita && d.tecnicoResponsavel),
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -324,15 +300,18 @@ export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
     // Handler customizado para o avanço da etapa 1 (criar OS com cliente)
     const handleCustomNextStep = async () => {
         // Na Etapa 1, precisamos criar a OS antes de avançar
-        if (currentStep === 1 && !finalOsId) {
-            if (!selectedLeadId) {
-                toast.error('Selecione um cliente antes de continuar');
-                return;
-            }
+        if (currentStep === 1) {
+            if (!leadCadastroRef.current) return;
 
-            const newOsId = await createOSWithClient(selectedLeadId);
-            if (!newOsId) {
-                return; // Erro na criação
+            const saved = await leadCadastroRef.current.save();
+            if (!saved) return;
+
+            // Se for string, é o ID (novo ou existente)
+            const savedId = saved;
+
+            if (savedId && !finalOsId) {
+                const newOsId = await createOSWithClient(savedId);
+                if (!newOsId) return;
             }
 
             // Salvar dados da etapa 1
@@ -417,20 +396,29 @@ export function OS11WorkflowPage({ onBack, osId: propOsId, parentOSId: _parentOS
                 <Card className="max-w-5xl mx-auto">
                     <div className="p-6">
                         {currentStep === 1 && (
-                            <CadastrarLead
-                                ref={cadastrarLeadRef}
+                            <LeadCadastro
+                                ref={leadCadastroRef}
                                 selectedLeadId={selectedLeadId}
-                                onSelectLead={(leadId, leadData) => {
+                                onLeadChange={(leadId: string, leadData?: LeadCompleto) => {
                                     setSelectedLeadId(leadId);
-                                    setStepData(1, { ...etapa1Data, leadId, leadData });
+                                    if (leadData) {
+                                        setStepData(1, {
+                                            ...etapa1Data,
+                                            leadId,
+                                            leadData,
+                                            // Flatten data for compatibility with other steps
+                                            nome: leadData.identificacao.nome,
+                                            email: leadData.identificacao.email,
+                                            telefone: leadData.identificacao.telefone,
+                                            cpfCnpj: leadData.identificacao.cpfCnpj
+                                        });
+                                    } else {
+                                        setStepData(1, { ...etapa1Data, leadId });
+                                    }
                                 }}
-                                showCombobox={showCombobox}
-                                onShowComboboxChange={setShowCombobox}
-                                showNewLeadDialog={showNewLeadDialog}
-                                onShowNewLeadDialogChange={setShowNewLeadDialog}
-                                formData={etapa1Data}
-                                onFormDataChange={(data) => setStepData(1, { ...data, leadId: selectedLeadId })}
+                                initialData={etapa1Data}
                                 readOnly={isHistoricalNavigation}
+                                statusFilter="cliente"
                             />
                         )}
                         {currentStep === 2 && finalOsId && (

@@ -24,7 +24,8 @@ import {
     MoreVertical,
     Layers,
     MapPin,
-    AlertTriangle
+    AlertTriangle,
+    Mail
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
 import { OSDocumentsTab } from '@/components/os/tabs/os-documents-tab';
@@ -51,6 +52,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
 import { useOSHierarchy } from '@/lib/hooks/use-os-hierarchy';
+import { SendMessageModal } from '@/components/shared/send-message-modal';
 
 // Types for the redesigned OS details
 interface OSDetails {
@@ -177,8 +179,11 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
     const [cancelReasonOther, setCancelReasonOther] = useState('');
     const [isCancelling, setIsCancelling] = useState(false);
 
+    // Send Message Modal
+    const [showSendMessageModal, setShowSendMessageModal] = useState(false);
+
     // Status Situação (de vw_os_status_completo)
-    const [statusSituacao, setStatusSituacao] = useState<string>('no_prazo');
+    const [statusSituacao, setStatusSituacao] = useState<string>('acao_pendente');
 
     // Opções de motivo de cancelamento
     const CANCEL_REASONS = [
@@ -326,17 +331,22 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         const dados = step1.dados_etapa as any;
 
                         // Update osData with Step 1 info
+                        // Handle endereco that may be a nested object or individual fields
+                        const enderecoObj = typeof dados.endereco === 'object' && dados.endereco !== null
+                            ? dados.endereco
+                            : null;
+
                         osData = {
                             ...osData,
                             // Prioritize Step 1 address over Client fallback
                             endereco_obra: {
-                                logradouro: dados.endereco || dados.logradouro || osData.endereco_obra?.logradouro,
-                                numero: dados.numero || osData.endereco_obra?.numero,
-                                bairro: dados.bairro || osData.endereco_obra?.bairro,
-                                cidade: dados.cidade || osData.endereco_obra?.cidade,
-                                estado: dados.estado || dados.uf || osData.endereco_obra?.estado,
-                                cep: dados.cep || osData.endereco_obra?.cep,
-                                complemento: dados.complemento || osData.endereco_obra?.complemento
+                                logradouro: enderecoObj?.rua || enderecoObj?.logradouro || dados.rua || dados.logradouro || (typeof dados.endereco === 'string' ? dados.endereco : '') || osData.endereco_obra?.logradouro,
+                                numero: enderecoObj?.numero || dados.numero || osData.endereco_obra?.numero,
+                                bairro: enderecoObj?.bairro || dados.bairro || osData.endereco_obra?.bairro,
+                                cidade: enderecoObj?.cidade || dados.cidade || osData.endereco_obra?.cidade,
+                                estado: enderecoObj?.estado || enderecoObj?.uf || dados.estado || dados.uf || osData.endereco_obra?.estado,
+                                cep: enderecoObj?.cep || dados.cep || osData.endereco_obra?.cep,
+                                complemento: enderecoObj?.complemento || dados.complemento || osData.endereco_obra?.complemento
                             },
                             // Update client info override if available
                             cliente_nome: dados.nome || osData.cliente_nome,
@@ -704,34 +714,28 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                             <Badge
                                 variant="outline"
                                 className={
-                                    statusSituacao === 'no_prazo'
-                                        ? 'bg-success/10 text-success border-success/20'
-                                        : statusSituacao === 'acao_pendente'
-                                            ? 'bg-info/10 text-info border-info/20'
+                                    statusSituacao === 'atrasado'
+                                        ? 'bg-destructive text-destructive-foreground border-destructive'
+                                        : statusSituacao === 'aguardando_aprovacao'
+                                            ? 'bg-secondary text-secondary-foreground border-secondary'
                                             : statusSituacao === 'aguardando_info'
-                                                ? 'bg-warning/10 text-warning border-warning/20'
-                                                : statusSituacao === 'aguardando_aprovacao'
-                                                    ? 'bg-accent text-accent-foreground border-accent'
-                                                    : statusSituacao === 'alerta_prazo'
-                                                        ? 'bg-warning/10 text-warning border-warning/20'
-                                                        : statusSituacao === 'atrasado'
-                                                            ? 'bg-destructive/10 text-destructive border-destructive/20'
-                                                            : statusSituacao === 'finalizado'
-                                                                ? 'bg-muted text-muted-foreground border-muted'
-                                                                : statusSituacao === 'sem_responsavel'
-                                                                    ? 'bg-muted/50 text-muted-foreground border-muted'
-                                                                    : 'bg-muted text-muted-foreground'
+                                                ? 'bg-warning/20 text-warning border-warning/20'
+                                                : statusSituacao === 'alerta_prazo'
+                                                    ? 'bg-warning text-warning-foreground border-warning'
+                                                    : statusSituacao === 'acao_pendente'
+                                                        ? 'bg-primary/10 text-primary border-primary/20'
+                                                        : statusSituacao === 'finalizado'
+                                                            ? 'bg-muted text-muted-foreground border-muted'
+                                                            : 'bg-muted text-muted-foreground'
                                 }
                             >
-                                {statusSituacao === 'no_prazo' ? 'No Prazo'
-                                    : statusSituacao === 'acao_pendente' ? 'Ação Pendente'
+                                {statusSituacao === 'atrasado' ? 'Atrasado'
+                                    : statusSituacao === 'aguardando_aprovacao' ? 'Aguard. Aprovação'
                                         : statusSituacao === 'aguardando_info' ? 'Aguard. Info'
-                                            : statusSituacao === 'aguardando_aprovacao' ? 'Aguard. Aprovação'
-                                                : statusSituacao === 'alerta_prazo' ? 'Alerta Prazo'
-                                                    : statusSituacao === 'atrasado' ? 'Atrasado'
-                                                        : statusSituacao === 'finalizado' ? 'Finalizado'
-                                                            : statusSituacao === 'sem_responsavel' ? 'Sem Responsável'
-                                                                : statusSituacao}
+                                            : statusSituacao === 'alerta_prazo' ? 'Alerta Prazo'
+                                                : statusSituacao === 'acao_pendente' ? 'Ação Pendente'
+                                                    : statusSituacao === 'finalizado' ? 'Finalizado'
+                                                        : statusSituacao}
                             </Badge>
                             {isAutoUpdating && (
                                 <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 animate-pulse">
@@ -867,6 +871,17 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                                     {osDetails.cliente_email && <span>{osDetails.cliente_email}</span>}
                                                     {osDetails.cliente_telefone && <span>{osDetails.cliente_telefone}</span>}
                                                 </div>
+                                            )}
+                                            {(osDetails.cliente_email || osDetails.cliente_telefone) && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="mt-3 w-full"
+                                                    onClick={() => setShowSendMessageModal(true)}
+                                                >
+                                                    <Mail className="w-4 h-4 mr-2" />
+                                                    Enviar Mensagem
+                                                </Button>
                                             )}
                                         </div>
 
@@ -1335,6 +1350,25 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>
+
+            {/* Send Message Modal */}
+            <SendMessageModal
+                open={showSendMessageModal}
+                onOpenChange={setShowSendMessageModal}
+                destinatario={{
+                    nome: osDetails.cliente_nome,
+                    email: osDetails.cliente_email,
+                    telefone: osDetails.cliente_telefone,
+                }}
+                contexto={{
+                    tipo: 'os',
+                    id: osId,
+                    codigo: osDetails.codigo_os,
+                }}
+                variaveis={{
+                    os_tipo: osDetails.tipo_os_nome,
+                }}
+            />
         </div >
     );
 };

@@ -128,21 +128,21 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
                     // 1. Buscar dados para notificação
                     const { data: osData } = await supabase
                         .from('ordens_servico')
-                        .select('codigo_os, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .select('codigo_os, cliente:cliente_id(nome_razao_social)')
                         .eq('id', osId)
                         .single();
 
                     const { data: etapaData } = await supabase
                         .from('os_etapas')
-                        .select('nome')
+                        .select('nome_etapa')
                         .eq('os_id', osId)
                         .eq('ordem', Number(etapaOrdem))
                         .maybeSingle();
                     
                     const codigoOS = osData?.codigo_os || 'OS';
                     const clienteObj = osData?.cliente as any;
-                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
-                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
+                    const clienteNome = clienteObj?.nome_razao_social || 'Cliente';
+                    const etapaNome = etapaData?.nome_etapa || `Etapa ${etapaOrdem}`;
                     const tipoDocumento = etapaNome;
 
                     const { data: destinatarios } = await supabase
@@ -204,29 +204,29 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
                     // 1. Buscar dados para notificação
                     const { data: osData } = await supabase
                         .from('ordens_servico')
-                        .select('codigo_os, descricao, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .select('codigo_os, descricao, cliente:cliente_id(nome_razao_social)')
                         .eq('id', osId)
                         .single();
 
                     const { data: etapaData } = await supabase
                         .from('os_etapas')
-                        .select('nome')
+                        .select('nome_etapa')
                         .eq('os_id', osId)
                         .eq('ordem', Number(etapaOrdem))
                         .maybeSingle();
                         
                     const { data: proximaEtapaData } = await supabase
                         .from('os_etapas')
-                        .select('nome')
+                        .select('nome_etapa')
                         .eq('os_id', osId)
                         .eq('ordem', Number(etapaOrdem) + 1)
                         .maybeSingle();
                     
                     const clienteObj = osData?.cliente as any;
-                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+                    const clienteNome = clienteObj?.nome_razao_social || 'Cliente';
                     const osDescricao = osData?.descricao || 'OS';
-                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
-                    const proximaEtapaNome = proximaEtapaData?.nome || 'próxima etapa';
+                    const etapaNome = etapaData?.nome_etapa || `Etapa ${etapaOrdem}`;
+                    const proximaEtapaNome = proximaEtapaData?.nome_etapa || 'próxima etapa';
                     const aprovadorNome = currentUser?.nome_completo || 'Coordenador';
                     const aprovadorCargo = currentUser?.cargo_slug?.replace(/_/g, ' ') || 'Coordenador';
 
@@ -242,11 +242,12 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
                     if (solicitanteId) idsParaNotificar.add(solicitanteId);
                     
                     if (idsParaNotificar.size > 0) {
+                        const proximaEtapa = Number(etapaOrdem) + 1;
                         const notificacoes = Array.from(idsParaNotificar).map(id => ({
                             usuario_id: id,
                             titulo: `✅ ${etapaNome} Aprovada!`,
                             mensagem: `A ${etapaNome} de *${osDescricao}* para o cliente *${clienteNome}* foi aprovada por *${aprovadorNome}* - ${aprovadorCargo}. O processo agora pode seguir para a etapa de *${proximaEtapaNome}*.`,
-                            link_acao: `/os/details-workflow/${osId}`,
+                            link_acao: `/os/details-workflow/${osId}?step=${proximaEtapa}`,
                             tipo: 'aprovacao',
                             lida: false,
                         }));
@@ -298,21 +299,21 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
                     // 1. Buscar dados para notificação
                     const { data: osData } = await supabase
                         .from('ordens_servico')
-                        .select('codigo_os, cliente:clientes(nome_fantasia, nome_razao_social)')
+                        .select('codigo_os, cliente:cliente_id(nome_razao_social)')
                         .eq('id', osId)
                         .single();
 
                     const { data: etapaData } = await supabase
                         .from('os_etapas')
-                        .select('nome')
+                        .select('nome_etapa')
                         .eq('os_id', osId)
                         .eq('ordem', Number(etapaOrdem))
                         .maybeSingle();
                     
                     const codigoOS = osData?.codigo_os || 'OS';
                     const clienteObj = osData?.cliente as any;
-                    const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
-                    const etapaNome = etapaData?.nome || `Etapa ${etapaOrdem}`;
+                    const clienteNome = clienteObj?.nome_razao_social || 'Cliente';
+                    const etapaNome = etapaData?.nome_etapa || `Etapa ${etapaOrdem}`;
                     const reprovadorNome = currentUser?.nome_completo || 'Coordenador';
                     const reprovadorCargo = currentUser?.cargo_slug?.replace(/_/g, ' ') || 'Coordenador';
 
@@ -328,11 +329,12 @@ export function useAprovacaoEtapa(osId: string | undefined, etapaOrdem: number):
                     if (solicitanteId) idsParaNotificar.add(solicitanteId);
                     
                     if (idsParaNotificar.size > 0) {
+                        const etapaAtual = Number(etapaOrdem);
                         const notificacoes = Array.from(idsParaNotificar).map(id => ({
                             usuario_id: id,
                             titulo: `❌ Ajuste Necessário em ${etapaNome}`,
                             mensagem: `A ${etapaNome} de *${clienteNome}* - ${codigoOS} não foi aprovada por *${reprovadorNome}* - ${reprovadorCargo}.\n🚩 **Motivo:** ${motivo}`,
-                            link_acao: `/os/details-workflow/${osId}`,
+                            link_acao: `/os/details-workflow/${osId}?step=${etapaAtual}`,
                             tipo: 'aprovacao',
                             lida: false,
                         }));

@@ -14,12 +14,17 @@ clientes (1) ↔ (N) ordens_servico (1) ↔ (1) centros_custo
 ```sql
 public.centros_custo (
   id uuid PK,
-  nome text,                    -- Ex: CC1300001
+  nome text,                    -- Ex: CC13001-SOLAR_I (novo formato)
   valor_global numeric,         -- Orçamento total do CC
   cliente_id uuid FK(clientes), -- Cliente proprietário
   tipo_os_id uuid FK(tipos_os), -- Tipo que originou o CC
+  os_id uuid UNIQUE FK(ordens_servico), -- OS vinculada (1:1)
   descricao text,               -- Descrição opcional
-  ativo boolean                 -- Status do CC
+  ativo boolean,                -- Status do CC
+  data_inicio date,             -- Início do contrato
+  data_fim date,                -- Fim do contrato
+  created_at timestamptz,
+  updated_at timestamptz
 );
 ```
 
@@ -32,179 +37,154 @@ public.ordens_servico (
 );
 ```
 
-## 🔧 Mudanças Necessárias
+---
 
-### 1. Constraint de Integridade
-```sql
--- Garantir que cada OS tenha exatamente 1 CC
-ALTER TABLE public.ordens_servico
-ADD CONSTRAINT ordens_servico_cc_id_not_null
-CHECK (cc_id IS NOT NULL);
+## 🏷️ Convenção de Nomenclatura
 
--- Índice para performance
-CREATE INDEX idx_ordens_servico_cc_id ON ordens_servico(cc_id);
+### Formato Atual (✅ Implementado)
+
+**Padrão:** `CC{NUMERO_TIPO_OS}{SEQUENCIAL_3_DIGITOS}-{APELIDO_OU_PRIMEIRO_NOME}`
+
+| Tipo OS | Seq | Cliente | Apelido | Resultado |
+|---------|-----|---------|---------|-----------|
+| OS-13 | 1 | João Silva | - | `CC13001-JOAO` |
+| OS-13 | 2 | Construtora ABC | Solar I | `CC13002-SOLAR_I` |
+| OS-11 | 15 | Maria Santos | Edifício Estrela | `CC11015-EDIFICIO_ESTRELA` |
+| OS-09 | 123 | Empresa XYZ S.A. | - | `CC09123-EMPRESA` |
+
+### Regras de Normalização
+
+1. **Prioridade do texto:**
+   - Se `apelido` existe e não está vazio → usar `apelido`
+   - Senão → usar primeira palavra de `nome_razao_social`
+
+2. **Normalização:**
+   - Converter para UPPERCASE
+   - Remover acentos (NFD normalize)
+   - Substituir espaços/caracteres especiais por underscore
+   - Limitar a 20 caracteres
+
+3. **Sequencial:**
+   - Sempre 3 dígitos (001, 002, ..., 999)
+   - Reinicia por tipo de OS
+
+### Função de Normalização
+
+```typescript
+// src/lib/hooks/use-centro-custo.ts
+export function normalizarNomeCentroCusto(texto: string): string {
+  return texto
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')  // Remove acentos
+    .replace(/[^A-Z0-9]/g, '_')       // Caracteres inválidos → _
+    .replace(/_+/g, '_')              // Remove duplicados
+    .replace(/^_|_$/g, '')            // Remove nas pontas
+    .substring(0, 20);                 // Limita tamanho
+}
 ```
 
-### 2. Trigger Automático de Criação
-```sql
-CREATE OR REPLACE FUNCTION criar_centro_custo_para_os()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Se cc_id não foi fornecido, criar automaticamente
-  IF NEW.cc_id IS NULL THEN
-    -- Chamar função gerar_centro_custo existente
-    SELECT cc_id INTO NEW.cc_id
-    FROM gerar_centro_custo(NEW.tipo_os_id, NEW.cliente_id, 'Criado automaticamente para OS');
-  END IF;
+---
 
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+## 🧩 Componente Reutilizável
 
--- Aplicar trigger
-CREATE TRIGGER trigger_criar_cc_para_os
-  BEFORE INSERT ON ordens_servico
-  FOR EACH ROW
-  EXECUTE FUNCTION criar_centro_custo_para_os();
+### `CentroCustoSelector`
+
+**Localização:** `src/components/shared/centro-custo-selector.tsx`
+
+**Uso:**
+```tsx
+import { CentroCustoSelector } from '@/components/shared/centro-custo-selector';
+
+<CentroCustoSelector
+  value={selectedCCId}
+  onChange={(ccId, ccData) => setSelectedCC(ccId)}
+  showDetails           // Mostrar card de detalhes
+  required              // Campo obrigatório
+  label="Centro de Custo"
+  clienteId={clienteId} // Filtrar por cliente (opcional)
+/>
 ```
 
-### 3. Validações de Negócio
+**Props:**
+| Prop | Tipo | Descrição |
+|------|------|-----------|
+| `value` | `string` | ID do CC selecionado |
+| `onChange` | `(ccId, ccData) => void` | Callback de mudança |
+| `disabled` | `boolean` | Desabilitar seleção |
+| `placeholder` | `string` | Placeholder customizado |
+| `clienteId` | `string` | Filtrar por cliente |
+| `showDetails` | `boolean` | Mostrar card de detalhes |
+| `required` | `boolean` | Campo obrigatório |
+| `error` | `string` | Mensagem de erro |
+| `label` | `string` | Label do campo |
 
-#### Regra: Centro de Custo deve pertencer ao mesmo cliente da OS
-```sql
-CREATE OR REPLACE FUNCTION validar_cc_cliente_os()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Verificar se o CC pertence ao cliente da OS
-  IF NOT EXISTS (
-    SELECT 1 FROM centros_custo cc
-    WHERE cc.id = NEW.cc_id
-    AND cc.cliente_id = NEW.cliente_id
-  ) THEN
-    RAISE EXCEPTION 'Centro de Custo % não pertence ao cliente da OS', NEW.cc_id;
-  END IF;
+**Usado em:**
+- OS-09: Requisição de Compras
+- OS-10: Requisição de Mão de Obra
 
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
+---
 
-CREATE TRIGGER trigger_validar_cc_cliente_os
-  BEFORE INSERT OR UPDATE ON ordens_servico
-  FOR EACH ROW
-  EXECUTE FUNCTION validar_cc_cliente_os();
-```
+## 🔄 Fluxo de Criação de CC
 
-## 🔄 Fluxo de Criação de OS
+### OSs que Geram CC Automaticamente
+- **OS-11**: Start Contrato Assessoria Mensal
+- **OS-12**: Start Contrato Assessoria Avulsa
+- **OS-13**: Start de Contrato de Obra
 
-### Fluxo Atual (Manual)
-1. Usuário cria OS
-2. Sistema solicita seleção de Centro de Custo
-3. Usuário seleciona CC existente ou cria novo
+### OSs que Selecionam CC Existente
+- **OS-09**: Requisição de Compras
+- **OS-10**: Requisição de Mão de Obra
 
-### Fluxo Proposto (Automático)
-1. Usuário cria OS informando tipo_os e cliente
-2. Sistema **automaticamente** cria Centro de Custo usando `gerar_centro_custo()`
-3. OS é vinculada ao CC recém-criado
-4. Usuário pode editar descrição do CC se necessário
+### Fluxo Automático (OS-11, 12, 13)
+1. Usuário preenche dados do cliente
+2. Sistema cria OS com cliente vinculado
+3. Hook `createCentroCustoWithId()` é chamado:
+   - Busca `apelido` ou primeiro nome do cliente
+   - Normaliza texto
+   - Gera nome: `CC{TIPO}{SEQ:3}-{TEXTO}`
+   - Insere CC vinculado à OS
+
+### Fluxo Manual (OS-09, 10)
+1. Usuário abre workflow
+2. Sistema exibe `CentroCustoSelector` com CCs ativos
+3. Usuário seleciona CC
+4. Sistema vincula OS ao CC selecionado
+
+---
 
 ## 📈 Benefícios da Implementação
 
 ### 1. Integridade de Dados
-- **Garantia**: Toda OS terá exatamente 1 CC
-- **Consistência**: CC sempre pertence ao cliente correto
-- **Auditoria**: Histórico completo de custos por OS
+- ✅ Toda OS de contrato tem exatamente 1 CC
+- ✅ Nome do CC é rastreável (contém apelido/nome do cliente)
+- ✅ Histórico completo de custos por projeto
 
 ### 2. Experiência do Usuário
-- **Automação**: Não precisa escolher CC manualmente
-- **Clareza**: Cada OS tem seu próprio centro de custos
-- **Rastreabilidade**: Custos 100% isolados por projeto
+- ✅ Nomenclatura humanizada (não apenas códigos)
+- ✅ Componente padronizado em todo o sistema
+- ✅ Detalhes do CC visíveis na seleção
 
 ### 3. Relatórios e Analytics
-- **Análises por OS**: Custos detalhados por projeto específico
-- **Comparativos**: Performance financeira por tipo de serviço
-- **Orçamentos**: Controle preciso por centro de custo
-
-## 🎨 Interface do Usuário
-
-### Dashboard do Cliente
-```
-📊 Cliente: João Silva
-
-Centro de Custos Ativos: 3
-├── CC1300001 - Reforma Fachada (OS-2024-001)
-├── CC0900005 - Instalação Elétrica (OS-2024-002)
-└── CC0500012 - Manutenção Geral (OS-2024-003)
-```
-
-### Detalhes da OS
-```
-🏗️ OS-2024-001 - Reforma Fachada
-
-Centro de Custo: CC1300001
-Valor Orçado: R$ 15.000,00
-Valor Executado: R$ 12.500,00
-Status: Em Andamento
-```
-
-## 🔍 Queries de Histórico Consolidado
-
-### Histórico Completo do Cliente
-```sql
-SELECT
-  c.nome_razao_social as cliente,
-  os.codigo_os,
-  os.descricao,
-  cc.nome as centro_custo,
-  os.status_geral,
-  os.valor_contrato,
-  os.data_entrada,
-  os.data_conclusao
-FROM clientes c
-LEFT JOIN ordens_servico os ON c.id = os.cliente_id
-LEFT JOIN centros_custo cc ON os.cc_id = cc.id
-WHERE c.id = $1
-ORDER BY os.data_entrada DESC;
-```
-
-### Timeline Consolidada
-```sql
-SELECT 'os_criada' as tipo, os.id, os.codigo_os as titulo, os.descricao, os.data_entrada as data, os.status_geral as status
-FROM ordens_servico os WHERE os.cliente_id = $1
-
-UNION ALL
-
-SELECT 'contrato_assinado' as tipo, ctr.id, 'Contrato Assinado' as titulo, ctr.descricao, ctr.data_assinatura as data, 'concluido' as status
-FROM contratos ctr WHERE ctr.os_id IN (SELECT id FROM ordens_servico WHERE cliente_id = $1)
-
-ORDER BY data DESC;
-```
-
-## ✅ Checklist de Implementação
-
-- [ ] Criar migration para constraint NOT NULL em cc_id
-- [ ] Implementar trigger automático de criação de CC
-- [ ] Adicionar validação de cliente-CC
-- [ ] Atualizar função `gerar_centro_custo` se necessário
-- [ ] Criar componente `ClienteHistoricoCompleto`
-- [ ] Implementar queries otimizadas para histórico
-- [ ] Atualizar navegação cliente → OS → CC
-- [ ] Adicionar testes de integridade
-- [ ] Documentar novas regras de negócio
-
-## 🚨 Riscos e Mitigações
-
-### Risco: Dados existentes sem CC
-**Mitigação**: Script de migração para criar CCs retroativos
-
-### Risco: Performance de queries complexas
-**Mitigação**: Índices otimizados + cache estratégico
-
-### Risco: Mudanças breaking na API
-**Mitigação**: Versionamento adequado + comunicação com frontend
+- ✅ Fácil identificação visual do CC
+- ✅ Agrupamento por tipo de OS
+- ✅ Filtro por cliente
 
 ---
 
-**Status**: 🟡 Planejado - Aguardando implementação
-**Prioridade**: 🔴 CRÍTICA
-**Responsável**: Equipe de Backend
-**Prazo**: 2 sprints
+## ✅ Checklist de Implementação
+
+- [x] Definir convenção de nomenclatura
+- [x] Implementar função `normalizarNomeCentroCusto()`
+- [x] Atualizar hook `createCentroCustoWithId()`
+- [x] Criar componente `CentroCustoSelector`
+- [x] Migrar OS-09 para usar componente
+- [x] Migrar OS-10 para usar componente
+- [x] Atualizar documentação
+- [ ] Testes automatizados (opcional)
+
+---
+
+**Status**: 🟢 Implementado
+**Última Atualização**: 2026-01-08

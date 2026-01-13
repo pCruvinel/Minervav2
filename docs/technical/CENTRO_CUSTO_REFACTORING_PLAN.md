@@ -1,7 +1,7 @@
 # 🏗️ Plano de Refatoração: Arquitetura de Centros de Custo
 
-**Data:** 2025-12-06  
-**Status:** 🟢 Migration Criada - Aguardando Execução  
+**Data:** 2025-12-06 (Atualizado: 2026-01-08)  
+**Status:** 🟢 Frontend Implementado | 🟡 Migration Pendente  
 **Prioridade:** 🔴 CRÍTICA
 
 ---
@@ -193,13 +193,15 @@ registros_presenca → alocacao_horas_cc → centros_custo
 - [ ] Migrar dados existentes (alocações)
 
 ### Frontend
-- [ ] Atualizar componente de seleção de CC
+- [x] Atualizar componente de seleção de CC → `CentroCustoSelector`
+- [x] Hook com nova nomenclatura: `CC{TIPO}{SEQ:3}-{APELIDO}`
 - [ ] Criar interface de rateio de MO
 - [ ] Dashboard de lucratividade por CC
 - [ ] Integrar views no painel financeiro
 
 ### Validações
-- [ ] OS-09 exigir cc_id obrigatório
+- [x] OS-09 exigir cc_id obrigatório
+- [x] OS-10 seleção de CC padronizada
 - [ ] Conciliação permitir rateio múltiplo
 - [ ] Presença permitir alocação percentual
 

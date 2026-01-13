@@ -1,7 +1,7 @@
 # Documentação Técnica: Configuração de Precificação (Pricing Config)
 
-**Última Atualização:** 2026-01-05
-**Versão:** v1.0
+**Última Atualização:** 2026-01-07
+**Versão:** v1.1
 **Status:** Implementado (OS 1-4 e OS 5-6)
 
 ---
@@ -158,3 +158,49 @@ Para editar as taxas, o usuário deve ter:
 - Cargo vinculado ao setor `diretoria`
 
 Usuários operacionais (Coord. Obras, etc.) verão apenas os valores aplicados na OS, com os campos possivelmente bloqueados (read-only).
+
+---
+
+## 📄 Aplicação no PDF de Proposta
+
+### Fórmula de Cálculo
+
+Os valores no PDF são calculados automaticamente usando o **fator multiplicador**:
+
+```typescript
+// Fator = 1 + (%Imprevisto/100) + (%Lucro/100) + (%Imposto/100)
+// Valor Final Item = Custo × Fator
+
+const fatorMultiplicador = 1 + (imprevisto/100) + (lucro/100) + (imposto/100);
+const valorFinal = custoItem * fatorMultiplicador;
+```
+
+### Implementação no Template
+
+**Arquivo:** `supabase/functions/generate-pdf/templates/proposta-template.tsx`
+
+O componente `SpecsTable` recebe o `fatorMultiplicador` e aplica a cada item:
+
+```tsx
+const SpecsTable = ({ etapas, fatorMultiplicador = 1 }) => (
+  {etapa.subetapas.map((sub) => {
+    const valorFinal = Number(sub.total || 0) * fatorMultiplicador;
+    return <Text>{formatarMoeda(valorFinal)}</Text>;
+  })}
+);
+```
+
+---
+
+## 📊 Visualização de Fórmulas (Dashboard Executivo)
+
+A aba **Taxas** no Dashboard Executivo agora exibe:
+
+1. **Fórmula de cálculo por item** - Como cada item do escopo é precificado
+2. **Fórmula de valor total** - Soma dos itens com margens
+3. **Simulação em tempo real** - Mostra o fator multiplicador baseado nas configurações atuais
+
+**Exemplo com taxas padrão (10% + 40% + 15%):**
+- Fator Multiplicador: 1.65x
+- Custo R$ 1.000 → Proposta R$ 1.650
+

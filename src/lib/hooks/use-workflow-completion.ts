@@ -7,34 +7,55 @@ interface UseWorkflowCompletionProps {
   completedStepsFromHook?: number[];
 }
 
+/**
+ * Hook para gerenciar estado de completude de etapas do workflow
+ * 
+ * @param completedStepsFromHook - Etapas realmente concluídas (salvas no banco com status='concluida')
+ * @param completionRules - Regras para verificar se dados locais permitem avançar
+ * 
+ * @returns 
+ * - completedSteps: Etapas realmente concluídas (do banco)
+ * - readyToAdvanceSteps: Etapas com dados preenchidos que permitem avançar
+ * - isStepCompleted: Verifica se etapa está concluída no banco
+ * - canAdvanceFromStep: Verifica se dados locais permitem avançar de uma etapa
+ */
 export function useWorkflowCompletion({
-  currentStep,
+  currentStep: _currentStep,
   formDataByStep,
   completionRules,
   completedStepsFromHook = []
 }: UseWorkflowCompletionProps) {
   
+  // ✅ FIX: completedSteps agora é APENAS do banco (etapas realmente salvas como concluídas)
   const completedSteps = useMemo(() => {
-    // If we have completed steps from the backend/hook, use them as a base or override
-    // Ideally, we merge them or use the backend source of truth if available.
-    // For now, the pattern in the pages is: if hook has data, use it; else calculate.
-    if (completedStepsFromHook.length > 0) return completedStepsFromHook;
+    return [...completedStepsFromHook].sort((a, b) => a - b);
+  }, [completedStepsFromHook]);
 
-    const completed: number[] = [];
+  // readyToAdvanceSteps: etapas com dados locais que satisfazem as regras (permite avançar)
+  const readyToAdvanceSteps = useMemo(() => {
+    const ready: number[] = [];
 
     Object.entries(completionRules).forEach(([stepIdStr, rule]) => {
       const stepId = parseInt(stepIdStr, 10);
       const stepData = formDataByStep[stepId] || {};
       
-      if (rule(stepData)) {
-        completed.push(stepId);
+      try {
+        if (rule(stepData)) {
+          ready.push(stepId);
+        }
+      } catch (error) {
+        console.warn(`Erro ao validar etapa ${stepId}:`, error);
       }
     });
 
-    return completed;
-  }, [completedStepsFromHook, formDataByStep, completionRules]);
+    return ready.sort((a, b) => a - b);
+  }, [formDataByStep, completionRules]);
 
+  // ✅ FIX: isStepCompleted verifica apenas o banco
   const isStepCompleted = (stepId: number) => completedSteps.includes(stepId);
+
+  // canAdvanceFromStep: verifica se dados locais permitem avançar
+  const canAdvanceFromStep = (stepId: number) => readyToAdvanceSteps.includes(stepId);
 
   const progressPercentage = useMemo(() => {
     const totalSteps = Object.keys(completionRules).length;
@@ -44,7 +65,10 @@ export function useWorkflowCompletion({
 
   return {
     completedSteps,
+    readyToAdvanceSteps,
     isStepCompleted,
+    canAdvanceFromStep,
     progressPercentage
   };
 }
+

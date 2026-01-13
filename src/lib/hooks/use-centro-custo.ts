@@ -1,8 +1,8 @@
 /**
  * Hook para gerenciamento de Centros de Custo
  *
- * Integrado com função PL/pgSQL `gerar_centro_custo` para geração automática
- * com naming convention CC{NUMERO_TIPO_OS}{SEQUENCIAL}
+ * Naming convention: CC{NUMERO_TIPO_OS}{SEQUENCIAL_3_DIGITOS}-{APELIDO_OU_PRIMEIRO_NOME}
+ * Exemplo: CC13001-SOLAR_I, CC09015-JOAO
  *
  * @example
  * ```tsx
@@ -27,6 +27,37 @@ export interface CentroCusto {
   nome: string;
   tipo?: 'fixo' | 'variavel';
   descricao?: string;
+}
+
+/**
+ * Normaliza texto para usar no nome do Centro de Custo
+ * - Converte para UPPERCASE
+ * - Remove acentos
+ * - Substitui espaços por underscore
+ * - Limita a 20 caracteres
+ * 
+ * @param texto - Texto a normalizar (apelido ou nome)
+ * @returns Texto normalizado
+ */
+export function normalizarNomeCentroCusto(texto: string): string {
+  if (!texto || texto.trim() === '') {
+    return 'CLIENTE';
+  }
+
+  return texto
+    .trim()
+    .toUpperCase()
+    // Remove acentos (NFD normalize + remove diacritics)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    // Substitui espaços e caracteres especiais por underscore
+    .replace(/[^A-Z0-9]/g, '_')
+    // Remove underscores duplicados
+    .replace(/_+/g, '_')
+    // Remove underscore no início/fim
+    .replace(/^_|_$/g, '')
+    // Limita a 20 caracteres
+    .substring(0, 20);
 }
 
 export function useCentroCusto() {
@@ -64,6 +95,9 @@ export function useCentroCusto() {
   /**
    * Cria Centro de Custo com ID específico (mesmo ID da OS)
    * 
+   * Formato do nome: CC{NUMERO_TIPO_OS}{SEQUENCIAL_3_DIGITOS}-{APELIDO_OU_PRIMEIRO_NOME}
+   * Exemplo: CC13001-SOLAR_I, CC09015-JOAO
+   * 
    * @param ccId - ID a usar para o CC (geralmente o mesmo ID da OS)
    * @param tipoOsId - ID do tipo de OS
    * @param clienteId - ID do cliente
@@ -93,10 +127,36 @@ export function useCentroCusto() {
         throw new Error(`Tipo de OS não encontrado: ${tipoOsId}`);
       }
 
-      // 2. Extrair número do tipo (ex: "OS-13" -> "13")
+      // 2. Buscar apelido e nome do cliente
+      const { data: cliente, error: clienteError } = await supabase
+        .from('clientes')
+        .select('apelido, nome_razao_social')
+        .eq('id', clienteId)
+        .single();
+
+      if (clienteError) {
+        logger.warn('⚠️ Erro ao buscar cliente, usando fallback:', clienteError);
+      }
+
+      // 3. Determinar texto para o nome do CC
+      // Prioridade: apelido > primeiro nome/palavra de nome_razao_social
+      let textoNome = 'CLIENTE';
+      if (cliente) {
+        if (cliente.apelido && cliente.apelido.trim() !== '') {
+          textoNome = cliente.apelido;
+        } else if (cliente.nome_razao_social) {
+          // Pegar primeira palavra do nome
+          textoNome = cliente.nome_razao_social.split(' ')[0];
+        }
+      }
+
+      // 4. Normalizar o texto
+      const textoNormalizado = normalizarNomeCentroCusto(textoNome);
+
+      // 5. Extrair número do tipo (ex: "OS-13" -> "13")
       const numeroTipo = tipoOS.codigo.split('-')[1];
 
-      // 3. Buscar/incrementar sequência
+      // 6. Buscar/incrementar sequência
       const { data: seqData, error: seqError } = await supabase.rpc('incrementar_sequencia_cc', {
         p_tipo_os_id: tipoOsId
       });
@@ -113,10 +173,11 @@ export function useCentroCusto() {
         sequencial = (count || 0) + 1;
       }
 
-      // 4. Formatar nome: CC + numero_tipo + sequencial (5 dígitos)
-      const ccNome = `CC${numeroTipo}${String(sequencial).padStart(5, '0')}`;
+      // 7. Formatar nome: CC{TIPO}{SEQ:3}-{TEXTO_NORMALIZADO}
+      // Exemplo: CC13001-SOLAR_I
+      const ccNome = `CC${numeroTipo}${String(sequencial).padStart(3, '0')}-${textoNormalizado}`;
 
-      // 5. Inserir CC com ID específico
+      // 8. Inserir CC com ID específico
       const { data: insertedCC, error: insertError } = await supabase
         .from('centros_custo')
         .insert({

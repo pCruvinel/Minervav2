@@ -1,11 +1,14 @@
 /**
- * ActionKanban - Quadro Kanban para Foco em Execução
+ * ActionKanban - Quadro Kanban por Status Geral
  * 
- * Visualização em 4 colunas para operacionais e coordenadores:
- * - 🔴 Urgente/Atrasado: Prazos vencidos sob responsabilidade do usuário
- * - 🟡 Minha Vez: OSs que acabaram de chegar (delegação recebida)
- * - 🔵 Em Andamento: Tarefas que o usuário já iniciou
- * - ⚪ Aguardando Terceiros: OSs que o usuário criou/participou mas estão com outros
+ * Visualização em 4 colunas baseadas no ciclo de vida (status_geral):
+ * - 📋 Em Triagem: OSs recém criadas (etapas 1-2)
+ * - ▶️ Em Andamento: OSs em execução ativa
+ * - ✅ Concluído: OSs finalizadas com sucesso
+ * - ❌ Cancelado: OSs canceladas
+ * 
+ * Cada card exibe um badge colorido indicando a situação da ação (status_situacao):
+ * - 🔴 Atrasado | 🟣 Aguard. Aprovação | 🟠 Aguard. Info | 🟡 Alerta | 🔵 Ação Pendente
  */
 
 import { useMemo } from 'react';
@@ -15,15 +18,16 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    AlertTriangle,
-    Clock,
+    FileSearch,
     Play,
-    Users,
+    CheckCircle2,
+    XCircle,
     Calendar,
     Building2,
     ArrowRight
 } from 'lucide-react';
 import { type OSComEtapa } from '@/lib/hooks/use-dashboard-data';
+import { STATUS_SITUACAO_CONFIG, type StatusSituacao, type OSStatus } from '@/lib/types';
 
 // ============================================================
 // TIPOS
@@ -42,13 +46,30 @@ interface KanbanColumnProps {
     title: string;
     icon: React.ReactNode;
     items: OSComEtapa[];
-    variant: 'danger' | 'warning' | 'primary' | 'muted';
+    variant: 'triagem' | 'andamento' | 'concluido' | 'cancelado';
     emptyMessage: string;
 }
 
 // ============================================================
 // COMPONENTES INTERNOS
 // ============================================================
+
+/**
+ * Badge de Status Situação
+ * Exibe o badge colorido conforme a situação da ação
+ */
+function SituacaoBadge({ situacao }: { situacao?: StatusSituacao | string | null }) {
+    if (!situacao || situacao === 'finalizado') return null;
+
+    const config = STATUS_SITUACAO_CONFIG[situacao as StatusSituacao];
+    if (!config) return null;
+
+    return (
+        <Badge className={`text-[10px] h-5 px-1.5 ${config.className}`}>
+            {config.label}
+        </Badge>
+    );
+}
 
 function KanbanCard({ os }: { os: OSComEtapa }) {
     const getInitials = (nome: string) => {
@@ -71,20 +92,17 @@ function KanbanCard({ os }: { os: OSComEtapa }) {
             className="block no-underline"
         >
             <div className={`
-        p-3 rounded-lg border transition-all cursor-pointer
-        hover:shadow-md hover:border-primary/50
-        ${os.prazoVencido ? 'border-destructive/50 bg-destructive/5' : 'border-border bg-card'}
-      `}>
+                p-3 rounded-lg border transition-all cursor-pointer
+                hover:shadow-md hover:border-primary/50
+                border-border bg-card
+            `}>
                 {/* Header do Card */}
                 <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-sm font-semibold text-primary">
                         {os.codigo_os}
                     </span>
-                    {os.prazoVencido && (
-                        <Badge variant="destructive" className="text-[10px] h-5 px-1.5">
-                            Atrasado
-                        </Badge>
-                    )}
+                    {/* Badge de Situação (Ação) */}
+                    <SituacaoBadge situacao={os.status_situacao} />
                 </div>
 
                 {/* Tipo OS */}
@@ -135,17 +153,17 @@ function KanbanCard({ os }: { os: OSComEtapa }) {
 
 function KanbanColumn({ title, icon, items, variant, emptyMessage }: KanbanColumnProps) {
     const variantStyles = {
-        danger: 'border-t-destructive bg-destructive/5',
-        warning: 'border-t-warning bg-warning/5',
-        primary: 'border-t-primary bg-primary/5',
-        muted: 'border-t-muted-foreground/30 bg-muted/30',
+        triagem: 'border-t-muted-foreground bg-muted/20',
+        andamento: 'border-t-primary bg-primary/5',
+        concluido: 'border-t-success bg-success/5',
+        cancelado: 'border-t-destructive bg-destructive/5',
     };
 
     const headerStyles = {
-        danger: 'text-destructive',
-        warning: 'text-warning',
-        primary: 'text-primary',
-        muted: 'text-muted-foreground',
+        triagem: 'text-muted-foreground',
+        andamento: 'text-primary',
+        concluido: 'text-success',
+        cancelado: 'text-destructive',
     };
 
     return (
@@ -187,29 +205,45 @@ export function ActionKanban({
     aguardandoTerceiros = [],
     title = 'Minhas Tarefas'
 }: ActionKanbanProps) {
-    // Separar em colunas
-    const colunas = useMemo(() => {
-        const urgentes: OSComEtapa[] = [];
-        const minhaVez: OSComEtapa[] = [];
-        const emAndamento: OSComEtapa[] = [];
+    // Combinar todas as OS para mostrar no kanban
+    const todasOS = useMemo(() => {
+        return [...minhasPendencias, ...aguardandoTerceiros];
+    }, [minhasPendencias, aguardandoTerceiros]);
 
-        minhasPendencias.forEach(os => {
-            // Urgente: prazo vencido
-            if (os.prazoVencido) {
-                urgentes.push(os);
-            }
-            // Em andamento: já iniciei
-            else if (os.statusEtapa === 'em_andamento') {
-                emAndamento.push(os);
-            }
-            // Minha vez: pendente, acabou de chegar
-            else if (os.statusEtapa === 'pendente') {
-                minhaVez.push(os);
+    // Separar em colunas por status_geral
+    const colunas = useMemo(() => {
+        const emTriagem: OSComEtapa[] = [];
+        const emAndamento: OSComEtapa[] = [];
+        const concluido: OSComEtapa[] = [];
+        const cancelado: OSComEtapa[] = [];
+
+        todasOS.forEach(os => {
+            const status = os.status_geral as OSStatus;
+            switch (status) {
+                case 'em_triagem':
+                    emTriagem.push(os);
+                    break;
+                case 'em_andamento':
+                case 'aguardando_info':
+                case 'aguardando_aprovacao':
+                    emAndamento.push(os);
+                    break;
+                case 'concluido':
+                    concluido.push(os);
+                    break;
+                case 'cancelado':
+                    cancelado.push(os);
+                    break;
+                default:
+                    emAndamento.push(os);
             }
         });
 
-        return { urgentes, minhaVez, emAndamento };
-    }, [minhasPendencias]);
+        return { emTriagem, emAndamento, concluido, cancelado };
+    }, [todasOS]);
+
+    // Contar pendências ativas (não concluídas/canceladas)
+    const pendenciasAtivas = colunas.emTriagem.length + colunas.emAndamento.length;
 
     return (
         <div className="space-y-4">
@@ -218,46 +252,46 @@ export function ActionKanban({
                 <div>
                     <h2 className="text-2xl font-semibold">{title}</h2>
                     <p className="text-sm text-muted-foreground">
-                        O que você precisa fazer agora
+                        Acompanhe o progresso das suas OSs
                     </p>
                 </div>
                 <Badge variant="outline" className="text-base px-3 py-1">
-                    {minhasPendencias.length + aguardandoTerceiros.length} pendências
+                    {pendenciasAtivas} ativas
                 </Badge>
             </div>
 
             {/* Grid de Colunas */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <KanbanColumn
-                    title="Urgente/Atrasado"
-                    icon={<AlertTriangle className="w-4 h-4" />}
-                    items={colunas.urgentes}
-                    variant="danger"
-                    emptyMessage="🎉 Nada atrasado!"
-                />
-
-                <KanbanColumn
-                    title="Minha Vez"
-                    icon={<Clock className="w-4 h-4" />}
-                    items={colunas.minhaVez}
-                    variant="warning"
-                    emptyMessage="Aguardando novas tarefas"
+                    title="Em Triagem"
+                    icon={<FileSearch className="w-4 h-4" />}
+                    items={colunas.emTriagem}
+                    variant="triagem"
+                    emptyMessage="Nenhuma OS em triagem"
                 />
 
                 <KanbanColumn
                     title="Em Andamento"
                     icon={<Play className="w-4 h-4" />}
                     items={colunas.emAndamento}
-                    variant="primary"
-                    emptyMessage="Nenhuma tarefa iniciada"
+                    variant="andamento"
+                    emptyMessage="Nenhuma OS em andamento"
                 />
 
                 <KanbanColumn
-                    title="Aguardando Terceiros"
-                    icon={<Users className="w-4 h-4" />}
-                    items={aguardandoTerceiros}
-                    variant="muted"
-                    emptyMessage="Nada em acompanhamento"
+                    title="Concluído"
+                    icon={<CheckCircle2 className="w-4 h-4" />}
+                    items={colunas.concluido}
+                    variant="concluido"
+                    emptyMessage="Nenhuma OS concluída"
+                />
+
+                <KanbanColumn
+                    title="Cancelado"
+                    icon={<XCircle className="w-4 h-4" />}
+                    items={colunas.cancelado}
+                    variant="cancelado"
+                    emptyMessage="Nenhuma OS cancelada"
                 />
             </div>
         </div>

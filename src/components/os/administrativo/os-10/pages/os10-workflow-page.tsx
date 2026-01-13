@@ -1,4 +1,5 @@
 import { useMemo, useState, useEffect } from 'react';
+import { useNavigate } from '@tanstack/react-router';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
@@ -14,14 +15,20 @@ import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
-import { ordensServicoAPI } from '@/lib/api-client';
 import { supabase } from '@/lib/supabase-client';
 import { logger } from '@/lib/utils/logger';
 
 // Sistema de Aprovação
 import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
 import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+
+// Definição das etapas da OS-10 (4 etapas) - para criação no banco
+const OS10_ETAPAS = [
+    { ordem: 1, nome_etapa: 'Abertura da Solicitação' },
+    { ordem: 2, nome_etapa: 'Seleção do Centro de Custo' },
+    { ordem: 3, nome_etapa: 'Gerenciador de Vagas' },
+    { ordem: 4, nome_etapa: 'Revisão e Envio' },
+];
 
 const steps: WorkflowStep[] = [
     { id: 1, title: 'Abertura da Solicitação', short: 'Abertura', responsible: 'Solicitante', status: 'active' },
@@ -40,6 +47,7 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
     const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
     const finalOsId = propOsId || internalOsId;
     const [isCreatingOS, setIsCreatingOS] = useState(false);
+    const navigate = useNavigate();
 
     // Estado para modal de aprovação
     const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
@@ -48,21 +56,21 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
     // Obter usuário atual para delegação
     const { currentUser } = useAuth();
 
-    // Hook para criar OS
-    const { mutate: createOS } = useCreateOrdemServico();
-
     // Atualizar internalOsId se prop mudar
     useEffect(() => {
         if (propOsId) setInternalOsId(propOsId);
     }, [propOsId]);
 
-    // Função para criar OS quando o CC for selecionado na Etapa 2
+    /**
+     * ✅ FIX: Criar OS-10 com etapas usando Supabase diretamente
+     * Similar ao padrão de OS-09 que funciona corretamente
+     */
     const createOSWithCC = async (centroCustoId: string): Promise<string | null> => {
         if (finalOsId) return finalOsId; // Já existe uma OS
 
         try {
             setIsCreatingOS(true);
-            logger.log('[OS10WorkflowPage] 🔧 Criando OS com CC:', centroCustoId);
+            logger.log('[OS10WorkflowPage] 🔧 Criando OS-10 com CC:', centroCustoId);
 
             // 1. Buscar dados do Centro de Custo (pode ser fixo ou variável)
             const { data: ccData, error: ccError } = await supabase
@@ -78,30 +86,115 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
             // CCs fixos não têm cliente_id, CCs variáveis têm
             const clienteId = ccData.cliente_id || null;
 
-            // 2. Buscar tipo de OS
-            const tiposOS = await ordensServicoAPI.getTiposOS();
-            const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-10');
+            // 2. Buscar tipo de OS-10
+            const { data: tipoOS, error: tipoOSError } = await supabase
+                .from('tipos_os')
+                .select('*')
+                .eq('codigo', 'OS-10')
+                .single();
 
-            if (!tipo) {
+            if (tipoOSError || !tipoOS) {
                 throw new Error('Tipo de OS OS-10 não encontrado no sistema');
             }
 
             // 3. Criar OS (cliente_id é opcional para CCs fixos)
-            const osData = {
-                tipo_os_id: tipo.id,
-                status_geral: 'em_triagem' as const,
-                descricao: 'OS-10: Requisição de Mão de Obra',
-                criado_por_id: currentUser?.id,
-                cliente_id: clienteId,
-                cc_id: centroCustoId,
-                data_entrada: new Date().toISOString()
-            };
+            const { data: osData, error: osError } = await supabase
+                .from('ordens_servico')
+                .insert({
+                    tipo_os_id: tipoOS.id,
+                    status_geral: 'em_triagem',
+                    descricao: 'OS-10: Requisição de Mão de Obra',
+                    criado_por_id: currentUser?.id,
+                    cliente_id: clienteId,
+                    cc_id: centroCustoId,
+                    data_entrada: new Date().toISOString()
+                })
+                .select()
+                .single();
 
-            const newOS = await createOS(osData);
-            logger.log(`[OS10WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
+            if (osError) throw osError;
 
-            setInternalOsId(newOS.id);
-            return newOS.id;
+            logger.log(`[OS10WorkflowPage] ✅ OS criada: ${osData.codigo_os} (ID: ${osData.id})`);
+
+            // 4. ✅ CRÍTICO: Criar etapas da OS-10
+            const etapasParaInserir = OS10_ETAPAS.map((etapa, index) => ({
+                os_id: osData.id,
+                nome_etapa: etapa.nome_etapa,
+                ordem: etapa.ordem,
+                status: index === 0 ? 'em_andamento' : 'pendente',
+                dados_etapa: {}
+            }));
+
+            const { error: etapasError } = await supabase
+                .from('os_etapas')
+                .insert(etapasParaInserir);
+
+            if (etapasError) {
+                logger.error('[OS10WorkflowPage] ❌ Erro ao criar etapas:', etapasError);
+                throw etapasError;
+            }
+
+            logger.log(`[OS10WorkflowPage] ✅ ${etapasParaInserir.length} etapas criadas`);
+
+            // 5. ✅ Salvar dados da etapa 1 (Abertura) com dados do solicitante
+            const { data: etapa1Criada } = await supabase
+                .from('os_etapas')
+                .select('id')
+                .eq('os_id', osData.id)
+                .eq('ordem', 1)
+                .single();
+
+            if (etapa1Criada?.id) {
+                const dadosEtapa1 = {
+                    dataAbertura: new Date().toISOString(),
+                    solicitante: currentUser?.nome_completo || '',
+                    solicitanteId: currentUser?.id || '',
+                    departamento: currentUser?.setor_slug || '',
+                    urgencia: formDataByStep[1]?.urgencia || 'normal',
+                    justificativa: formDataByStep[1]?.justificativa || ''
+                };
+
+                await supabase
+                    .from('os_etapas')
+                    .update({ dados_etapa: dadosEtapa1 })
+                    .eq('id', etapa1Criada.id);
+
+                logger.log('[OS10WorkflowPage] ✅ Dados da etapa 1 salvos');
+            }
+
+            // 6. ✅ Salvar dados da etapa 2 (Centro de Custo)
+            const { data: etapa2Criada } = await supabase
+                .from('os_etapas')
+                .select('id')
+                .eq('os_id', osData.id)
+                .eq('ordem', 2)
+                .single();
+
+            if (etapa2Criada?.id) {
+                const dadosEtapa2 = {
+                    centroCusto: centroCustoId,
+                    centroCustoNome: formDataByStep[2]?.centroCustoNome || '',
+                    obraVinculada: formDataByStep[2]?.obraVinculada || ''
+                };
+
+                await supabase
+                    .from('os_etapas')
+                    .update({ dados_etapa: dadosEtapa2 })
+                    .eq('id', etapa2Criada.id);
+
+                logger.log('[OS10WorkflowPage] ✅ Dados da etapa 2 salvos');
+            }
+
+            setInternalOsId(osData.id);
+
+            // 7. ✅ Navegar para URL com osId (forçar remontagem com etapas carregadas)
+            navigate({
+                to: '/os/criar/requisicao-mao-de-obra',
+                search: { osId: osData.id },
+                replace: true
+            });
+
+            return osData.id;
         } catch (err) {
             logger.error('[OS10WorkflowPage] ❌ Erro ao criar OS:', err);
             toast.error('Erro ao criar ordem de serviço');
@@ -152,8 +245,9 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
     // Mapeamento de dados para compatibilidade - Etapa 1: Abertura
     const etapa1Data = formDataByStep[1] || {
         dataAbertura: new Date().toISOString(),
-        solicitante: '',
-        departamento: '',
+        solicitante: currentUser?.nome_completo || '',
+        solicitanteId: currentUser?.id || '',
+        departamento: currentUser?.setor_slug || '',
         urgencia: 'normal',
         justificativa: '',
     };
@@ -201,9 +295,23 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
         }
     };
 
-    // Handler customizado para o avanço da etapa 2 (criar OS com CC)
+    // Handler customizado para o avanço de etapas
     const handleCustomNextStep = async () => {
-        // Na Etapa 2, precisamos criar a OS antes de avançar (CC selecionado)
+        // Etapa 1: Avançar sem salvar (não existe OS ainda)
+        // Validar campos obrigatórios
+        if (currentStep === 1) {
+            if (!etapa1Data.justificativa?.trim()) {
+                toast.error('Preencha a justificativa da contratação');
+                return;
+            }
+            // Avançar diretamente para Etapa 2 sem chamar handleNextStep
+            // (handleNextStep chama onSaveStep que requer osId)
+            setCurrentStep(2);
+            toast.success('Etapa concluída!', { icon: '✅' });
+            return;
+        }
+
+        // Etapa 2: Criar OS com CC selecionado
         if (currentStep === 2 && !finalOsId) {
             const ccId = etapa2Data.centroCusto;
             if (!ccId) {
@@ -216,9 +324,10 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
                 return; // Erro na criação
             }
 
-            // Salvar dados das etapas 1 e 2
-            await saveStep(1, true);
-            await saveStep(2, true);
+            // ✅ As etapas já foram criadas e salvas dentro de createOSWithCC
+            // A navegação com replace: true já foi feita, o componente vai remontar
+            toast.success('Solicitação criada! Agora você pode adicionar vagas.');
+            return; // O navigate já foi feito em createOSWithCC
         }
 
         // Verificação de Aprovação (Etapa 2: Consolidação de Dados requer aprovação)
@@ -288,6 +397,11 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
                                 data={etapa1Data}
                                 onDataChange={setEtapa1Data}
                                 readOnly={isHistoricalNavigation}
+                                currentUser={currentUser ? {
+                                    id: currentUser.id,
+                                    nome_completo: currentUser.nome_completo,
+                                    setor_slug: currentUser.setor_slug
+                                } : undefined}
                             />
                         )}
 

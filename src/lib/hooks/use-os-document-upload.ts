@@ -141,7 +141,7 @@ export function useOSDocumentUpload(osId: string) {
       try {
         const { data: osData } = await supabase
           .from('ordens_servico')
-          .select('codigo_os, responsavel_id, clientes(nome_fantasia, nome_razao_social)')
+          .select('codigo_os, responsavel_id, clientes(nome_razao_social)')
           .eq('id', osId)
           .single();
           
@@ -150,7 +150,7 @@ export function useOSDocumentUpload(osId: string) {
            
            if (responsavelId && responsavelId !== user.id) {
                const clienteObj = osData.clientes as any;
-               const clienteNome = clienteObj?.nome_fantasia || clienteObj?.nome_razao_social || 'Cliente';
+               const clienteNome = clienteObj?.nome_razao_social || 'Cliente';
                
                const { data: uploaderData } = await supabase.from('colaboradores').select('nome_completo').eq('id', user.id).single();
                const anexadoPorNome = uploaderData?.nome_completo || 'Colaborador';

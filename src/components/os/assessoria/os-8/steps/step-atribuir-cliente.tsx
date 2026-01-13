@@ -1,16 +1,6 @@
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-
-// Mock de clientes (substituir com dados reais da API)
-const CLIENTES_MOCK = [
-  { id: '1', nome: 'Condomínio Residencial Solar' },
-  { id: '2', nome: 'Condomínio Edifício Central' },
-  { id: '3', nome: 'Condomínio Vila Verde' },
-  { id: '4', nome: 'Condomínio Residencial Parque das Águas' },
-  { id: '5', nome: 'Condomínio Residencial Torres do Sul' },
-];
+import { useRef, useImperativeHandle, forwardRef } from 'react';
+import { LeadCadastro, type LeadCadastroHandle } from '@/components/os/shared/lead-cadastro';
+import { type LeadCompleto } from '@/components/os/shared/lead-cadastro/types';
 
 interface StepAtribuirClienteProps {
   data: {
@@ -20,60 +10,48 @@ interface StepAtribuirClienteProps {
   readOnly?: boolean;
 }
 
-export function StepAtribuirCliente({ data, onDataChange, readOnly }: StepAtribuirClienteProps) {
-  const handleInputChange = (field: string, value: any) => {
-    if (readOnly) return;
-    onDataChange({ ...data, [field]: value });
-  };
+export interface StepAtribuirClienteHandle {
+  save: () => Promise<string | null>;
+}
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl mb-1">Atribuir Cliente</h2>
-        <p className="text-sm text-muted-foreground">
-          Selecione o cliente responsável por esta ordem de serviço
-        </p>
-      </div>
+export const StepAtribuirCliente = forwardRef<StepAtribuirClienteHandle, StepAtribuirClienteProps>(
+  function StepAtribuirCliente({ data, onDataChange, readOnly }, ref) {
+    const leadRef = useRef<LeadCadastroHandle>(null);
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="clienteId">
-            Cliente <span className="text-destructive">*</span>
-          </Label>
-          <Select
-            value={data.clienteId}
-            onValueChange={(value: string) => handleInputChange('clienteId', value)}
-            disabled={readOnly}
-          >
-            <SelectTrigger id="clienteId">
-              <SelectValue placeholder="Selecione um cliente" />
-            </SelectTrigger>
-            <SelectContent>
-              {CLIENTES_MOCK.map((cliente) => (
-                <SelectItem key={cliente.id} value={cliente.id}>
-                  {cliente.nome}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    useImperativeHandle(ref, () => ({
+      save: async () => {
+        if (!leadRef.current) return null;
+        return await leadRef.current.save();
+      }
+    }));
+
+    const handleLeadChange = (id: string, _leadData: LeadCompleto | null) => {
+      onDataChange({
+        ...data,
+        clienteId: id,
+        // Se precisar de mais dados no pai, adicionar aqui
+      });
+    };
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-xl mb-1">Atribuir Cliente</h2>
+          <p className="text-sm text-muted-foreground">
+            Selecione o cliente responsável por esta ordem de serviço
+          </p>
         </div>
 
-        {data.clienteId && (
-          <div className="p-4 bg-background rounded-lg border border-border">
-            <h3 className="text-sm mb-2">Cliente Selecionado</h3>
-            <p className="text-muted-foreground">
-              {CLIENTES_MOCK.find((c) => c.id === data.clienteId)?.nome}
-            </p>
-          </div>
-        )}
+        <LeadCadastro
+          ref={leadRef}
+          selectedLeadId={data.clienteId}
+          onLeadChange={handleLeadChange}
+          readOnly={readOnly}
+          showEdificacao={true}
+          showEndereco={true}
+          statusFilter={['lead', 'ativo']} // Permitir seleção de clientes
+        />
       </div>
-
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          O cliente selecionado será responsável por esta OS e receberá todas as notificações relacionadas.
-        </AlertDescription>
-      </Alert>
-    </div>
-  );
-}
+    );
+  }
+);

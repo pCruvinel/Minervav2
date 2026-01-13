@@ -85,26 +85,25 @@ O header exibe informações críticas da OS e ações disponíveis.
 
 ### Status Geral (Possíveis valores)
 
+> **📖 Documentação completa:** [STATUS_SYSTEM.md](./STATUS_SYSTEM.md)
+
 | Status | Classe CSS | Descrição |
 |--------|------------|-----------|
-| `em_andamento` | `bg-info/10 text-info` | OS em execução |
-| `em_triagem` | `bg-warning/10 text-warning` | Aguardando triagem |
-| `aguardando_info` | `bg-warning/10 text-warning` | Pendente de informações |
+| `em_triagem` | `bg-muted text-muted-foreground` | Etapas iniciais (1-2) |
+| `em_andamento` | `bg-primary/10 text-primary` | OS em execução |
 | `concluido` | `bg-success/10 text-success` | Finalizado |
 | `cancelado` | `bg-destructive/10 text-destructive` | Cancelado |
 
-### Status Situação (Calculado por view)
+### Status Situação (Ação Pendente)
 
 | Situação | Classe CSS | Descrição |
 |----------|------------|-----------|
-| `no_prazo` | `bg-success/10 text-success` | Dentro do prazo |
-| `acao_pendente` | `bg-info/10 text-info` | Ação necessária |
-| `aguardando_info` | `bg-warning/10 text-warning` | Aguardando dados |
-| `aguardando_aprovacao` | `bg-accent text-accent-foreground` | Pendente aprovação |
-| `alerta_prazo` | `bg-warning/10 text-warning` | Prazo próximo |
-| `atrasado` | `bg-destructive/10 text-destructive` | Prazo excedido |
+| `atrasado` | `bg-destructive text-destructive-foreground` | Prazo excedido |
+| `aguardando_aprovacao` | `bg-secondary text-secondary-foreground` | Pendente aprovação |
+| `aguardando_info` | `bg-warning/20 text-warning` | Aguardando dados |
+| `alerta_prazo` | `bg-warning text-warning-foreground` | ≤2 dias restantes |
+| `acao_pendente` | `bg-primary/10 text-primary` | Ação necessária |
 | `finalizado` | `bg-muted text-muted-foreground` | Concluído |
-| `sem_responsavel` | `bg-muted/50 text-muted-foreground` | Sem atribuição |
 
 ### Ações do Header
 

@@ -4,7 +4,6 @@
  * Permite ao usuário logado gerenciar:
  * - Perfil e Avatar
  * - Segurança (senha)
- * - Documentos pessoais
  */
 
 import { createFileRoute } from '@tanstack/react-router';
@@ -21,9 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AvatarCropModal } from '@/components/shared/avatar-crop-modal';
 
 // Icons
@@ -32,30 +29,14 @@ import {
   Mail,
   Phone,
   Lock,
-  Upload,
-  FileText,
-  CheckCircle,
-  Clock,
   Loader2,
   Camera,
   Eye,
   EyeOff,
-  Download,
   Trash2
 } from 'lucide-react';
 
-// Constants
-import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
 
-// Types
-interface Documento {
-  id: string;
-  nome: string;
-  url: string;
-  tipo: string;
-  tipo_documento: string;
-  created_at: string;
-}
 
 // Zod Schema para validação de senha
 const senhaSchema = z.object({
@@ -74,9 +55,7 @@ export const Route = createFileRoute('/_auth/minha-conta/')({
 function MinhaContaPage() {
   const { currentUser, refreshUser } = useAuth();
 
-  // Estados gerais
-  const [loading, setLoading] = useState(true);
-  const [documentos, setDocumentos] = useState<Documento[]>([]);
+
 
   // Estados do Perfil
   const [nome, setNome] = useState('');
@@ -97,39 +76,17 @@ function MinhaContaPage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [senhaErrors, setSenhaErrors] = useState<{ novaSenha?: string; confirmarSenha?: string }>({});
 
-  // Estados de Documentos
-  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+
 
   // Carregar dados iniciais
   useEffect(() => {
     if (currentUser) {
       setNome(currentUser.nome_completo || '');
       setAvatarUrl(currentUser.avatar_url);
-      fetchDocumentos();
     }
   }, [currentUser]);
 
-  // Buscar documentos do colaborador
-  const fetchDocumentos = async () => {
-    if (!currentUser?.id) return;
 
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('colaboradores_documentos')
-        .select('*')
-        .eq('colaborador_id', currentUser.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDocumentos(data || []);
-    } catch (error) {
-      console.error('Erro ao carregar documentos:', error);
-      toast.error('Erro ao carregar documentos');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handler: Seleção de imagem (abre modal de crop)
   const handleAvatarSelect: React.ChangeEventHandler<HTMLInputElement> = (e) => {
@@ -352,63 +309,7 @@ function MinhaContaPage() {
     }
   };
 
-  // Handler: Upload de Documento
-  const handleDocumentUpload = async (tipoDocumento: string, file: File) => {
-    if (!currentUser) return;
 
-    try {
-      setUploadingDoc(tipoDocumento);
-
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${currentUser.id}/${tipoDocumento}_${Date.now()}.${fileExt}`;
-
-      // Upload para Storage
-      const { error: uploadError } = await supabase.storage
-        .from('documentos-colaboradores')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Obter URL pública
-      const { data: { publicUrl } } = supabase.storage
-        .from('documentos-colaboradores')
-        .getPublicUrl(fileName);
-
-      // Inserir no banco
-      const { error: insertError } = await supabase
-        .from('colaboradores_documentos')
-        .insert({
-          colaborador_id: currentUser.id,
-          nome: file.name,
-          url: publicUrl,
-          tipo: fileExt,
-          tipo_documento: tipoDocumento,
-          tamanho: file.size
-        });
-
-      if (insertError) throw insertError;
-
-      toast.success('Documento enviado com sucesso!');
-      fetchDocumentos();
-
-    } catch (error) {
-      console.error('Erro no upload do documento:', error);
-      const message = error instanceof Error ? error.message : 'Erro ao enviar documento';
-      toast.error(message);
-    } finally {
-      setUploadingDoc(null);
-    }
-  };
-
-  // Helper: Verificar se documento já foi enviado
-  const isDocumentoEnviado = (tipoDocumento: string) => {
-    return documentos.some(d => d.tipo_documento === tipoDocumento);
-  };
-
-  // Helper: Obter documento por tipo
-  const getDocumentoByTipo = (tipoDocumento: string) => {
-    return documentos.find(d => d.tipo_documento === tipoDocumento);
-  };
 
   // Helper: Iniciais do nome para fallback do avatar
   const getInitials = (name: string) => {
@@ -436,7 +337,7 @@ function MinhaContaPage() {
       <div>
         <h1 className="text-3xl font-bold text-foreground">Minha Conta</h1>
         <p className="text-muted-foreground mt-1">
-          Gerencie seus dados pessoais, segurança e documentos
+          Gerencie seus dados pessoais e segurança
         </p>
       </div>
 
@@ -451,10 +352,7 @@ function MinhaContaPage() {
             <Lock className="h-4 w-4" />
             Segurança
           </TabsTrigger>
-          <TabsTrigger value="documentos" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Documentos
-          </TabsTrigger>
+
         </TabsList>
 
         {/* ==================== ABA PERFIL ==================== */}
@@ -652,107 +550,6 @@ function MinhaContaPage() {
                   Alterar Senha
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* ==================== ABA DOCUMENTOS ==================== */}
-        <TabsContent value="documentos" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Meus Documentos</CardTitle>
-              <CardDescription>
-                Envie os documentos solicitados pela empresa
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <div className="space-y-4">
-                  {[1, 2, 3].map(i => (
-                    <Skeleton key={i} className="h-16 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Documento</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Ação</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {DOCUMENTOS_OBRIGATORIOS.map((doc) => {
-                      const enviado = isDocumentoEnviado(doc.value);
-                      const documento = getDocumentoByTipo(doc.value);
-                      const isUploading = uploadingDoc === doc.value;
-
-                      return (
-                        <TableRow key={doc.value}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <FileText className="h-4 w-4 text-muted-foreground" />
-                              <span className="font-medium">{doc.label}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {enviado ? (
-                              <Badge className="bg-success/10 text-success hover:bg-success/20">
-                                <CheckCircle className="h-3 w-3 mr-1" />
-                                Enviado
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-warning border-warning">
-                                <Clock className="h-3 w-3 mr-1" />
-                                Pendente
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            {enviado && documento ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                asChild
-                              >
-                                <a href={documento.url} target="_blank" rel="noopener noreferrer">
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Visualizar
-                                </a>
-                              </Button>
-                            ) : (
-                              <div className="relative">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  disabled={isUploading}
-                                  onClick={() => {
-                                    const input = document.createElement('input');
-                                    input.type = 'file';
-                                    input.accept = '.pdf,.jpg,.jpeg,.png';
-                                    input.onchange = (e) => {
-                                      const file = (e.target as HTMLInputElement).files?.[0];
-                                      if (file) handleDocumentUpload(doc.value, file);
-                                    };
-                                    input.click();
-                                  }}
-                                >
-                                  {isUploading ? (
-                                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                                  ) : (
-                                    <Upload className="h-4 w-4 mr-1" />
-                                  )}
-                                  Enviar
-                                </Button>
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              )}
             </CardContent>
           </Card>
         </TabsContent>

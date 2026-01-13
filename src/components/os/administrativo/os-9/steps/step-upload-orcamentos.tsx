@@ -11,9 +11,10 @@ interface StepUploadOrcamentosProps {
   onDataChange: (data: any) => void;
   readOnly?: boolean;
   osId?: string;
+  etapaId?: string;
 }
 
-export function StepUploadOrcamentos({ data, onDataChange, readOnly, osId }: StepUploadOrcamentosProps) {
+export function StepUploadOrcamentos({ data, onDataChange, readOnly, osId, etapaId }: StepUploadOrcamentosProps) {
   const arquivos = data.arquivos || [];
   const isComplete = arquivos.length === 3;
 
@@ -74,6 +75,8 @@ export function StepUploadOrcamentos({ data, onDataChange, readOnly, osId }: Ste
         onFilesChange={(files) => onDataChange({ arquivos: files })}
         disabled={readOnly}
         osId={osId}
+        etapaId={etapaId}
+        etapaNome="Upload de Orçamentos"
         maxFiles={3}
         acceptedTypes={['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'image/jpeg', 'image/jpg', 'image/png']}
       />

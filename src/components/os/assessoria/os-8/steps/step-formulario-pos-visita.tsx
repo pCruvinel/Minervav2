@@ -8,57 +8,68 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
+import { AlertCircle, Upload, X, ClipboardCheck } from 'lucide-react';
 import { FileWithComment } from '@/components/ui/file-upload-unificado';
 import { toast } from '@/lib/utils/safe-toast';
+import { FinalidadeInspecao, isFinalidadeRecebimento, AREAS_VISTORIA } from '../types/os08-types';
+import { ChecklistRecebimento, ChecklistRecebimentoData } from '../components/checklist-recebimento';
 
-const AREAS_VISTORIA = [
-  'ABASTECIMENTO DE ÁGUA (tubulações, conexões, hidrômetro, reservatórios, bombas, registros e afins) – exceto SPCI',
-  'SPCI (Qualquer item relacionado ao sistema de proteção e combate ao incêndio)',
-  'TELEFONE, INTERFONE, ANTENA (cabos, quadros e afins)',
-  'ESGOTAMENTO E DRENAGEM (tubulações, conexões, caixas coletoras, galerias, sarjetas, grelhas e afins)',
-  'ARQUITETURA (Fachadas, muros, área verde e afins)',
-  'ELÉTRICA (Quadros, disjuntores, tomadas, interruptores, centrais de medição e afins)',
-  'SPDA (captores, malhas, sinalização, cabos e afins)',
-  'ESTRUTURAL (Fundações, lajes, vigas, pilares e afins)',
-  'COBERTURA (Telhado, laje, calhas, rufos, platibanda e afins)',
-];
+// =====================================================
+// TYPES
+// =====================================================
+
+interface FormularioGenericoData {
+  pontuacaoEngenheiro: string;
+  pontuacaoMorador: string;
+  tipoDocumento: string;
+  areaVistoriada: string;
+  manifestacaoPatologica: string;
+  recomendacoesPrevias: string;
+  gravidade: string;
+  origemNBR: string;
+  observacoesGerais: string;
+  arquivos?: FileWithComment[];
+  fotosLocal?: string[];
+  resultadoVisita: string;
+  justificativa: string;
+}
 
 interface StepFormularioPosVisitaProps {
-  osId?: string; // ID da OS
-  etapaId?: string; // ID da etapa (se já existe)
-  data: {
-    pontuacaoEngenheiro: string;
-    pontuacaoMorador: string;
-    tipoDocumento: string;
-    areaVistoriada: string;
-    manifestacaoPatologica: string;
-    recomendacoesPrevias: string;
-    gravidade: string;
-    origemNBR: string;
-    observacoesGerais: string;
-    arquivos?: FileWithComment[]; // Usando FileWithComment
-    resultadoVisita: string;
-    justificativa: string;
+  osId?: string;
+  etapaId?: string;
+  finalidadeInspecao?: FinalidadeInspecao | '';
+  data: FormularioGenericoData & {
+    checklistRecebimento?: ChecklistRecebimentoData;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: FormularioGenericoData & { checklistRecebimento?: ChecklistRecebimentoData }) => void;
   readOnly?: boolean;
 }
 
-// Interface para expor métodos via ref
 export interface StepFormularioPosVisitaHandle {
   salvar: () => Promise<boolean>;
 }
 
-export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle, StepFormularioPosVisitaProps>(
-  function StepFormularioPosVisita({ osId, etapaId, data, onDataChange, readOnly }, ref) {
-    const { currentUser } = useAuth();
-    const arquivos = data.arquivos || [];
+// =====================================================
+// COMPONENTE PRINCIPAL
+// =====================================================
 
-    const handleInputChange = (field: string, value: any) => {
+export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle, StepFormularioPosVisitaProps>(
+  function StepFormularioPosVisita({ osId, etapaId, finalidadeInspecao, data, onDataChange, readOnly }, ref) {
+    const { currentUser } = useAuth();
+    const [fotosFiles, setFotosFiles] = useState<File[]>([]);
+    const [uploadingFiles, setUploadingFiles] = useState(false);
+
+    // Verificar se é finalidade de recebimento
+    const isRecebimento = finalidadeInspecao ? isFinalidadeRecebimento(finalidadeInspecao) : false;
+
+    const handleInputChange = (field: string, value: string) => {
       if (readOnly) return;
       onDataChange({ ...data, [field]: value });
+    };
+
+    const handleChecklistChange = (checklistData: ChecklistRecebimentoData) => {
+      if (readOnly) return;
+      onDataChange({ ...data, checklistRecebimento: checklistData });
     };
 
     const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -72,11 +83,10 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         const newFotosFiles = [...fotosFiles, ...filesArray];
         setFotosFiles(newFotosFiles);
 
-        // Criar URLs temporárias para preview
         const newFiles = filesArray.map((file) => URL.createObjectURL(file));
-        handleInputChange('fotosLocal', [...(data.fotosLocal || []), ...newFiles]);
+        handleInputChange('fotosLocal', [...(data.fotosLocal || []), ...newFiles] as unknown as string);
         toast.success(`${files.length} arquivo(s) anexado(s) com sucesso!`);
-      } catch (error) {
+      } catch {
         toast.error('Erro ao selecionar arquivos');
       } finally {
         setUploadingFiles(false);
@@ -85,10 +95,10 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
     const handleRemoveFile = (index: number) => {
       if (readOnly) return;
-      const newFiles = (data.fotosLocal || []).filter((_: any, i: number) => i !== index);
+      const newFiles = (data.fotosLocal || []).filter((_, i) => i !== index);
       const newFotosFiles = fotosFiles.filter((_, i) => i !== index);
       setFotosFiles(newFotosFiles);
-      handleInputChange('fotosLocal', newFiles);
+      onDataChange({ ...data, fotosLocal: newFiles });
       toast.info('Arquivo removido');
     };
 
@@ -102,7 +112,6 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
       try {
         console.log('💾 Salvando formulário pós-visita...');
 
-        // 1. Upload de fotos (se houver)
         const fotosUrls: string[] = [];
         const colaboradorId = currentUser?.id || 'sistema';
         const osNumero = `os-${osId?.substring(0, 8) || 'draft'}`;
@@ -128,34 +137,38 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           console.log(`✅ ${fotosUrls.length} foto(s) enviada(s)`);
         }
 
-        // 2. Preparar dados para salvar
-        const dadosEtapa = {
-          pontuacaoEngenheiro: data.pontuacaoEngenheiro,
-          pontuacaoMorador: data.pontuacaoMorador,
-          tipoDocumento: data.tipoDocumento,
-          areaVistoriada: data.areaVistoriada,
-          manifestacaoPatologica: data.manifestacaoPatologica,
-          recomendacoesPrevias: data.recomendacoesPrevias,
-          gravidade: data.gravidade,
-          origemNBR: data.origemNBR,
-          observacoesGerais: data.observacoesGerais,
-          resultadoVisita: data.resultadoVisita,
-          justificativa: data.justificativa,
-          fotosLocal: fotosUrls, // URLs das fotos no Storage
-          dataPreenchimento: new Date().toISOString(),
-        };
+        // Preparar dados para salvar
+        const dadosEtapa = isRecebimento
+          ? {
+            finalidadeInspecao,
+            checklistRecebimento: data.checklistRecebimento,
+            dataPreenchimento: new Date().toISOString(),
+          }
+          : {
+            finalidadeInspecao,
+            pontuacaoEngenheiro: data.pontuacaoEngenheiro,
+            pontuacaoMorador: data.pontuacaoMorador,
+            tipoDocumento: data.tipoDocumento,
+            areaVistoriada: data.areaVistoriada,
+            manifestacaoPatologica: data.manifestacaoPatologica,
+            recomendacoesPrevias: data.recomendacoesPrevias,
+            gravidade: data.gravidade,
+            origemNBR: data.origemNBR,
+            observacoesGerais: data.observacoesGerais,
+            resultadoVisita: data.resultadoVisita,
+            justificativa: data.justificativa,
+            fotosLocal: fotosUrls,
+            dataPreenchimento: new Date().toISOString(),
+          };
 
-        // 3. Criar ou atualizar etapa
         if (etapaId) {
-          // Atualizar etapa existente
           await ordensServicoAPI.updateEtapa(etapaId, {
             dados_etapa: dadosEtapa,
-            status: 'concluida', // Marca como concluída após preenchimento
+            status: 'concluida',
             data_conclusao: new Date().toISOString(),
           });
           console.log('✅ Etapa atualizada com sucesso');
         } else {
-          // Criar nova etapa
           await ordensServicoAPI.createEtapa(osId, {
             nome_etapa: 'OS08 - Formulário Pós-Visita',
             status: 'concluida',
@@ -176,11 +189,49 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
       }
     };
 
-    // Expor função salvar via ref
     useImperativeHandle(ref, () => ({
       salvar,
-    }), [osId, etapaId, data, fotosFiles, currentUser]);
+    }), [osId, etapaId, data, fotosFiles, currentUser, isRecebimento]);
 
+    // =====================================================
+    // RENDERIZAÇÃO CONDICIONAL
+    // =====================================================
+
+    // Se for recebimento de unidade, mostrar checklist
+    if (isRecebimento) {
+      return (
+        <div className="space-y-6">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <ClipboardCheck className="h-6 w-6 text-primary" />
+              <div>
+                <h2 className="text-lg font-semibold">Inspeção de Recebimento de Unidade</h2>
+                <p className="text-sm text-muted-foreground">
+                  Preencha o checklist completo conforme NBR 15575 e PBQP-H
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <ChecklistRecebimento
+            data={data.checklistRecebimento || { items: {} }}
+            onChange={handleChecklistChange}
+            readOnly={readOnly}
+            osId={osId}
+          />
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Todos os itens marcados como "Não Conforme" devem ter uma observação obrigatória.
+              Anexe fotos para evidenciar cada não conformidade.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // Formulário genérico para outras finalidades
     return (
       <div className="space-y-6">
         <div>
@@ -203,7 +254,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
               </Label>
               <Select
                 value={data.pontuacaoEngenheiro}
-                onValueChange={(value: string) => handleInputChange('pontuacaoEngenheiro', value)}
+                onValueChange={(value) => handleInputChange('pontuacaoEngenheiro', value)}
                 disabled={readOnly}
               >
                 <SelectTrigger id="pontuacaoEngenheiro">
@@ -222,7 +273,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
               </Label>
               <Select
                 value={data.pontuacaoMorador}
-                onValueChange={(value: string) => handleInputChange('pontuacaoMorador', value)}
+                onValueChange={(value) => handleInputChange('pontuacaoMorador', value)}
                 disabled={readOnly}
               >
                 <SelectTrigger id="pontuacaoMorador">
@@ -241,7 +292,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
               </Label>
               <Select
                 value={data.tipoDocumento}
-                onValueChange={(value: string) => handleInputChange('tipoDocumento', value)}
+                onValueChange={(value) => handleInputChange('tipoDocumento', value)}
                 disabled={readOnly}
               >
                 <SelectTrigger id="tipoDocumento">
@@ -268,7 +319,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
             </Label>
             <RadioGroup
               value={data.areaVistoriada}
-              onValueChange={(value: string) => handleInputChange('areaVistoriada', value)}
+              onValueChange={(value) => handleInputChange('areaVistoriada', value)}
               disabled={readOnly}
             >
               {AREAS_VISTORIA.map((area, index) => (
@@ -325,7 +376,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
                 </Label>
                 <Select
                   value={data.gravidade}
-                  onValueChange={(value: string) => handleInputChange('gravidade', value)}
+                  onValueChange={(value) => handleInputChange('gravidade', value)}
                   disabled={readOnly}
                 >
                   <SelectTrigger id="gravidade">
@@ -404,13 +455,13 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
               </div>
             )}
 
-            {data.fotosLocal.length > 0 && (
+            {(data.fotosLocal?.length ?? 0) > 0 && (
               <div className="space-y-2 mt-4">
                 <p className="text-sm text-muted-foreground">
-                  {data.fotosLocal.length} arquivo(s) anexado(s)
+                  {data.fotosLocal?.length} arquivo(s) anexado(s)
                 </p>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                  {data.fotosLocal.map((file, index) => (
+                  {data.fotosLocal?.map((file, index) => (
                     <div key={index} className="relative group">
                       <div className="aspect-square rounded-lg overflow-hidden bg-muted border border-border">
                         <img

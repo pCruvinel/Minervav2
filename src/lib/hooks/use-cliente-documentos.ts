@@ -17,7 +17,8 @@ import { logger } from '@/lib/utils/logger';
 // TIPOS E INTERFACES
 // ===========================================
 
-export type TipoDocumento = 'contrato_social' | 'comprovante_residencia' | 'documento_foto' | 'logo_cliente';
+export type TipoDocumento = 'contrato_social' | 'comprovante_residencia' | 'documento_foto' | 'logo_cliente' | 'ata_eleicao';
+
 
 export interface ClienteDocumento {
   id: string;
@@ -36,6 +37,7 @@ export const TIPO_DOCUMENTO_LABELS: Record<TipoDocumento, string> = {
   comprovante_residencia: 'Comprovante de Residência',
   documento_foto: 'Documento com Foto',
   logo_cliente: 'Logo do Cliente',
+  ata_eleicao: 'Ata de Eleição',
 };
 
 export const TIPO_DOCUMENTO_ICONS: Record<TipoDocumento, string> = {
@@ -43,6 +45,7 @@ export const TIPO_DOCUMENTO_ICONS: Record<TipoDocumento, string> = {
   comprovante_residencia: '🏠',
   documento_foto: '🪪',
   logo_cliente: '🖼️',
+  ata_eleicao: '📋',
 };
 
 // ===========================================

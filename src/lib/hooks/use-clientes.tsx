@@ -7,7 +7,11 @@ import { useState, useEffect } from 'react';
 import { clientesAPI } from '../api-client';
 import { logger } from '../utils/logger';
 
-export function useClientes(tipo?: string) {
+export type UseClientesFilters = {
+  status?: string | string[];
+};
+
+export function useClientes(filters?: UseClientesFilters | string) {
   const [clientes, setClientes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -17,13 +21,43 @@ export function useClientes(tipo?: string) {
       setLoading(true);
       setError(null);
 
-      logger.log('🔄 Carregando clientes do backend...', tipo ? `com filtro: ${tipo}` : '');
+      // Normalizar filtros
+      let statusFilter: string | undefined;
+      let statusList: string[] | undefined;
+
+      if (typeof filters === 'string') {
+        statusFilter = filters;
+      } else if (filters?.status) {
+        if (Array.isArray(filters.status)) {
+          statusList = filters.status;
+          // Se for array, não mandamos status para a API para buscar todos e filtrar no client
+          // A MENOS que a API suporte array (assumindo que não por enquanto)
+          statusFilter = undefined;
+        } else {
+          statusFilter = filters.status;
+        }
+      }
+
+      logger.log('🔄 Carregando clientes do backend...',
+        statusFilter ? `filtro API: ${statusFilter}` : 'sem filtro API (trazer todos)'
+      );
 
       // Chamar API real do backend
-      const dados = await clientesAPI.list(tipo === 'LEAD' ? 'LEAD' : undefined);
+      // Se statusFilter for undefined, busca todos
+      const dados = await clientesAPI.list(statusFilter === 'LEAD' ? 'LEAD' : statusFilter);
 
-      logger.log('✅ Clientes carregados:', dados);
-      setClientes(dados || []);
+      let dadosFiltrados = dados || [];
+
+      // Filtragem Client-Side se necessário (ex: statusList = ['lead', 'ativo'])
+      if (statusList && statusList.length > 0) {
+        dadosFiltrados = dadosFiltrados.filter(c =>
+          statusList?.includes(c.status?.toLowerCase()) ||
+          statusList?.includes(c.status?.toUpperCase())
+        );
+      }
+
+      logger.log(`✅ Clientes carregados: ${dadosFiltrados.length} (Total API: ${dados?.length})`);
+      setClientes(dadosFiltrados);
     } catch (err) {
       logger.error('❌ Erro ao carregar clientes:', err);
       setError(err instanceof Error ? err : new Error(String(err)));
@@ -35,7 +69,8 @@ export function useClientes(tipo?: string) {
 
   useEffect(() => {
     refetch();
-  }, [tipo]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(filters)]);
 
   return { clientes, loading, error, refetch };
 }

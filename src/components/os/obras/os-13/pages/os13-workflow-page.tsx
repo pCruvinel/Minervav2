@@ -118,6 +118,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
 
     // Etapa 1: Validar e salvar componente CadastrarClienteObra
     let savedOsId: string | null = null;
+    let savedData: CadastrarClienteObraData | null = null;
+
     if (currentStep === 1) {
       console.log('✅ Etapa 1 detectada, iniciando validação e salvamento...');
 
@@ -136,12 +138,17 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
 
         // Salvar dados (cliente, documentos, centro de custo, metadata)
         console.log('💾 Salvando dados da obra...');
-        savedOsId = await stepLeadRef.current.saveData();
+        const saveResult = await stepLeadRef.current.saveData();
 
-        if (!savedOsId) {
+        if (!saveResult) {
           console.log('❌ Salvamento falhou');
           return;
         }
+
+        const { osId, data } = saveResult;
+        savedOsId = osId;
+        savedData = data;
+
         console.log('✅ Dados salvos com sucesso. ID:', savedOsId);
 
         // Se foi criado um novo ID, atualizar estado
@@ -150,10 +157,17 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
           // Pequeno delay para garantir que o estado atualizou antes de salvar a etapa
           await new Promise(resolve => window.setTimeout(resolve, 100));
         }
+
+        // ATUALIZAR STATE LOCAL IMEDIATAMENTE COM DADOS COMPLETOS
+        // Isso garante que se o usuário navegar, o formDataByStep[1] estará atualizado
+        setEtapa1Data(savedData);
+      } else {
+        // Fallback: se ref não existe (histórico), usar dados locais
+        savedOsId = internalOsId!;
       }
 
       // Salvar a etapa no banco (marcar como concluída)
-      // ✅ FIX: Usar savedOsId diretamente, não depender do hook que ainda tem osId undefined
+      // ✅ FIX: Usar dados retornados do salvamento, que incluem CC gerado e IDs
       logger.log('💾 Marcando etapa 1 como concluída no banco...');
       try {
         // Buscar a etapa 1 da OS recém-criada
@@ -169,13 +183,15 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
           throw new Error('Etapa 1 não encontrada');
         }
 
+
+
         // Marcar como concluída
         const { error: updateError } = await supabase
           .from('os_etapas')
           .update({
             status: 'concluida',
             data_conclusao: new Date().toISOString(),
-            dados_etapa: formDataByStep[1] || {}
+            dados_etapa: savedData || formDataByStep[1] || {}
           })
           .eq('id', etapa1.id);
 

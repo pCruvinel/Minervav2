@@ -68,15 +68,24 @@ src/routes/_auth/os/criar/
 
 ### Etapa 1: Abertura da Solicitação
 
+> [!IMPORTANT]
+> Os campos `solicitante` e `departamento` são **preenchidos automaticamente** com os dados do usuário logado e **não podem ser alterados**.
+
 ```typescript
 interface AberturaData {
-  dataAbertura?: string;      // Automático
-  solicitanteId?: string;
-  departamento?: string;
-  urgencia?: 'normal' | 'urgente';
+  dataAbertura?: string;      // Automático (data atual)
+  solicitante?: string;       // Auto-preenchido (currentUser.nome_completo) - READ ONLY
+  solicitanteId?: string;     // Auto-preenchido (currentUser.id) - READ ONLY
+  departamento?: string;      // Auto-preenchido (currentUser.setor_slug) - READ ONLY
+  urgencia?: 'baixa' | 'normal' | 'alta' | 'urgente';
   justificativa?: string;     // Obrigatório
 }
 ```
+
+**Fluxo de Criação da OS:**
+1. Etapa 1 → Coleta dados sem criar OS (dados em memória)
+2. Etapa 2 → Ao selecionar Centro de Custo e avançar, a OS é criada
+3. Dados da Etapa 1 e 2 são salvos após criação da OS
 
 ### Etapa 3: Gerenciador de Vagas
 
@@ -100,6 +109,7 @@ interface GerenciadorVagasData {
 - Adicionar múltiplas vagas na mesma solicitação
 - Modal de adicionar vaga individual
 - Cards visuais para cada vaga
+
 
 ---
 

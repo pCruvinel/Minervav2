@@ -3,7 +3,7 @@
 > **FOCO ATUAL:** Estabilidade, Produção e Eliminação de Dívida Técnica.
 > **REGRA DE OURO:** Não use dados mockados para novas funcionalidades. Conecte ao Supabase.
 
-## 📊 Status do Projeto (Atualizado 02/01/2026)
+## 📊 Status do Projeto (Atualizado 08/01/2026)
 
 ### Supabase - Projeto MinervaV2
 - **Project ID**: `zxfevlkssljndqqhxkjb`
@@ -91,6 +91,28 @@ import {
 - `use-agendamentos.ts` - Agendamentos e turnos
 - `use-contratos.ts` - Gestão de contratos
 - `use-cliente-contratos.ts` - Contratos específicos do cliente
+
+#### Centro de Custo (CC)
+
+**Nomenclatura**
+- **Formato:** `CC{TIPO}{SEQ:3}-{APELIDO}`
+- **Exemplos:** `CC13001-SOLAR_I`, `CC09015-JOAO`
+
+**Componente Reutilizável**
+```typescript
+import { CentroCustoSelector } from '@/components/shared/centro-custo-selector';
+
+<CentroCustoSelector
+  value={selectedCCId}
+  onChange={(ccId, ccData) => handleChange(ccId)}
+  showDetails  // Mostrar card de detalhes
+  required     // Campo obrigatório
+/>
+```
+
+**Uso nas OSs**
+- **OS-09/10**: Seleção manual via componente
+- **OS-11/12/13**: Geração automática no start do contrato
 
 #### Hooks de Documentos (Upload/Download)
 - `use-cliente-documentos.ts` - **Upload de docs do cliente** (RG, CNH, Contrato Social, etc.)

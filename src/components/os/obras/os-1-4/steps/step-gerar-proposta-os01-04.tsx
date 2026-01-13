@@ -72,6 +72,7 @@ interface StepGerarPropostaOS0104Props {
   data: {
     propostaGerada: boolean;
     dataGeracao: string;
+    pdfUrl?: string; // URL assinada do PDF
     codigoProposta: string;
     validadeDias: string;
     garantiaMeses: string;
@@ -99,7 +100,16 @@ export function StepGerarPropostaOS0104({
 }: StepGerarPropostaOS0104Props) {
   // Hook para geração de PDF
   const { generating, error, generate } = usePDFGeneration();
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
+  // Inicializar com URL salva se existir
+  const [pdfUrl, setPdfUrl] = useState<string | null>(data.pdfUrl || null);
+
+  // Sincronizar estado local quando prop muda
+  useEffect(() => {
+    if (data.pdfUrl && data.pdfUrl !== pdfUrl) {
+      setPdfUrl(data.pdfUrl);
+    }
+  }, [data.pdfUrl]);
 
   // Validar campos obrigatórios da Etapa 1 (apenas os essenciais para a proposta)
   const validarDadosEtapa1 = () => {
@@ -111,14 +121,6 @@ export function StepGerarPropostaOS0104({
     if (!etapa1Data.telefone?.trim()) camposFaltantes.push('Telefone');
     if (!etapa1Data.email?.trim()) camposFaltantes.push('E-mail');
 
-    // Campos importantes mas não críticos para a proposta
-    // if (!etapa1Data.nomeResponsavel?.trim()) camposFaltantes.push('Nome do Responsável');
-    // if (!etapa1Data.endereco?.trim()) camposFaltantes.push('Endereço (Rua)');
-    // if (!etapa1Data.numero?.trim()) camposFaltantes.push('Número');
-    // if (!etapa1Data.bairro?.trim()) camposFaltantes.push('Bairro');
-    // if (!etapa1Data.cidade?.trim()) camposFaltantes.push('Cidade');
-    // if (!etapa1Data.estado?.trim()) camposFaltantes.push('Estado');
-
     return {
       valido: camposFaltantes.length === 0,
       camposFaltantes,
@@ -126,9 +128,6 @@ export function StepGerarPropostaOS0104({
   };
 
   const validacao = validarDadosEtapa1();
-
-  // ❌ REMOVIDO: useEffect que chamava automaticamente (bypass de validação)
-  // Gerar proposta deve ser manual via botão com validação preventiva
 
   // Calcular prazo total
   const calcularPrazoTotal = (): number => {
@@ -147,11 +146,6 @@ export function StepGerarPropostaOS0104({
   };
 
   const prazoTotal = calcularPrazoTotal();
-
-  // Calcular valores por unidade
-  const qtdUnidadesNum = parseFloat(etapa1Data.qtdUnidades || '0') || 0;
-  const entradaPorUnidade = qtdUnidadesNum > 0 ? valorEntrada / qtdUnidadesNum : 0;
-  const parcelaPorUnidade = qtdUnidadesNum > 0 ? valorParcela / qtdUnidadesNum : 0;
 
   // Formatar moeda
   const formatCurrency = (value: number) => {
@@ -201,35 +195,13 @@ export function StepGerarPropostaOS0104({
   };
 
   const handleGerarProposta = async () => {
-    // DEBUG: Log do osId
     console.log('[Step 9] ======== INÍCIO GERAÇÃO PROPOSTA ========');
-    console.log('[Step 9] osId:', osId);
-    console.log('[Step 9] Etapa 1 (Cliente):', etapa1Data);
-    console.log('[Step 9] Etapa 7 (Memorial):', etapa7Data);
-    console.log('[Step 9] Etapa 8 (Precificação):', etapa8Data);
-    console.log('[Step 9] valorTotal calculado:', valorTotal);
-    console.log('[Step 9] valorEntrada calculado:', valorEntrada);
-    console.log('[Step 9] valorParcela calculado:', valorParcela);
-
     gerarCodigoProposta();
 
     // Gerar descrição dos serviços baseada nas etapas
     const descricaoServicos = gerarDescricaoServicos();
 
-    // Calcular custo base do memorial
-    const custoBase = etapa7Data.etapasPrincipais?.reduce((total, etapa) => {
-      return total + (etapa.subetapas?.reduce((subtotal, sub) => {
-        return subtotal + (parseFloat(sub.total) || 0);
-      }, 0) || 0);
-    }, 0) || 0;
-
-    console.log('[Step 9] custoBase calculado:', custoBase);
-
-    // Remover máscara do CNPJ
     const cpfCnpjLimpo = etapa1Data.cpfCnpj?.replace(/\D/g, '') || '';
-    console.log('[Step 9] CNPJ original:', etapa1Data.cpfCnpj);
-    console.log('[Step 9] CNPJ limpo:', cpfCnpjLimpo);
-    console.log('[Step 9] Comprimento CNPJ limpo:', cpfCnpjLimpo.length);
 
     // Salvar dados locais primeiro
     onDataChange({
@@ -242,37 +214,78 @@ export function StepGerarPropostaOS0104({
     });
 
     try {
-      // Montar payload completo
+      // Montar payload completo para proposta-template.tsx
       const payload = {
+        // Dados do cliente (Etapa 1)
+        codigoOS: osId.slice(0, 8).toUpperCase(),
+        dataEmissao: new Date().toISOString(),
+        validadeProposta: parseInt(data.validadeDias) || 30,
+        tituloProposta: etapa2Data.tipoOS === 'OS-01' ? 'PERÍCIA DE FACHADA' :
+          etapa2Data.tipoOS === 'OS-02' ? 'REVITALIZAÇÃO DE FACHADA' :
+            etapa2Data.tipoOS === 'OS-03' ? 'REFORÇO ESTRUTURAL' : 'SERVIÇOS DE ENGENHARIA',
         clienteCpfCnpj: cpfCnpjLimpo,
+        clienteNome: etapa1Data.nome || '',
+        clienteEmail: etapa1Data.email || '',
+        clienteTelefone: etapa1Data.telefone || '',
+        clienteEndereco: etapa1Data.endereco || '',
+        clienteBairro: etapa1Data.bairro || '',
+        clienteCidade: etapa1Data.cidade || '',
+        clienteEstado: etapa1Data.estado || '',
+        clienteResponsavel: etapa1Data.nomeResponsavel || '',
+        quantidadeUnidades: parseInt(etapa1Data.qtdUnidades || '0') || 1,
+        quantidadeBlocos: parseInt(etapa1Data.qtdBlocos || '0') || 1,
+
+        // Objetivo do serviço (para seção 1 do PDF)
+        objetivo: etapa7Data.objetivo || gerarDescricaoServicos(),
+
+        // Dados financeiros (Etapa 8)
         dadosFinanceiros: {
-          precoFinal: valorTotal.toString(),
-          custoBase: custoBase.toString(),
-          valorEntrada: valorEntrada.toString(),
-          valorParcela: valorParcela.toString(),
-          numeroParcelas: etapa8Data.numeroParcelas || '1',
-          percentualEntrada: etapa8Data.percentualEntrada || '0',
-        }
+          precoFinal: valorTotal,
+          numeroParcelas: parseInt(etapa8Data.numeroParcelas) || 1,
+          percentualEntrada: parseFloat(etapa8Data.percentualEntrada) || 40,
+          percentualImposto: 14, // Default
+          percentualLucro: 15, // Default
+          percentualImprevisto: 5, // Default
+        },
+
+        // Dados do cronograma (Etapa 7 - Memorial)
+        dadosCronograma: {
+          objetivo: etapa7Data.objetivo || '',
+          preparacaoArea: parseFloat(etapa7Data.preparacaoArea) || 0,
+          planejamentoInicial: parseFloat(etapa7Data.planejamentoInicial) || 0,
+          logisticaTransporte: parseFloat(etapa7Data.logisticaTransporte) || 0,
+          etapasPrincipais: (etapa7Data.etapasPrincipais || []).map(etapa => ({
+            nome: etapa.nome,
+            subetapas: (etapa.subetapas || []).map(sub => ({
+              nome: sub.nome,
+              m2: sub.m2 || '',
+              quantidade: parseFloat(sub.m2) || 1,
+              unidade: 'm²',
+              total: parseFloat(sub.total) || 0,
+              diasUteis: parseFloat(sub.diasUteis) || 0,
+            })),
+          })),
+        },
+
+        // Garantias
+        garantias: [
+          `${data.garantiaMeses || '12'} meses de garantia para serviços estruturais`,
+          '6 meses de garantia para acabamentos',
+          'Suporte técnico durante todo o período de garantia',
+        ],
       };
 
-      console.log('[Step 9] ======== PAYLOAD COMPLETO ========');
-      console.log('[Step 9] Payload que será enviado:', JSON.stringify(payload, null, 2));
-      console.log('[Step 9] ======================================');
-
-      // ✅ FIX: Remover máscara do CNPJ e passar dados corretos
       const result = await generate('proposta', osId, payload);
-
-      // DEBUG: Log do resultado
-      console.log('[Step 9] Resultado do generate():', result);
 
       if (result && result.success && result.url) {
         setPdfUrl(result.url);
 
-        // Marcar como gerada
+        // ✅ Marcar como gerada E SALVAR URL
         onDataChange({
           ...data,
           propostaGerada: true,
           dataGeracao: new Date().toLocaleDateString('pt-BR'),
+          pdfUrl: result.url // Persistir URL (mesmo que temporária, ajuda no UX imediato)
         });
 
         toast.success('Proposta gerada com sucesso!');
@@ -424,14 +437,17 @@ export function StepGerarPropostaOS0104({
                 </div>
               </div>
               <div className="flex gap-2">
+                {/* Botão de Visualizar - agora usa pdfUrl se disponível */}
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => window.open(`/os/proposta/${osId}`, '_blank')}
+                  onClick={() => window.open(pdfUrl || `/os/proposta/${data.codigoProposta}`, '_blank')}
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   Visualizar Proposta
                 </Button>
+
+                {/* Botão de Download */}
                 {pdfUrl && (
                   <Button
                     variant="outline"

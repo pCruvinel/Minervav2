@@ -10,18 +10,13 @@
  * - Placeholder para integração futura com Supabase Edge Function
  */
 
-import { forwardRef, useImperativeHandle, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { forwardRef, useImperativeHandle, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Search, AlertCircle, Building2, Mail } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
+import { AlertCircle, Mail } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { useClientes } from '@/lib/hooks/use-clientes';
 import { FileUploadUnificado, FileWithComment } from '@/components/ui/file-upload-unificado';
+import { LeadCadastro, LeadCadastroHandle, LeadCompleto } from '@/components/os/shared/lead-cadastro';
 
 export interface StepCadastroClientePortalData {
     clienteId?: string;
@@ -43,29 +38,17 @@ export interface StepCadastroClientePortalHandle {
 
 export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHandle, StepCadastroClientePortalProps>(
     function StepCadastroClientePortal({ data, onDataChange, readOnly = false, osId }, ref) {
-        const [showCombobox, setShowCombobox] = useState(false);
-        const [errors, setErrors] = useState<Record<string, string>>({});
+        const leadCadastroRef = useRef<LeadCadastroHandle>(null);
 
-        // Hooks - buscar clientes do tipo CLIENTE (não leads)
-        const { clientes, loading: loadingClientes } = useClientes('CLIENTE');
-
-        // Cliente selecionado
-        const selectedCliente = clientes.find(c => c.id === data.clienteId);
-
-        /**
-         * Valida campos obrigatórios
-         */
+        // Validar campos obrigatórios
         const validate = (): boolean => {
-            const newErrors: Record<string, string> = {};
-
-            if (!data.clienteId) {
-                newErrors.clienteId = 'Selecione um cliente';
+            // 1. Validar LeadCadastro
+            if (leadCadastroRef.current && !leadCadastroRef.current.validate()) {
+                return false;
             }
 
-            setErrors(newErrors);
-
-            if (Object.keys(newErrors).length > 0) {
-                toast.error('Preencha os campos obrigatórios');
+            if (!data.clienteId) {
+                toast.error('Selecione um cliente para continuar');
                 return false;
             }
 
@@ -78,6 +61,14 @@ export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHan
             getClienteId: () => data.clienteId
         }));
 
+        const handleLeadChange = (leadId: string, leadData?: LeadCompleto) => {
+            onDataChange({
+                ...data,
+                clienteId: leadId,
+                clienteNome: leadData?.identificacao?.nome || data.clienteNome
+            });
+        };
+
         return (
             <div className="space-y-6">
                 <div>
@@ -87,111 +78,16 @@ export const StepCadastroClientePortal = forwardRef<StepCadastroClientePortalHan
                     </p>
                 </div>
 
-                {/* SEÇÃO A: Seleção de Cliente */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Building2 className="h-5 w-5" />
-                            Selecionar Cliente
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        {!data.clienteId ? (
-                            <Popover open={showCombobox} onOpenChange={setShowCombobox}>
-                                <PopoverTrigger asChild>
-                                    <Button
-                                        variant="outline"
-                                        role="combobox"
-                                        aria-expanded={showCombobox}
-                                        className={cn(
-                                            "w-full justify-between",
-                                            errors.clienteId && "border-destructive"
-                                        )}
-                                        disabled={readOnly || loadingClientes}
-                                    >
-                                        {loadingClientes ? 'Carregando clientes...' : 'Selecione um cliente'}
-                                        <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent className="w-full p-0">
-                                    <Command>
-                                        <CommandInput placeholder="Buscar por nome, CNPJ..." />
-                                        <CommandEmpty>Nenhum cliente encontrado.</CommandEmpty>
-                                        <CommandList>
-                                            <CommandGroup>
-                                                {clientes.map((cliente) => (
-                                                    <CommandItem
-                                                        key={cliente.id}
-                                                        value={cliente.nome_razao_social}
-                                                        onSelect={() => {
-                                                            onDataChange({
-                                                                ...data,
-                                                                clienteId: cliente.id,
-                                                                clienteNome: cliente.nome_razao_social
-                                                            });
-                                                            setShowCombobox(false);
-                                                        }}
-                                                    >
-                                                        <div className="flex items-center gap-2 w-full">
-                                                            <Avatar className="h-8 w-8">
-                                                                <AvatarFallback>
-                                                                    {cliente.nome_razao_social?.substring(0, 2).toUpperCase()}
-                                                                </AvatarFallback>
-                                                            </Avatar>
-                                                            <div className="flex-1">
-                                                                <div className="font-medium">{cliente.nome_razao_social}</div>
-                                                                <div className="text-sm text-muted-foreground">
-                                                                    {cliente.cpf_cnpj} • {cliente.telefone}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </CommandItem>
-                                                ))}
-                                            </CommandGroup>
-                                        </CommandList>
-                                    </Command>
-                                </PopoverContent>
-                            </Popover>
-                        ) : (
-                            <Card className="bg-primary/5 border-primary/20">
-                                <CardContent className="pt-6">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex items-center gap-4">
-                                            <Avatar className="h-12 w-12">
-                                                <AvatarFallback className="bg-primary text-white">
-                                                    {selectedCliente?.nome_razao_social?.substring(0, 2).toUpperCase()}
-                                                </AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <div className="font-semibold text-lg">{selectedCliente?.nome_razao_social}</div>
-                                                <div className="text-sm text-muted-foreground space-y-1">
-                                                    <div>CNPJ: {selectedCliente?.cpf_cnpj || 'Não informado'}</div>
-                                                    <div>Telefone: {selectedCliente?.telefone || 'Não informado'}</div>
-                                                    <div>Email: {selectedCliente?.email || 'Não informado'}</div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {!readOnly && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => onDataChange({ ...data, clienteId: '', clienteNome: '' })}
-                                            >
-                                                Alterar
-                                            </Button>
-                                        )}
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                        {errors.clienteId && (
-                            <p className="text-sm text-destructive flex items-center gap-1">
-                                <AlertCircle className="h-4 w-4" />
-                                {errors.clienteId}
-                            </p>
-                        )}
-                    </CardContent>
-                </Card>
+                {/* SEÇÃO A: Lead Cadastro (Substitui Seleção Manual) */}
+                <LeadCadastro
+                    ref={leadCadastroRef}
+                    selectedLeadId={data.clienteId}
+                    onLeadChange={handleLeadChange}
+                    readOnly={readOnly}
+                    statusFilter="cliente"
+                    showEdificacao={false} // Simplificado para OS-12
+                    showEndereco={true}
+                />
 
                 {/* SEÇÃO B: Informativo sobre Convite por E-mail */}
                 {data.clienteId && (

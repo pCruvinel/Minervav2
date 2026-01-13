@@ -1,3 +1,17 @@
+/**
+ * @deprecated DEPRECATED desde 2026-01-13
+ * 
+ * Este arquivo será migrado para o Sistema de Accordion com Adendos.
+ * 
+ * Motivo: Padronização com OS-07 e OS-08 que já utilizam WorkflowAccordion.
+ * Novo arquivo: os-5-6-workflow-page.tsx (a ser criado)
+ * 
+ * Funcionalidade atual: 12 etapas com WorkflowStepper tradicional
+ * Funcionalidade futura: WorkflowAccordion + FieldWithAdendos + resumo read-only
+ * 
+ * @see docs/planning/OS_5_6_ACCORDION_MIGRATION_PLAN.md
+ * @see docs/technical/ACCORDION_ADENDOS_SYSTEM.md
+ */
 "use client";
 
 import { logger } from '@/lib/utils/logger';
@@ -19,7 +33,7 @@ import { TransferenciaInfo } from '@/types/os-setor-config';
 import { useAuth } from '@/lib/contexts/auth-context';
 
 // Componentes compartilhados
-import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
+import { LeadCadastro, type LeadCadastroHandle, type LeadCompleto } from '@/components/os/shared/lead-cadastro';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
 import { StepFollowup1OS5, type StepFollowup1OS5Handle } from '@/components/os/shared/steps/step-followup-1-os5';
 import { StepFollowup1OS6, type StepFollowup1OS6Handle } from '@/components/os/shared/steps/step-followup-1-os6';
@@ -109,8 +123,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   });
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
-  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
 
   // Estado para feedback de transferência de setor
@@ -126,7 +139,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
   useAuth(); // Para garantir que o contexto está disponivel
 
   // Refs para componentes com validação imperativa
-  const stepLeadRef = useRef<CadastrarLeadHandle>(null);
+  const stepLeadRef = useRef<LeadCadastroHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
   const stepFollowup1OS5Ref = useRef<StepFollowup1OS5Handle>(null);
   const stepFollowup1OS6Ref = useRef<StepFollowup1OS6Handle>(null);
@@ -239,7 +252,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
       // Salvar dados do lead (validação)
       logger.log('💾 Validando dados do Lead...');
-      const leadId = await stepLeadRef.current.saveData();
+      const leadId = await stepLeadRef.current.save();
 
       if (!leadId) {
         logger.error('❌ Falha ao validar Lead na Etapa 1');
@@ -397,42 +410,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     }
   };
 
-  // Estado do formulário de novo lead
-  const [formData, setFormData] = useState({
-    nome: '',
-    cpfCnpj: '',
-    tipo: '',
-    nomeResponsavel: '',
-    cargoResponsavel: '',
-    telefone: '',
-    email: '',
-    tipoEdificacao: '',
-    qtdUnidades: '',
-    qtdBlocos: '',
-    qtdPavimentos: '',
-    tipoTelhado: '',
-    possuiElevador: false,
-    possuiPiscina: false,
-    cep: '',
-    endereco: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-  });
 
-  // ✅ FIX: Wrapper para sincronizar formData com formDataByStep[1]
-  // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
-  const handleFormDataChange = (newFormData: typeof formData) => {
-    setFormData(newFormData);
-
-    // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
-    setEtapa1Data({
-      ...newFormData,
-      leadId: selectedLeadId || etapa1Data?.leadId || '',
-    });
-  };
 
   // Sincronizar selectedLeadId com etapa1Data
   useEffect(() => {
@@ -482,10 +460,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     }
   }, [currentStep, isHistoricalNavigation, etapa1Data.leadId]);
 
-  const handleSelectLead = (leadId: string) => {
-    setSelectedLeadId(leadId);
-    setEtapa1Data({ ...etapa1Data, leadId });
-  };
+
 
   // Handler para finalizar etapa e criar OS filha
   const handleConcluirEtapa = async () => {
@@ -674,17 +649,25 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
-                <CadastrarLead
+                <LeadCadastro
                   ref={stepLeadRef}
                   selectedLeadId={selectedLeadId}
-                  onSelectLead={handleSelectLead}
-                  showCombobox={showLeadCombobox}
-                  onShowComboboxChange={setShowLeadCombobox}
-                  showNewLeadDialog={showNewLeadDialog}
-                  onShowNewLeadDialogChange={setShowNewLeadDialog}
-                  formData={formData}
-                  onFormDataChange={handleFormDataChange}
+                  onLeadChange={(id: string, data: LeadCompleto | null) => {
+                    setSelectedLeadId(id);
+                    if (data) {
+                      setEtapa1Data({
+                        ...etapa1Data,
+                        leadId: id,
+                        nome: data.identificacao.nome,
+                        cpfCnpj: data.identificacao.cpfCnpj,
+                        email: data.identificacao.email,
+                        telefone: data.identificacao.telefone,
+                      });
+                    }
+                  }}
                   readOnly={isHistoricalNavigation}
+                  showEdificacao={true}
+                  showEndereco={true}
                 />
               )}
 

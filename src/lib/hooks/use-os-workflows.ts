@@ -530,11 +530,11 @@ export function useCreateOSWorkflow() {
                 
                 const { data: clienteData } = await supabase
                     .from('clientes')
-                    .select('nome_fantasia, nome_razao_social')
+                    .select('nome_razao_social')
                     .eq('id', osData.cliente_id)
                     .single();
                     
-                const clienteNome = clienteData?.nome_fantasia || clienteData?.nome_razao_social || 'Cliente';
+                const clienteNome = clienteData?.nome_razao_social || 'Cliente';
                 
                 const { data: tipoOsData } = await supabase
                     .from('tipos_os')

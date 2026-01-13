@@ -1,8 +1,8 @@
 # 📋 Documentação Técnica: OS-07, OS-08 e OS-09
 
-**Última Atualização:** 2026-01-04  
-**Versão:** v2.7  
-**Status Implementação:** 90-95% ✅
+**Última Atualização:** 2026-01-13  
+**Versão:** v2.9  
+**Status Implementação:** 95% ✅
 
 ---
 
@@ -197,14 +197,18 @@ Solicitação, agendamento e execução de **visita técnica** com geração de 
 ```
 src/components/os/assessoria/os-8/
 ├── pages/
-│   └── os08-workflow-page.tsx           # Workflow principal
+│   └── os08-workflow-page.tsx           # Workflow principal (457 linhas)
+├── components/
+│   └── checklist-recebimento.tsx        # Checklist Recebimento Unidade
+├── types/
+│   └── os08-types.ts                    # Tipos e constantes
 └── steps/
     ├── index.ts
     ├── step-identificacao-solicitante.tsx  # Etapa 1
     ├── step-atribuir-cliente.tsx           # Etapa 2
     ├── step-agendar-visita.tsx             # Etapa 3
     ├── step-realizar-visita.tsx            # Etapa 4
-    ├── step-formulario-pos-visita.tsx      # Etapa 5 (mais completo)
+    ├── step-formulario-pos-visita.tsx      # Etapa 5 (dinâmico por finalidade)
     ├── step-gerar-documento.tsx            # Etapa 6
     └── step-enviar-documento.tsx           # Etapa 7
 ```
@@ -410,6 +414,157 @@ interface Etapa7OS08Data {
 │                                                               │
 └───────────────────────────────────────────────────────────────┘
 ```
+
+## 🛠️ Correções Recentes (v2.9 - 2026-01-13)
+
+### 0. Navegação e Cabeçalho (v2.9)
+
+**Problema:** Ao clicar em uma etapa no "Detalhes da OS", a página de workflow abria na Etapa 1 ao invés da etapa selecionada.
+
+**Correções Aplicadas:**
+
+| Arquivo | Alteração |
+|---------|----------|
+| `details-workflow.$id.tsx` | Adicionadas props `initialStep`, `readonly`, `codigoOS`, `tipoOSNome` |
+| `os08-workflow-page.tsx` | Interface atualizada para aceitar novas props |
+| `os08-workflow-page.tsx` | Botão Voltar usa `Link` para `/os/$osId` |
+| `os08-workflow-page.tsx` | Cabeçalho exibe `codigoOS` + `tipoOSNome` |
+
+```tsx
+// details-workflow.$id.tsx
+<OS08WorkflowPage
+  osId={id}
+  initialStep={step}        // ✅ Navegação direta para etapa
+  readonly={readonly}       // ✅ Modo somente leitura
+  codigoOS={os.codigo_os}   // ✅ Título principal
+  tipoOSNome={os.tipo_os_nome} // ✅ Subtítulo
+  onBack={handleBack}
+/>
+```
+
+---
+
+### 1. WorkflowAccordion - Navegação Re-projetada
+
+**Problema:** Ao clicar em etapa concluída, ela mudava para "Atual" e perdia status verde/concluída.
+
+**Correções Aplicadas:**
+
+| Componente | Antes | Depois |
+|------------|-------|--------|
+| Accordion Type | `type="single"` | `type="multiple"` |
+| Controle de Expansão | Via `onStepChange` (mudava currentStep) | Estado local `expandedSteps` |
+| Prioridade Visual | `isCurrent` > `isCompleted` | `isCompleted` > `isCurrent` |
+| Etapa Concluída | Mostrava formulário editável | Mostra `renderSummary` read-only |
+
+**Arquivo:** `src/components/os/shared/components/workflow-accordion.tsx`
+
+```typescript
+// ✅ Accordion permite múltiplas etapas expandidas
+<Accordion type="multiple" value={expandedSteps}>
+
+// ✅ Handler não muda currentStep
+const handleValueChange = (values: string[]) => {
+    const currentStepValue = `step-${currentStep}`;
+    if (!values.includes(currentStepValue)) {
+        values = [...values, currentStepValue]; // Etapa atual nunca colapsa
+    }
+    setExpandedSteps(values);
+};
+
+// ✅ Badge prioriza isCompleted
+{isCompleted ? (
+    <Badge className="text-success">✓ Concluída</Badge>
+) : isCurrent ? (
+    <Badge>Atual</Badge>
+) : null}
+```
+
+---
+
+### 2. FieldWithAdendos - Redesign Visual
+
+**Problema:** Cards de adendo com cores fortes (amarelo) e emojis inconsistentes.
+
+**Correções Aplicadas:**
+
+| Aspecto | Antes | Depois |
+|---------|-------|--------|
+| Background | `bg-primary/5` (amarelo) | `bg-muted/20` (neutro) |
+| Borda | `border-l-4 border-primary` | `border-l-2 border-muted-foreground/30` |
+| Ícone Plus | Sim (no texto) | Removido |
+| Texto | `text-primary` | `text-muted-foreground italic` |
+| Usuário | 👤 emoji | `<User />` Lucide icon |
+| Data | 📅 emoji | `<Calendar />` Lucide icon |
+
+**Arquivo:** `src/components/os/shared/components/field-with-adendos.tsx`
+
+```tsx
+// Novo estilo minimalista
+<div className="bg-muted/20 border-l-2 border-muted-foreground/30 rounded-r-md p-3 ml-4">
+    <p className="text-sm text-muted-foreground italic">{adendo.conteudo}</p>
+    <div className="flex justify-end gap-3 mt-2 text-xs text-muted-foreground/70">
+        <span className="flex items-center gap-1">
+            <User className="h-3 w-3" />
+            {adendo.criado_por_nome}
+        </span>
+        <span className="flex items-center gap-1">
+            <Calendar className="h-3 w-3" />
+            {formatDateTime(adendo.criado_em)}
+        </span>
+    </div>
+</div>
+```
+
+---
+
+### 3. useWorkflowCompletion - Separação de Estados
+
+**Problema:** `completedSteps` misturava dados locais com status do banco, causando badge prematuro.
+
+**Correções Aplicadas:**
+
+```typescript
+// ✅ completedSteps: APENAS do banco (etapas realmente salvas como concluídas)
+const completedSteps = useMemo(() => {
+    return [...completedStepsFromHook].sort((a, b) => a - b);
+}, [completedStepsFromHook]);
+
+// ✅ readyToAdvanceSteps: dados locais que satisfazem regras (permite avançar)
+const readyToAdvanceSteps = useMemo(() => { ... }, [formDataByStep, completionRules]);
+
+// ✅ Funções separadas
+const isStepCompleted = (step: number) => completedSteps.includes(step);
+const canAdvanceFromStep = (step: number) => readyToAdvanceSteps.includes(step);
+```
+
+**Arquivo:** `src/lib/hooks/use-workflow-completion.ts`
+
+---
+
+### 4. os08-workflow-page - Salvamento Correto
+
+**Problema:** `saveStep(currentStep, true)` passava `isDraft=true`, salvando como `'em_andamento'`.
+
+**Correções Aplicadas:**
+
+```typescript
+// ✅ handleNextStep agora marca como concluída
+await saveStep(currentStep, false); // isDraft=false → status='concluida'
+
+// ✅ Refresh após save para atualizar completedSteps
+await refreshEtapas();
+```
+
+**Arquivo:** `src/components/os/assessoria/os-8/pages/os08-workflow-page.tsx`
+
+---
+
+### 5. AccordionTrigger - Setas Duplicadas
+
+**Problema:** ChevronDown manual + ChevronDown automático do Shadcn UI.
+
+**Correção:** Removido o ChevronDown manual do `workflow-accordion.tsx`. O Shadcn AccordionTrigger já inclui automaticamente.
 
 ---
 
@@ -653,14 +808,18 @@ const os09Data = {
 
 ### Checklist OS-08
 
-- [ ] Identificação do solicitante com fotos
-- [ ] Atribuição de cliente existente
-- [ ] Handoff Etapa 2 → 3 (Admin → Assessoria)
-- [ ] Agendamento integrado com calendário
-- [ ] Formulário pós-visita completo (pontuação, NBR, fotos)
-- [ ] Geração de parecer técnico via Edge Function
-- [ ] Envio ao cliente (e-mail/WhatsApp)
+- [x] Identificação do solicitante com fotos
+- [x] Atribuição de cliente existente
+- [x] Handoff Etapa 2 → 3 (Admin → Assessoria)
+- [x] Agendamento integrado com calendário
+- [x] Formulário pós-visita completo (pontuação, NBR, fotos)
+- [x] Geração de parecer técnico via Edge Function
+- [x] Envio ao cliente (e-mail/WhatsApp)
 - [ ] Regra OS-05 (assessoria anual → OS-08 semanal)
+- [x] **v2.8:** WorkflowAccordion `type="multiple"` para navegação histórica
+- [x] **v2.8:** Etapas concluídas mantêm status verde ao expandir
+- [x] **v2.8:** Adendos com visual minimalista (ícones Lucide)
+- [x] **v2.8:** saveStep marca como `concluida` ao avançar
 
 ### Checklist OS-09
 
@@ -748,9 +907,10 @@ if (currentStep === 2 && orcamentos.length < 3) {
 - [OS_01_04_TECHNICAL_DOCUMENTATION.md](./OS_01_04_TECHNICAL_DOCUMENTATION.md) - Doc técnica OS 1-4
 - [OS_05_06_TECHNICAL_DOCUMENTATION.md](./OS_05_06_TECHNICAL_DOCUMENTATION.md) - Doc técnica OS 5-6
 - [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Schema do banco de dados
+- **[ACCORDION_ADENDOS_SYSTEM.md](./ACCORDION_ADENDOS_SYSTEM.md)** - Sistema de Accordion com Adendos (OS-07/08)
 
 ---
 
-**Última Revisão:** 2026-01-04  
+**Última Revisão:** 2026-01-13  
 **Autor:** Sistema Minerva ERP  
-**Versão do Documento:** 1.0.0
+**Versão do Documento:** 2.9.0

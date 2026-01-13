@@ -1,7 +1,253 @@
-# Sistema de Geração de PDFs - Documentação Técnica
+# Sistema de Geração de PDFs - Documentação Técnica (v2.0)
 
-> **Última Atualização:** 04/01/2026
-> **Versão Edge Function:** `generate-pdf` v7
+> **Última Atualização:** 08/01/2026
+> **Arquitetura:** Client-Side (Frontend Only)
+> **Engine:** `@react-pdf/renderer` v3.x
+> **Project ID:** `zxfevlkssljndqqhxkjb`
+
+## Índice
+
+1. [Visão Geral](#visão-geral)
+2. [Arquitetura](#arquitetura)
+3. [Tipos de PDF Disponíveis](#tipos-de-pdf-disponíveis)
+4. [Estrutura de Diretórios](#estrutura-de-diretórios)
+5. [Hook: `usePDFGeneration`](#hook-usepdfgeneration)
+6. [Templates e Design System](#templates-e-design-system)
+7. [Fluxo de Dados](#fluxo-de-dados)
+8. [Armazenamento (Storage)](#armazenamento-storage)
+9. [Como Adicionar Novo Tipo de PDF](#como-adicionar-novo-tipo-de-pdf)
+10. [Troubleshooting](#troubleshooting)
+
+---
+
+## Visão Geral
+
+A partir de **Janeiro/2026 (v2.0)**, o sistema MinervaV2 migrou a geração de documentos PDF de Supabase Edge Functions para uma arquitetura **100% Client-Side**.
+
+Os PDFs são gerados diretamente no navegador do usuário utilizando `@react-pdf/renderer`, resultando em maior performance, menor custo (sem invocações de Edge Function) e melhor experiência de desenvolvimento.
+
+### Stack Tecnológica
+
+| Componente | Tecnologia |
+| :--- | :--- |
+| Engine de Renderização | `@react-pdf/renderer` (Client-Side) |
+| Templates | React Components (`.tsx`) |
+| Lógica de Geração | Custom Hook (`use-pdf-generation.tsx`) |
+| Storage | Supabase Storage (bucket `uploads`) |
+| Upload/Persistência | `pdf-uploader.ts` |
+| Banco de Metadados | PostgreSQL (`os_documentos`) |
+
+---
+
+## Arquitetura
+
+```mermaid
+graph TD
+    User[Usuário] -->|Clica em Gerar PDF| Component[Componente React]
+    Component -->|Chama| Hook[usePDFGeneration Hook]
+    
+    subgraph Browser Client-Side
+        Hook -->|Seleciona| Template[Template React (.tsx)]
+        Template -->|Renderiza| Engine[@react-pdf/renderer]
+        Engine -->|Gera| Blob[Blob Binário (PDF)]
+        
+        Hook -->|Blob| Uploader[pdf-uploader.ts]
+    end
+    
+    subgraph Supabase
+        Uploader -->|Upload| Storage[Bucket 'uploads']
+        Uploader -->|Generate| SignedURL[Signed URL]
+    end
+    
+    Uploader -->|Retorna| Result[URL Assinada + Metadados]
+    Result -->|Exibe| Preview[PDFViewerEmbedded]
+```
+
+---
+
+## Tipos de PDF Disponíveis
+
+| `PDFType` | Template | Contexto de Uso | Descrição |
+| :--- | :--- | :--- | :--- |
+| `proposta` | `proposta-template.tsx` | OS 1-4 (Obras) | Proposta completa com memorial, cronograma e financeiro. |
+| `proposta-ass-anual` | `proposta-ass-anual.tsx` | OS 5 (Assessoria) | Proposta estruturada para contratos recorrentes. |
+| `proposta-ass-pontual` | `proposta-ass-pontual.tsx` | OS 6 (Assessoria) | Proposta ou laudo para serviços pontuais. |
+| `contrato` | `contrato-template.tsx` | Geral | Minuta de contrato de prestação de serviços. |
+| `memorial` | `memorial-template.tsx` | OS 1-4 | Documento técnico detalhando execução (sem valores). |
+| `documento-sst` | `documento-sst-template.tsx` | Geral | Documentação de Saúde e Segurança. |
+| `parecer-reforma` | `parecer-reforma-template.tsx` | OS 7 | Parecer técnico específico para reformas. |
+| `visita-tecnica` | `visita-tecnica-template.tsx` | OS 8 | Relatório de vistoria e visita técnica. |
+
+---
+
+## Estrutura de Diretórios
+
+Toda a lógica de PDF agora reside em `src/lib/pdf/`:
+
+```
+src/
+└── lib/
+    ├── hooks/
+    │   └── use-pdf-generation.tsx      # ⚠️ Hook principal (Orquestrador)
+    └── pdf/
+        ├── pdf-uploader.ts             # Lógica de Upload e Signed URLs
+        ├── shared-styles.ts            # Estilos globais (cores, fontes)
+        ├── assets.ts                   # Logos e imagens em Base64
+        ├── components/                 # Componentes visuais compartilhados
+        │   ├── shared-header.tsx       # Cabeçalho padrão
+        │   ├── shared-footer.tsx       # Rodapé padrão
+        │   └── table-components.tsx    # Tabelas reutilizáveis
+        ├── templates/                  # Templates de Documentos
+        │   ├── proposta-template.tsx
+        │   ├── contrato-template.tsx
+        │   ├── ... (outros templates)
+        └── utils/
+            ├── pdf-formatter.ts        # Formatadores (Moeda, Data, CPF)
+            └── validation.ts           # Validadores
+```
+
+---
+
+## Hook: `usePDFGeneration`
+
+Este é o ponto de entrada único para geração de documentos.
+
+**Localização:** `src/lib/hooks/use-pdf-generation.tsx`
+
+```typescript
+const { generating, generate, error } = usePDFGeneration();
+
+// Exemplo de uso
+const handleGenerate = async () => {
+  const result = await generate('proposta', osId, dadosDoTemplate);
+  
+  if (result?.success) {
+    console.log('PDF URL:', result.url); // URL Assinada pronta para uso
+    console.log('Path:', result.path);   // Caminho no Storage
+  }
+};
+```
+
+### Parâmetros de `generate`
+
+1. **`tipo`** (`PDFType`): Identificador do tipo de documento.
+2. **`osId`** (`string`): UUID da Ordem de Serviço (usado para compor o caminho do arquivo).
+3. **`dados`** (`any`): Objeto de dados que será passado diretamente ao Template.
+
+### Retorno (`PDFGenerationResponse`)
+
+```typescript
+{
+  success: boolean;
+  url?: string;        // URL assinada temporária (1h) para visualização imediata
+  path?: string;       // Caminho persistente no Storage (para salvar no banco)
+  error?: string;
+  metadata?: {
+    filename: string;
+    size: number;
+    tipo: PDFType;
+  };
+}
+```
+
+---
+
+## Templates e Design System
+
+Os templates são componentes React puros que utilizam primitivos do `@react-pdf/renderer` (`<Document>`, `<Page>`, `<View>`, `<Text>`, `<Image>`).
+
+### Estilização
+Utilizamos um arquivo central de estilos em `src/lib/pdf/shared-styles.ts` que reflete a identidade visual da Minerva.
+
+```typescript
+import { colors, fonts, commonStyles } from '../shared-styles';
+
+// Exemplo de uso em template
+<Text style={[commonStyles.sectionTitle, { color: colors.primary }]}>
+  Orçamento
+</Text>
+```
+
+### Componentes Compartilhados
+
+1. **`SharedHeader`**: Aceita `codigoOS`, `documentTitle`, `documentSubtitle` e `documentDate`.
+2. **`SharedFooter`**: Exibe paginação e rodapé da empresa.
+3. **`TableComponents`**:
+   - `Table`: Container flex.
+   - `TableHeaderCell`: Célula de cabeçalho com `style` customizável.
+   - `TableCell`: Célula de dados com suporte a `flexValue` (largura) e `style`.
+
+---
+
+## Fluxo de Dados
+
+Diferente da versão anterior (v1) onde a Edge Function buscava dados no banco, a versão v2 **recebe os dados prontos do Frontend**.
+
+1. **Componente Pai (ex: `StepGerarProposta`)**: Coleta dados de todos os steps anteriores (Client, OS, Itens, Financeiro).
+2. **Normalização**: Organiza esses dados no formato esperado pelo Template.
+3. **Geração**: Passa o objeto normalizado para `generate()`.
+
+**Vantagem**: Garante que o PDF reflita exatamente o que o usuário está vendo na tela, sem necessidade de queries adicionais ou problemas de sincronia.
+
+---
+
+## Armazenamento (Storage)
+
+### Bucket
+- **Nome**: `uploads` (Bucket privado/autenticado).
+- **Caminho**: `os/{osId}/documentos/{tipo}/{filename}`.
+
+### Upload e URLs
+A lógica de upload está isolada em `src/lib/pdf/pdf-uploader.ts`.
+
+1. **Upload**: Envia o Blob para o Supabase Storage.
+2. **Assinatura**: Gera imediatamente uma **Signed URL** (validade: 1 hora).
+3. **Retorno**: Devolve a URL assinada para o hook, permitindo que o usuário visualize o arquivo imediatamente no `<PDFViewerEmbedded>` sem erros de permissão.
+
+---
+
+## Como Adicionar Novo Tipo de PDF
+
+1. **Criar Template**:
+   Crie `src/lib/pdf/templates/novo-tipo-template.tsx`. Use `SharedHeader` e `SharedFooter`.
+
+2. **Definir Interface de Dados**:
+   Exporte uma interface `NovoTipoData` definindo o que o template precisa receber.
+
+3. **Registrar no Hook**:
+   Em `src/lib/hooks/use-pdf-generation.tsx`, adicione um `case` no `switch`:
+   ```typescript
+   case 'novo-tipo':
+     DocumentComponent = <NovoTipoTemplate data={dados} />;
+     break;
+   ```
+
+4. **Atualizar Tipos**:
+   Adicione `'novo-tipo'` ao type `PDFType` em `src/lib/types.ts`.
+
+---
+
+## Troubleshooting
+
+### Erro: "ReferenceError: window is not defined"
+- **Causa**: Tentativa de renderizar PDF no Server Component ou fora do browser.
+- **Solução**: `usePDFGeneration` deve ser usado apenas em componentes com `"use client"`.
+
+### Erro: Estilos não aplicados
+- **Causa**: O React PDF não suporta herança de estilos CSS (Cascading).
+- **Solução**: Passe estilos explicitamente via prop `style` ou array de estilos `[style1, style2]`.
+
+### Imagens quebradas
+- **Causa**: URLs de imagem externas com bloqueio de CORS.
+- **Solução**: Utilize imagens em Base64 importadas de `assets.ts`.
+
+### PDF em branco ou erro de renderização
+- **Causa**: Elemento `undefined` ou `null` sendo renderizado dentro de um `<Text>`.
+- **Solução**: Garanta que todos os valores interpolados `{valor}` tenham fallback: `{valor || ''}`.
+
+
+> **Última Atualização:** 06/01/2026
+> **Versão Edge Function:** `generate-pdf` v8
 > **Project ID:** `zxfevlkssljndqqhxkjb`
 
 ## Índice
@@ -109,7 +355,7 @@ supabase/functions/generate-pdf/
 │   ├── proposta-ass-anual-handler.ts   # Proposta Assessoria Anual (OS-05)
 │   └── proposta-ass-pontual-handler.ts # Proposta Assessoria Pontual (OS-06)
 ├── templates/
-│   ├── proposta-template.tsx     # Template Proposta Comercial (~873 linhas)
+│   ├── proposta-template.tsx     # Template Proposta Comercial (~830 linhas)
 │   ├── contrato-template.tsx     # Template Contrato (~316 linhas)
 │   ├── memorial-template.tsx     # Template Memorial
 │   ├── documento-sst-template.tsx # Template SST
@@ -498,6 +744,17 @@ CREATE TABLE os_documentos (
 | `formatarCEP(cep)` | `'65000000'` | `65000-000` |
 | `capitalize(texto)` | `'são luís'` | `São Luís` |
 | `truncate(texto, max)` | `'Muito longo...', 10` | `Muito l...` |
+
+> [!IMPORTANT]
+> **`formatarMoeda()` já inclui o símbolo "R$"**. Não adicione manualmente o prefixo "R$" ao usar esta função, caso contrário o valor aparecerá duplicado (ex: "R$ R$ 5.000,00").
+> 
+> ```tsx
+> // ✅ Correto
+> <Text>{formatarMoeda(valor)}</Text>
+> 
+> // ❌ Incorreto - causa "R$ R$ 5.000,00"
+> <Text>R$ {formatarMoeda(valor)}</Text>
+> ```
 
 ### Storage (`pdf-storage.ts`)
 

@@ -1,3 +1,12 @@
+/**
+ * Step 6: Gerar Documento
+ * 
+ * Este componente gera o PDF de visita técnica utilizando dados de todas as etapas anteriores.
+ * Suporta dois modos:
+ * - Recebimento de Unidade → Checklist de 27 itens
+ * - Parecer Técnico → Manifestações patológicas, gravidade, NBR
+ */
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PrimaryButton } from '@/components/ui/primary-button';
@@ -5,21 +14,308 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { FileText, Download, Eye, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
 import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
+import { useAuth } from '@/lib/contexts/auth-context';
 import { logger } from '@/lib/utils/logger';
+import {
+  gerarTituloDocumento,
+  isFinalidadeRecebimento,
+  type FinalidadeInspecao
+} from '../types/os08-types';
+import { CHECKLIST_BLOCOS } from '../components/checklist-recebimento';
+import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
+
+// =====================================================
+// TYPES
+// =====================================================
+
+interface Etapa1Data {
+  identificacao?: {
+    nome?: string;
+    cpfCnpj?: string;
+    email?: string;
+    telefone?: string;
+  };
+  edificacao?: {
+    nome?: string;
+    sindico?: string;
+  };
+  endereco?: {
+    logradouro?: string;
+    bairro?: string;
+    cidade?: string;
+    uf?: string;
+  };
+}
+
+interface Etapa2Data {
+  finalidadeInspecao?: FinalidadeInspecao | '';
+  areaVistoriada?: string;
+  detalhesSolicitacao?: string;
+  tempoSituacao?: string;
+}
+
+interface Etapa4Data {
+  dataRealizacao?: string;
+}
+
+interface FotoComComentario {
+  url: string;
+  comentario?: string;
+  isNaoConforme?: boolean;
+}
+
+interface Etapa5Data {
+  pontuacaoEngenheiro?: string;
+  pontuacaoMorador?: string;
+  manifestacaoPatologica?: string;
+  recomendacoesPrevias?: string;
+  gravidade?: string;
+  origemNBR?: string;
+  observacoesGerais?: string;
+  resultadoVisita?: string;
+  justificativa?: string;
+  // Fotos do formulário genérico (pode ser string[] legado ou array de objetos)
+  fotosLocal?: string[] | FotoComComentario[];
+  // Fotos de arquivos com comentário (formato FileWithComment do uploader)
+  arquivos?: Array<{
+    url: string;
+    comentario?: string;
+    name?: string;
+  }>;
+  checklistRecebimento?: {
+    items: Record<string, {
+      id: string;
+      status: 'C' | 'NC' | 'NA' | '';
+      observacao: string;
+      // Fotos do checklist com comentários
+      fotos?: Array<{
+        url: string;
+        comentario?: string;
+      }>;
+    }>;
+  };
+}
 
 interface StepGerarDocumentoProps {
   osId: string;
+  codigoOS?: string;
   data: {
     documentoGerado: boolean;
     documentoUrl: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { documentoGerado: boolean; documentoUrl: string }) => void;
   readOnly?: boolean;
+  // Dados de etapas anteriores para montar o PDF
+  etapa1Data?: Etapa1Data;
+  etapa2Data?: Etapa2Data;
+  etapa4Data?: Etapa4Data;
+  etapa5Data?: Etapa5Data;
 }
 
-export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepGerarDocumentoProps) {
+export function StepGerarDocumento({
+  osId,
+  codigoOS,
+  data: documentData,
+  onDataChange,
+  readOnly,
+  etapa1Data,
+  etapa2Data,
+  etapa4Data,
+  etapa5Data,
+}: StepGerarDocumentoProps) {
   const [isGenerating, setIsGenerating] = React.useState(false);
   const { generating: generatingPDF, generate: generatePDF } = usePDFGeneration();
+  const { currentUser } = useAuth();
+
+  // Verificar se é recebimento de unidade
+  const finalidadeInspecao = etapa2Data?.finalidadeInspecao as FinalidadeInspecao | undefined;
+  const isRecebimento = finalidadeInspecao ? isFinalidadeRecebimento(finalidadeInspecao) : false;
+
+  // Gerar título dinâmico
+  const tituloDocumento = finalidadeInspecao
+    ? gerarTituloDocumento(finalidadeInspecao, etapa2Data?.areaVistoriada)
+    : 'RELATÓRIO DE VISITA TÉCNICA';
+
+  /**
+   * Transforma dados do checklist para formato do PDF
+   */
+  const transformChecklistData = (): VisitaTecnicaData['checklistRecebimento'] | undefined => {
+    if (!etapa5Data?.checklistRecebimento?.items) return undefined;
+
+    const items: ChecklistItem[] = [];
+    let conformes = 0;
+    let naoConformes = 0;
+    let naoAplica = 0;
+
+    // Iterar pelos blocos e itens definidos
+    CHECKLIST_BLOCOS.forEach(bloco => {
+      bloco.items.forEach(itemDef => {
+        const itemData = etapa5Data.checklistRecebimento?.items[itemDef.id];
+        if (itemData && itemData.status) {
+          items.push({
+            id: itemDef.id,
+            bloco: bloco.titulo,
+            label: itemDef.label,
+            status: itemData.status as 'C' | 'NC' | 'NA',
+            observacao: itemData.observacao || undefined,
+          });
+
+          switch (itemData.status) {
+            case 'C': conformes++; break;
+            case 'NC': naoConformes++; break;
+            case 'NA': naoAplica++; break;
+          }
+        }
+      });
+    });
+
+    return {
+      items,
+      estatisticas: {
+        total: items.length,
+        conformes,
+        naoConformes,
+        naoAplica,
+      },
+    };
+  };
+
+  /**
+   * Monta o payload completo para geração do PDF
+   */
+  const buildPDFPayload = (): VisitaTecnicaData => {
+    const now = new Date().toISOString();
+
+    // Construir endereço completo
+    const enderecoCompleto = [
+      etapa1Data?.endereco?.logradouro,
+      etapa1Data?.endereco?.bairro,
+    ].filter(Boolean).join(', ');
+
+    // Coletar todas as fotos com legendas
+    const todasFotos: Array<{ url: string; legenda: string; isNaoConforme: boolean }> = [];
+
+    // 1. Fotos do campo fotosLocal (formato legado string[] ou novo FotoComComentario[])
+    if (etapa5Data?.fotosLocal && Array.isArray(etapa5Data.fotosLocal)) {
+      etapa5Data.fotosLocal.forEach((foto, idx) => {
+        if (typeof foto === 'string') {
+          // Formato legado: apenas URL
+          todasFotos.push({
+            url: foto,
+            legenda: `Foto ${idx + 1}`,
+            isNaoConforme: false,
+          });
+        } else if (foto && typeof foto === 'object' && 'url' in foto) {
+          // Novo formato: objeto com url e comentario
+          todasFotos.push({
+            url: foto.url,
+            legenda: foto.comentario || `Foto ${idx + 1}`,
+            isNaoConforme: foto.isNaoConforme || false,
+          });
+        }
+      });
+    }
+
+    // 2. Fotos do campo arquivos (FileWithComment)
+    if (etapa5Data?.arquivos && Array.isArray(etapa5Data.arquivos)) {
+      etapa5Data.arquivos.forEach((arquivo, idx) => {
+        if (arquivo.url) {
+          todasFotos.push({
+            url: arquivo.url,
+            legenda: arquivo.comentario || arquivo.name || `Arquivo ${idx + 1}`,
+            isNaoConforme: false,
+          });
+        }
+      });
+    }
+
+    // 3. Fotos do checklist de recebimento (itens NC têm prioridade visual)
+    if (isRecebimento && etapa5Data?.checklistRecebimento?.items) {
+      Object.values(etapa5Data.checklistRecebimento.items).forEach(item => {
+        if (item.fotos && Array.isArray(item.fotos)) {
+          item.fotos.forEach((foto, idx) => {
+            if (foto.url) {
+              todasFotos.push({
+                url: foto.url,
+                legenda: foto.comentario || `Item ${item.id} - Foto ${idx + 1}`,
+                isNaoConforme: item.status === 'NC',
+              });
+            }
+          });
+        }
+      });
+    }
+
+
+    const payload: VisitaTecnicaData = {
+      // Metadados
+      codigoOS: codigoOS || osId?.substring(0, 8) || 'OS08-XXX',
+      dataVisita: etapa4Data?.dataRealizacao || now,
+      dataGeracao: now,
+
+      // Título dinâmico
+      finalidadeInspecao: finalidadeInspecao || 'parecer_tecnico',
+      tituloDocumento,
+
+      // Cliente
+      cliente: {
+        nome: etapa1Data?.identificacao?.nome || etapa1Data?.edificacao?.nome || 'Cliente não identificado',
+        cpfCnpj: etapa1Data?.identificacao?.cpfCnpj,
+        endereco: enderecoCompleto || undefined,
+        bairro: etapa1Data?.endereco?.bairro,
+        cidade: etapa1Data?.endereco?.cidade,
+        estado: etapa1Data?.endereco?.uf,
+        sindico: etapa1Data?.edificacao?.sindico,
+      },
+
+      // Solicitante (do cliente)
+      solicitante: {
+        nome: etapa1Data?.identificacao?.nome || 'Solicitante não identificado',
+        contato: etapa1Data?.identificacao?.telefone || '',
+        condominio: etapa1Data?.edificacao?.nome,
+      },
+
+      // Objetivo
+      objetivo: {
+        descricaoSolicitacao: etapa2Data?.detalhesSolicitacao || 'Não especificado',
+        areaVistoriada: etapa2Data?.areaVistoriada || 'Não especificada',
+        tempoSituacao: etapa2Data?.tempoSituacao,
+      },
+
+      // Qualidade
+      qualidade: {
+        engenheiroPontual: etapa5Data?.pontuacaoEngenheiro === 'sim',
+        moradorPontual: etapa5Data?.pontuacaoMorador === 'sim',
+      },
+
+      // Fotos
+      fotos: todasFotos.length > 0 ? todasFotos : undefined,
+
+      // Responsável técnico
+      responsavelTecnico: {
+        nome: currentUser?.nome_completo || 'Engenheiro Responsável',
+        cargo: 'Engenheiro Civil',
+        crea: undefined, // TODO: adicionar campo crea ao User type se necessário
+      },
+    };
+
+    // Adicionar dados específicos baseado na finalidade
+    if (isRecebimento) {
+      payload.checklistRecebimento = transformChecklistData();
+    } else {
+      payload.parecerTecnico = {
+        manifestacaoPatologica: etapa5Data?.manifestacaoPatologica || '',
+        recomendacoes: etapa5Data?.recomendacoesPrevias || '',
+        gravidade: (etapa5Data?.gravidade as GravidadeNivel) || 'baixa',
+        origemNBR: etapa5Data?.origemNBR || '',
+        observacoes: etapa5Data?.observacoesGerais || '',
+        resultadoVisita: etapa5Data?.resultadoVisita || '',
+        justificativa: etapa5Data?.justificativa || '',
+      };
+    }
+
+    return payload;
+  };
 
   const handleGerarDocumento = async () => {
     if (readOnly) return;
@@ -28,21 +324,25 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
     try {
       logger.log('📄 Gerando documento de visita técnica para OS:', osId);
 
+      // Montar payload completo
+      const payload = buildPDFPayload();
+      logger.log('📦 Payload do PDF:', payload);
+
       // Gerar PDF de visita técnica
-      const result = await generatePDF('visita-tecnica', osId, {});
+      const result = await generatePDF('visita-tecnica', osId, payload);
 
       if (result?.success && result.url) {
         logger.log('✅ PDF de visita técnica gerado com sucesso:', result.url);
 
         onDataChange({
-          ...data,
+          ...documentData,
           documentoGerado: true,
           documentoUrl: result.url,
         });
 
         toast.success('Documento de visita técnica gerado com sucesso!');
       } else {
-        throw new Error('Falha ao gerar PDF');
+        throw new Error(result?.error || 'Falha ao gerar PDF');
       }
     } catch (error) {
       logger.error('Erro ao gerar documento:', error);
@@ -53,29 +353,38 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
   };
 
   const handleVisualizarDocumento = () => {
-    if (data.documentoUrl) {
-      window.open(data.documentoUrl, '_blank');
+    if (documentData.documentoUrl) {
+      window.open(documentData.documentoUrl, '_blank');
       toast.info('Abrindo documento...');
     }
   };
 
   const handleBaixarDocumento = () => {
-    if (data.documentoUrl) {
-      // Lógica de download
+    if (documentData.documentoUrl) {
+      // Criar link temporário para download
+      const link = document.createElement('a');
+      link.href = documentData.documentoUrl;
+      link.download = `${codigoOS || 'visita-tecnica'}.pdf`;
+      link.click();
       toast.success('Download iniciado!');
     }
   };
+
+  // Determinar descrição do documento baseado na finalidade
+  const tipoDocumentoLabel = isRecebimento
+    ? 'Relatório de Inspeção de Recebimento'
+    : 'Parecer Técnico';
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-xl mb-1">Gerar Documento Interno</h2>
         <p className="text-sm text-muted-foreground">
-          Gere o documento técnico para uso interno da empresa
+          Gere o {tipoDocumentoLabel.toLowerCase()} para uso interno da empresa
         </p>
       </div>
 
-      {!data.documentoGerado ? (
+      {!documentData.documentoGerado ? (
         <div className="space-y-4">
           {/* Card Informativo */}
           <div className="border border-border rounded-lg p-6 bg-background">
@@ -83,23 +392,42 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
               <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--primary)' }}>
                 <FileText className="w-6 h-6 text-white" />
               </div>
-              
+
               <div className="flex-1">
-                <h3 className="text-base mb-2">Documento de Visita Técnica</h3>
+                <h3 className="text-base mb-2">{tipoDocumentoLabel}</h3>
                 <p className="text-sm text-muted-foreground mb-4">
                   O documento será gerado com base nas informações coletadas durante a visita técnica.
                   Este documento é para uso interno e controle da empresa.
                 </p>
-                
+
                 <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
-                    <span>Parecer técnico completo</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
-                    <span>Manifestações patológicas identificadas</span>
-                  </div>
+                  {isRecebimento ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Checklist de 27 itens conforme NBR 15575</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Estatísticas de conformidade (C/NC/NA)</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Parecer técnico completo</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Manifestações patológicas identificadas</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
+                        <span>Gravidade e embasamento normativo (NBR)</span>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center gap-2">
                     <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
                     <span>Recomendações técnicas</span>
@@ -111,6 +439,12 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* Preview do título */}
+          <div className="bg-muted/50 border rounded-lg p-4">
+            <p className="text-xs text-muted-foreground mb-1">Título do documento:</p>
+            <p className="font-semibold text-sm">{tituloDocumento}</p>
           </div>
 
           {/* Botão de Gerar */}
@@ -128,7 +462,7 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
               ) : (
                 <>
                   <FileText className="w-5 h-5 mr-2" />
-                  Gerar Documento Interno
+                  Gerar {tipoDocumentoLabel}
                 </>
               )}
             </PrimaryButton>
@@ -150,13 +484,13 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
               <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
-              
+
               <div className="flex-1">
                 <h3 className="text-lg mb-1 text-success">Documento Gerado com Sucesso!</h3>
                 <p className="text-sm text-success mb-4">
-                  O documento interno está pronto e disponível para visualização e download.
+                  O {tipoDocumentoLabel.toLowerCase()} está pronto e disponível para visualização e download.
                 </p>
-                
+
                 <div className="flex flex-wrap gap-3">
                   <Button
                     onClick={handleVisualizarDocumento}
@@ -165,7 +499,7 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
                     <Eye className="w-4 h-4 mr-2" />
                     Visualizar
                   </Button>
-                  
+
                   <Button
                     onClick={handleBaixarDocumento}
                     className="bg-success text-white hover:bg-success"
@@ -183,19 +517,19 @@ export function StepGerarDocumento({ osId, data, onDataChange, readOnly }: StepG
             <h3 className="text-base mb-4" style={{ color: 'var(--primary)' }}>
               Informações do Documento
             </h3>
-            
+
             <div className="space-y-3 text-sm">
               <div className="flex justify-between py-2 border-b border-neutral-100">
                 <span className="text-muted-foreground">Tipo:</span>
-                <span>Parecer Técnico Interno</span>
+                <span>{tipoDocumentoLabel}</span>
               </div>
               <div className="flex justify-between py-2 border-b border-neutral-100">
                 <span className="text-muted-foreground">Formato:</span>
                 <span>PDF</span>
               </div>
               <div className="flex justify-between py-2 border-b border-neutral-100">
-                <span className="text-muted-foreground">Páginas:</span>
-                <span>--</span>
+                <span className="text-muted-foreground">Finalidade:</span>
+                <span className="capitalize">{finalidadeInspecao?.replace(/_/g, ' ') || 'Parecer Técnico'}</span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="text-muted-foreground">Gerado em:</span>

@@ -12,12 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
-  Check,
   ChevronLeft,
-  AlertCircle,
   Loader2
 } from 'lucide-react';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
@@ -27,7 +23,7 @@ import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-moda
 
 import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
 import { TransferenciaInfo } from '@/types/os-setor-config';
-import { CadastrarLead, type CadastrarLeadHandle } from '@/components/os/shared/steps/cadastrar-lead';
+import { LeadCadastro, type LeadCadastroHandle, type LeadCompleto } from '@/components/os/shared/lead-cadastro';
 import { StepFollowup1, type StepFollowup1Handle } from '@/components/os/shared/steps/step-followup-1';
 import { StepMemorialEscopo, type StepMemorialEscopoHandle } from '@/components/os/shared/steps/step-memorial-escopo';
 import { StepPrecificacao } from '@/components/os/shared/steps/step-precificacao';
@@ -40,6 +36,7 @@ import { StepGerarContrato } from '@/components/os/shared/steps/step-gerar-contr
 import { StepContratoAssinado } from '@/components/os/shared/steps/step-contrato-assinado';
 import { StepRealizarVisita } from '@/components/os/shared/steps/step-realizar-visita';
 import { EtapaStartContrato } from '@/components/os/shared/components/etapa-start-contrato';
+import { StepSelecaoTipoObras } from '@/components/os/shared/steps/step-selecao-tipo-obras';
 import { ordensServicoAPI, clientesAPI } from '@/lib/api-client';
 import { useOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { toast } from '@/lib/utils/safe-toast';
@@ -49,7 +46,7 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
-import { OS_WORKFLOW_STEPS, OS_TYPES, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '@/constants/os-workflow';
+import { OS_WORKFLOW_STEPS, DRAFT_ENABLED_STEPS, TOTAL_WORKFLOW_STEPS } from '@/constants/os-workflow';
 import { isValidUUID, mapearTipoOSParaCodigo } from '@/lib/utils/os-workflow-helpers';
 import { getSetorIdBySlug, SETOR_SLUG_TO_ID } from '@/lib/constants/colaboradores';
 import { supabase } from '@/lib/supabase-client';
@@ -323,8 +320,7 @@ export function OSDetailsWorkflowPage({
   });
 
   const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [showLeadCombobox, setShowLeadCombobox] = useState(false);
-  const [showNewLeadDialog, setShowNewLeadDialog] = useState(false);
+
 
   // Estado para feedback de transferência de setor
   const [isTransferenciaModalOpen, setIsTransferenciaModalOpen] = useState(false);
@@ -342,7 +338,7 @@ export function OSDetailsWorkflowPage({
   } = useAprovacaoEtapa(osId || undefined, currentStep);
 
   // Refs para componentes com validação imperativa
-  const stepLeadRef = useRef<CadastrarLeadHandle>(null);
+  const stepLeadRef = useRef<LeadCadastroHandle>(null);
   const stepFollowup1Ref = useRef<StepFollowup1Handle>(null);
   const stepMemorialRef = useRef<StepMemorialEscopoHandle>(null);
   const stepAgendarApresentacaoEtapa4Ref = useRef<any>(null);
@@ -710,180 +706,7 @@ export function OSDetailsWorkflowPage({
 
   // Funções para gerenciar agendamento na Etapa 4
 
-  // Estado do formulário de novo lead (Dialog)
-  const [formData, setFormData] = useState({
-    nome: '',
-    cpfCnpj: '',
-    tipo: '',
-    nomeResponsavel: '',
-    cargoResponsavel: '',
-    telefone: '',
-    email: '',
-    tipoEdificacao: '',
-    qtdUnidades: '',
-    qtdBlocos: '',
-    qtdPavimentos: '',
-    tipoTelhado: '',
-    possuiElevador: false,
-    possuiPiscina: false,
-    cep: '',
-    endereco: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-  });
 
-  // ✅ FIX: Wrapper para sincronizar formData com formDataByStep[1]
-  // Quando o usuário edita campos no formulário, precisamos atualizar ambos os estados
-  const handleFormDataChange = (newFormData: typeof formData) => {
-    setFormData(newFormData);
-
-    // Sincronizar com formDataByStep[1] para garantir que os dados sejam salvos
-    // Type assertion necessária porque formData.tipo pode ser string vazia
-    const tipoNormalizado = (newFormData.tipo === 'fisica' || newFormData.tipo === 'juridica')
-      ? newFormData.tipo
-      : undefined;
-
-    setEtapa1Data({
-      ...newFormData,
-      tipo: tipoNormalizado,
-      leadId: selectedLeadId || (formDataByStep[1] as any)?.leadId || '',
-    });
-  };
-
-  const handleSelectLead = async (leadId: string, leadData?: {
-    nome_razao_social?: string;
-    cpf_cnpj?: string;
-    email?: string;
-    telefone?: string;
-    tipo_cliente?: 'PESSOA_FISICA' | 'PESSOA_JURIDICA';
-    nome_responsavel?: string;
-    endereco?: {
-      cargo_responsavel?: string;
-      tipo_edificacao?: string;
-      qtd_unidades?: string;
-      qtd_blocos?: string;
-      qtd_pavimentos?: string;
-      tipo_telhado?: string;
-      possui_elevador?: boolean;
-      possui_piscina?: boolean;
-      cep?: string;
-      rua?: string;
-      numero?: string;
-      complemento?: string;
-      bairro?: string;
-      cidade?: string;
-      estado?: string;
-    };
-  }) => {
-    try {
-      logger.log('🎯 handleSelectLead chamado com ID:', leadId);
-      logger.log('📊 leadData recebido:', leadData);
-
-      // Validar leadId
-      if (!leadId || typeof leadId !== 'string') {
-        logger.error('❌ leadId inválido:', leadId);
-        logger.error('❌ leadId deve ser uma string');
-        return;
-      }
-
-      // Validar se é um UUID válido
-      if (!isValidUUID(leadId)) {
-        logger.error('❌ leadId não é um UUID válido:', leadId);
-        logger.error('❌ O lead selecionado não foi criado corretamente no banco de dados');
-        logger.error('❌ UUID esperado: 8-4-4-4-12 hexadecimais (ex: 3acbed3a-7254-42b6-8a1b-9ad8a7d3da5d)');
-        try {
-          toast.error(`Lead inválido. UUID recebido: "${leadId}". Certifique-se de que foi criado corretamente no banco de dados.`);
-        } catch (toastError) {
-          logger.error('❌ Erro ao exibir toast:', toastError);
-        }
-        return;
-      }
-
-      setSelectedLeadId(leadId);
-      logger.log('✅ selectedLeadId validado e atualizado:', leadId);
-
-      // Se recebemos dados completos do lead, salvar tudo
-      if (leadData) {
-        const etapa1DataCompleta = {
-          leadId,
-          nome: leadData.nome_razao_social || '',
-          cpfCnpj: leadData.cpf_cnpj || '',
-          email: leadData.email || '',
-          telefone: leadData.telefone || '',
-          // Campos adicionais do lead
-          tipo: leadData.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' as const : 'juridica' as const,
-          nomeResponsavel: leadData.nome_responsavel || '',
-          cargoResponsavel: leadData.endereco?.cargo_responsavel || '',
-          tipoEdificacao: leadData.endereco?.tipo_edificacao || '',
-          qtdUnidades: leadData.endereco?.qtd_unidades || '',
-          qtdBlocos: leadData.endereco?.qtd_blocos || '',
-          qtdPavimentos: leadData.endereco?.qtd_pavimentos || '',
-          tipoTelhado: leadData.endereco?.tipo_telhado || '',
-          possuiElevador: leadData.endereco?.possui_elevador || false,
-          possuiPiscina: leadData.endereco?.possui_piscina || false,
-          cep: leadData.endereco?.cep || '',
-          endereco: leadData.endereco?.rua || '',
-          numero: leadData.endereco?.numero || '',
-          complemento: leadData.endereco?.complemento || '',
-          bairro: leadData.endereco?.bairro || '',
-          cidade: leadData.endereco?.cidade || '',
-          estado: leadData.endereco?.estado || '',
-        };
-
-        logger.log('📝 etapa1DataCompleta construída:', etapa1DataCompleta);
-        setEtapa1Data(etapa1DataCompleta);
-
-        // ✅ FIX: Sincronizar também o estado formData local para evitar desincronização
-        setFormData({
-          nome: etapa1DataCompleta.nome || '',
-          cpfCnpj: etapa1DataCompleta.cpfCnpj || '',
-          tipo: etapa1DataCompleta.tipo || '',
-          nomeResponsavel: etapa1DataCompleta.nomeResponsavel || '',
-          cargoResponsavel: etapa1DataCompleta.cargoResponsavel || '',
-          telefone: etapa1DataCompleta.telefone || '',
-          email: etapa1DataCompleta.email || '',
-          tipoEdificacao: etapa1DataCompleta.tipoEdificacao || '',
-          qtdUnidades: etapa1DataCompleta.qtdUnidades || '',
-          qtdBlocos: etapa1DataCompleta.qtdBlocos || '',
-          qtdPavimentos: etapa1DataCompleta.qtdPavimentos || '',
-          tipoTelhado: etapa1DataCompleta.tipoTelhado || '',
-          possuiElevador: etapa1DataCompleta.possuiElevador || false,
-          possuiPiscina: etapa1DataCompleta.possuiPiscina || false,
-          cep: etapa1DataCompleta.cep || '',
-          endereco: etapa1DataCompleta.endereco || '',
-          numero: etapa1DataCompleta.numero || '',
-          complemento: etapa1DataCompleta.complemento || '',
-          bairro: etapa1DataCompleta.bairro || '',
-          cidade: etapa1DataCompleta.cidade || '',
-          estado: etapa1DataCompleta.estado || '',
-        });
-
-        logger.log('✅ setEtapa1Data e setFormData chamados com dados completos');
-
-        // Salvar dados imediatamente no banco para garantir persistência
-        if (osId) {
-          try {
-            // ✅ FIX: Pass data directly to bypass React state timing issue
-            await saveStep(1, true, etapa1DataCompleta);
-            logger.log('✅ Dados da Etapa 1 salvos no banco (todos os campos)');
-          } catch (saveError) {
-            logger.error('❌ Erro ao salvar dados da Etapa 1:', saveError);
-          }
-        }
-      } else {
-        logger.warn('⚠️ leadData não recebido, salvando apenas leadId');
-        // Fallback: salvar apenas leadId (será preenchido depois se necessário)
-        setEtapa1Data({ leadId });
-        logger.log('✅ setEtapa1Data chamado com apenas leadId');
-      }
-    } catch (error) {
-      logger.error('❌ Erro ao selecionar lead:', error);
-      // NÃO usar toast aqui para evitar erro do Sonner
-    }
-  };
 
 
 
@@ -1409,34 +1232,33 @@ export function OSDetailsWorkflowPage({
         etapa1Data: etapa1Data
       });
 
-      // Usar validação imperativa do componente CadastrarLead
+      // Usar validação imperativa do componente LeadCadastro
       if (stepLeadRef.current) {
-        // Primeiro validar identificação
-        logger.log('🔍 Etapa 1: Validando identificação...');
+        logger.log('🔍 Etapa 1: Validando lead...');
         const isValid = stepLeadRef.current.validate();
-        logger.log('✅ Etapa 1: Validação de identificação:', isValid);
+        logger.log('✅ Etapa 1: Validação:', isValid);
 
         if (!isValid) {
           try {
-            toast.error('Preencha todos os campos obrigatórios de identificação antes de avançar');
-          } catch (toastError) {
-            logger.error('❌ Erro ao exibir toast de validação (Etapa 1):', toastError);
+            toast.error('Preencha todos os campos obrigatórios antes de avançar');
+          } catch (e) {
+            logger.error('Erro toast', e);
           }
-          logger.log('❌ Etapa 1: Bloqueado por validação de identificação');
           return;
         }
 
-        // Depois validar dados de edificação
-        logger.log('🔍 Etapa 1: Validando dados de edificação...');
-        if (stepLeadRef.current.saveEdificacaoData) {
-          const edificacaoValid = await stepLeadRef.current.saveEdificacaoData();
-          logger.log('✅ Etapa 1: Validação de edificação:', edificacaoValid);
+        // Salvar dados no banco (LeadCadastro lida com tudo)
+        const savedId = await stepLeadRef.current.save();
+        if (!savedId) {
+          logger.log('❌ Etapa 1: Falha ao salvar lead');
+          return;
+        }
 
-          if (!edificacaoValid) {
-            // Erro já tratado no método saveEdificacaoData
-            logger.log('❌ Etapa 1: Bloqueado por validação de edificação');
-            return;
-          }
+        // Atualizar estado com ID salvo se for novo
+        if (savedId !== selectedLeadId) {
+          setSelectedLeadId(savedId);
+          // Atualizar etapa1Data.leadId
+          setEtapa1Data({ ...etapa1Data, leadId: savedId });
         }
       } else {
         logger.log('⚠️ Etapa 1: stepLeadRef.current não disponível');
@@ -1690,27 +1512,52 @@ export function OSDetailsWorkflowPage({
               {/* ETAPA 1: Identificação do Cliente/Lead */}
               {currentStep === 1 && (
                 <ErrorBoundary>
-                  <CadastrarLead
+                  <LeadCadastro
                     ref={stepLeadRef}
                     selectedLeadId={selectedLeadId}
-                    onSelectLead={handleSelectLead}
-                    showCombobox={showLeadCombobox}
-                    onShowComboboxChange={setShowLeadCombobox}
-                    showNewLeadDialog={showNewLeadDialog}
-                    onShowNewLeadDialogChange={setShowNewLeadDialog}
-                    formData={formData}
-                    onFormDataChange={handleFormDataChange}
+                    onLeadChange={(id: string, data: LeadCompleto | null) => {
+                      setSelectedLeadId(id);
+                      if (data) {
+                        setEtapa1Data({
+                          ...etapa1Data,
+                          leadId: id,
+                          nome: data.identificacao.nome,
+                          cpfCnpj: data.identificacao.cpfCnpj,
+                          tipo: data.identificacao.tipo,
+                          email: data.identificacao.email,
+                          telefone: data.identificacao.telefone,
+                          // Edificacao
+                          tipoEdificacao: data.edificacao.tipoEdificacao,
+                          tipoTelhado: data.edificacao.tipoTelhado,
+                          qtdUnidades: data.edificacao.qtdUnidades,
+                          qtdBlocos: data.edificacao.qtdBlocos,
+                          qtdPavimentos: data.edificacao.qtdPavimentos,
+                          possuiElevador: data.edificacao.possuiElevador,
+                          possuiPiscina: data.edificacao.possuiPiscina,
+                          // Endereco
+                          cep: data.endereco.cep,
+                          rua: data.endereco.rua,
+                          numero: data.endereco.numero,
+                          complemento: data.endereco.complemento,
+                          bairro: data.endereco.bairro,
+                          cidade: data.endereco.cidade,
+                          estado: data.endereco.estado,
+                        });
+                      }
+                    }}
                     readOnly={isReadOnly}
+                    showEdificacao={true}
+                    showEndereco={true}
                   />
                 </ErrorBoundary>
               )}
 
               {/* ETAPA 2: Seleção do Tipo de OS */}
               {currentStep === 2 && (
-                <div className="space-y-6 relative">
+                <div className="relative">
                   {/* Overlay de Loading */}
                   {isCreatingOS && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-lg">
+                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg">
                       <div className="flex flex-col items-center gap-3">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                         <div className="text-center">
@@ -1721,45 +1568,11 @@ export function OSDetailsWorkflowPage({
                     </div>
                   )}
 
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Defina qual tipo de OS será executada. Esta informação é obrigatória para prosseguir.
-                    </AlertDescription>
-                  </Alert>
-
-                  <div className="space-y-2">
-                    <Select
-                      value={etapa2Data.tipoOS}
-                      onValueChange={(value: string) => setEtapa2Data({ tipoOS: value })}
-                      disabled={isCreatingOS}
-                    >
-                      <SelectTrigger id="tipoOS">
-                        <SelectValue placeholder="Escolha o tipo de OS" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {OS_TYPES.map((tipo) => (
-                          <SelectItem key={tipo.value} value={tipo.value}>
-                            {tipo.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {etapa2Data.tipoOS && (
-                    <Card className="bg-success/5 border-success/20">
-                      <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                          <Check className="h-5 w-5 text-success" />
-                          <div>
-                            <p className="text-sm font-medium">Tipo de OS selecionado:</p>
-                            <p className="text-sm text-muted-foreground">{etapa2Data.tipoOS}</p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )}
+                  <StepSelecaoTipoObras
+                    data={etapa2Data}
+                    onDataChange={setEtapa2Data}
+                    disabled={isCreatingOS}
+                  />
                 </div>
               )}
 

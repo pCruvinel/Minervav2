@@ -18,6 +18,8 @@ import {
 import { OrdemServico, Comentario, Documento, HistoricoItem, Etapa } from '@/lib/types';
 import { toast } from '@/lib/utils/safe-toast';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
+import { OSDetailsAccordion } from '../components/os-details-accordion';
+import { useAuth } from '@/lib/contexts/auth-context';
 
 interface OSDetailsPageProps {
   ordemServico: OrdemServico;
@@ -59,6 +61,18 @@ export function OSDetailsPage({
   onAddComentario
 }: OSDetailsPageProps) {
   const [novoComentario, setNovoComentario] = useState('');
+  const { currentUser } = useAuth();
+
+  // Verificar permissão para adicionar adendos
+  const canAddAdendo = !!(
+    currentUser &&
+    ordemServico.status_geral !== 'cancelado' &&
+    (
+      currentUser.cargo === 'admin' ||
+      currentUser.cargo === 'diretor' ||
+      currentUser.setor_slug === ordemServico.setor_atual_slug
+    )
+  );
 
   const handleAddComentario = () => {
     if (!novoComentario.trim()) {
@@ -335,60 +349,16 @@ export function OSDetailsPage({
               </div>
             </CardContent>
           </Card>
-          {/* Etapas do Workflow Card */}
+          {/* Etapas do Workflow Card - Accordion com Adendos */}
           <Card className="border-border rounded-lg shadow-sm">
             <CardHeader>
               <CardTitle className="text-xl font-semibold">Etapas do Workflow</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="rounded-md border">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground w-[50px]">#</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Etapa</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Status</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Responsável</th>
-                      <th className="h-10 px-4 text-left font-medium text-muted-foreground">Atualizado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {etapas.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="h-24 text-center text-muted-foreground">
-                          Nenhuma etapa encontrada
-                        </td>
-                      </tr>
-                    ) : (
-                      etapas.map((etapa) => (
-                        <tr key={etapa.id} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                          <td className="p-4 font-medium">{etapa.ordem}</td>
-                          <td className="p-4">{etapa.nome_etapa}</td>
-                          <td className="p-4">
-                            <Badge
-                              variant="outline"
-                              className={`
-                                ${etapa.status === 'concluida' ? 'bg-success/5 text-success border-success/20' : ''}
-                                ${etapa.status === 'em_andamento' ? 'bg-primary/5 text-primary border-primary/20' : ''}
-                                ${etapa.status === 'pendente' ? 'bg-background text-muted-foreground border-border' : ''}
-                              `}
-                            >
-                              {etapa.status === 'concluida' ? 'Concluída' :
-                                etapa.status === 'em_andamento' ? 'Em Andamento' : 'Pendente'}
-                            </Badge>
-                          </td>
-                          <td className="p-4 text-muted-foreground">
-                            {etapa.responsavel_id ? 'Definido' : '-'}
-                          </td>
-                          <td className="p-4 text-muted-foreground">
-                            {formatDate(etapa.updated_at)}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              <OSDetailsAccordion
+                etapas={etapas}
+                canAddAdendo={canAddAdendo}
+              />
             </CardContent>
           </Card>
         </div>

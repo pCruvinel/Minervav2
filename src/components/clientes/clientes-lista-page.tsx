@@ -188,9 +188,9 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Clientes</h1>
+          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Contatos</h1>
           <p className="text-neutral-600 mt-1">
-            Contratos ativos e centros de custo
+            Gerencie contatos, contratos e centros de custo
           </p>
         </div>
         <Button onClick={() => setIsCadastroOpen(true)}>

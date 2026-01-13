@@ -239,7 +239,7 @@ function ContratosPage() {
                       </TableCell>
                       <TableCell>
                         <Link
-                          to="/clientes/$clienteId"
+                          to="/contatos/$clienteId"
                           params={{ clienteId: contrato.cliente_id }}
                           className="flex items-center gap-2 text-primary hover:underline"
                         >
@@ -276,9 +276,9 @@ function ContratosPage() {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                navigate({ 
-                                  to: '/os/$osId', 
-                                  params: { osId: contrato.os_id! } 
+                                navigate({
+                                  to: '/os/$osId',
+                                  params: { osId: contrato.os_id! }
                                 })
                               }}
                               title={`Ver OS ${contrato.os_codigo || ''}`}

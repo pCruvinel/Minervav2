@@ -44,6 +44,8 @@ export interface UnifiedStep {
   ultimaAtualizacao?: string;
   /** Dados salvos na etapa */
   dadosEtapa?: Record<string, unknown>;
+  /** Quantidade de adendos nesta etapa */
+  adendosCount?: number;
 }
 
 export interface WorkflowPhase {
@@ -236,6 +238,18 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
           .order('ordem');
 
         if (!leadStepsError && leadSteps) {
+          // Buscar contagem de adendos para cada etapa
+          const stepIds = leadSteps.map(s => s.id);
+          const { data: adendosData } = await supabase
+            .from('os_etapas_adendos')
+            .select('etapa_id')
+            .in('etapa_id', stepIds);
+          
+          const adendosCounts: Record<string, number> = {};
+          adendosData?.forEach(a => {
+            adendosCounts[a.etapa_id] = (adendosCounts[a.etapa_id] || 0) + 1;
+          });
+
           const leadTipo = (leadOSData.tipos_os as any)?.codigo || '';
           const leadEtapas: UnifiedStep[] = leadSteps.map((step, index) => ({
             id: step.id,
@@ -249,7 +263,8 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
             fase: 'LEAD' as const,
             responsavelId: step.responsavel_id,
             ultimaAtualizacao: step.ultima_atualizacao,
-            dadosEtapa: step.dados_etapa
+            dadosEtapa: step.dados_etapa,
+            adendosCount: adendosCounts[step.id] || 0
           }));
 
           leadStepsOffset = leadEtapas.length;
@@ -282,6 +297,18 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
           .order('ordem');
 
         if (!contractStepsError && contractSteps) {
+          // Buscar contagem de adendos para cada etapa
+          const stepIds = contractSteps.map(s => s.id);
+          const { data: adendosData } = await supabase
+            .from('os_etapas_adendos')
+            .select('etapa_id')
+            .in('etapa_id', stepIds);
+          
+          const adendosCounts: Record<string, number> = {};
+          adendosData?.forEach(a => {
+            adendosCounts[a.etapa_id] = (adendosCounts[a.etapa_id] || 0) + 1;
+          });
+
           const contractTipo = (contractOSData.tipos_os as any)?.codigo || '';
           const contractEtapas: UnifiedStep[] = contractSteps.map((step, index) => ({
             id: step.id,
@@ -295,7 +322,8 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
             fase: 'CONTRATO' as const,
             responsavelId: step.responsavel_id,
             ultimaAtualizacao: step.ultima_atualizacao,
-            dadosEtapa: step.dados_etapa
+            dadosEtapa: step.dados_etapa,
+            adendosCount: adendosCounts[step.id] || 0
           }));
 
           const isContractCompleta = contractEtapas.every((e) => e.status === 'concluida');
@@ -325,6 +353,18 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
           .order('ordem');
 
         if (soloSteps) {
+          // Buscar contagem de adendos para cada etapa
+          const stepIds = soloSteps.map(s => s.id);
+          const { data: adendosData } = await supabase
+            .from('os_etapas_adendos')
+            .select('etapa_id')
+            .in('etapa_id', stepIds);
+          
+          const adendosCounts: Record<string, number> = {};
+          adendosData?.forEach(a => {
+            adendosCounts[a.etapa_id] = (adendosCounts[a.etapa_id] || 0) + 1;
+          });
+
           const soloEtapas: UnifiedStep[] = soloSteps.map((step) => ({
             id: step.id,
             nome_etapa: step.nome_etapa,
@@ -337,7 +377,8 @@ export function useUnifiedWorkflow(osId: string | undefined): UnifiedWorkflowRes
             fase: getFaseFromTipo(tipoOSCodigo),
             responsavelId: step.responsavel_id,
             ultimaAtualizacao: step.ultima_atualizacao,
-            dadosEtapa: step.dados_etapa
+            dadosEtapa: step.dados_etapa,
+            adendosCount: adendosCounts[step.id] || 0
           }));
 
           const isCompleta = soloEtapas.every((e) => e.status === 'concluida');

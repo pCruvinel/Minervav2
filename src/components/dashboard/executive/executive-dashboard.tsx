@@ -83,7 +83,7 @@ export function ExecutiveDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-6 lg:w-[900px]">
+                <TabsList className="grid w-full grid-cols-7 lg:w-[1050px]">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <BarChart3 className="h-4 w-4" />
                         <span className="hidden sm:inline">Visão Geral</span>

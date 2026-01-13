@@ -29,15 +29,20 @@ CREATE TABLE os_etapas_config (
 
 ### 1.2 Cálculo de Status (Lógica de Negócio)
 
-O cálculo do status situacional é realizado no banco de dados (via view `vw_os_status_completo` ou equivalente) e mapeado no frontend em `src/lib/types.ts`.
+O cálculo do status situacional é armazenado na coluna `status_situacao` da tabela `ordens_servico` e calculado com base no prazo da etapa.
+
+> **📖 Documentação completa:** [STATUS_SYSTEM.md](./STATUS_SYSTEM.md)
 
 A lógica segue a regra "Data de Início da Etapa + Prazo (Dias Úteis) vs Data Atual":
 
-| Status | Código | Regra Lógica | UI (Cor) |
-|--------|--------|--------------|----------|
-| **No Prazo** | `no_prazo` | Data Atual < (Prazo - 2 dias) | 🟢 Verde (`text-emerald-600`) |
-| **Alerta** | `alerta_prazo` | Data Atual >= (Prazo - 2 dias) E Data Atual <= Prazo | 🟡 Amarelo (`text-amber-600`) |
-| **Atrasado** | `atrasado` | Data Atual > Prazo | 🔴 Vermelho (`text-red-600`) |
+| Status Situação | Código | Regra Lógica | UI (Cor) |
+|-----------------|--------|--------------|----------|
+| **Ação Pendente** | `acao_pendente` | Default | 🔵 Azul (`bg-primary/10`) |
+| **Alerta** | `alerta_prazo` | Data Atual >= (Prazo - 2 dias) E Data Atual <= Prazo | 🟡 Amarelo (`bg-warning`) |
+| **Atrasado** | `atrasado` | Data Atual > Prazo | 🔴 Vermelho (`bg-destructive`) |
+| **Aguard. Aprovação** | `aguardando_aprovacao` | Etapa com `requer_aprovacao = true` | 🟣 Secundário (`bg-secondary`) |
+| **Aguard. Info** | `aguardando_info` | Marcação manual pelo usuário | 🟠 Warning (`bg-warning/20`) |
+| **Finalizado** | `finalizado` | OS concluída ou cancelada | ⚪ Muted (`bg-muted`) |
 
 ### 1.3 Componentes Frontend
 

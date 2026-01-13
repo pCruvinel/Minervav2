@@ -1,9 +1,11 @@
 # 📋 Documentação Técnica: OS-05 e OS-06 - Assessoria Lead
 
-**Última Atualização:** 2026-01-04  
-**Versão:** v2.7  
+**Última Atualização:** 2026-01-13  
+**Versão:** v3.0  
 **Status Implementação:** 95% ✅  
 **Setor:** Assessoria
+
+> **🎉 ATUALIZAÇÃO v3.0:** Migração para Sistema de Accordion com Adendos concluída!
 
 ---
 
@@ -35,9 +37,10 @@ As **Ordens de Serviço OS-05 e OS-06** representam o fluxo comercial completo p
 src/
 ├── components/os/assessoria/os-5-6/
 │   ├── pages/
-│   │   ├── os-details-assessoria-page.tsx   # Componente principal (869 linhas) ✅ ATUALIZADO
-│   │   ├── os05-workflow-page.tsx           # Entrada legacy OS-05
-│   │   └── os06-workflow-page.tsx           # Entrada legacy OS-06
+│   │   ├── os-5-6-workflow-page.tsx        # ✅ NOVO - Componente Accordion (783 linhas)
+│   │   ├── os-details-assessoria-page.tsx  # ⚠️ DEPRECATED - Legado Stepper
+│   │   ├── os05-workflow-page.tsx          # ⚠️ DEPRECATED - Stub
+│   │   └── os06-workflow-page.tsx          # ⚠️ DEPRECATED - Stub
 │   └── steps/
 │       ├── index.ts                          # Exports
 │       ├── step-selecao-tipo-assessoria.tsx  # Etapa 2 específica
@@ -45,10 +48,12 @@ src/
 │
 ├── components/os/shared/
 │   ├── components/
-│   │   ├── workflow-stepper.tsx             # Stepper visual
-│   │   ├── workflow-footer.tsx              # Footer com ações
-│   │   ├── feedback-transferencia.tsx       # Modal de feedback
-│   │   └── aprovacao-modal.tsx              # Modal de aprovação
+│   │   ├── workflow-accordion.tsx          # ✅ Accordion principal
+│   │   ├── workflow-step-summary.tsx       # ✅ Resumo read-only
+│   │   ├── field-with-adendos.tsx          # ✅ Campo com adendos
+│   │   ├── workflow-footer.tsx             # Footer com ações
+│   │   ├── feedback-transferencia.tsx      # Modal de feedback
+│   │   └── aprovacao-modal.tsx             # Modal de aprovação
 │   └── steps/
 │       ├── cadastrar-lead.tsx                # Etapa 1
 │       ├── step-followup-1-os5.tsx           # Etapa 3 (OS-05 específico)
@@ -67,14 +72,115 @@ src/
 │   │   ├── use-workflow-state.ts             # Estado do workflow
 │   │   ├── use-workflow-navigation.ts        # Navegação entre etapas
 │   │   ├── use-workflow-completion.ts        # Validação de completude
-│   │   ├── use-aprovacao-etapa.ts            # Sistema de aprovação ✅ NOVO
+│   │   ├── use-etapa-adendos.ts              # ✅ NOVO - Sistema de adendos
+│   │   ├── use-aprovacao-etapa.ts            # Sistema de aprovação
 │   │   ├── use-os-workflows.ts               # Hook centralizado OS
 │   │   └── use-os.ts                         # Hook de OS individual
 │   └── constants/
 │       └── os-ownership-rules.ts             # Regras de responsabilidade
 │
 └── routes/_auth/os/criar/
-    └── assessoria-lead.tsx                    # Rota (planejada)
+    └── assessoria-lead.tsx                   # ✅ Rota atualizada com feature flag
+```
+
+### 📜 Arquivos Deprecated
+
+| Arquivo | Status | Motivo |
+|---------|--------|--------|
+| `os-details-assessoria-page.tsx` | ⚠️ DEPRECATED | Usa WorkflowStepper tradicional |
+| `os05-workflow-page.tsx` | ⚠️ DEPRECATED | Stub básico |
+| `os06-workflow-page.tsx` | ⚠️ DEPRECATED | Stub básico |
+
+> **Feature Flag:** `USE_OS56_ACCORDION = true` permite rollback rápido.
+
+---
+
+## 🎹 Sistema de Accordion com Adendos (v3.0)
+
+### Visão Geral da Nova Arquitetura
+
+A partir da versão 3.0, o workflow de OS 5-6 utiliza o padrão **WorkflowAccordion** com suporte a **Adendos**, alinhado com OS-07 e OS-08.
+
+### Componente Principal
+
+**Arquivo:** `os-5-6-workflow-page.tsx` (783 linhas)
+
+```typescript
+interface OS56WorkflowPageProps {
+  onBack?: () => void;
+  tipoOS?: 'OS-05' | 'OS-06';
+  osId?: string;
+  initialStep?: number;
+  readonly?: boolean;
+  codigoOS?: string;
+  tipoOSNome?: string;
+}
+```
+
+### Hooks Utilizados
+
+| Hook | Função |
+|------|--------|
+| `useWorkflowState` | Estado do workflow, dados por etapa |
+| `useWorkflowCompletion` | Validação de completude |
+| `useEtapaAdendos` | CRUD de adendos por campo |
+| `useAprovacaoEtapa` | Sistema de aprovação hierárquica |
+| `useTransferenciaSetor` | Handoffs entre setores |
+| `useCreateOSWorkflow` | Criação de OS e OS filha |
+
+### Componentes Reutilizáveis
+
+```tsx
+// Accordion expandível por etapa
+<WorkflowAccordion
+  steps={STEPS}
+  currentStep={currentStep}
+  formDataByStep={formDataByStep}
+  completedSteps={completedSteps}
+  renderForm={renderForm}
+  renderSummary={renderSummary}
+/>
+
+// Footer com navegação
+<WorkflowFooter
+  currentStep={currentStep}
+  totalSteps={12}
+  onPrevStep={handlePrevStep}
+  onNextStep={handleNextStep}
+  onSaveDraft={handleSaveDraft}
+/>
+```
+
+### Configuração de Resumo por Etapa
+
+Cada etapa possui uma configuração de campos para exibição read-only:
+
+```typescript
+const OS_56_SUMMARY_CONFIG: Record<number, (data: any) => SummaryField[]> = {
+  1: (data) => [
+    { label: 'Nome/Razão Social', value: data?.nome },
+    { label: 'CPF/CNPJ', value: data?.cpfCnpj },
+    { label: 'Email', value: data?.email },
+    { label: 'Telefone', value: data?.telefone },
+  ],
+  // ... demais etapas
+};
+```
+
+### Sistema de Adendos
+
+Campos de etapas concluídas suportam **Adendos** (alterações imutáveis):
+
+```tsx
+<FieldWithAdendos
+  label="Nome/Razão Social"
+  campoKey="nome_razao_social"
+  valorOriginal={data?.nome}
+  adendos={getAdendosByCampo('nome_razao_social')}
+  etapaId={etapa.id}
+  onAddAdendo={handleAddAdendo}
+  canAddAdendo={isCompleted && !readonly}
+/>
 ```
 
 ---
@@ -893,6 +999,7 @@ const etapa6DataEnriquecido = useMemo(() => ({
 
 - [TODAS_OS_E_ETAPAS.md](../sistema/TODAS_OS_E_ETAPAS.md) - Visão geral de todas as OS
 - [OS_01_04_TECHNICAL_DOCUMENTATION.md](./OS_01_04_TECHNICAL_DOCUMENTATION.md) - Doc técnica OS 1-4
+- [ACCORDION_ADENDOS_SYSTEM.md](./ACCORDION_ADENDOS_SYSTEM.md) - Sistema Accordion Adendos
 - [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Schema do banco de dados
 
 ### Diferenças Principais vs. OS 1-4
@@ -904,10 +1011,22 @@ const etapa6DataEnriquecido = useMemo(() => ({
 | **Criação OS** | Etapa 2 → 3 | Etapa 1 → 2 |
 | **Precificação** | Calculada (etapas/subetapas) | Manual (valor base) |
 | **OS Filha** | OS-13 (17 etapas) | OS-11 (6) ou OS-12 (6) |
-| **Página** | `os-details-workflow-page.tsx` | `os-details-assessoria-page.tsx` |
+| **Componente** | `os-details-workflow-page.tsx` | `os-5-6-workflow-page.tsx` ✅ |
+| **Sistema UI** | WorkflowStepper (legado) | **WorkflowAccordion** ✅ |
+| **Adendos** | Não suportado | **Suportado** ✅ |
 
 ---
 
-**Última Revisão:** 2026-01-04  
+## 📜 Histórico de Versões
+
+| Versão | Data | Descrição |
+|--------|------|-----------|
+| v3.0 | 2026-01-13 | Migração para WorkflowAccordion + Adendos |
+| v2.7 | 2026-01-04 | Sistema de aprovação hierárquica |
+| v1.0 | 2025-12-XX | Versão inicial |
+
+---
+
+**Última Revisão:** 2026-01-13  
 **Autor:** Sistema Minerva ERP  
-**Versão do Documento:** 1.0.0
+**Versão do Documento:** 3.0.0

@@ -35,7 +35,8 @@ import {
     ChevronRight,
     Layers,
     ExternalLink,
-    Loader2
+    Loader2,
+    MessageSquarePlus
 } from 'lucide-react';
 import { useState } from 'react';
 import { getOSRouteConfigWithFallback } from '@/lib/constants/os-routing-config';
@@ -165,6 +166,17 @@ function StepItem({ step, isCurrentOS, onClick, isNavigating }: StepItemProps) {
                             step.status === 'bloqueada' ? 'Bloqueada' :
                                 step.status === 'cancelada' ? 'Cancelada' : 'Pendente'}
                 </Badge>
+
+                {/* Badge Adendo - usando cor secondary para destaque */}
+                {step.adendosCount && step.adendosCount > 0 && (
+                    <Badge
+                        variant="outline"
+                        className="bg-secondary/20 text-secondary-foreground border-secondary/40"
+                    >
+                        <MessageSquarePlus className="w-3 h-3 mr-1" />
+                        {step.adendosCount > 1 ? `${step.adendosCount} Adendos` : 'Adendo'}
+                    </Badge>
+                )}
 
                 {canClick && (
                     <Button

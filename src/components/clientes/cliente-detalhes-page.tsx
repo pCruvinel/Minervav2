@@ -78,6 +78,7 @@ import {
   ClienteTabFinanceiro,
   ClienteTabDocumentos,
 } from './tabs';
+import { SendMessageModal } from '@/components/shared/send-message-modal';
 
 // ===========================================
 // HELPERS
@@ -169,6 +170,9 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
   const [modalToggleAcessoOpen, setModalToggleAcessoOpen] = useState(false);
   const [isTogglingPortalAccess, setIsTogglingPortalAccess] = useState(false);
 
+  // Send Message Modal
+  const [showSendMessageModal, setShowSendMessageModal] = useState(false);
+
   // Preencher form de edição quando cliente carregar
   useEffect(() => {
     if (cliente) {
@@ -207,7 +211,7 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
       onVisualizarPortal();
     } else {
       // Navegar para a página de preview do portal
-      router.navigate({ to: `/clientes/portal-preview/${clienteId}` });
+      router.navigate({ to: `/contatos/portal-preview/${clienteId}` });
     }
   };
 
@@ -374,6 +378,14 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
             <Pencil className="mr-2 h-4 w-4" />
             Editar
           </Button>
+
+          {/* Botão Enviar Mensagem */}
+          {(cliente.email || cliente.telefone) && (
+            <Button variant="outline" onClick={() => setShowSendMessageModal(true)}>
+              <Send className="mr-2 h-4 w-4" />
+              Enviar Mensagem
+            </Button>
+          )}
 
           {/* Botão Desativar/Ativar */}
           <Button
@@ -997,6 +1009,21 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Send Message Modal */}
+      <SendMessageModal
+        open={showSendMessageModal}
+        onOpenChange={setShowSendMessageModal}
+        destinatario={{
+          nome: cliente.nome_razao_social,
+          email: cliente.email || undefined,
+          telefone: cliente.telefone || undefined,
+        }}
+        contexto={{
+          tipo: 'cliente',
+          id: clienteId,
+        }}
+      />
     </div>
   );
 }

@@ -1,49 +1,68 @@
-import { useMemo, useRef, useState, useEffect } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
-import { WorkflowStepper, WorkflowStep } from '@/components/os/shared/components/workflow-stepper';
+import { WorkflowAccordion, WorkflowStepDefinition } from '@/components/os/shared/components/workflow-accordion';
+import { WorkflowStepSummary, OS_08_SUMMARY_CONFIG } from '@/components/os/shared/components/workflow-step-summary';
+import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
-  StepIdentificacaoSolicitante,
-  StepAtribuirCliente,
+  StepDetalhesSolicitacao,
   StepAgendarVisita,
   StepRealizarVisita,
   StepFormularioPosVisita,
   StepGerarDocumento,
   StepEnviarDocumento
 } from '@/components/os/assessoria/os-8/steps';
-import { ChevronLeft } from 'lucide-react';
+import { LeadCadastro, LeadCadastroHandle, LeadCompleto } from '@/components/os/shared/lead-cadastro';
+import { ArrowLeft } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
+import { Button } from '@/components/ui/button';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
-import { useWorkflowNavigation } from '@/lib/hooks/use-workflow-navigation';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
+import { useEtapaAdendos } from '@/lib/hooks/use-etapa-adendos';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
-const steps: WorkflowStep[] = [
-  { id: 1, title: 'Identificação do Solicitante', short: 'Solicitante', responsible: 'ADM', status: 'active' },
-  { id: 2, title: 'Atribuir Cliente', short: 'Cliente', responsible: 'ADM', status: 'pending' },
-  { id: 3, title: 'Agendar Visita', short: 'Agendar', responsible: 'ADM', status: 'pending' },
-  { id: 4, title: 'Realizar Visita', short: 'Visita', responsible: 'Obras', status: 'pending' },
-  { id: 5, title: 'Formulário Pós-Visita', short: 'Formulário', responsible: 'Obras', status: 'pending' },
-  { id: 6, title: 'Gerar Documento', short: 'Documento', responsible: 'ADM', status: 'pending' },
-  { id: 7, title: 'Enviar ao Cliente', short: 'Enviar', responsible: 'ADM', status: 'pending' },
+const steps: WorkflowStepDefinition[] = [
+  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', responsible: 'ADM' },
+  { id: 2, title: 'Detalhes da Solicitação', short: 'Solicitação', responsible: 'ADM' },
+  { id: 3, title: 'Agendar Visita', short: 'Agendar', responsible: 'ADM' },
+  { id: 4, title: 'Realizar Visita', short: 'Visita', responsible: 'Obras' },
+  { id: 5, title: 'Formulário Pós-Visita', short: 'Formulário', responsible: 'Obras' },
+  { id: 6, title: 'Gerar Documento', short: 'Documento', responsible: 'ADM' },
+  { id: 7, title: 'Enviar ao Cliente', short: 'Enviar', responsible: 'ADM' },
 ];
 
 interface OS08WorkflowPageProps {
   onBack?: () => void;
   osId?: string;
+  initialStep?: number;
+  readonly?: boolean;
+  codigoOS?: string;
+  tipoOSNome?: string;
 }
 
-export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPageProps) {
+export function OS08WorkflowPage({
+  onBack,
+  osId: propOsId,
+  initialStep,
+  readonly,
+  codigoOS,
+  tipoOSNome
+}: OS08WorkflowPageProps) {
   // Estado interno para osId (criado na Etapa 2 quando o cliente for atribuído)
   const [internalOsId, setInternalOsId] = useState<string | undefined>(propOsId);
   const finalOsId = propOsId || internalOsId;
   const [isCreatingOS, setIsCreatingOS] = useState(false);
 
+  // Read-only mode
+  const isReadOnly = readonly ?? false;
+
   // Refs para validação imperativa de steps
   const stepAgendarVisitaRef = useRef<any>(null);
+  const leadCadastroRef = useRef<LeadCadastroHandle>(null);
 
   // Obter usuário atual para delegação
   const { currentUser } = useAuth();
@@ -99,45 +118,28 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   const {
     currentStep,
     setCurrentStep,
-    lastActiveStep,
-    setLastActiveStep,
-    isHistoricalNavigation,
-    setIsHistoricalNavigation,
     formDataByStep,
     setStepData,
     saveStep,
     completedSteps: completedStepsFromHook,
-    isLoading: isLoadingData
+    isLoading: isLoadingData,
+    etapas,
+    createEtapasBatch, // ✅ Usar do hook para manter estado sincronizado
+    refreshEtapas
   } = useWorkflowState({
     osId: finalOsId,
-    totalSteps: steps.length
+    totalSteps: steps.length,
+    initialStep: initialStep // ✅ Passar etapa inicial da URL para o hook
   });
 
-  // Hook de Navegação
-  const {
-    handleStepClick,
-    handleReturnToActive,
-    handleNextStep,
-    handlePrevStep
-  } = useWorkflowNavigation({
-    totalSteps: steps.length,
-    currentStep,
-    setCurrentStep,
-    lastActiveStep,
-    setLastActiveStep,
-    isHistoricalNavigation,
-    setIsHistoricalNavigation,
-    onSaveStep: (step) => saveStep(step, false)
-  });
+  // Obter etapa atual para adendos
+  const currentEtapa = etapas?.find(e => e.ordem === currentStep);
+  const { adendos, addAdendo, getAdendosByCampo } = useEtapaAdendos(currentEtapa?.id);
 
   // Mapeamento de dados para compatibilidade
-  const etapa1Data = formDataByStep[1] || {
-    nomeCompleto: '',
-    contatoWhatsApp: '',
-    condominio: '',
-    cargo: '',
-    bloco: '',
-    unidadeAutonoma: '',
+  const etapa1Data = formDataByStep[1] || null;
+  const etapa2Data = formDataByStep[2] || {
+    finalidadeInspecao: '',
     tipoArea: '',
     unidadesVistoriar: '',
     contatoUnidades: '',
@@ -146,10 +148,9 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
     detalhesSolicitacao: '',
     tempoSituacao: '',
     primeiraVisita: '',
-    fotosAnexadas: [],
+    arquivos: [],
   };
 
-  const etapa2Data = formDataByStep[2] || { clienteId: '' };
   const etapa3Data = formDataByStep[3] || { dataAgendamento: '', agendamentoId: '' };
   const etapa4Data = formDataByStep[4] || { visitaRealizada: false, dataRealizacao: '' };
   const etapa5Data = formDataByStep[5] || {
@@ -178,13 +179,10 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   const setEtapa6Data = (data: any) => setStepData(6, data);
   const setEtapa7Data = (data: any) => setStepData(7, data);
 
-  /**
-   * Cálculo dinâmico de etapas completadas
-   */
   // Regras de completude
   const completionRules = useMemo(() => ({
-    1: (data: any) => !!(data.nomeCompleto && data.contatoWhatsApp && data.tipoDocumento),
-    2: (data: any) => !!data.clienteId,
+    1: (data: any) => !!(data?.identificacao?.nome && data?.identificacao?.cpfCnpj),
+    2: (data: any) => !!(data.finalidadeInspecao && data.detalhesSolicitacao && data.areaVistoriada),
     3: (data: any) => !!(data.agendamentoId || data.dataAgendamento),
     4: (data: any) => !!(data.visitaRealizada && data.dataRealizacao),
     5: (data: any) => !!(data.resultadoVisita && data.tipoDocumento),
@@ -200,162 +198,251 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
   });
 
   // =====================================================
-  // Cálculo de Validação - Bloqueio de Progresso
+  // Handlers de Navegação
   // =====================================================
 
-  const isCurrentStepInvalid = useMemo(() => {
-    // Não validar em modo histórico (read-only)
-    if (isHistoricalNavigation) return false;
-
-    // Switch por etapa para validação específica
-    switch (currentStep) {
-      case 3: // Agendar Visita - opcional
-        return false;
-      default:
-        return false;
+  const handleStepChange = (step: number) => {
+    // Permitir navegação apenas para etapas concluídas ou etapa atual
+    if (completedSteps.includes(step) || step === currentStep) {
+      setCurrentStep(step);
     }
-  }, [currentStep, isHistoricalNavigation]);
+  };
 
   const handleSaveStep = async () => {
     try {
       if (finalOsId) {
-        await saveStep(currentStep, true); // Salvar como rascunho explicitamente se clicado no botão salvar
+        await saveStep(currentStep, true);
         toast.success('Dados salvos com sucesso!');
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao salvar dados');
     }
   };
 
-  // Handler customizado para o avanço da etapa 2 (criar OS com cliente)
-  const handleCustomNextStep = async () => {
-    // Na Etapa 2, precisamos criar a OS antes de avançar
-    if (currentStep === 2 && !finalOsId) {
-      const clienteId = etapa2Data.clienteId;
-      if (!clienteId) {
-        toast.error('Selecione um cliente antes de continuar');
-        return;
-      }
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
 
-      const newOsId = await createOSWithClient(clienteId);
-      if (!newOsId) {
-        return; // Erro na criação
-      }
+  const handleNextStep = async () => {
+    // Etapa 1: Salvar Lead e Criar OS se não existir
+    if (currentStep === 1) {
+      if (!leadCadastroRef.current) return;
 
-      // Salvar dados das etapas 1 e 2
-      await saveStep(1, true);
-      await saveStep(2, true);
+      const savedId = await leadCadastroRef.current.save();
+      if (!savedId) return;
+
+      if (!finalOsId) {
+        const newOsId = await createOSWithClient(savedId);
+        if (!newOsId) return;
+
+        try {
+          const stepsData = steps.map(step => ({
+            ordem: step.id,
+            nome_etapa: step.title,
+            status: step.id === 1 ? 'concluida' : 'pendente',
+            dados_etapa: step.id === 1 ? { ...etapa1Data, leadId: savedId } : {}
+          }));
+
+          await createEtapasBatch(newOsId, stepsData as any);
+          logger.log('[OS08WorkflowPage] ✅ Etapas criadas com sucesso!');
+        } catch (error) {
+          logger.error('[OS08WorkflowPage] ❌ Erro ao criar etapas:', error);
+          toast.error('Erro ao inicializar etapas da OS');
+          return;
+        }
+      } else {
+        // ✅ FIX: isDraft=false marca como concluída
+        await saveStep(1, false);
+      }
     }
 
-    // Chamar o handler normal de navegação
-    handleNextStep();
+    // Etapa 2 em diante: Comportamento padrão
+    if (currentStep > 1) {
+      // ✅ FIX: isDraft=false marca como concluída  
+      await saveStep(currentStep, false);
+    }
+
+    // ✅ FIX: Atualizar lista de etapas para refletir novo status
+    await refreshEtapas();
+
+    // Avançar para próxima etapa
+    if (currentStep < steps.length) {
+      setCurrentStep(currentStep + 1);
+      toast.success('Etapa concluída!', { icon: '✅' });
+    }
+  };
+
+  // =====================================================
+  // Renderização de Formulários e Resumos
+  // =====================================================
+
+  const renderForm = (step: number) => {
+    const isReadOnly = completedSteps.includes(step) && step !== currentStep;
+
+    switch (step) {
+      case 1:
+        return (
+          <LeadCadastro
+            ref={leadCadastroRef}
+            initialData={etapa1Data}
+            selectedLeadId={etapa1Data?.identificacao?.id}
+            onLeadChange={(_id: string, data: LeadCompleto) => setEtapa1Data(data)}
+            statusFilter="cliente"
+            readOnly={isReadOnly}
+          />
+        );
+      case 2:
+        return (
+          <StepDetalhesSolicitacao
+            data={etapa2Data}
+            onDataChange={setEtapa2Data}
+            readOnly={isReadOnly}
+            osId={finalOsId}
+          />
+        );
+      case 3:
+        return finalOsId ? (
+          <StepAgendarVisita
+            ref={stepAgendarVisitaRef}
+            osId={finalOsId}
+            data={etapa3Data}
+            onDataChange={setEtapa3Data}
+            readOnly={isReadOnly}
+          />
+        ) : null;
+      case 4:
+        return (
+          <StepRealizarVisita
+            data={etapa4Data}
+            onDataChange={setEtapa4Data}
+            readOnly={isReadOnly}
+          />
+        );
+      case 5:
+        return (
+          <StepFormularioPosVisita
+            data={etapa5Data}
+            onDataChange={setEtapa5Data}
+            readOnly={isReadOnly}
+            finalidadeInspecao={etapa2Data.finalidadeInspecao}
+            osId={finalOsId}
+          />
+        );
+      case 6:
+        return (
+          <StepGerarDocumento
+            osId={finalOsId || ''}
+            codigoOS={codigoOS}
+            data={etapa6Data}
+            onDataChange={setEtapa6Data}
+            readOnly={isReadOnly}
+            etapa1Data={etapa1Data}
+            etapa2Data={etapa2Data}
+            etapa4Data={etapa4Data}
+            etapa5Data={etapa5Data}
+          />
+        );
+      case 7:
+        return (
+          <StepEnviarDocumento
+            data={etapa7Data}
+            onDataChange={setEtapa7Data}
+            readOnly={isReadOnly}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  // Handler para adicionar adendo
+  const handleAddAdendo = useCallback(async (campoKey: string, conteudo: string): Promise<boolean> => {
+    const result = await addAdendo(campoKey, conteudo);
+    return !!result;
+  }, [addAdendo]);
+
+  const renderSummary = (step: number, data: any) => {
+    const configFn = OS_08_SUMMARY_CONFIG[step];
+    if (!configFn) return null;
+
+    const fields = configFn(data);
+    const stepEtapa = etapas?.find(e => e.ordem === step);
+    const isCompleted = completedSteps.includes(step);
+    const canAddAdendo = isCompleted && !!stepEtapa?.id;
+
+    // Para etapas concluídas, exibir campos com suporte a adendos
+    if (isCompleted && stepEtapa) {
+      return (
+        <div className="space-y-4">
+          {fields.map((field, idx) => (
+            <FieldWithAdendos
+              key={idx}
+              label={field.label}
+              campoKey={field.label.toLowerCase().replace(/\s+/g, '_')}
+              valorOriginal={field.value as string}
+              adendos={getAdendosByCampo(field.label.toLowerCase().replace(/\s+/g, '_'))}
+              etapaId={stepEtapa.id}
+              onAddAdendo={handleAddAdendo}
+              canAddAdendo={canAddAdendo}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    // Para etapas não concluídas, exibir resumo simples
+    return <WorkflowStepSummary fields={fields} />;
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b border-border">
-        <div className="px-6 py-4">
+      <div className="bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center gap-4">
-            {onBack && (
-              <button
-                onClick={onBack}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-                <span>Voltar</span>
-              </button>
-            )}
+            {/* Botão Voltar - navega para Detalhes da OS */}
+            {finalOsId ? (
+              <Link to="/os/$osId" params={{ osId: finalOsId }}>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <ArrowLeft className="w-4 h-4" />
+                  Voltar
+                </Button>
+              </Link>
+            ) : onBack ? (
+              <Button variant="ghost" size="sm" className="gap-2" onClick={onBack}>
+                <ArrowLeft className="w-4 h-4" />
+                Voltar
+              </Button>
+            ) : null}
+
+            {/* Título no formato da página de detalhes */}
             <div>
-              <h1 className="text-2xl">OS-08: Visita Técnica / Parecer Técnico</h1>
-              {finalOsId && <p className="text-muted-foreground">OS #{finalOsId}</p>}
+              <h1 className="text-2xl font-bold text-neutral-900">
+                {codigoOS || 'Nova OS-08'}
+              </h1>
+              <p className="text-sm text-neutral-600">
+                {tipoOSNome || 'Visita Técnica / Parecer Técnico'}
+              </p>
             </div>
           </div>
         </div>
-
-        {/* Stepper */}
-        <div className="relative">
-          <WorkflowStepper
-            steps={steps}
-            currentStep={currentStep}
-            onStepClick={handleStepClick}
-            completedSteps={completedSteps}
-            lastActiveStep={lastActiveStep || undefined}
-          />
-
-        </div>
       </div>
 
-
-      {/* Conteúdo das Etapas */}
+      {/* Conteúdo com Accordion */}
       <div className="px-6 py-6">
         <Card className="max-w-5xl mx-auto">
           <div className="p-6">
-            {/* ETAPA 1: Identificação do Solicitante */}
-            {currentStep === 1 && (
-              <StepIdentificacaoSolicitante
-                data={etapa1Data}
-                onDataChange={setEtapa1Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 2: Atribuir Cliente */}
-            {currentStep === 2 && (
-              <StepAtribuirCliente
-                data={etapa2Data}
-                onDataChange={setEtapa2Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 3: Agendar Visita */}
-            {currentStep === 3 && finalOsId && (
-              <StepAgendarVisita
-                ref={stepAgendarVisitaRef}
-                osId={finalOsId}
-                data={etapa3Data}
-                onDataChange={setEtapa3Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 4: Realizar Visita */}
-            {currentStep === 4 && (
-              <StepRealizarVisita
-                data={etapa4Data}
-                onDataChange={setEtapa4Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 5: Formulário Pós-Visita */}
-            {currentStep === 5 && (
-              <StepFormularioPosVisita
-                data={etapa5Data}
-                onDataChange={setEtapa5Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 6: Gerar Documento */}
-            {currentStep === 6 && (
-              <StepGerarDocumento
-                osId={finalOsId}
-                data={etapa6Data}
-                onDataChange={setEtapa6Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
-
-            {/* ETAPA 7: Enviar Documento */}
-            {currentStep === 7 && (
-              <StepEnviarDocumento
-                data={etapa7Data}
-                onDataChange={setEtapa7Data}
-                readOnly={isHistoricalNavigation}
-              />
-            )}
+            <WorkflowAccordion
+              steps={steps}
+              currentStep={currentStep}
+              formDataByStep={formDataByStep}
+              completedSteps={completedSteps}
+              onStepChange={handleStepChange}
+              renderForm={renderForm}
+              renderSummary={renderSummary}
+            />
           </div>
         </Card>
       </div>
@@ -365,13 +452,9 @@ export function OS08WorkflowPage({ onBack, osId: propOsId }: OS08WorkflowPagePro
         currentStep={currentStep}
         totalSteps={steps.length}
         onPrevStep={handlePrevStep}
-        onNextStep={handleCustomNextStep}
+        onNextStep={handleNextStep}
         onSaveDraft={handleSaveStep}
-        readOnlyMode={isHistoricalNavigation}
-        onReturnToActive={handleReturnToActive}
         isLoading={isLoadingData || isCreatingOS}
-        isFormInvalid={isCurrentStepInvalid}
-        invalidFormMessage="Por favor, selecione um horário no calendário para continuar"
       />
     </div>
   );

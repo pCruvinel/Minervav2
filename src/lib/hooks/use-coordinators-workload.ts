@@ -18,6 +18,7 @@ export interface WorkloadOS {
   cliente_nome: string;
   tipo_os_nome: string;
   status_geral: string;
+  status_situacao: string;
   data_prazo: string | null;
   data_entrada: string;
   etapa_atual: {
@@ -133,6 +134,22 @@ export function useCoordinatorsWorkload(): UseCoordinatorsWorkloadReturn {
         }
       }
 
+      // 4. Buscar status_situacao (não está na view os_detalhes_completos)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let statusSituacaoMap: Record<string, string> = {};
+      if (osIds.length > 0) {
+        const { data: statusData } = await supabase
+          .from('ordens_servico')
+          .select('id, status_situacao')
+          .in('id', osIds);
+        
+        if (statusData) {
+          statusData.forEach((item) => {
+            statusSituacaoMap[item.id] = item.status_situacao;
+          });
+        }
+      }
+
 
       const hoje = new Date();
 
@@ -176,6 +193,7 @@ export function useCoordinatorsWorkload(): UseCoordinatorsWorkloadReturn {
           cliente_nome: os.cliente_nome || 'Cliente não informado',
           tipo_os_nome: os.tipo_os_nome || 'Tipo não informado',
           status_geral: os.status_geral,
+          status_situacao: statusSituacaoMap[os.id] || 'acao_pendente',
           data_prazo: os.data_prazo,
           data_entrada: os.data_entrada,
           etapa_atual: etapaAtual,

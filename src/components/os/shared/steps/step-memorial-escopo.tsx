@@ -1,10 +1,10 @@
-import React, { forwardRef, useImperativeHandle } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { forwardRef, useImperativeHandle } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Plus, Trash2, X, AlertCircle } from 'lucide-react';
@@ -24,6 +24,38 @@ interface EtapaPrincipal {
   subetapas: SubEtapa[];
 }
 
+/**
+ * Formata valor para exibição como moeda brasileira (1.000,00)
+ */
+const formatarMoedaInput = (valor: string): string => {
+  // Remove tudo que não for número
+  const apenasNumeros = valor.replace(/\D/g, '');
+
+  if (!apenasNumeros) return '';
+
+  // Converte para número (centavos)
+  const valorNumerico = parseInt(apenasNumeros, 10);
+
+  // Formata com duas casas decimais
+  const valorFormatado = (valorNumerico / 100).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+
+  return valorFormatado;
+};
+
+/**
+ * Converte valor formatado (1.000,00) para número raw para salvar
+ */
+const desformatarMoeda = (valorFormatado: string): string => {
+  // Remove pontos de milhar e troca vírgula por ponto
+  const valorLimpo = valorFormatado
+    .replace(/\./g, '')
+    .replace(',', '.');
+  return valorLimpo;
+};
+
 interface StepMemorialEscopoProps {
   data: {
     objetivo?: string;
@@ -37,9 +69,9 @@ interface StepMemorialEscopoProps {
     escopo?: string;
     prazoEstimado?: string;
     observacoes?: string;
-    _legacy?: any;
+    _legacy?: Record<string, unknown>;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (newData: StepMemorialEscopoProps['data']) => void;
   readOnly?: boolean;
 }
 
@@ -51,7 +83,7 @@ export interface StepMemorialEscopoHandle {
 export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemorialEscopoProps>(
   function StepMemorialEscopo({ data, onDataChange, readOnly = false }, ref) {
     // Normalizar dados legados de assessoria
-    const normalizeData = (inputData: any) => {
+    const normalizeData = (inputData: StepMemorialEscopoProps['data']) => {
       if (inputData.descricaoServico && !inputData.objetivo) {
         return {
           objetivo: inputData.descricaoServico,
@@ -140,7 +172,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
     };
 
     const handleRemoverEtapaPrincipal = (index: number) => {
-      const novasEtapas = safeData.etapasPrincipais.filter((_, i) => i !== index);
+      const novasEtapas = safeData.etapasPrincipais.filter((_: EtapaPrincipal, i: number) => i !== index);
       onDataChange({ ...safeData, etapasPrincipais: novasEtapas });
     };
 
@@ -164,22 +196,22 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
 
     const handleRemoverSubetapa = (etapaIndex: number, subIndex: number) => {
       const novasEtapas = [...safeData.etapasPrincipais];
-      novasEtapas[etapaIndex].subetapas = novasEtapas[etapaIndex].subetapas.filter((_, i) => i !== subIndex);
+      novasEtapas[etapaIndex].subetapas = novasEtapas[etapaIndex].subetapas.filter((_: SubEtapa, i: number) => i !== subIndex);
       onDataChange({ ...safeData, etapasPrincipais: novasEtapas });
     };
 
     const handleAtualizarSubetapa = (etapaIndex: number, subIndex: number, field: keyof SubEtapa, value: string) => {
-      const novasEtapas = [...data.etapasPrincipais];
+      const novasEtapas = [...safeData.etapasPrincipais];
       novasEtapas[etapaIndex].subetapas[subIndex] = {
         ...novasEtapas[etapaIndex].subetapas[subIndex],
         [field]: value,
       };
-      onDataChange({ ...data, etapasPrincipais: novasEtapas });
+      onDataChange({ ...safeData, etapasPrincipais: novasEtapas });
     };
 
     const calcularExecucaoTotal = (): number => {
-      return safeData.etapasPrincipais.reduce((total, etapa) => {
-        return total + etapa.subetapas.reduce((subtotal, sub) => {
+      return safeData.etapasPrincipais.reduce((total: number, etapa: EtapaPrincipal) => {
+        return total + etapa.subetapas.reduce((subtotal: number, sub: SubEtapa) => {
           return subtotal + (parseFloat(sub.diasUteis) || 0);
         }, 0);
       }, 0);
@@ -228,7 +260,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <Label className="text-base">
-              2. Etapas da Especificação Técnica <span className="text-muted-foreground">(Opcional)</span>
+              2. Etapas da Especificação Técnica
             </Label>
             <PrimaryButton
               variant="secondary"
@@ -249,7 +281,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
             </Card>
           )}
 
-          {safeData.etapasPrincipais.map((etapa, etapaIndex) => (
+          {safeData.etapasPrincipais.map((etapa: EtapaPrincipal, etapaIndex: number) => (
             <Card key={etapaIndex} className="border-primary/20">
               <CardHeader className="bg-primary/5">
                 <div className="flex items-center gap-3">
@@ -295,7 +327,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                     </div>
 
                     {/* Linhas de sub-etapas */}
-                    {etapa.subetapas.map((sub, subIndex) => (
+                    {etapa.subetapas.map((sub: SubEtapa, subIndex: number) => (
                       <div key={subIndex} className="grid grid-cols-12 gap-2 items-center">
                         <div className="col-span-5">
                           <Input
@@ -325,14 +357,23 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                           />
                         </div>
                         <div className="col-span-2">
-                          <Input
-                            type="number"
-                            step="0.01"
-                            value={sub.total}
-                            onChange={(e) => !readOnly && handleAtualizarSubetapa(etapaIndex, subIndex, 'total', e.target.value)}
-                            placeholder="0,00"
-                            disabled={readOnly}
-                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-2.5 text-sm text-muted-foreground">R$</span>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={formatarMoedaInput(String(parseFloat(sub.total || '0') * 100 || ''))}
+                              onChange={(e) => {
+                                if (readOnly) return;
+                                const valorFormatado = formatarMoedaInput(e.target.value);
+                                const valorRaw = desformatarMoeda(valorFormatado);
+                                handleAtualizarSubetapa(etapaIndex, subIndex, 'total', valorRaw);
+                              }}
+                              placeholder="0,00"
+                              disabled={readOnly}
+                              className="pl-10"
+                            />
+                          </div>
                         </div>
                         <div className="col-span-1">
                           <Button
@@ -358,7 +399,7 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
         {/* 3. Prazo (Dias Úteis) */}
         <div className="space-y-4">
           <Label className="text-base">
-            3. Prazo (Dias Úteis) <span className="text-muted-foreground">(Opcional)</span>
+            3. Prazo (Dias Úteis)
           </Label>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Planejamento inicial */}
@@ -483,9 +524,9 @@ export const StepMemorialEscopo = forwardRef<StepMemorialEscopoHandle, StepMemor
                 <span className="text-sm font-medium">Prazo Total do Projeto:</span>
                 <span className="text-lg font-medium">
                   {(
-                    (parseFloat(data.planejamentoInicial) || 0) +
-                    (parseFloat(data.logisticaTransporte) || 0) +
-                    (parseFloat(data.preparacaoArea) || 0) +
+                    (parseFloat(safeData.planejamentoInicial || '0')) +
+                    (parseFloat(safeData.logisticaTransporte || '0')) +
+                    (parseFloat(safeData.preparacaoArea || '0')) +
                     calcularExecucaoTotal()
                   ).toFixed(0)}{' '}
                   dias úteis

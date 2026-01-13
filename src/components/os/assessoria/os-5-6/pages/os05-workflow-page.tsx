@@ -1,3 +1,11 @@
+/**
+ * @deprecated DEPRECATED desde 2026-01-13
+ * 
+ * Este arquivo é um STUB e será removido.
+ * O workflow real está em: os-details-assessoria-page.tsx
+ * 
+ * @see docs/planning/OS_5_6_ACCORDION_MIGRATION_PLAN.md
+ */
 // OS 05: [Nome da OS 05] - Sistema Minerva ERP
 'use client';
 

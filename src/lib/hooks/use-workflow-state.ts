@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useEtapas } from './use-etapas';
 import { toast } from '../utils/safe-toast';
 import { getStepDefaults } from '@/lib/utils/schema-defaults';
@@ -27,6 +27,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     saveFormData,
     getEtapaData,
     createEtapa,
+    createEtapasBatch,
     updateEtapa
   } = useEtapas();
 
@@ -39,25 +40,38 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     }
   }, [initialStep]);
 
+  const currentOsIdRef = useRef<string | undefined>(undefined);
+
   // ✅ FIX: Clear formDataByStep when osId changes to prevent data leakage between OSs
+  // Logic updated to NOT wipe data when transitioning from undefined to an ID (Creation flow)
   useEffect(() => {
     if (osId) {
-      logger.log(`🧹 Clearing form data for new OS: ${osId}`);
-      setFormDataByStep({});
-      fetchEtapas(osId);
+      if (currentOsIdRef.current && currentOsIdRef.current !== osId) {
+         logger.log(`🧹 Clearing form data (OS switch): ${currentOsIdRef.current} -> ${osId}`);
+         setFormDataByStep({});
+      }
+      
+      if (currentOsIdRef.current !== osId) {
+         fetchEtapas(osId);
+         currentOsIdRef.current = osId;
+      }
     }
   }, [osId]);
 
   // Sync loaded steps into local state
   useEffect(() => {
     if (etapas && etapas.length > 0) {
-      const newFormData: Record<number, any> = {};
-      etapas.forEach((etapa) => {
-        if (etapa.dados_etapa) {
-          newFormData[etapa.ordem] = etapa.dados_etapa;
-        }
+      setFormDataByStep(prev => {
+        const next = { ...prev };
+        etapas.forEach((etapa) => {
+          // Merge strategy: Server wins if it has data.
+          // If server is empty, keep local data (crucial for OS creation flow where we have unsaved local data)
+          if (etapa.dados_etapa && Object.keys(etapa.dados_etapa).length > 0) {
+            next[etapa.ordem] = etapa.dados_etapa;
+          }
+        });
+        return next;
       });
-      setFormDataByStep(newFormData);
       
       // Determine last completed step to set current step if not in historical mode
       // This logic might need to be customized or optional
@@ -159,6 +173,7 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     saveStep,
     saveFormData, // ✅ Exposed for auto-save in useEffect
     createEtapa, // Exposed for complex workflows
+    createEtapasBatch, // ✅ Exposed for batch creation with proper state sync
     updateEtapa, // Exposed for complex workflows
     refreshEtapas: () => osId && fetchEtapas(osId)
   };

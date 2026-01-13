@@ -75,45 +75,44 @@ const SETORES: { value: SetorSlug | 'todos'; label: string }[] = [
     { value: 'diretoria', label: 'Diretoria' },
 ];
 
+/** Configuração de cores para Status Geral (ciclo de vida) */
 const STATUS_CONFIG: Record<string, { label: string; className: string }> = {
-    em_triagem: { label: 'Em Triagem', className: 'bg-warning/10 text-warning border-warning/20' },
-    em_andamento: { label: 'Em Andamento', className: 'bg-info/10 text-info border-info/20' },
-    aguardando_info: { label: 'Aguardando Info', className: 'bg-warning/10 text-warning border-warning/20' },
+    em_triagem: { label: 'Em Triagem', className: 'bg-muted text-muted-foreground border-muted' },
+    em_andamento: { label: 'Em Andamento', className: 'bg-primary/10 text-primary border-primary/20' },
     concluido: { label: 'Concluído', className: 'bg-success/10 text-success border-success/20' },
     cancelado: { label: 'Cancelado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    // Legados (mantidos para compatibilidade)
+    aguardando_info: { label: 'Aguardando Info', className: 'bg-warning/10 text-warning border-warning/20' },
+    aguardando_aprovacao: { label: 'Aguard. Aprovação', className: 'bg-secondary text-secondary-foreground border-secondary/20' },
 };
 
-/** Configuração de cores para Status Situação (semáforo) */
+/** Configuração de cores para Status Situação (ação pendente) */
 const STATUS_SITUACAO_CONFIG: Record<string, { label: string; className: string }> = {
-    no_prazo: { label: 'No Prazo', className: 'bg-success/10 text-success border-success/20' },
-    acao_pendente: { label: 'Ação Pendente', className: 'bg-info/10 text-info border-info/20' },
-    aguardando_info: { label: 'Aguard. Info', className: 'bg-warning/10 text-warning border-warning/20' },
-    aguardando_aprovacao: { label: 'Aguard. Aprovação', className: 'bg-accent text-accent-foreground border-accent' },
-    em_validacao: { label: 'Em Validação', className: 'bg-accent text-accent-foreground border-accent' }, // Legacy
-    alerta_prazo: { label: 'Alerta Prazo', className: 'bg-warning/10 text-warning border-warning/20' },
-    atrasado: { label: 'Atrasado', className: 'bg-destructive/10 text-destructive border-destructive/20' },
+    atrasado: { label: 'Atrasado', className: 'bg-destructive text-destructive-foreground border-destructive' },
+    aguardando_aprovacao: { label: 'Aguard. Aprovação', className: 'bg-secondary text-secondary-foreground border-secondary' },
+    aguardando_info: { label: 'Aguard. Info', className: 'bg-warning/20 text-warning border-warning/20' },
+    alerta_prazo: { label: 'Alerta Prazo', className: 'bg-warning text-warning-foreground border-warning' },
+    acao_pendente: { label: 'Ação Pendente', className: 'bg-primary/10 text-primary border-primary/20' },
     finalizado: { label: 'Finalizado', className: 'bg-muted text-muted-foreground border-muted' },
-    sem_responsavel: { label: 'Sem Responsável', className: 'bg-muted/50 text-muted-foreground border-muted' },
 };
 
+/** Opções de filtro para Status Geral (colunas Kanban) */
 const STATUS_OPTIONS: { value: string; label: string }[] = [
     { value: 'todos', label: 'Todos os Status' },
     { value: 'em_triagem', label: 'Em Triagem' },
     { value: 'em_andamento', label: 'Em Andamento' },
-    { value: 'aguardando_info', label: 'Aguardando Info' },
     { value: 'concluido', label: 'Concluído' },
     { value: 'cancelado', label: 'Cancelado' },
 ];
 
+/** Opções de filtro para Status Situação (badges de ação) */
 const STATUS_SITUACAO_OPTIONS: { value: string; label: string }[] = [
     { value: 'todos', label: 'Todas as Situações' },
     { value: 'atrasado', label: 'Atrasado' },
     { value: 'alerta_prazo', label: 'Alerta Prazo' },
-    { value: 'aguardando_info', label: 'Aguard. Info' },
     { value: 'aguardando_aprovacao', label: 'Aguard. Aprovação' },
+    { value: 'aguardando_info', label: 'Aguard. Info' },
     { value: 'acao_pendente', label: 'Ação Pendente' },
-    { value: 'sem_responsavel', label: 'Sem Responsável' },
-    { value: 'no_prazo', label: 'No Prazo' },
     { value: 'finalizado', label: 'Finalizado' },
 ];
 
@@ -206,9 +205,7 @@ export function ManagerTable({
                 // Fallback: calcular localmente apenas se a situação estiver nos filtros selecionados
                 if (situacaoFilters.includes('atrasado') && os.prazoVencido) return true;
                 if (situacaoFilters.includes('acao_pendente') && (os.statusEtapa === 'pendente' || os.statusEtapa === 'em_andamento')) return true;
-                if (situacaoFilters.includes('sem_responsavel') && !os.responsavel_id) return true;
                 if (situacaoFilters.includes('finalizado') && (os.status_geral === 'concluido' || os.status_geral === 'cancelado')) return true;
-                if (situacaoFilters.includes('no_prazo') && !os.prazoVencido && os.status_geral === 'em_andamento') return true;
 
                 // Se não casou com nenhum filtro selecionado
                 return false;

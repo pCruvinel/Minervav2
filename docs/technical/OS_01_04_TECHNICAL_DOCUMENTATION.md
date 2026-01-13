@@ -1,7 +1,7 @@
 # 📋 Documentação Técnica: OS-01 a OS-04 - Obras
 
-**Última Atualização:** 2026-01-04  
-**Versão:** v2.7  
+**Última Atualização:** 2026-01-08  
+**Versão:** v2.9  
 **Status Implementação:** 95% ✅  
 **Setor:** Obras
 
@@ -41,7 +41,7 @@ src/
 │       ├── step-followup-1.tsx              # Etapa 3: Entrevista Inicial
 │       ├── step-agendar-apresentacao.tsx    # Etapas 4 e 10: Agendamentos
 │       ├── step-preparar-orcamentos.tsx     # Etapa 6: Follow-up Pós-Visita
-│       ├── step-memorial-escopo.tsx         # Etapa 7: Memorial Descritivo
+│       ├── step-memorial-escopo.tsx         # Etapa 7: Memorial (com formatação moeda)
 │       ├── step-precificacao.tsx            # Etapa 8: Precificação
 │       ├── step-gerar-proposta.tsx          # Etapa 9: Proposta Comercial
 │       ├── step-realizar-apresentacao.tsx   # Etapa 11: Apresentação
@@ -636,19 +636,46 @@ interface Etapa8Data {
 
 ```typescript
 interface Etapa9Data {
-  [key: string]: unknown; // Dados da proposta gerada
+  propostaGerada: boolean;
+  dataGeracao: string;
+  codigoProposta: string;
+  validadeDias: string;
+  garantiaMeses: string;
+  pdfUrl?: string;
 }
 ```
 
-**Componente:** `step-gerar-proposta.tsx`
+**Componente:** `step-gerar-proposta-os01-04.tsx`
 
-**Fluxo:**
+**Fluxo de Geração de PDF (Client-Side v2.0):**
 1. Exibe resumo financeiro calculado (herdado de Etapa 7 e 8)
-2. Botão "Gerar Proposta PDF"
-3. Chama Edge Function `generate-pdf` com template `'proposta-comercial-obras'`
-4. Edge Function salva no bucket `uploads` e registra em `os_documentos`
-5. Frontend recupera `caminho_arquivo` e gera URL assinada dinamicamente
-6. Persiste link e metadados no `dados_etapa`
+2. Usuário preenche "Validade da Proposta" e "Garantia (meses)"
+3. Botão **"Gerar Proposta Comercial"**
+4. Hook `usePDFGeneration` gera PDF no **frontend** usando `@react-pdf/renderer`
+5. PDF é enviado para **Supabase Storage** (bucket `uploads`)
+6. Sistema gera **URL assinada** (válida por 1 hora) para visualização/download
+7. Registro criado em `os_documentos` com tipo `'proposta'`
+
+**Template de PDF:** `proposta-template.tsx` (`src/lib/pdf/templates/`)
+
+**Dados enviados para o template:**
+```typescript
+{
+  // Cliente
+  clienteCpfCnpj, clienteNome, clienteEmail, clienteTelefone,
+  clienteEndereco, clienteBairro, clienteCidade, clienteEstado,
+  quantidadeUnidades, quantidadeBlocos,
+  
+  // Financeiros
+  dadosFinanceiros: { precoFinal, numeroParcelas, percentualEntrada, percentualImposto },
+  
+  // Cronograma (Etapa 7)
+  dadosCronograma: { etapasPrincipais, preparacaoArea, planejamentoInicial, logisticaTransporte },
+  
+  // Garantias
+  garantias: ['12 meses para serviços estruturais', ...]
+}
+```
 
 **⚠️ Aprovação Obrigatória:**
 - **Aprovador:** Coordenador de Obras

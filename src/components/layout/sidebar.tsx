@@ -83,7 +83,7 @@ const menuItems = [
     icon: Briefcase,
     submenu: [
       { id: 'comercial-novo-lead', label: 'Novo Lead', icon: UserPlus, to: '/comercial/novo-lead' },
-      { id: 'comercial-clientes', label: 'Clientes', icon: Users, to: '/clientes' },
+      { id: 'comercial-contatos', label: 'Contatos', icon: Users, to: '/contatos' },
       { id: 'comercial-contratos', label: 'Contratos', icon: FileText, to: '/comercial/contratos' },
     ]
   },
@@ -125,6 +125,8 @@ const menuItems = [
     icon: Settings,
     submenu: [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield, to: '/configuracoes' },
+      { id: 'sistema', label: 'WhatsApp e Email', icon: Settings, to: '/configuracoes/sistema' },
+      { id: 'teste-pdf', label: 'Teste de PDFs', icon: FileText, to: '/configuracoes/teste-pdf' },
     ]
   },
 ];

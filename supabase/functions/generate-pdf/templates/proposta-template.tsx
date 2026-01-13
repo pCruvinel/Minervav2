@@ -504,24 +504,23 @@ const ClientInfo = ({ data }: { data: PropostaData }) => (
       </View>
     </View>
 
-    {/* Título da Proposta */}
-    {data.tituloProposta && (
-      <View style={[styles.greyBar, { marginTop: 10 }]}>
-        <Text style={styles.greyBarText}>
-          Proposta para {data.tituloProposta}
-        </Text>
-      </View>
-    )}
+    {/* Título da Proposta - sempre exibido em UPPERCASE */}
+    <View style={[styles.greyBar, { marginTop: 10 }]}>
+      <Text style={styles.greyBarText}>
+        PROPOSTA PARA {(data.tituloProposta || 'SERVIÇOS DE ENGENHARIA').toUpperCase()}
+      </Text>
+    </View>
   </View>
 );
 
-const SpecsTable = ({ etapas }: { etapas: Etapa[] }) => (
+/**
+ * SpecsTable - Tabela de Especificações Técnicas
+ * @param etapas - Etapas e subetapas do escopo
+ * @param fatorMultiplicador - Fator para converter custo em valor de venda
+ *                             Fórmula: 1 + %Imprevisto + %Lucro + %Imposto
+ */
+const SpecsTable = ({ etapas, fatorMultiplicador = 1 }: { etapas: Etapa[], fatorMultiplicador?: number }) => (
   <View>
-    {/* 1. OBJETIVO (renderizado como cabeçalho simples aqui, mas o conteúdo real pode vir em DadosCronograma ou similar se estruturado diferente) */}
-    {/* Ajuste: O objetivo pode ser grande, então idealmente seria um bloco de texto. Vamos manter só o cabeçalho se não houver texto explícito passado para este componente. */}
-    {/* Por layout, vamos omitir o item 1 aqui se ele deve ser renderizado antes. */}
-    {/* Assumindo que este componente é o item 2. */}
-
     <View style={[styles.blueHeader, { justifyContent: 'space-between', marginTop: 15 }]}>
       <Text style={styles.blueHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
     </View>
@@ -531,7 +530,7 @@ const SpecsTable = ({ etapas }: { etapas: Etapa[] }) => (
       <Text style={[styles.tableHeaderCell, styles.colItem]}>ITEM</Text>
       <Text style={[styles.tableHeaderCell, styles.colDesc]}>DESCRIÇÃO DE SERVIÇOS</Text>
       <Text style={[styles.tableHeaderCell, styles.colUnit]}>UNID.</Text>
-      <Text style={[styles.tableHeaderCell, styles.colTotal]}>TOTAL</Text>
+      <Text style={[styles.tableHeaderCell, styles.colTotal]}>VALOR</Text>
     </View>
 
     {etapas.map((etapa, idx) => (
@@ -544,41 +543,51 @@ const SpecsTable = ({ etapas }: { etapas: Etapa[] }) => (
           <Text style={[styles.cellTextBold, styles.colTotal]}></Text>
         </View>
 
-        {/* Subetapas */}
-        {etapa.subetapas.map((sub, sIdx) => (
-          <View key={sIdx} style={styles.rowItem}>
-            <Text style={[styles.cellText, styles.colItem]}>{idx + 1}.{sIdx + 1}</Text>
-            <Text style={[styles.cellText, styles.colDesc]}>{sub.nome}</Text>
-            <Text style={[styles.cellText, styles.colUnit]}>{sub.quantidade || sub.m2 || 1}</Text>
-            <Text style={[styles.cellText, styles.colTotal]}>R$ {formatarMoeda(sub.total)}</Text>
-          </View>
-        ))}
+        {/* Subetapas - Valor = Custo × Fator */}
+        {etapa.subetapas.map((sub, sIdx) => {
+          const valorFinal = Number(sub.total || 0) * fatorMultiplicador;
+          return (
+            <View key={sIdx} style={styles.rowItem}>
+              <Text style={[styles.cellText, styles.colItem]}>{idx + 1}.{sIdx + 1}</Text>
+              <Text style={[styles.cellText, styles.colDesc]}>{sub.nome}</Text>
+              <Text style={[styles.cellText, styles.colUnit]}>{sub.quantidade || sub.m2 || 1}</Text>
+              <Text style={[styles.cellText, styles.colTotal]}>{formatarMoeda(valorFinal)}</Text>
+            </View>
+          );
+        })}
       </View>
     ))}
   </View>
 );
 
+/**
+ * Cronograma - Tabela de Prazo e Cronograma de Obra
+ * Estrutura hierárquica:
+ * 1. Planejamento Inicial
+ * 2. Logística e Transporte
+ * 3. Preparação da Área de Trabalho
+ * 4. Execução da Obra
+ *    > Etapas
+ *      > Subetapas
+ */
 const Cronograma = ({ dados }: { dados: DadosCronograma }) => {
-  // Calculo simples de dias
-  let totalDias = (Number(dados.planejamentoInicial) || 0) +
-    (Number(dados.logisticaTransporte) || 0) +
-    (Number(dados.preparacaoArea) || 0);
+  // Valores gerais (Tópico 3 do Memorial)
+  const planejamento = Number(dados.planejamentoInicial) || 0;
+  const logistica = Number(dados.logisticaTransporte) || 0;
+  const preparacao = Number(dados.preparacaoArea) || 0;
 
-  const listaAtividades: { nome: string, dias: number }[] = [];
-
+  // Cálculo de dias de execução (soma de todas as subetapas)
+  let diasExecucao = 0;
   if (dados.etapasPrincipais) {
     dados.etapasPrincipais.forEach((e: Etapa) => {
       e.subetapas.forEach((s: Subetapa) => {
-        const d = Number(s.diasUteis) || 0;
-        totalDias += d;
+        diasExecucao += Number(s.diasUteis) || 0;
       });
-      // Adicionando etapa como resumo
-      const diasEtapa = e.subetapas.reduce((acc: number, curr: Subetapa) => acc + (Number(curr.diasUteis) || 0), 0);
-      if (diasEtapa > 0) {
-        listaAtividades.push({ nome: e.nome, dias: diasEtapa });
-      }
     });
   }
+
+  // Total geral
+  const totalDias = planejamento + logistica + preparacao + diasExecucao;
 
   return (
     <View wrap={false} style={{ marginTop: 15 }}>
@@ -590,33 +599,63 @@ const Cronograma = ({ dados }: { dados: DadosCronograma }) => {
       </View>
 
       {/* Tabela Cronograma */}
-      <View style={{ borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.neutral300 }}>
+      <View style={{ borderLeftWidth: 1, borderRightWidth: 1, borderBottomWidth: 1, borderColor: colors.neutral300 }}>
+        {/* Header */}
         <View style={[styles.rowSection, { backgroundColor: colors.neutral300 }]}>
           <Text style={[styles.cellTextBold, styles.colCronAtiv, { textAlign: 'center' }]}>ATIVIDADE</Text>
-          <Text style={[styles.cellTextBold, styles.colCronDias]}>EM DIAS ÚTEIS</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>DIAS ÚTEIS</Text>
         </View>
 
-        {/* Atividades Prévias */}
-        {(Number(dados.planejamentoInicial) > 0) && (
-          <View style={styles.rowYellow}>
-            <Text style={[styles.cellText, styles.colCronAtiv]}>Planejamento Inicial</Text>
-            <Text style={[styles.cellText, styles.colCronDias]}>{dados.planejamentoInicial}</Text>
-          </View>
-        )}
-        {(Number(dados.logisticaTransporte) > 0) && (
-          <View style={styles.rowYellow}>
-            <Text style={[styles.cellText, styles.colCronAtiv]}>Logística e Transporte</Text>
-            <Text style={[styles.cellText, styles.colCronDias]}>{dados.logisticaTransporte}</Text>
-          </View>
-        )}
+        {/* 1. Planejamento Inicial */}
+        <View style={styles.rowYellow}>
+          <Text style={[styles.cellTextBold, styles.colCronAtiv]}>1. Planejamento Inicial</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>{planejamento || '-'}</Text>
+        </View>
 
-        {/* Etapas */}
-        {listaAtividades.map((item, idx) => (
-          <View key={idx} style={styles.rowYellow}>
-            <Text style={[styles.cellText, styles.colCronAtiv]}>{item.nome}</Text>
-            <Text style={[styles.cellText, styles.colCronDias]}>{item.dias}</Text>
-          </View>
-        ))}
+        {/* 2. Logística e Transporte */}
+        <View style={styles.rowYellow}>
+          <Text style={[styles.cellTextBold, styles.colCronAtiv]}>2. Logística e Transporte</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>{logistica || '-'}</Text>
+        </View>
+
+        {/* 3. Preparação da Área de Trabalho */}
+        <View style={styles.rowYellow}>
+          <Text style={[styles.cellTextBold, styles.colCronAtiv]}>3. Preparação da Área de Trabalho</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>{preparacao || '-'}</Text>
+        </View>
+
+        {/* 4. Execução da Obra (Header) */}
+        <View style={[styles.rowYellow, { backgroundColor: colors.tableRowYellow }]}>
+          <Text style={[styles.cellTextBold, styles.colCronAtiv]}>4. Execução da Obra</Text>
+          <Text style={[styles.cellTextBold, styles.colCronDias]}>{diasExecucao || '-'}</Text>
+        </View>
+
+        {/* Etapas e Subetapas da Execução */}
+        {dados.etapasPrincipais && dados.etapasPrincipais.map((etapa: Etapa, etapaIdx: number) => {
+          const diasEtapa = etapa.subetapas.reduce((acc: number, s: Subetapa) => acc + (Number(s.diasUteis) || 0), 0);
+
+          return (
+            <View key={etapaIdx}>
+              {/* Linha da Etapa Principal (indentada) */}
+              <View style={[styles.rowItem, { backgroundColor: colors.neutral100 }]}>
+                <Text style={[styles.cellTextBold, styles.colCronAtiv, { paddingLeft: 15 }]}>
+                  4.{etapaIdx + 1}. {etapa.nome}
+                </Text>
+                <Text style={[styles.cellTextBold, styles.colCronDias]}>{diasEtapa || '-'}</Text>
+              </View>
+
+              {/* Subetapas (mais indentadas) */}
+              {etapa.subetapas.map((sub: Subetapa, subIdx: number) => (
+                <View key={subIdx} style={styles.rowItem}>
+                  <Text style={[styles.cellText, styles.colCronAtiv, { paddingLeft: 30 }]}>
+                    • {sub.nome}
+                  </Text>
+                  <Text style={[styles.cellText, styles.colCronDias]}>{sub.diasUteis || '-'}</Text>
+                </View>
+              ))}
+            </View>
+          );
+        })}
       </View>
     </View>
   );
@@ -710,76 +749,87 @@ const Footer = () => (
 );
 
 // --- COMPONENTE PRINCIPAL ---
-export const PropostaTemplate = ({ data }: { data: PropostaData }) => (
-  <Document>
-    <Page size="A4" style={styles.page}>
+export const PropostaTemplate = ({ data }: { data: PropostaData }) => {
+  // Calcular fator multiplicador para converter custos em valores de venda
+  // Fórmula: fator = 1 + (%Imprevisto/100) + (%Lucro/100) + (%Imposto/100)
+  const percentualImprevisto = Number(data.dadosFinanceiros?.percentualImprevisto) || 0;
+  const percentualLucro = Number(data.dadosFinanceiros?.percentualLucro) || 0;
+  const percentualImposto = Number(data.dadosFinanceiros?.percentualImposto) || 0;
+  const fatorMultiplicador = 1 + (percentualImprevisto / 100) + (percentualLucro / 100) + (percentualImposto / 100);
 
-      {/* 1. Header Fixo */}
-      <View fixed>
-        <Header data={data} />
-      </View>
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
 
-
-      {/* 2. Dados do Cliente e Título */}
-      <ClientInfo data={data} />
-
-      {/* 3. Objetivo */}
-      <View wrap={false}>
-        <View style={styles.blueHeader}>
-          <Text style={styles.blueHeaderText}>1. OBJETIVO:</Text>
+        {/* 1. Header Fixo */}
+        <View fixed>
+          <Header data={data} />
         </View>
-        <View style={{ padding: 5, marginBottom: 10 }}>
-          <Text style={{ fontSize: 9, textAlign: 'justify', lineHeight: 1.4 }}>
-            {data.objetivo || 'Execução de serviços de engenharia conforme especificações abaixo.'}
-          </Text>
+
+        {/* 2. Dados do Cliente e Título */}
+        <ClientInfo data={data} />
+
+        {/* 3. Objetivo */}
+        <View wrap={false}>
+          <View style={styles.blueHeader}>
+            <Text style={styles.blueHeaderText}>1. OBJETIVO:</Text>
+          </View>
+          <View style={{ padding: 5, marginBottom: 10 }}>
+            <Text style={{ fontSize: 9, textAlign: 'justify', lineHeight: 1.4 }}>
+              {data.objetivo || 'Execução de serviços de engenharia conforme especificações abaixo.'}
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* 4. Especificações (Etapas) */}
-      <SpecsTable etapas={data.dadosCronograma.etapasPrincipais} />
+        {/* 4. Especificações (Etapas) - Valores já com margens aplicadas */}
+        <SpecsTable
+          etapas={data.dadosCronograma.etapasPrincipais}
+          fatorMultiplicador={fatorMultiplicador}
+        />
 
-      {/* 5. Cronograma */}
-      <Cronograma dados={data.dadosCronograma} />
+        {/* 5. Cronograma */}
+        <Cronograma dados={data.dadosCronograma} />
 
-      {/* 6. Garantias (Item 4) */}
-      <View wrap={false} style={{ marginTop: 15 }}>
-        <View style={styles.blueHeader}>
-          <Text style={styles.blueHeaderText}>4. GARANTIA:</Text>
-        </View>
-        <View style={styles.garantiaBox}>
-          {data.garantias && data.garantias.length > 0 ? (
-            data.garantias.map((g, i) => (
-              <View key={i} style={styles.bulletPoint}>
-                <Text style={styles.bulletText}>• </Text>
-                <Text style={styles.bulletText}>{g}</Text>
-              </View>
-            ))
-          ) : (
+        {/* 6. Garantias (Item 4) */}
+        <View wrap={false} style={{ marginTop: 15 }}>
+          <View style={styles.blueHeader}>
+            <Text style={styles.blueHeaderText}>4. GARANTIA:</Text>
+          </View>
+          <View style={styles.garantiaBox}>
+            <View style={styles.bulletPoint}>
+              <Text style={styles.bulletText}>• Seguro de obra incluso (cobertura de danos materiais causados ao proprietário da obra e erro de projeto);</Text>
+            </View>
+            <View style={styles.bulletPoint}>
+              <Text style={styles.bulletText}>• Serviço garantido por nota fiscal e emissão de ART (Anotação de Responsabilidade Técnica) - CREA-MA;</Text>
+            </View>
+            <View style={styles.bulletPoint}>
+              <Text style={styles.bulletText}>• Garantia conforme NBR 15575-1 - Edificações Habitacionais - Desempenho;</Text>
+            </View>
             <View style={styles.bulletPoint}>
               <Text style={styles.bulletText}>• 05 (cinco) anos para solidez e segurança da obra;</Text>
             </View>
-          )}
+          </View>
         </View>
-      </View>
 
-      {/* 7. Investimento */}
-      <Investimento financeiro={data.dadosFinanceiros} data={data} />
+        {/* 7. Investimento */}
+        <Investimento financeiro={data.dadosFinanceiros} data={data} />
 
-      {/* Validade */}
-      <Text style={styles.validityText}>
-        Validade desta proposta: {data.validadeProposta || 15} dias.
-      </Text>
+        {/* Validade */}
+        <Text style={styles.validityText}>
+          Validade desta proposta: {data.validadeProposta || 15} dias.
+        </Text>
 
-      {/* Texto Legal */}
-      <Text style={styles.legalText}>
-        Este documento é de propriedade intelectual da Minerva Engenharia. Sua reprodução parcial ou total é proibida.
-      </Text>
+        {/* Texto Legal */}
+        <Text style={styles.legalText}>
+          Este documento é de propriedade intelectual da Minerva Engenharia. Sua reprodução parcial ou total é proibida.
+        </Text>
 
-      {/* Footer Fixo */}
-      <Footer />
+        {/* Footer Fixo */}
+        <Footer />
 
-    </Page>
-  </Document>
-);
+      </Page>
+    </Document>
+  );
+};
 
 export default PropostaTemplate;

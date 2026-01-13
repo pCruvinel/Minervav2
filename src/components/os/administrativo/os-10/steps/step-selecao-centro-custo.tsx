@@ -1,9 +1,22 @@
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+/**
+ * StepSelecaoCentroCusto - Etapa de Seleção de Centro de Custo (OS-10)
+ *
+ * Permite selecionar o centro de custo onde o colaborador será alocado.
+ * Usa o componente reutilizável CentroCustoSelector.
+ *
+ * @example
+ * ```tsx
+ * <StepSelecaoCentroCusto
+ *   data={stepData}
+ *   onDataChange={setStepData}
+ *   readOnly={false}
+ * />
+ * ```
+ */
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Building2, DollarSign, Loader2 } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCentrosCusto } from '@/lib/hooks/use-os-workflows';
+import { AlertCircle, Building2 } from 'lucide-react';
+import { CentroCustoSelector } from '@/components/shared/centro-custo-selector';
 
 interface OS10StepData {
     centroCusto: string;
@@ -18,31 +31,19 @@ interface StepSelecaoCentroCustoProps {
 }
 
 export function StepSelecaoCentroCusto({ data, onDataChange, readOnly }: StepSelecaoCentroCustoProps) {
-    // Buscar centros de custo reais do Supabase
-    const { centrosCusto, loading, error } = useCentrosCusto();
-
-    const handleCentroCustoChange = (ccId: string) => {
+    const handleCentroCustoChange = (ccId: string, ccData: { nome: string; cliente?: { nome_razao_social: string } } | null) => {
         if (readOnly) return;
-        const cc = centrosCusto.find(c => c.id === ccId);
         onDataChange({
             ...data,
             centroCusto: ccId,
-            centroCustoNome: cc?.nome || '',
-            obraVinculada: cc?.cliente?.nome_razao_social || '',
+            centroCustoNome: ccData?.nome || '',
+            obraVinculada: ccData?.cliente?.nome_razao_social || '',
         });
-    };
-
-    const selectedCC = centrosCusto.find(c => c.id === data.centroCusto);
-
-    // Determinar tipo do centro de custo baseado no tipo_os_id ou nome
-    const getTipoCentroCusto = (cc: typeof centrosCusto[0]) => {
-        if (cc.nome.toLowerCase().includes('obra')) return 'Obra';
-        if (cc.nome.toLowerCase().includes('assessoria')) return 'Assessoria';
-        return 'Administrativo';
     };
 
     return (
         <div className="space-y-6">
+            {/* Header */}
             <div className="flex items-center gap-3">
                 <div className="p-2 bg-primary/10 rounded-lg">
                     <Building2 className="w-6 h-6 text-primary" />
@@ -61,119 +62,21 @@ export function StepSelecaoCentroCusto({ data, onDataChange, readOnly }: StepSel
                     Centro de Custo
                 </h3>
 
-                <div className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="centroCusto">
-                            Centro de Custo Ativo <span className="text-destructive">*</span>
-                        </Label>
+                <CentroCustoSelector
+                    value={data.centroCusto}
+                    onChange={handleCentroCustoChange}
+                    disabled={readOnly}
+                    required
+                    label="Centro de Custo Ativo"
+                    showDetails
+                />
 
-                        {loading ? (
-                            <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                                <span className="text-sm text-muted-foreground">Carregando centros de custo...</span>
-                            </div>
-                        ) : error ? (
-                            <Alert variant="destructive">
-                                <AlertCircle className="h-4 w-4" />
-                                <AlertDescription>
-                                    Erro ao carregar centros de custo. Por favor, tente novamente.
-                                </AlertDescription>
-                            </Alert>
-                        ) : (
-                            <Select
-                                value={data.centroCusto}
-                                onValueChange={handleCentroCustoChange}
-                                disabled={readOnly}
-                            >
-                                <SelectTrigger id="centroCusto">
-                                    <SelectValue placeholder="Selecione um centro de custo ativo" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {centrosCusto.length === 0 ? (
-                                        <div className="p-2 text-sm text-muted-foreground text-center">
-                                            Nenhum centro de custo ativo encontrado
-                                        </div>
-                                    ) : (
-                                        centrosCusto.map((cc) => {
-                                            const tipo = getTipoCentroCusto(cc);
-                                            return (
-                                                <SelectItem key={cc.id} value={cc.id}>
-                                                    <div className="flex items-center gap-2">
-                                                        <span className={`px-2 py-0.5 rounded text-xs ${tipo === 'Obra' ? 'bg-primary/10 text-primary' :
-                                                                tipo === 'Assessoria' ? 'bg-success/10 text-success' :
-                                                                    'bg-muted text-muted-foreground'
-                                                            }`}>
-                                                            {tipo}
-                                                        </span>
-                                                        <span>{cc.nome}</span>
-                                                        {cc.cliente?.nome_razao_social && (
-                                                            <span className="text-xs text-muted-foreground">
-                                                                ({cc.cliente.nome_razao_social})
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </SelectItem>
-                                            );
-                                        })
-                                    )}
-                                </SelectContent>
-                            </Select>
-                        )}
-                        <p className="text-xs text-muted-foreground">
-                            O custo do colaborador será automaticamente rateado neste centro de custo
-                        </p>
-                    </div>
-                </div>
+                <p className="text-xs text-muted-foreground">
+                    O custo do colaborador será automaticamente rateado neste centro de custo
+                </p>
             </div>
 
-            {/* Info do Centro de Custo Selecionado */}
-            {selectedCC && (
-                <Card className="border-primary/20 bg-primary/5">
-                    <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <DollarSign className="w-4 h-4" />
-                            Centro de Custo Selecionado
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <span className="text-muted-foreground">Nome:</span>
-                                <p className="font-medium">{selectedCC.nome}</p>
-                            </div>
-                            <div>
-                                <span className="text-muted-foreground">Tipo:</span>
-                                <p className="font-medium">{getTipoCentroCusto(selectedCC)}</p>
-                            </div>
-                            {selectedCC.cliente?.nome_razao_social && (
-                                <div>
-                                    <span className="text-muted-foreground">Cliente:</span>
-                                    <p className="font-medium">{selectedCC.cliente.nome_razao_social}</p>
-                                </div>
-                            )}
-                            {selectedCC.valor_global > 0 && (
-                                <div>
-                                    <span className="text-muted-foreground">Valor Global:</span>
-                                    <p className="font-medium">
-                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(selectedCC.valor_global)}
-                                    </p>
-                                </div>
-                            )}
-                            {selectedCC.descricao && (
-                                <div className="col-span-2">
-                                    <span className="text-muted-foreground">Descrição:</span>
-                                    <p className="font-medium">{selectedCC.descricao}</p>
-                                </div>
-                            )}
-                            <div>
-                                <span className="text-muted-foreground">ID:</span>
-                                <p className="font-medium font-mono text-xs">{selectedCC.id}</p>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
+            {/* Alerta informativo */}
             <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>

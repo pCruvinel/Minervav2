@@ -266,7 +266,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
     totalSteps: steps.length
   });
 
-  // Callback de conclusão do workflow
+  // Callback de conclusão do workflow - envia para aprovação
   const handleCompleteWorkflow = async (): Promise<boolean> => {
     if (!finalOsId) {
       toast.error('Erro: OS não identificada');
@@ -278,31 +278,32 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
       const saved = await saveStep(currentStep, false);
       if (!saved) return false;
 
-      // 2. Update OS status (IMPORTANTE: DB usa 'concluido' sem acento!)
+      // 2. Update OS status para "Aguardando Aprovação"
+      // NÃO marcar como 'concluido' - a OS vai para aprovação do Financeiro
       const { error } = await supabase
         .from('ordens_servico')
         .update({
-          status_geral: 'concluido', // SEM acento!
-          data_conclusao: new Date().toISOString()
+          status_geral: 'em_andamento',
+          status_situacao: 'aguardando_aprovacao'
         })
         .eq('id', finalOsId);
 
       if (error) throw error;
 
-      logger.log('[OS09] ✅ Requisição concluída:', finalOsId);
+      logger.log('[OS09] ✅ Requisição enviada para aprovação:', finalOsId);
 
-      toast.success('Requisição de Compras concluída!', {
-        icon: '🎉',
-        description: 'Agora disponível para aprovação do Financeiro.'
+      toast.success('Requisição enviada para aprovação!', {
+        icon: '📤',
+        description: 'O Financeiro irá analisar sua requisição.'
       });
 
-      // 3. Navigate to OS list after 2s
-      window.setTimeout(() => navigate({ to: '/os' }), 2000);
+      // 3. Navigate to Compras panel after 2s
+      window.setTimeout(() => navigate({ to: '/financeiro/compras' }), 2000);
       return true;
 
     } catch (error) {
-      logger.error('[OS09] ❌ Erro ao concluir:', error);
-      toast.error('Erro ao concluir requisição');
+      logger.error('[OS09] ❌ Erro ao enviar para aprovação:', error);
+      toast.error('Erro ao enviar requisição');
       return false;
     }
   };
@@ -344,8 +345,9 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
   const setEtapa1Data = (data: Record<string, unknown>) => setStepData(1, data);
   const setEtapa3Data = (data: Record<string, unknown>) => setStepData(3, data);
 
-  // 5. Buscar o ID da etapa 1 das etapas carregadas
+  // 5. Buscar o ID das etapas
   const etapa1Id = etapas?.find(e => e.ordem === 1)?.id;
+  const etapa3Id = etapas?.find(e => e.ordem === 3)?.id;
 
   // 6. Buscar itens da requisição para etapa de confirmação
   const { items: requisitionItems, refetch: refetchItems } = useRequisitionItems(etapa1Id);
@@ -426,8 +428,10 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
       return; // O navigate já foi feito em createOSWithCC
     }
 
-    // Verificação de Aprovação (Etapa 2: Upload de Orçamentos requer aprovação)
-    if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
+    // Verificação de Aprovação - Somente para etapas intermediárias, NÃO para a última etapa
+    // Na última etapa (3), o botão é 'Solicitar Aprovação' e o handleCompleteWorkflow cuida
+    const isLastStep = currentStep === steps.length;
+    if (!isLastStep && aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
       const etapaNome = steps.find(s => s.id === currentStep)?.title || `Etapa ${currentStep}`;
 
       if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
@@ -563,6 +567,8 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
                 data={etapa3Data}
                 onDataChange={setEtapa3Data}
                 readOnly={isHistoricalNavigation}
+                osId={finalOsId}
+                etapaId={etapa3Id}
               />
             )}
           </div>
@@ -580,6 +586,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
           readOnlyMode={isHistoricalNavigation}
           onReturnToActive={handleReturnToActive}
           isLoading={isLoadingData || isCreatingOS}
+          finalButtonText="Solicitar Aprovação"
         />
       )}
 
