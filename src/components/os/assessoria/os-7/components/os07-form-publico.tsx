@@ -23,6 +23,7 @@ import { toast } from '@/lib/utils/safe-toast';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { uploadFile } from '@/lib/utils/supabase-storage';
 import { useAuth } from '@/lib/contexts/auth-context';
+import { supabase } from '@/lib/supabase';
 
 interface OS07FormPublicoProps {
   osId: string;
@@ -44,9 +45,83 @@ interface Executor {
   cpf: string;
 }
 
+// Interface para dados do cliente (Etapa 1)
+interface DadosCliente {
+  nome: string;
+  telefone: string;
+  email: string;
+  edificacao: string;
+  endereco: string;
+}
+
 export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPublicoProps) {
   // Auth context (para obter colaboradorId caso logado, senão usa ID genérico para formulário público)
   const { currentUser } = useAuth();
+
+  // Estado para dados do cliente (readonly)
+  const [dadosCliente, setDadosCliente] = React.useState<DadosCliente | null>(null);
+  const [isLoadingCliente, setIsLoadingCliente] = React.useState(true);
+  const [osNotFound, setOsNotFound] = React.useState(false);
+
+  // Buscar dados do cliente da OS ao carregar
+  React.useEffect(() => {
+    async function fetchOSData() {
+      if (!osId) {
+        setIsLoadingCliente(false);
+        setOsNotFound(true);
+        return;
+      }
+
+      try {
+        // Buscar OS com dados do cliente
+        const { data: osData, error: osError } = await supabase
+          .from('ordens_servico')
+          .select(`
+            id,
+            codigo_os,
+            clientes:cliente_id (
+              id,
+              nome,
+              telefone,
+              email,
+              edificacoes:edificacao_id (
+                nome,
+                endereco
+              )
+            )
+          `)
+          .eq('id', osId)
+          .single();
+
+        if (osError || !osData) {
+          logger.error('Erro ao buscar OS:', osError);
+          setOsNotFound(true);
+          setIsLoadingCliente(false);
+          return;
+        }
+
+        // Extrair dados do cliente
+        const cliente = osData.clientes as { nome?: string; telefone?: string; email?: string; edificacoes?: { nome?: string; endereco?: string } } | null;
+
+        if (cliente) {
+          setDadosCliente({
+            nome: cliente.nome || '',
+            telefone: cliente.telefone || '',
+            email: cliente.email || '',
+            edificacao: cliente.edificacoes?.nome || '',
+            endereco: cliente.edificacoes?.endereco || '',
+          });
+        }
+
+        setIsLoadingCliente(false);
+      } catch (error) {
+        logger.error('Erro ao buscar dados do cliente:', error);
+        setIsLoadingCliente(false);
+      }
+    }
+
+    fetchOSData();
+  }, [osId]);
 
   // Dados Cadastrais
   const [nomeSolicitante, setNomeSolicitante] = useState('');
@@ -365,7 +440,7 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
         },
       };
 
-      logger.log('📋 Formulário enviado:', dados);
+      logger.log('📋 Formulário enviado:', etapaData);
 
       setSubmitSuccess(true);
       toast.success('Termo enviado com sucesso! Aguarde a análise da engenharia.');
@@ -408,6 +483,38 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
     );
   }
 
+  // Loading state
+  if (isLoadingCliente) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary/30 border-t-primary rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando dados...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // OS not found
+  if (osNotFound) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-6">
+        <Card className="max-w-md w-full">
+          <CardContent className="p-12 text-center">
+            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-destructive" />
+            </div>
+            <h2 className="text-2xl font-semibold mb-2">OS Não Encontrada</h2>
+            <p className="text-muted-foreground">
+              O link informado não corresponde a uma Ordem de Serviço válida.
+              Verifique se o link está correto ou entre em contato com o solicitante.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-6 py-8">
@@ -438,6 +545,45 @@ export function OS07FormPublico({ osId, condominioPreenchido = '' }: OS07FormPub
             </div>
           </div>
         </div>
+
+        {/* Dados do Cliente (Readonly) */}
+        {dadosCliente && (
+          <Card className="mb-6 border-info/30 bg-info/5">
+            <CardHeader className="pb-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-info" />
+                <CardTitle className="text-info">Dados do Cliente</CardTitle>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Informações cadastradas na Etapa 1 (somente leitura)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Nome</Label>
+                  <p className="font-medium">{dadosCliente.nome || 'Não informado'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Telefone</Label>
+                  <p className="font-medium">{dadosCliente.telefone || 'Não informado'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Email</Label>
+                  <p className="font-medium">{dadosCliente.email || 'Não informado'}</p>
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Edificação</Label>
+                  <p className="font-medium">{dadosCliente.edificacao || 'Não informado'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <Label className="text-xs text-muted-foreground">Endereço</Label>
+                  <p className="font-medium">{dadosCliente.endereco || 'Não informado'}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Dados Cadastrais */}

@@ -25,7 +25,8 @@ import {
     Layers,
     MapPin,
     AlertTriangle,
-    Mail
+    Mail,
+    Users
 } from 'lucide-react';
 import { OSHierarchyCard } from '../components/os-hierarchy-card';
 import { OSDocumentsTab } from '@/components/os/tabs/os-documents-tab';
@@ -45,6 +46,7 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -53,6 +55,8 @@ import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
 import { useOSHierarchy } from '@/lib/hooks/use-os-hierarchy';
 import { SendMessageModal } from '@/components/shared/send-message-modal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { OSHeaderDelegacao } from '../components/os-header-delegacao';
 
 // Types for the redesigned OS details
 interface OSDetails {
@@ -181,6 +185,9 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
 
     // Send Message Modal
     const [showSendMessageModal, setShowSendMessageModal] = useState(false);
+
+    // Delegação Modal
+    const [showDelegacaoModal, setShowDelegacaoModal] = useState(false);
 
     // Status Situação (de vw_os_status_completo)
     const [statusSituacao, setStatusSituacao] = useState<string>('acao_pendente');
@@ -757,6 +764,13 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end">
+                                        <DropdownMenuItem
+                                            onClick={() => setShowDelegacaoModal(true)}
+                                        >
+                                            <Users className="w-4 h-4 mr-2" />
+                                            Delegar Etapas
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
                                         <DropdownMenuItem
                                             onClick={() => setShowCancelDialog(true)}
                                             className="text-destructive focus:text-destructive"
@@ -1369,6 +1383,28 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     os_tipo: osDetails.tipo_os_nome,
                 }}
             />
+
+            {/* Delegação Modal */}
+            <Dialog open={showDelegacaoModal} onOpenChange={setShowDelegacaoModal}>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <Users className="h-5 w-5 text-primary" />
+                            Delegar Etapas
+                        </DialogTitle>
+                        <DialogDescription>
+                            Selecione um responsável e as etapas que deseja delegar.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <OSHeaderDelegacao
+                        osId={osId}
+                        onDelegationChange={() => {
+                            setShowDelegacaoModal(false);
+                            loadOSData();
+                        }}
+                    />
+                </DialogContent>
+            </Dialog>
         </div >
     );
 };

@@ -25,7 +25,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileText, Download, Eye } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
 import { supabase } from '@/lib/supabase-client';
 
@@ -73,21 +73,21 @@ import type { TransferenciaInfo } from '@/types/os-setor-config';
 // ============================================================
 
 /**
- * Definição das 12 etapas do workflow de Assessoria Lead
+ * Definição das 12 etapas do workflow de Assessoria Lead com responsabilidade v3.1
  */
 const STEPS: WorkflowStepDefinition[] = [
-    { id: 1, title: 'Identifique o Lead', short: 'Lead', responsible: 'ADM' },
-    { id: 2, title: 'Seleção do Tipo de OS', short: 'Tipo OS', responsible: 'ADM' },
-    { id: 3, title: 'Follow-up 1 (Entrevista Inicial)', short: 'Follow-up 1', responsible: 'ADM' },
-    { id: 4, title: 'Formulário Memorial (Escopo e Prazos)', short: 'Escopo', responsible: 'Assessoria' },
-    { id: 5, title: 'Precificação (Formulário Financeiro)', short: 'Precificação', responsible: 'Assessoria' },
-    { id: 6, title: 'Gerar Proposta Comercial', short: 'Proposta', responsible: 'ADM' },
-    { id: 7, title: 'Agendar Visita (Apresentação)', short: 'Agendar', responsible: 'ADM' },
-    { id: 8, title: 'Realizar Visita (Apresentação)', short: 'Apresentação', responsible: 'ADM' },
-    { id: 9, title: 'Follow-up 3 (Pós-Apresentação)', short: 'Follow-up 3', responsible: 'ADM' },
-    { id: 10, title: 'Gerar Contrato (Upload)', short: 'Contrato', responsible: 'ADM' },
-    { id: 11, title: 'Contrato Assinado', short: 'Assinatura', responsible: 'ADM' },
-    { id: 12, title: 'Ativar Contrato', short: 'Ativação', responsible: 'Sistema' },
+    { id: 1, title: 'Identifique o Lead', short: 'Lead', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 2, title: 'Seleção do Tipo de OS', short: 'Tipo OS', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 3, title: 'Follow-up 1 (Entrevista Inicial)', short: 'Follow-up 1', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 4, title: 'Formulário Memorial (Escopo e Prazos)', short: 'Escopo', setor: 'assessoria', setorNome: 'Assessoria', responsible: 'Assessoria' },
+    { id: 5, title: 'Precificação (Formulário Financeiro)', short: 'Precificação', setor: 'assessoria', setorNome: 'Assessoria', responsible: 'Assessoria' },
+    { id: 6, title: 'Gerar Proposta Comercial', short: 'Proposta', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 7, title: 'Agendar Visita (Apresentação)', short: 'Agendar', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 8, title: 'Realizar Visita (Apresentação)', short: 'Apresentação', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 9, title: 'Follow-up 3 (Pós-Apresentação)', short: 'Follow-up 3', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 10, title: 'Gerar Contrato (Upload)', short: 'Contrato', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 11, title: 'Contrato Assinado', short: 'Assinatura', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+    { id: 12, title: 'Ativar Contrato', short: 'Ativação', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'Sistema' },
 ];
 
 /**
@@ -148,6 +148,101 @@ const OS_56_SUMMARY_CONFIG: Record<number, (data: any) => SummaryField[]> = {
     ],
 };
 
+/**
+ * Componente de resumo customizado para Etapa 6 (Gerar Proposta)
+ * Exibe: Data/Hora, Responsável, botões de Visualizar e Baixar PDF
+ */
+function PropostaSummary({ data, pdfUrl, responsavel }: {
+    data: Record<string, unknown>;
+    pdfUrl?: string;
+    responsavel?: string;
+}) {
+    // Formatar data/hora no formato dd/mm/yy HH:mm
+    const formatDateTime = (dateStr?: string | unknown) => {
+        if (!dateStr || typeof dateStr !== 'string') return '-';
+        try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return '-';
+
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = String(date.getFullYear()).slice(-2);
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+
+            return `${day}/${month}/${year} ${hours}:${minutes}`;
+        } catch {
+            return '-';
+        }
+    };
+
+    const handleVisualizarPDF = () => {
+        if (pdfUrl) {
+            window.open(pdfUrl, '_blank');
+        }
+    };
+
+    const handleBaixarPDF = () => {
+        if (pdfUrl) {
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.download = 'proposta.pdf';
+            link.click();
+        }
+    };
+
+    const propostaGerada = !!data?.propostaGerada;
+    const dataGeracao = formatDateTime(data?.dataGeracao as string);
+
+    return (
+        <div className="space-y-4">
+            {/* Info Row */}
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <p className="text-sm text-muted-foreground">Data e Hora</p>
+                    <p className="text-sm font-medium">{dataGeracao}</p>
+                </div>
+                <div>
+                    <p className="text-sm text-muted-foreground">Responsável</p>
+                    <p className="text-sm font-medium">{responsavel || '-'}</p>
+                </div>
+            </div>
+
+            {/* PDF Actions */}
+            {propostaGerada && pdfUrl && (
+                <div className="flex gap-3 pt-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleVisualizarPDF}
+                        className="gap-2"
+                    >
+                        <Eye className="h-4 w-4" />
+                        Visualizar PDF
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBaixarPDF}
+                        className="gap-2"
+                    >
+                        <Download className="h-4 w-4" />
+                        Baixar PDF
+                    </Button>
+                </div>
+            )}
+
+            {/* Estado se não gerado */}
+            {!propostaGerada && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                    <FileText className="h-4 w-4" />
+                    <span className="text-sm">Proposta ainda não gerada</span>
+                </div>
+            )}
+        </div>
+    );
+}
+
 // ============================================================
 // INTERFACE
 // ============================================================
@@ -188,7 +283,7 @@ export function OS56WorkflowPage({
     const { os } = useOS(finalOsId || undefined);
     const createOSMutationHook = useCreateOSWorkflow();
     const { executarTransferencia } = useTransferenciaSetor();
-    useAuth();
+    const { currentUser } = useAuth();
 
     // Estado de transferência
     const [, setIsTransferenciaModalOpen] = useState(false);
@@ -203,6 +298,7 @@ export function OS56WorkflowPage({
         saveStep,
         completedSteps: completedStepsFromHook,
         etapas,
+        refreshEtapas, // ✅ FIX: Adicionado para sincronizar estado após saves
     } = useWorkflowState({
         osId: finalOsId || undefined,
         totalSteps: STEPS.length,
@@ -341,7 +437,7 @@ export function OS56WorkflowPage({
                         etapas: STEPS.map((step, index) => ({
                             nome_etapa: step.title,
                             ordem: index + 1,
-                            dados_etapa: {},
+                            dados_etapa: index === 0 ? { leadId, ...etapa1Data } : {},
                         })),
                     });
 
@@ -355,9 +451,12 @@ export function OS56WorkflowPage({
                     if (etapa1?.id) {
                         await supabase.from('os_etapas').update({
                             status: 'concluida',
-                            dados_etapa: { leadId, ...formDataByStep[1] },
+                            dados_etapa: { leadId, ...etapa1Data }, // 🐛 FIX: Usar etapa1Data (local) em vez de formDataByStep
                             data_conclusao: new Date().toISOString(),
                         }).eq('id', etapa1.id);
+
+                        // Sync local state to workflow state
+                        setStepData(1, { leadId, ...etapa1Data });
                     }
 
                     logger.log('✅ OS criada:', newOsId);
@@ -366,11 +465,20 @@ export function OS56WorkflowPage({
                     toast.error('Não foi possível criar a OS');
                     return;
                 }
+            } else {
+                // Se OS já existe e estamos na etapa 1, salvar dados explicitamente
+                logger.log('💾 Salvando edição da Etapa 1...');
+                await saveStep(1, false, { leadId, ...etapa1Data });
             }
         } else {
-            // Outras etapas: salvar dados
+            // Outras etapas: salvar dados com dados explícitos para evitar race conditions
             try {
-                await saveStep(currentStep, false);
+                const currentData = formDataByStep[currentStep] || {};
+                logger.log(`💾 Salvando Etapa ${currentStep} com ${Object.keys(currentData).length} campos`);
+                await saveStep(currentStep, false, currentData);
+
+                // ✅ FIX: Sincronizar estado após salvar
+                await refreshEtapas();
             } catch (error) {
                 logger.error('❌ Erro ao salvar etapa:', error);
                 toast.error('Erro ao salvar dados');
@@ -504,14 +612,40 @@ export function OS56WorkflowPage({
                         onLeadChange={(id: string, data?: LeadCompleto) => {
                             setSelectedLeadId(id);
                             if (data) {
+                                // ✅ FIX: Incluir TODOS os dados do lead (identificacao + edificacao + endereco)
                                 setStepData(1, {
                                     ...etapa1Data,
                                     leadId: id,
-                                    nome: data.identificacao.nome,
-                                    cpfCnpj: data.identificacao.cpfCnpj,
-                                    email: data.identificacao.email,
-                                    telefone: data.identificacao.telefone,
+                                    // Dados de Identificação
+                                    nome: data.identificacao?.nome,
+                                    cpfCnpj: data.identificacao?.cpfCnpj,
+                                    email: data.identificacao?.email,
+                                    telefone: data.identificacao?.telefone,
+                                    tipo: data.identificacao?.tipo,
+                                    nomeResponsavel: data.identificacao?.nomeResponsavel,
+                                    cargoResponsavel: data.identificacao?.cargoResponsavel,
+                                    // Dados de Edificação
+                                    tipoEdificacao: data.edificacao?.tipoEdificacao,
+                                    qtdBlocos: data.edificacao?.qtdBlocos,
+                                    qtdUnidades: data.edificacao?.qtdUnidades,
+                                    qtdPavimentos: data.edificacao?.qtdPavimentos,
+                                    tipoTelhado: data.edificacao?.tipoTelhado,
+                                    possuiElevador: data.edificacao?.possuiElevador,
+                                    possuiPiscina: data.edificacao?.possuiPiscina,
+                                    // Dados de Endereço
+                                    cep: data.endereco?.cep,
+                                    rua: data.endereco?.rua,
+                                    numero: data.endereco?.numero,
+                                    complemento: data.endereco?.complemento,
+                                    bairro: data.endereco?.bairro,
+                                    cidade: data.endereco?.cidade,
+                                    estado: data.endereco?.estado,
+                                    // Manter estrutura aninhada para compatibilidade com LeadSummaryWithTabs
+                                    identificacao: data.identificacao,
+                                    edificacao: data.edificacao,
+                                    endereco: data.endereco,
                                 });
+                                logger.log(`✅ Lead ${id} carregado com dados completos`);
                             }
                         }}
                         readOnly={isReadOnly}
@@ -657,6 +791,17 @@ export function OS56WorkflowPage({
         // 🆕 Etapa 1 (Identifique o Lead): Exibição especial com tabs, SEM adendos
         if (step === 1) {
             return <LeadSummaryWithTabs data={data} />;
+        }
+
+        // 🆕 Etapa 6 (Gerar Proposta): Exibição com botões de PDF
+        if (step === 6) {
+            return (
+                <PropostaSummary
+                    data={data}
+                    pdfUrl={data?.pdfUrl as string}
+                    responsavel={currentUser?.nome_completo || currentUser?.email || '-'}
+                />
+            );
         }
 
         const configFn = OS_56_SUMMARY_CONFIG[step];

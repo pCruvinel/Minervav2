@@ -1,36 +1,52 @@
 /**
- * WorkloadKanban - Aba 2: Controladoria
+ * WorkloadKanban - Visualização por Coordenador
  * 
  * Kanban de Carga de Trabalho por Coordenador:
- * - Colunas representam coordenadores
- * - Cards são as OSs sob responsabilidade de cada um
- * - Destaque visual para OSs atrasadas
- * - Filtro de coordenadores selecionáveis
+ * - Cards colapsáveis representam coordenadores
+ * - Tabela interna mostra as OSs sob responsabilidade de cada um
+ * - Design consistente com SetorWorkloadTable (Monday.com style)
+ * 
+ * @see docs/technical/DESIGN_SYSTEM.md
  */
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useCoordinatorsWorkload, WorkloadOS, CoordinatorWorkload } from '@/lib/hooks/use-coordinators-workload';
 import { STATUS_SITUACAO_CONFIG, StatusSituacao } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import {
+    Collapsible,
+    CollapsibleContent,
+    CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import { Link } from '@tanstack/react-router';
 import {
     AlertTriangle,
-    Clock,
     User,
     Building2,
-    ArrowRight,
     Filter,
     Check,
-    X
+    X,
+    ChevronDown,
+    ChevronRight,
+    FileText,
+    Crown,
+    RefreshCw,
+    Paperclip
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +55,7 @@ import { cn } from '@/lib/utils';
 // ============================================================
 
 export function WorkloadKanban() {
-    const { workloads, loading, error } = useCoordinatorsWorkload();
+    const { workloads, loading, error, refetch } = useCoordinatorsWorkload();
 
     // Estado: IDs dos coordenadores selecionados (todos por padrão)
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -55,6 +71,12 @@ export function WorkloadKanban() {
     const filteredWorkloads = useMemo(() => {
         return workloads.filter(w => selectedIds.includes(w.coordenador_id));
     }, [workloads, selectedIds]);
+
+    // Totais calculados antes de conditional returns
+    const totais = useMemo(() => ({
+        os: workloads.reduce((sum, w) => sum + w.total, 0),
+        coordenadores: workloads.length
+    }), [workloads]);
 
     // Toggle de seleção
     const toggleCoordinator = (id: string) => {
@@ -82,6 +104,10 @@ export function WorkloadKanban() {
                         <AlertTriangle className="h-5 w-5" />
                         <span>Erro ao carregar carga de trabalho: {error.message}</span>
                     </div>
+                    <Button variant="outline" onClick={refetch} className="mt-4">
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Tentar novamente
+                    </Button>
                 </CardContent>
             </Card>
         );
@@ -100,23 +126,35 @@ export function WorkloadKanban() {
 
     return (
         <div className="space-y-4">
-            {/* Header com Filtro */}
+            {/* Header */}
             <div className="flex items-center justify-between flex-wrap gap-3">
-                <h3 className="text-lg font-semibold">Carga de Trabalho por Coordenador</h3>
+                <div>
+                    <h3 className="text-lg font-semibold">Carga de Trabalho por Coordenador</h3>
+                    <p className="text-sm text-muted-foreground">
+                        Visualização de OSs agrupadas por coordenador responsável
+                    </p>
+                </div>
                 <div className="flex items-center gap-3">
                     <Badge variant="outline" className="text-muted-foreground">
-                        {workloads.reduce((sum, w) => sum + w.total, 0)} OS ativas no total
+                        {totais.os} OS ativas
+                    </Badge>
+                    <Badge variant="outline" className="text-muted-foreground">
+                        {totais.coordenadores} coordenadores
                     </Badge>
                     <CoordinatorFilter
                         coordinators={workloads}
                         selectedIds={selectedIds}
                         onToggle={toggleCoordinator}
                     />
+                    <Button variant="outline" size="sm" onClick={refetch}>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Atualizar
+                    </Button>
                 </div>
             </div>
 
             {/* Badges Removíveis */}
-            {selectedIds.length > 0 && (
+            {selectedIds.length > 0 && selectedIds.length < workloads.length && (
                 <div className="flex flex-wrap gap-2">
                     {selectedIds.map(id => {
                         const coord = workloads.find(w => w.coordenador_id === id);
@@ -160,16 +198,10 @@ export function WorkloadKanban() {
                     </CardContent>
                 </Card>
             ) : (
-                // Kanban Board Dinâmico
-                <div className="flex gap-6 overflow-x-auto pb-4">
-                    {filteredWorkloads.map((workload, index) => (
-                        <div
-                            key={workload.coordenador_id}
-                            className="flex-shrink-0 w-[350px] animate-in slide-in-from-left duration-300"
-                            style={{ animationDelay: `${index * 50}ms` }}
-                        >
-                            <WorkloadColumn workload={workload} />
-                        </div>
+                // Cards de Coordenadores
+                <div className="space-y-4">
+                    {filteredWorkloads.map(workload => (
+                        <CoordinatorCard key={workload.coordenador_id} workload={workload} />
                     ))}
                 </div>
             )}
@@ -199,8 +231,7 @@ function CoordinatorFilter({ coordinators, selectedIds, onToggle }: CoordinatorF
                     className="h-9 gap-2 font-normal"
                 >
                     <Filter className="h-4 w-4" />
-                    <span className="hidden sm:inline">Filtrar Coordenadores</span>
-                    <span className="sm:hidden">Filtrar</span>
+                    <span className="hidden sm:inline">Filtrar</span>
                     <Badge variant="secondary" className="ml-1 h-5 min-w-5 rounded-full px-1.5 text-xs">
                         {selectedIds.length}
                     </Badge>
@@ -251,170 +282,219 @@ function CoordinatorFilter({ coordinators, selectedIds, onToggle }: CoordinatorF
 }
 
 // ============================================================
-// COLUNA DO KANBAN
+// CARD DE COORDENADOR (Similar ao SetorGroup)
 // ============================================================
 
-interface WorkloadColumnProps {
+interface CoordinatorCardProps {
     workload: CoordinatorWorkload;
 }
 
-function WorkloadColumn({ workload }: WorkloadColumnProps) {
-    const getStatusColor = () => {
-        if (workload.atrasadas > 0) return 'border-destructive/20 bg-destructive/5';
-        if (workload.total > 10) return 'border-warning/20 bg-warning/5';
-        return 'border-border bg-card';
+function CoordinatorCard({ workload }: CoordinatorCardProps) {
+    const [isOpen, setIsOpen] = useState(true);
+
+    const getSetorColor = (setor: string) => {
+        const s = setor.toLowerCase();
+        if (s.includes('obra')) return 'border-l-primary bg-primary/5';
+        if (s.includes('assess')) return 'border-l-info bg-info/5';
+        if (s.includes('admin')) return 'border-l-warning bg-warning/5';
+        return 'border-l-muted bg-muted/5';
     };
 
     return (
-        <Card className={cn('flex flex-col max-h-[600px]', getStatusColor())}>
-            {/* Header da Coluna */}
-            <CardHeader className="pb-3 border-b">
-                <div className="flex items-center gap-3">
-                    <Avatar className="h-10 w-10">
-                        <AvatarImage src={workload.avatar_url} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
-                            {workload.coordenador_nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
-                        </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                        <CardTitle className="text-sm font-medium truncate">
-                            {workload.coordenador_nome}
-                        </CardTitle>
-                        <p className="text-xs text-muted-foreground">
-                            {workload.setor_nome}
-                        </p>
-                    </div>
-                </div>
+        <Card className={cn('border-l-4 overflow-hidden', getSetorColor(workload.setor_nome))}>
+            <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+                {/* Header do Coordenador */}
+                <CollapsibleTrigger asChild>
+                    <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors py-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {isOpen ? (
+                                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                                ) : (
+                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                )}
+                                <Avatar className="h-10 w-10">
+                                    <AvatarImage src={workload.avatar_url} />
+                                    <AvatarFallback className="bg-primary/10 text-primary">
+                                        {workload.coordenador_nome.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-semibold text-sm">
+                                            {workload.coordenador_nome}
+                                        </h4>
+                                        <Crown className="h-3.5 w-3.5 text-primary" />
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        {workload.setor_nome}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <Badge variant="secondary" className="gap-1.5">
+                                    <FileText className="h-3.5 w-3.5" />
+                                    {workload.total} OS ativas
+                                </Badge>
+                                {workload.atrasadas > 0 && (
+                                    <Badge variant="destructive" className="gap-1.5">
+                                        <AlertTriangle className="h-3.5 w-3.5" />
+                                        {workload.atrasadas} atrasadas
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+                    </CardHeader>
+                </CollapsibleTrigger>
 
-                {/* Contadores */}
-                <div className="flex gap-3 mt-3">
-                    <Badge variant="secondary">
-                        {workload.total} ativas
-                    </Badge>
-                    {workload.atrasadas > 0 && (
-                        <Badge variant="destructive">
-                            {workload.atrasadas} atrasadas
-                        </Badge>
-                    )}
-                </div>
-            </CardHeader>
-
-            {/* Cards de OS */}
-            <ScrollArea className="flex-1">
-                <div className="p-3 space-y-2">
-                    {workload.os_ativas.length === 0 ? (
-                        <p className="text-center text-sm text-muted-foreground py-4">
-                            Nenhuma OS ativa
-                        </p>
-                    ) : (
-                        workload.os_ativas.map(os => (
-                            <OSCard key={os.id} os={os} />
-                        ))
-                    )}
-                </div>
-            </ScrollArea>
+                {/* Tabela de OSs */}
+                <CollapsibleContent>
+                    <CardContent className="pt-0 pb-2">
+                        <div className="rounded-lg border border-border overflow-hidden">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/30 hover:bg-muted/30">
+                                        <TableHead className="w-[100px]">ID</TableHead>
+                                        <TableHead className="w-[180px]">Cliente</TableHead>
+                                        <TableHead className="w-[150px]">Tipo</TableHead>
+                                        <TableHead className="w-[150px]">Etapa</TableHead>
+                                        <TableHead className="w-[90px] text-center">Prazo</TableHead>
+                                        <TableHead className="w-[80px] text-center">Progresso</TableHead>
+                                        <TableHead className="w-[110px] text-center">Situação</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {workload.os_ativas.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                                                Nenhuma OS ativa para este coordenador
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        workload.os_ativas.map((os, index) => (
+                                            <OSTableRow
+                                                key={os.id}
+                                                os={os}
+                                                isLast={index === workload.os_ativas.length - 1}
+                                            />
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </div>
+                    </CardContent>
+                </CollapsibleContent>
+            </Collapsible>
         </Card>
     );
 }
 
 // ============================================================
-// CARD DE OS
+// LINHA DA TABELA DE OS
 // ============================================================
 
-interface OSCardProps {
+interface OSTableRowProps {
     os: WorkloadOS;
+    isLast: boolean;
 }
 
-function OSCard({ os }: OSCardProps) {
-    return (
-        <Link
-            to="/os/$osId"
-            params={{ osId: os.id }}
-            className="block no-underline hover:no-underline"
-        >
-            <Card className={cn(
-                'p-3 hover:shadow-md transition-shadow cursor-pointer',
-                os.prazoVencido && 'border-destructive/40 bg-destructive/10'
-            )}>
-                {/* Header do Card */}
-                <div className="flex items-start justify-between gap-2 mb-2">
-                    <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs font-medium text-primary">
-                                {os.codigo_os}
-                            </span>
-                            {os.prazoVencido && (
-                                <AlertTriangle className="h-3 w-3 text-destructive" />
-                            )}
-                        </div>
-                        <p className="text-sm font-medium truncate mt-1">
-                            {os.cliente_nome}
-                        </p>
-                    </div>
-                    <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                </div>
+function OSTableRow({ os, isLast }: OSTableRowProps) {
+    const formatDate = (dateStr: string | null) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'short'
+        });
+    };
 
-                {/* Tipo e Etapa */}
-                <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                    <Building2 className="h-3 w-3" />
+    const getSituacaoBadge = (situacao: string | null) => {
+        if (!situacao || situacao === 'finalizado') return null;
+        const config = STATUS_SITUACAO_CONFIG[situacao as StatusSituacao];
+        if (!config) return null;
+        return (
+            <Badge className={cn('text-[10px] h-5 px-1.5', config.className)}>
+                {config.label}
+            </Badge>
+        );
+    };
+
+    return (
+        <TableRow
+            className={cn(
+                'hover:bg-primary/5 transition-colors',
+                os.prazoVencido && 'bg-destructive/5',
+                !isLast && 'border-b border-border/30'
+            )}
+        >
+            {/* ID */}
+            <TableCell>
+                <Link
+                    to="/os/$osId"
+                    params={{ osId: os.id }}
+                    className="font-mono text-xs font-medium text-primary hover:underline"
+                >
+                    {os.codigo_os}
+                </Link>
+            </TableCell>
+
+            {/* Cliente */}
+            <TableCell className="text-sm truncate max-w-[180px]" title={os.cliente_nome}>
+                {os.cliente_nome}
+            </TableCell>
+
+            {/* Tipo */}
+            <TableCell className="text-sm truncate max-w-[150px]">
+                <div className="flex items-center gap-1.5">
+                    <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
                     <span className="truncate">{os.tipo_os_nome}</span>
                 </div>
+            </TableCell>
 
-                {/* Badge de Situação e Etapa */}
-                <div className="flex flex-wrap gap-1 mb-2">
-                    {os.status_situacao && STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao] && (
-                        <Badge
-                            variant="outline"
-                            className={cn(
-                                "text-[10px] px-1.5 h-5",
-                                STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao].className
-                            )}
-                        >
-                            {STATUS_SITUACAO_CONFIG[os.status_situacao as StatusSituacao].label}
-                        </Badge>
-                    )}
-
-                    {os.etapa_atual && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 h-5">
-                            {os.etapa_atual.nome}
-                        </Badge>
-                    )}
-                </div>
-
-                {/* Barra de Progresso do Prazo */}
-                <div className="space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                        <span className="flex items-center gap-1 text-muted-foreground">
-                            <Clock className="h-3 w-3" />
-                            Progresso
-                        </span>
-                        <span className={cn(
-                            'font-medium',
-                            os.prazoVencido ? 'text-destructive' : 'text-muted-foreground'
-                        )}>
-                            {os.progresso}%
-                        </span>
-                    </div>
-                    <Progress
-                        value={os.progresso}
-                        className={cn(
-                            'h-1.5',
-                            os.prazoVencido && '[&>div]:bg-destructive'
-                        )}
-                    />
-                </div>
-
-                {/* Prazo */}
-                {os.data_prazo && (
-                    <p className={cn(
-                        'text-xs mt-2',
-                        os.prazoVencido ? 'text-destructive font-medium' : 'text-muted-foreground'
-                    )}>
-                        Prazo: {formatDate(os.data_prazo)}
-                    </p>
+            {/* Etapa */}
+            <TableCell className="text-sm truncate max-w-[150px]">
+                {os.etapa_atual ? (
+                    <Badge variant="outline" className="text-[10px] h-5 px-1.5">
+                        {os.etapa_atual.nome}
+                    </Badge>
+                ) : (
+                    <span className="text-muted-foreground">-</span>
                 )}
-            </Card>
-        </Link >
+            </TableCell>
+
+            {/* Prazo */}
+            <TableCell className="text-center">
+                <span className={cn(
+                    'text-xs flex items-center justify-center gap-1',
+                    os.prazoVencido ? 'text-destructive font-medium' : 'text-muted-foreground'
+                )}>
+                    {os.prazoVencido && <AlertTriangle className="h-3 w-3" />}
+                    {formatDate(os.data_prazo)}
+                </span>
+            </TableCell>
+
+            {/* Progresso */}
+            <TableCell className="text-center">
+                <div className="flex items-center justify-center gap-1">
+                    <div className="w-12 h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                            className={cn(
+                                "h-full rounded-full",
+                                os.prazoVencido ? "bg-destructive" : "bg-primary"
+                            )}
+                            style={{ width: `${os.progresso}%` }}
+                        />
+                    </div>
+                    <span className="text-[10px] text-muted-foreground w-8">
+                        {os.progresso}%
+                    </span>
+                </div>
+            </TableCell>
+
+            {/* Situação */}
+            <TableCell className="text-center">
+                {getSituacaoBadge(os.status_situacao)}
+            </TableCell>
+        </TableRow>
     );
 }
 
@@ -426,45 +506,39 @@ function WorkloadKanbanSkeleton() {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <Skeleton className="h-6 w-64" />
-                <Skeleton className="h-5 w-32" />
+                <div>
+                    <Skeleton className="h-6 w-64 mb-2" />
+                    <Skeleton className="h-4 w-48" />
+                </div>
+                <div className="flex gap-2">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-6 w-32" />
+                </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[1, 2, 3].map(i => (
-                    <Card key={i} className="h-[400px]">
-                        <CardHeader className="pb-3 border-b">
+
+            {[1, 2, 3].map(i => (
+                <Card key={i} className="border-l-4 border-l-muted">
+                    <CardHeader className="py-3">
+                        <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
+                                <Skeleton className="h-5 w-5" />
                                 <Skeleton className="h-10 w-10 rounded-full" />
-                                <div className="flex-1">
+                                <div>
                                     <Skeleton className="h-4 w-32 mb-1" />
                                     <Skeleton className="h-3 w-20" />
                                 </div>
                             </div>
-                            <div className="flex gap-2 mt-3">
-                                <Skeleton className="h-5 w-16" />
-                                <Skeleton className="h-5 w-20" />
+                            <div className="flex gap-2">
+                                <Skeleton className="h-6 w-24" />
+                                <Skeleton className="h-6 w-24" />
                             </div>
-                        </CardHeader>
-                        <CardContent className="p-3 space-y-2">
-                            {[1, 2, 3].map(j => (
-                                <Skeleton key={j} className="h-24 w-full" />
-                            ))}
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                        <Skeleton className="h-48 w-full" />
+                    </CardContent>
+                </Card>
+            ))}
         </div>
     );
-}
-
-// ============================================================
-// HELPERS
-// ============================================================
-
-function formatDate(dateStr: string): string {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: '2-digit'
-    });
 }

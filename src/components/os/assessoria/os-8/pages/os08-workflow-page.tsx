@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/card';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowAccordion, WorkflowStepDefinition } from '@/components/os/shared/components/workflow-accordion';
+import { OSHeaderDelegacao } from '@/components/os/shared/components/os-header-delegacao';
 import { WorkflowStepSummary, OS_08_SUMMARY_CONFIG } from '@/components/os/shared/components/workflow-step-summary';
 import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
@@ -25,14 +26,19 @@ import { useCreateOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
+/**
+ * Definição das etapas da OS-08 com campos de responsabilidade v3.1
+ * Os campos setor/setorNome são usados para exibição do novo header
+ * O campo responsible é mantido para compatibilidade (deprecated)
+ */
 const steps: WorkflowStepDefinition[] = [
-  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', responsible: 'ADM' },
-  { id: 2, title: 'Detalhes da Solicitação', short: 'Solicitação', responsible: 'ADM' },
-  { id: 3, title: 'Agendar Visita', short: 'Agendar', responsible: 'ADM' },
-  { id: 4, title: 'Realizar Visita', short: 'Visita', responsible: 'Obras' },
-  { id: 5, title: 'Formulário Pós-Visita', short: 'Formulário', responsible: 'Obras' },
-  { id: 6, title: 'Gerar Documento', short: 'Documento', responsible: 'ADM' },
-  { id: 7, title: 'Enviar ao Cliente', short: 'Enviar', responsible: 'ADM' },
+  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 2, title: 'Detalhes da Solicitação', short: 'Solicitação', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 3, title: 'Agendar Visita', short: 'Agendar', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 4, title: 'Realizar Visita', short: 'Visita', setor: 'assessoria', setorNome: 'Assessoria', responsible: 'Obras' },
+  { id: 5, title: 'Formulário Pós-Visita', short: 'Formulário', setor: 'assessoria', setorNome: 'Assessoria', responsible: 'Obras' },
+  { id: 6, title: 'Gerar Documento', short: 'Documento', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 7, title: 'Enviar ao Cliente', short: 'Enviar', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
 ];
 
 interface OS08WorkflowPageProps {
@@ -429,6 +435,19 @@ export function OS08WorkflowPage({
           </div>
         </div>
       </div>
+
+      {/* 🆕 Painel de Delegação no Header */}
+      {finalOsId && !isReadOnly && (
+        <div className="px-6 pt-4">
+          <div className="max-w-5xl mx-auto">
+            <OSHeaderDelegacao
+              osId={finalOsId}
+              tipoOS="OS-08"
+              steps={steps}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Conteúdo com Accordion */}
       <div className="px-6 py-6">

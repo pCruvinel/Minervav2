@@ -185,20 +185,32 @@ export function StepGerarProposta({
   // Construir dados da proposta baseado no tipo
   const cpfCnpjLimpo = (etapa1Data.cpfCnpj || '').replace(/\D/g, '');
 
+  // 🛠️ FIX: Extrair campos de endereço corretamente
+  // etapa1Data pode ter campos flat (rua, bairro) ou objeto aninhado (endereco.rua)
+  const enderecoObj = etapa1Data.endereco as Record<string, string> | undefined;
+  const rua = typeof etapa1Data.rua === 'string' ? etapa1Data.rua : (enderecoObj?.rua || '');
+  const numero = typeof etapa1Data.numero === 'string' ? etapa1Data.numero : (enderecoObj?.numero || '');
+  const bairro = typeof etapa1Data.bairro === 'string' ? etapa1Data.bairro : (enderecoObj?.bairro || '');
+  const cidade = typeof etapa1Data.cidade === 'string' ? etapa1Data.cidade : (enderecoObj?.cidade || '');
+  const estado = typeof etapa1Data.estado === 'string' ? etapa1Data.estado : (enderecoObj?.estado || '');
+
+  // Formatar endereço completo como string
+  const enderecoCompleto = [rua, numero].filter(Boolean).join(', ');
+
   // Dados comuns
   const propostaData: Record<string, unknown> = {
     clienteCpfCnpj: cpfCnpjLimpo,
     // Passar dados do cliente para garantir que o PDF use os dados mais recentes do frontend
-    clienteNome: etapa1Data.nome || '',
-    clienteEmail: etapa1Data.email || '',
-    clienteTelefone: etapa1Data.telefone || '',
-    clienteEndereco: etapa1Data.endereco || '',
-    clienteBairro: etapa1Data.bairro || '',
-    clienteCidade: etapa1Data.cidade || '',
-    clienteEstado: etapa1Data.estado || '',
-    clienteResponsavel: etapa1Data.nomeResponsavel || '',
-    quantidadeUnidades: etapa1Data.qtdUnidades || '0',
-    quantidadeBlocos: etapa1Data.qtdBlocos || '0',
+    clienteNome: String(etapa1Data.nome || ''),
+    clienteEmail: String(etapa1Data.email || ''),
+    clienteTelefone: String(etapa1Data.telefone || ''),
+    clienteEndereco: enderecoCompleto, // ✅ FIX: Agora é string
+    clienteBairro: bairro, // ✅ FIX: Agora é string
+    clienteCidade: cidade, // ✅ FIX: Agora é string
+    clienteEstado: estado, // ✅ FIX: Agora é string
+    clienteResponsavel: String(etapa1Data.nomeResponsavel || ''),
+    quantidadeUnidades: String(etapa1Data.qtdUnidades || '0'),
+    quantidadeBlocos: String(etapa1Data.qtdBlocos || '0'),
   };
 
   // Dados específicos por tipo
@@ -223,19 +235,84 @@ export function StepGerarProposta({
     };
   } else {
     // Assessoria (OS 5-6) - usa estrutura simplificada
-    propostaData.objetivo = etapa7Data.objetivo || '';
-    propostaData.especificacoesTecnicas = etapa7Data.especificacoesTecnicas || [];
-    propostaData.metodologia = etapa7Data.metodologia || '';
+    // 🛠️ FIX: Converter dados do formato do formulário para o formato esperado pelo PDF
+
+    // Objetivo: string → string[] para OS-05, string para OS-06
+    const objetivoRaw = etapa7Data.objetivo || '';
+    const isOS06 = pdfType === 'proposta-ass-pontual';
+
+    // Para OS-05: converte para array; Para OS-06: mantém como string
+    const objetivoArray: string[] = typeof objetivoRaw === 'string'
+      ? objetivoRaw
+        .split(/[\n\r•;]/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+      : Array.isArray(objetivoRaw) ? objetivoRaw : [];
+
+    // Metodologia: string → string[] (split por linhas ou bullets)
+    const metodologiaRaw = etapa7Data.metodologia || '';
+    const metodologiaArray: string[] = typeof metodologiaRaw === 'string'
+      ? metodologiaRaw
+        .split(/[\n\r•]/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+      : Array.isArray(metodologiaRaw) ? metodologiaRaw : [];
+
+    // Especificações: {descricao} → {item, descricao}
+    const especsRaw = etapa7Data.especificacoesTecnicas || [];
+    const especsArray = Array.isArray(especsRaw)
+      ? especsRaw.map((espec: unknown, idx: number) => ({
+        item: idx + 1,
+        descricao: typeof espec === 'object' && espec !== null && 'descricao' in espec
+          ? (espec as { descricao: string }).descricao
+          : String(espec),
+      }))
+      : [];
+
+    // Prazo: Formatar conforme o tipo de OS
+    const prazoRaw = etapa7Data.prazo as Record<string, unknown> || {};
+
+    // Prazo formatado baseado no tipo de OS
+    const prazoFormatado = isOS06
+      ? {
+        // OS-06 (Pontual): Dias úteis
+        planejamentoInicial: parseInt(String(prazoRaw.planejamentoInicial || 0)) || 0,
+        logisticaTransporte: parseInt(String(prazoRaw.logisticaTransporte || 0)) || 0,
+        levantamentoCampo: parseInt(String(prazoRaw.levantamentoCampo || 0)) || 0,
+        composicaoLaudo: parseInt(String(prazoRaw.composicaoLaudo || 0)) || 0,
+        apresentacaoCliente: parseInt(String(prazoRaw.apresentacaoCliente || 0)) || 0,
+      }
+      : {
+        // OS-05 (Anual): Horário de funcionamento
+        horarioFuncionamento: prazoRaw.diasSemana
+          ? `${prazoRaw.diasSemana} de ${prazoRaw.horarioInicio || '08:00'} às ${prazoRaw.horarioFim || '18:00'}`
+          : 'Segunda a sexta de 08:00 às 18:00',
+        suporteEmergencial: (prazoRaw.suporteEmergencial as string) || 'Suporte técnico emergencial - atuação máxima de 2h',
+      };
+
+    // Objetivo: array para OS-05, string para OS-06
+    propostaData.objetivo = isOS06 ? (objetivoRaw || '') : objetivoArray;
+    propostaData.especificacoesTecnicas = especsArray;
+    propostaData.metodologia = metodologiaArray;
     propostaData.garantia = etapa7Data.garantia || '';
-    propostaData.prazo = etapa7Data.prazo || {};
+    propostaData.prazo = prazoFormatado;
     propostaData.precificacao = {
-      valorParcial: parseFloat((etapa8Data.custoBase || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || valorTotal,
+      valorMaterialMaoDeObra: parseFloat((etapa8Data.custoBase || '0').replace(/[^\d,.-]/g, '').replace(',', '.')) || valorTotal,
       percentualImposto: parseFloat(etapa8Data.percentualImposto || '14') || 14,
     };
-    propostaData.pagamento = {
-      percentualEntrada: parseFloat(etapa8Data.percentualEntrada || '40') || 40,
-      numeroParcelas: parseInt(etapa8Data.numeroParcelas || '2') || 2,
-    };
+
+    // Pagamento: diferente para OS-05 (mensal) e OS-06 (parcelado)
+    if (isOS06) {
+      propostaData.pagamento = {
+        percentualEntrada: parseFloat(etapa8Data.percentualEntrada || '40') || 40,
+        numeroParcelas: parseInt(etapa8Data.numeroParcelas || '2') || 2,
+      };
+    } else {
+      propostaData.pagamento = {
+        valorMensal: valorTotal,
+        desconto: '3% de desconto para pagamento no quinto dia útil do Mês',
+      };
+    }
   }
 
   // Handler para gerar PDF

@@ -458,38 +458,48 @@ const Objetivo = ({ texto }: { texto: string }) => (
     </View>
 );
 
-const EspecificacoesTable = ({ items }: { items: EspecificacaoTecnica[] }) => (
-    <View>
-        <View style={styles.blueHeader}>
-            <Text style={styles.blueHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
-        </View>
+const EspecificacoesTable = ({ items }: { items: EspecificacaoTecnica[] }) => {
+    // 🛡️ Defensive check: ensure items is an array
+    const safeItems = Array.isArray(items) ? items : [];
 
-        {/* Header Tabela */}
-        <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, styles.colItem]}>ITEM</Text>
-            <Text style={[styles.tableHeaderCell, styles.colDesc]}>DESCRIÇÃO</Text>
-        </View>
-
-        {/* Itens */}
-        {items.map((item, idx) => (
-            <View key={idx} style={styles.rowItem}>
-                <Text style={[styles.cellText, styles.colItem]}>{item.item}</Text>
-                <Text style={[styles.cellText, styles.colDesc]}>{item.descricao}</Text>
+    return (
+        <View>
+            <View style={styles.blueHeader}>
+                <Text style={styles.blueHeaderText}>2. ESPECIFICAÇÕES TÉCNICAS;</Text>
             </View>
-        ))}
-    </View>
-);
 
-const Metodologia = ({ items }: { items: string[] }) => (
-    <View wrap={false} style={{ marginTop: 10 }}>
-        <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 3 }}>METODOLOGIA:</Text>
-        {items.map((item, idx) => (
-            <View key={idx} style={styles.bulletPoint}>
-                <Text style={styles.bulletText}>• {item}</Text>
+            {/* Header Tabela */}
+            <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderCell, styles.colItem]}>ITEM</Text>
+                <Text style={[styles.tableHeaderCell, styles.colDesc]}>DESCRIÇÃO</Text>
             </View>
-        ))}
-    </View>
-);
+
+            {/* Itens */}
+            {safeItems.map((item, idx) => (
+                <View key={idx} style={styles.rowItem}>
+                    <Text style={[styles.cellText, styles.colItem]}>{item.item}</Text>
+                    <Text style={[styles.cellText, styles.colDesc]}>{item.descricao}</Text>
+                </View>
+            ))}
+        </View>
+    );
+};
+
+const Metodologia = ({ items }: { items: string[] }) => {
+    // 🛡️ Defensive check: ensure items is an array
+    const safeItems = Array.isArray(items) ? items : [];
+
+    return (
+        <View wrap={false} style={{ marginTop: 10 }}>
+            <Text style={{ fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 3 }}>METODOLOGIA:</Text>
+            {safeItems.map((item, idx) => (
+                <View key={idx} style={styles.bulletPoint}>
+                    <Text style={styles.bulletText}>• {item}</Text>
+                </View>
+            ))}
+        </View>
+    );
+};
 
 const Prazo = ({ dados }: { dados: DadosPrazo }) => (
     <View wrap={false}>

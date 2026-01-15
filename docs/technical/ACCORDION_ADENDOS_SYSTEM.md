@@ -38,6 +38,7 @@ O **Sistema de Accordion com Adendos** é a abordagem padrão do MinervaV2 para 
 
 ## 2. Arquitetura de Componentes Reutilizáveis
 
+
 ### 2.1 Mapa de Componentes
 
 ```
@@ -48,13 +49,21 @@ src/
 │   ├── use-workflow-completion.ts      # ✅ Core: Validação de completude
 │   ├── use-etapas.ts                   # ✅ Core: CRUD etapas
 │   ├── use-unified-workflow.ts         # ✅ Core: Workflow unificado multi-OS
+│   ├── use-os-responsabilidade.ts      # 🆕 v3.1: Responsabilidade e delegação
+│   ├── use-etapa-permissoes.ts         # 🆕 v3.1: Permissões por etapa
 │   ├── use-os-hierarchy.ts             # Hierarquia de OS
 │   └── use-workflow-navigation.ts      # Navegação entre etapas
+│
+├── lib/types/                           # 📝 TIPOS
+│   └── os-responsabilidade.ts          # 🆕 v3.1: Tipos de responsabilidade
 │
 ├── components/os/shared/components/     # 🎨 COMPONENTES REUTILIZÁVEIS
 │   ├── workflow-accordion.tsx          # ✅ PRINCIPAL: Accordion de etapas
 │   ├── workflow-step-summary.tsx       # ✅ PRINCIPAL: Resumo genérico
 │   ├── field-with-adendos.tsx          # ✅ PRINCIPAL: Campo com adendos
+│   ├── step-responsibility-header.tsx  # 🆕 v3.1: Cabeçalho de responsabilidade
+│   ├── delegacao-modal.tsx             # 🆕 v3.1: Modal de delegação
+│   ├── os-participantes-panel.tsx      # 🆕 v3.1: Painel de participantes
 │   ├── workflow-footer.tsx             # Navegação inferior
 │   ├── os-details-accordion.tsx        # Visualização read-only
 │   ├── file-upload-section.tsx         # Upload de arquivos
@@ -69,6 +78,7 @@ src/
     ├── os-details-redesign-page.tsx    # ✅ Detalhes da OS (usa UnifiedWorkflowStepper)
     └── os-details-workflow-page.tsx    # Workflow de Obras
 ```
+
 
 ---
 

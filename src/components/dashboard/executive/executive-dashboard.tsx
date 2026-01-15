@@ -15,7 +15,7 @@
 import { useAuth } from '@/lib/contexts/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ExecutiveOverview } from './executive-overview';
-import { WorkloadKanban } from './workload-kanban';
+import { WorkloadTabContent } from './workload-tab-content';
 import { SystemAuditLog } from './system-audit-log';
 import { AnnouncementsManager } from './announcements-manager';
 import { SlaSettingsTab } from './sla-settings-tab';
@@ -121,7 +121,7 @@ export function ExecutiveDashboard() {
                 </TabsContent>
 
                 <TabsContent value="workload">
-                    <WorkloadKanban />
+                    <WorkloadTabContent />
                 </TabsContent>
 
                 <TabsContent value="audit">

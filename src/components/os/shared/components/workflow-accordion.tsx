@@ -14,12 +14,36 @@ import { cn } from '@/lib/utils';
 
 /**
  * Definição de uma etapa do workflow
+ * 
+ * @description Interface expandida com campos de responsabilidade (v3.1)
+ * Os campos de responsabilidade são opcionais para manter compatibilidade
  */
 export interface WorkflowStepDefinition {
     id: number;
     title: string;
     short?: string;
+    /** @deprecated Use setorNome para exibição e setor para lógica */
     responsible?: string;
+
+    // Campos de responsabilidade (v3.1 - opcionais para compatibilidade)
+    /** Slug do setor responsável */
+    setor?: 'administrativo' | 'obras' | 'assessoria';
+    /** Nome do setor formatado para exibição */
+    setorNome?: string;
+    /** ID do responsável atual */
+    responsavelId?: string;
+    /** Nome do responsável atual */
+    responsavelNome?: string;
+    /** Cargo do responsável */
+    responsavelCargo?: string;
+    /** Avatar do responsável */
+    responsavelAvatar?: string;
+    /** Se é uma delegação (não é o coordenador padrão) */
+    isDelegado?: boolean;
+    /** Se o usuário logado pode editar esta etapa */
+    podeEditar?: boolean;
+    /** Se o usuário logado pode delegar esta etapa */
+    podeDelegar?: boolean;
 }
 
 interface WorkflowAccordionProps {
@@ -51,6 +75,11 @@ interface WorkflowAccordionProps {
     isSaving?: boolean;
     /** Ocultar botão interno (para usar footer externo) */
     hideInternalButton?: boolean;
+    // 🆕 Props para delegação (v3.1) - @deprecated Use OSHeaderDelegacao instead
+    /** @deprecated Usar OSHeaderDelegacao para delegação centralizada no header */
+    etapaIdsByOrdem?: Record<number, string>;
+    /** @deprecated Usar OSHeaderDelegacao para delegação centralizada no header */
+    onDelegate?: (etapaId: string, colaboradorId: string, motivo?: string) => Promise<boolean>;
 }
 
 /**
@@ -80,6 +109,9 @@ export function WorkflowAccordion({
     finalButtonText = 'Concluir',
     isSaving: externalIsSaving = false,
     hideInternalButton = false,
+    // @deprecated - Props de delegação (não usadas, usar OSHeaderDelegacao)
+    etapaIdsByOrdem: _etapaIdsByOrdem,
+    onDelegate: _onDelegate,
 }: WorkflowAccordionProps) {
     // ✅ FIX: Estado local para controlar quais etapas estão expandidas
     // Etapa atual sempre começa expandida + etapas que o usuário expandir manualmente
@@ -123,150 +155,164 @@ export function WorkflowAccordion({
     const totalSteps = steps.length;
 
     return (
-        <Accordion
-            type="multiple"
-            value={expandedSteps}
-            onValueChange={handleValueChange}
-            className={cn('space-y-2', className)}
-        >
-            {steps.map((step) => {
-                const isCompleted = completedSteps.includes(step.id);
-                const isCurrent = step.id === currentStep;
-                const isAccessible = isCompleted || isCurrent;
-                const isPending = !isCompleted && !isCurrent;
-                const stepData = formDataByStep[step.id];
-                const isLastStep = step.id === totalSteps;
-                const showSaveButton = isCurrent && !isCompleted && onSaveAndAdvance && !hideInternalButton;
+        <>
+            <Accordion
+                type="multiple"
+                value={expandedSteps}
+                onValueChange={handleValueChange}
+                className={cn('space-y-2', className)}
+            >
+                {steps.map((step) => {
+                    const isCompleted = completedSteps.includes(step.id);
+                    const isCurrent = step.id === currentStep;
+                    const isAccessible = isCompleted || isCurrent;
+                    const isPending = !isCompleted && !isCurrent;
+                    const stepData = formDataByStep[step.id];
+                    const isLastStep = step.id === totalSteps;
+                    const showSaveButton = isCurrent && !isCompleted && onSaveAndAdvance && !hideInternalButton;
 
-                return (
-                    <AccordionItem
-                        key={step.id}
-                        value={`step-${step.id}`}
-                        disabled={!isAccessible}
-                        className={cn(
-                            'border rounded-lg overflow-hidden transition-all',
-                            // ✅ FIX: Cor baseada em isCompleted, não em isCurrent
-                            isCompleted && !isCurrent && 'border-success/30 bg-success/5',
-                            isCurrent && 'border-primary/30 bg-primary/5 ring-2 ring-primary/20',
-                            isPending && 'border-border bg-muted/20 opacity-60'
-                        )}
-                    >
-                        <AccordionTrigger
-                            className={cn(
-                                'px-4 py-3 hover:no-underline [&[data-state=open]>svg]:rotate-180',
-                                !isAccessible && 'cursor-not-allowed'
-                            )}
+                    return (
+                        <AccordionItem
+                            key={step.id}
+                            value={`step-${step.id}`}
                             disabled={!isAccessible}
+                            className={cn(
+                                'border rounded-lg overflow-hidden transition-all',
+                                // ✅ FIX: Cor baseada em isCompleted, não em isCurrent
+                                isCompleted && !isCurrent && 'border-success/30 bg-success/5',
+                                isCurrent && 'border-primary/30 bg-primary/5 ring-2 ring-primary/20',
+                                isPending && 'border-border bg-muted/20 opacity-60'
+                            )}
                         >
-                            <div className="flex items-center gap-3 flex-1">
-                                {/* Ícone de status */}
-                                <div
-                                    className={cn(
-                                        'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
-                                        // ✅ FIX: Ícone baseado em status real, não em currentStep
-                                        isCompleted && 'bg-success/20',
-                                        isCurrent && !isCompleted && 'bg-primary/20',
-                                        isPending && 'bg-muted'
-                                    )}
-                                >
-                                    {isCompleted ? (
-                                        <Check className="h-4 w-4 text-success" />
-                                    ) : isCurrent ? (
-                                        <Circle className="h-4 w-4 text-primary fill-primary" />
-                                    ) : (
-                                        <Lock className="h-4 w-4 text-muted-foreground" />
-                                    )}
-                                </div>
-
-                                {/* Título da etapa */}
-                                <div className="flex flex-col items-start">
-                                    <span
+                            <AccordionTrigger
+                                className={cn(
+                                    'px-4 py-3 hover:no-underline [&[data-state=open]>svg]:rotate-180',
+                                    !isAccessible && 'cursor-not-allowed'
+                                )}
+                                disabled={!isAccessible}
+                            >
+                                <div className="flex items-center gap-3 flex-1">
+                                    {/* Ícone de status */}
+                                    <div
                                         className={cn(
-                                            'font-medium',
-                                            // ✅ FIX: Cor baseada em status real
-                                            isCompleted && 'text-success',
-                                            isCurrent && !isCompleted && 'text-primary',
-                                            isPending && 'text-muted-foreground'
+                                            'w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0',
+                                            // ✅ FIX: Ícone baseado em status real, não em currentStep
+                                            isCompleted && 'bg-success/20',
+                                            isCurrent && !isCompleted && 'bg-primary/20',
+                                            isPending && 'bg-muted'
                                         )}
                                     >
-                                        Etapa {step.id}: {step.title}
-                                    </span>
-                                    {step.responsible && (
-                                        <span className="text-xs text-muted-foreground">
-                                            Responsável: {step.responsible}
+                                        {isCompleted ? (
+                                            <Check className="h-4 w-4 text-success" />
+                                        ) : isCurrent ? (
+                                            <Circle className="h-4 w-4 text-primary fill-primary" />
+                                        ) : (
+                                            <Lock className="h-4 w-4 text-muted-foreground" />
+                                        )}
+                                    </div>
+
+                                    {/* Título da etapa */}
+                                    <div className="flex flex-col items-start">
+                                        <span
+                                            className={cn(
+                                                'font-medium',
+                                                // ✅ FIX: Cor baseada em status real
+                                                isCompleted && 'text-success',
+                                                isCurrent && !isCompleted && 'text-primary',
+                                                isPending && 'text-muted-foreground'
+                                            )}
+                                        >
+                                            Etapa {step.id}: {step.title}
                                         </span>
-                                    )}
-                                </div>
+                                        {/* v3.1: Exibição expandida de responsabilidade */}
+                                        {step.setorNome && step.responsavelNome ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                Setor: {step.setorNome} • Responsável: {step.responsavelNome}
+                                                {step.isDelegado && <span className="text-primary ml-1">(delegado)</span>}
+                                            </span>
+                                        ) : step.setorNome ? (
+                                            <span className="text-xs text-muted-foreground">
+                                                Setor: {step.setorNome}
+                                            </span>
+                                        ) : step.responsible && (
+                                            // Fallback para campo deprecated
+                                            <span className="text-xs text-muted-foreground">
+                                                Responsável: {step.responsible}
+                                            </span>
+                                        )}
+                                    </div>
 
-                                {/* Badge de status - Concluída tem prioridade sobre Atual */}
-                                {isCompleted ? (
-                                    <Badge variant="outline" className="ml-auto mr-2 text-success border-success/30">
-                                        ✓ Concluída
-                                    </Badge>
-                                ) : isCurrent ? (
-                                    <Badge variant="default" className="ml-auto mr-2">
-                                        Atual
-                                    </Badge>
-                                ) : null}
-                            </div>
-                        </AccordionTrigger>
+                                    {/* Badge de status */}
+                                    <div className="flex items-center gap-2 ml-auto mr-2">
+                                        {isCompleted ? (
+                                            <Badge variant="outline" className="text-success border-success/30">
+                                                ✓ Concluída
+                                            </Badge>
+                                        ) : isCurrent ? (
+                                            <Badge variant="default">
+                                                Atual
+                                            </Badge>
+                                        ) : null}
+                                    </div>
+                                </div>
+                            </AccordionTrigger>
 
-                        <AccordionContent className="px-4 pb-4">
-                            {isCurrent && !isCompleted ? (
-                                // Formulário editável para etapa atual NÃO concluída
-                                <div className="pt-2 space-y-4">
-                                    {renderForm(step.id)}
+                            <AccordionContent className="px-4 pb-4">
+                                {isCurrent && !isCompleted ? (
+                                    // Formulário editável para etapa atual NÃO concluída
+                                    <div className="pt-2 space-y-4">
+                                        {renderForm(step.id)}
 
-                                    {/* 🆕 Botão Salvar e Avançar interno */}
-                                    {showSaveButton && (
-                                        <div className="flex justify-end pt-4 border-t border-border/50">
-                                            <Button
-                                                onClick={() => handleSaveAndAdvance(step.id)}
-                                                disabled={isSaving}
-                                                className="gap-2"
-                                            >
-                                                {isSaving ? (
-                                                    <>
-                                                        <Loader2 className="h-4 w-4 animate-spin" />
-                                                        Salvando...
-                                                    </>
-                                                ) : isLastStep ? (
-                                                    <>
-                                                        {finalButtonText}
-                                                        <Check className="h-4 w-4" />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        {saveButtonText}
-                                                        <ArrowRight className="h-4 w-4" />
-                                                    </>
-                                                )}
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : isCompleted ? (
-                                // Resumo read-only para etapas concluídas (mesmo se for currentStep)
-                                <div className="pt-2">
-                                    {stepData ? (
-                                        renderSummary(step.id, stepData)
-                                    ) : (
-                                        <div className="text-center text-muted-foreground text-sm py-4">
-                                            Dados da etapa não disponíveis
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                // Placeholder para etapas sem dados
-                                <div className="pt-2 text-center text-muted-foreground text-sm py-4">
-                                    Etapa pendente
-                                </div>
-                            )}
-                        </AccordionContent>
-                    </AccordionItem>
-                );
-            })}
-        </Accordion>
+                                        {/* 🆕 Botão Salvar e Avançar interno */}
+                                        {showSaveButton && (
+                                            <div className="flex justify-end pt-4 border-t border-border/50">
+                                                <Button
+                                                    onClick={() => handleSaveAndAdvance(step.id)}
+                                                    disabled={isSaving}
+                                                    className="gap-2"
+                                                >
+                                                    {isSaving ? (
+                                                        <>
+                                                            <Loader2 className="h-4 w-4 animate-spin" />
+                                                            Salvando...
+                                                        </>
+                                                    ) : isLastStep ? (
+                                                        <>
+                                                            {finalButtonText}
+                                                            <Check className="h-4 w-4" />
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            {saveButtonText}
+                                                            <ArrowRight className="h-4 w-4" />
+                                                        </>
+                                                    )}
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : isCompleted ? (
+                                    // Resumo read-only para etapas concluídas (mesmo se for currentStep)
+                                    <div className="pt-2">
+                                        {stepData ? (
+                                            renderSummary(step.id, stepData)
+                                        ) : (
+                                            <div className="text-center text-muted-foreground text-sm py-4">
+                                                Dados da etapa não disponíveis
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    // Placeholder para etapas sem dados
+                                    <div className="pt-2 text-center text-muted-foreground text-sm py-4">
+                                        Etapa pendente
+                                    </div>
+                                )}
+                            </AccordionContent>
+                        </AccordionItem>
+                    );
+                })}
+            </Accordion>
+        </>
     );
 }
-

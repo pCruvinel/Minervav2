@@ -1,8 +1,8 @@
 # 📋 Plano de Migração OS 5-6 para Sistema Accordion
 
-> **Data:** 2026-01-13  
-> **Versão:** 2.0  
-> **Status:** ✅ **CONCLUÍDO (Fase 1-3)**  
+> **Data:** 2026-01-14  
+> **Versão:** 2.1  
+> **Status:** ✅ **CONCLUÍDO (Fase 1-4 + Correções de Persistência)**  
 > **Prioridade:** Média  
 > **Estimativa:** 16-24 horas de desenvolvimento
 
@@ -248,5 +248,38 @@ case 6:
 
 ---
 
-**Última Atualização:** 2026-01-13  
+## 10. Lições Aprendidas (v2.1 - 2026-01-14)
+
+> [!IMPORTANT]
+> **Atualização após correção de bugs de persistência.**
+
+### 10.1 Problemas Encontrados
+
+| Problema | Causa Raiz | Solução |
+|----------|------------|---------|
+| Dados não persistem ao avançar etapa | Falta de `refreshEtapas()` após save | Adicionar chamada `await refreshEtapas()` |
+| Etapa 1 exibe dados incompletos | Callback `onLeadChange` extraía só 4 campos | Expandir para incluir edificação + endereço |
+| Race condition no saveStep | Dados do state desatualizados | Passar dados explícitos como 3º parâmetro |
+
+### 10.2 Boas Práticas Identificadas
+
+1. **Sempre compara com OS-08** - É o padrão de referência para workflows Accordion
+2. **Usar dados explícitos** - Não confiar no state React para saves assíncronos
+3. **Chamar refreshEtapas()** - Após qualquer operação de save para sincronizar
+4. **Logging detalhado** - Ajuda a debugar problemas de persistência
+
+### 10.3 Padrão Correto de Save
+
+```typescript
+// ✅ Correto - Padrão robusto
+const currentData = formDataByStep[currentStep] || {};
+logger.log(`💾 Salvando Etapa ${currentStep} com ${Object.keys(currentData).length} campos`);
+await saveStep(currentStep, false, currentData);
+await refreshEtapas(); // Sincroniza estado com banco
+```
+
+---
+
+**Última Atualização:** 2026-01-14  
 **Autor:** Sistema Minerva ERP
+

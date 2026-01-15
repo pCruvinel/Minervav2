@@ -1,5 +1,0 @@
-# Dev dependencies - only for IDE type support
-# Deno uses deno.json for runtime dependencies
-node_modules/
-package.json
-package-lock.json

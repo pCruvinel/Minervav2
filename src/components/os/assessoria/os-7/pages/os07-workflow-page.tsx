@@ -1,7 +1,7 @@
 // OS 07: Termo de Comunicação de Reforma - Sistema Minerva ERP
 'use client';
 
-import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { ArrowLeft, Link as LinkIcon, CheckCircle2, Copy, ExternalLink, Clock, Loader2 } from 'lucide-react';
 import { LeadCadastro, type LeadCadastroHandle } from '@/components/os/shared/lead-cadastro';
 import { type LeadCompleto } from '@/components/os/shared/lead-cadastro/types';
@@ -16,11 +16,11 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { WorkflowAccordion, WorkflowStepDefinition } from '@/components/os/shared/components/workflow-accordion';
 import { WorkflowStepSummary, OS_07_SUMMARY_CONFIG } from '@/components/os/shared/components/workflow-step-summary';
 import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useEtapaAdendos } from '@/lib/hooks/use-etapa-adendos';
 import { useEtapas } from '@/lib/hooks/use-etapas';
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
 import { logger } from '@/lib/utils/logger';
 
 interface OS07WorkflowPageProps {
@@ -28,12 +28,15 @@ interface OS07WorkflowPageProps {
   osId?: string;
 }
 
+/**
+ * Definição das etapas da OS-07 com campos de responsabilidade v3.1
+ */
 const steps: WorkflowStepDefinition[] = [
-  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', responsible: 'ADM' },
-  { id: 2, title: 'Coletar Dados do Cliente', short: 'Formulário', responsible: 'ADM' },
-  { id: 3, title: 'Análise e Parecer', short: 'Análise', responsible: 'Obras' },
-  { id: 4, title: 'Gerar PDF', short: 'PDF', responsible: 'ADM' },
-  { id: 5, title: 'Concluída', short: 'Fim', responsible: 'ADM' },
+  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 2, title: 'Coletar Dados do Cliente', short: 'Formulário', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 3, title: 'Análise e Parecer', short: 'Análise', setor: 'assessoria', setorNome: 'Assessoria', responsible: 'Obras' },
+  { id: 4, title: 'Gerar PDF', short: 'PDF', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 5, title: 'Concluída', short: 'Fim', setor: 'administrativo', setorNome: 'Administrativo', responsible: 'ADM' },
 ];
 
 export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPageProps) {
@@ -76,24 +79,31 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
 
   // Obter etapa atual para adendos
   const currentEtapa = etapas?.find(e => e.ordem === currentStep);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { adendos, addAdendo, getAdendosByCampo } = useEtapaAdendos(currentEtapa?.id);
 
   // Hook para gerenciar etapas
   const { createEtapasBatch } = useEtapas();
 
+  // Hook para geração de PDF
+  const { generate: generatePDF, generating: isGeneratingPDF } = usePDFGeneration();
+
   // Mapeamento de dados
   const etapa1Data = formDataByStep[1] || null;
   const etapa2Data = formDataByStep[2] || { linkFormulario: '', formularioEnviado: false };
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const etapa3Data = formDataByStep[3] || { formularioRecebido: false, dataRecebimento: '' };
-  const etapa4Data = formDataByStep[4] || { pdfGerado: false, pdfUrl: '' };
-  const etapa5Data = formDataByStep[5] || { concluida: false, dataConclusao: '' };
+  const etapa4Data = formDataByStep[4] as { pdfGerado?: boolean; pdfUrl?: string } || { pdfGerado: false, pdfUrl: '' };
+  const etapa5Data = formDataByStep[5] as { concluida?: boolean; dataConclusao?: string } || { concluida: false, dataConclusao: '' };
 
-  // Setters
-  const setEtapa1Data = (data: any) => setStepData(1, data);
-  const setEtapa2Data = (data: any) => setStepData(2, data);
-  const setEtapa3Data = (data: any) => setStepData(3, data);
-  const setEtapa4Data = (data: any) => setStepData(4, data);
-  const setEtapa5Data = (data: any) => setStepData(5, data);
+  // Setters - only used in some handlers
+  const setEtapa1Data = (data: unknown) => setStepData(1, data);
+  const setEtapa2Data = (data: unknown) => setStepData(2, data);
+  const setEtapa3Data = (data: unknown) => setStepData(3, data);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setEtapa4Data = (data: unknown) => setStepData(4, data);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const setEtapa5Data = (data: unknown) => setStepData(5, data);
 
   // Regras de completude
   const completionRules = useMemo(() => ({
@@ -112,9 +122,9 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
   });
 
   // Handler para mudança no LeadCadastro
-  const handleLeadChange = (id: string, data: LeadCompleto | null) => {
+  const handleLeadChange = (id: string, data?: LeadCompleto) => {
     setSelectedLeadId(id);
-    setEtapa1Data(data);
+    setEtapa1Data(data || null);
     if (data) {
       setClienteNome(data.identificacao.nome);
     }
@@ -239,7 +249,7 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
       await saveStep(3, true);
     }
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       setCurrentStep(3);
     }, 1000);
   };
@@ -259,7 +269,7 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
       setCurrentStep(currentStep - 1);
     }
   };
-
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleNextStep = async () => {
     if (currentStep === 1) {
       await handleIdentificarCliente();
@@ -280,6 +290,56 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
     if (finalOsId) {
       await saveStep(currentStep, true);
       toast.success('Dados salvos com sucesso!');
+    }
+  };
+
+  // Handler para geração de PDF do parecer
+  const handleGerarPDF = async () => {
+    if (!finalOsId) {
+      toast.error('ID da OS não encontrado');
+      return;
+    }
+
+    try {
+      // Coletar dados para o PDF
+      const dadosParecer = {
+        codigoOS: finalOsId,
+        cliente: {
+          nome: clienteNome || etapa1Data?.identificacao?.nome || 'Cliente',
+          cpfCnpj: etapa1Data?.identificacao?.cpfCnpj || '',
+        },
+        endereco: etapa1Data?.endereco || {},
+        dadosReforma: etapa2Data,
+        observacoes: '',
+      };
+
+      const result = await generatePDF('parecer-reforma', finalOsId, dadosParecer);
+
+      if (result?.success) {
+        setStepData(4, { pdfGerado: true, pdfUrl: result.url });
+        await saveStep(4, false);
+        setCurrentStep(5);
+        toast.success('PDF gerado com sucesso!');
+      } else {
+        toast.error('Erro ao gerar PDF');
+      }
+    } catch (error) {
+      logger.error('Erro ao gerar PDF:', error);
+      toast.error('Erro ao gerar PDF');
+    }
+  };
+
+  // Handler para concluir a OS
+  const handleConcluirOS = async () => {
+    if (!finalOsId) return;
+
+    try {
+      setStepData(5, { concluida: true, dataConclusao: new Date().toISOString() });
+      await saveStep(5, false);
+      toast.success('OS concluída com sucesso!');
+    } catch (error) {
+      logger.error('Erro ao concluir OS:', error);
+      toast.error('Erro ao concluir OS');
     }
   };
 
@@ -308,6 +368,19 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
               statusFilter={['lead', 'ativo']}
               readOnly={isReadOnly}
             />
+
+            {/* Botão Salvar e Avançar dentro do accordion */}
+            {!isReadOnly && (
+              <div className="pt-4 border-t border-border">
+                <PrimaryButton
+                  onClick={handleIdentificarCliente}
+                  isLoading={isCreatingOS}
+                  className="w-full sm:w-auto"
+                >
+                  {isCreatingOS ? 'Criando OS...' : 'Salvar e Avançar'}
+                </PrimaryButton>
+              </div>
+            )}
           </div>
         );
 
@@ -430,8 +503,38 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
       case 4:
         return (
           <div className="space-y-6">
-            <p className="text-muted-foreground">Geração do PDF do parecer técnico.</p>
-            {/* Conteúdo da etapa 4 */}
+            <div className="bg-muted/30 border border-border rounded-lg p-4">
+              <h4 className="font-medium mb-2">Geração do PDF do Parecer Técnico</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Clique no botão abaixo para gerar o documento PDF do Termo de Comunicação de Reforma.
+              </p>
+
+              {etapa4Data?.pdfGerado && etapa4Data?.pdfUrl && (
+                <div className="bg-success/10 border border-success/30 rounded-lg p-3 mb-4">
+                  <div className="flex items-center gap-2 text-success">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span className="text-sm font-medium">PDF gerado com sucesso!</span>
+                  </div>
+                  <a
+                    href={etapa4Data.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-info underline mt-2 inline-block"
+                  >
+                    Baixar PDF
+                  </a>
+                </div>
+              )}
+
+              <PrimaryButton
+                onClick={handleGerarPDF}
+                isLoading={isGeneratingPDF}
+                disabled={etapa4Data?.pdfGerado}
+                className="w-full sm:w-auto"
+              >
+                {isGeneratingPDF ? 'Gerando PDF...' : etapa4Data?.pdfGerado ? 'PDF Gerado ✓' : 'Gerar PDF e Avançar'}
+              </PrimaryButton>
+            </div>
           </div>
         );
 
@@ -445,6 +548,17 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
                 O Termo de Comunicação de Reforma foi processado com sucesso.
               </p>
             </div>
+
+            {!etapa5Data?.concluida && (
+              <div className="pt-4 border-t border-border">
+                <PrimaryButton
+                  onClick={handleConcluirOS}
+                  className="w-full sm:w-auto"
+                >
+                  Concluir OS
+                </PrimaryButton>
+              </div>
+            )}
           </div>
         );
 
@@ -531,16 +645,21 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
         </Card>
       </div>
 
-      {/* Footer com botões de navegação */}
-      <WorkflowFooter
-        currentStep={currentStep}
-        totalSteps={steps.length}
-        onPrevStep={handlePrevStep}
-        onNextStep={handleNextStep}
-        onSaveDraft={handleSaveStep}
-        isLoading={isLoadingData || isCreatingOS}
-        loadingText={currentStep === 1 ? 'Criando OS...' : 'Processando...'}
-      />
+      {/* Footer simplificado - botões principais movidos para dentro dos accordions */}
+      {currentStep > 1 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border px-6 py-3">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <Button variant="outline" onClick={handlePrevStep}>
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            <Button variant="ghost" onClick={handleSaveStep} disabled={isLoadingData}>
+              {isLoadingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Salvar Rascunho
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

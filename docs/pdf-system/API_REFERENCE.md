@@ -1,150 +1,144 @@
-# 📚 API Reference - Sistema de Geração de PDFs
+# 📚 API Reference - Sistema de Geração de PDFs v2.0
 
-## Base URL
-
-```
-https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf
-```
+> **Arquitetura:** Client-Side (Hook React)
+> **Última Atualização:** 2026-01-14
 
 ---
 
-## Endpoints
+## Hook: `usePDFGeneration`
 
-### 1. Health Check
+### Localização
 
-Verifica se a Edge Function está online.
+```typescript
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
+```
 
-**Endpoint**: `GET /health`
+### Assinatura
 
-**Headers**: Nenhum obrigatório
+```typescript
+function usePDFGeneration(): UsePDFGenerationReturn;
 
-**Response**:
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-01-15T10:30:00.000Z"
+interface UsePDFGenerationReturn {
+  generating: boolean;
+  error: Error | null;
+  generate: (
+    tipo: PDFType,
+    osId: string,
+    dados: any
+  ) => Promise<PDFGenerationResponse | null>;
+  reset: () => void;
 }
 ```
 
-**Status Codes**:
-- `200`: Function está online
+### Propriedades Retornadas
 
-**Exemplo**:
-```bash
-curl https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/health
-```
+| Propriedade | Tipo | Descrição |
+|-------------|------|-----------|
+| `generating` | `boolean` | `true` enquanto o PDF está sendo gerado |
+| `error` | `Error \| null` | Erro da última geração, se houver |
+| `generate` | `function` | Função para gerar o PDF |
+| `reset` | `function` | Limpa estado de erro e generating |
 
 ---
 
-### 2. Gerar PDF
+## Função: `generate()`
 
-Gera um PDF do tipo especificado e faz upload para o Supabase Storage.
+### Parâmetros
 
-**Endpoint**: `POST /generate`
+| Parâmetro | Tipo | Obrigatório | Descrição |
+|-----------|------|:-----------:|-----------|
+| `tipo` | `PDFType` | ✅ | Tipo de PDF a ser gerado |
+| `osId` | `string` | ✅ | UUID da Ordem de Serviço |
+| `dados` | `object` | ✅ | Dados específicos do template |
 
-**Headers**:
-| Header | Valor | Obrigatório |
-|--------|-------|-------------|
-| `Content-Type` | `application/json` | ✅ Sim |
-| `Authorization` | `Bearer {JWT_TOKEN}` | ✅ Sim |
-
-**Request Body**:
-```typescript
-{
-  tipo: PDFType;          // 'proposta' | 'contrato' | 'memorial' | 'documento-sst'
-  osId: string;           // ID da Ordem de Serviço
-  dados: Record<string, unknown>;  // Dados específicos do tipo de PDF
-}
-```
-
-**Response Success** (200):
-```json
-{
-  "success": true,
-  "url": "https://zxfevlkssljndqqhxkjb.supabase.co/storage/v1/object/public/uploads/os/OS-001/documentos/proposta/proposta_2025-01-15T10-30-00.pdf",
-  "metadata": {
-    "filename": "proposta_2025-01-15T10-30-00.pdf",
-    "size": 124567,
-    "tipo": "proposta"
-  }
-}
-```
-
-**Response Error** (400/500):
-```json
-{
-  "success": false,
-  "error": "Validation failed"
-}
-```
-
-**Status Codes**:
-- `200`: PDF gerado com sucesso
-- `400`: Dados inválidos ou tipo de PDF inválido
-- `401`: Não autenticado (token ausente ou inválido)
-- `500`: Erro interno na geração do PDF
-
----
-
-## Tipos TypeScript
-
-### PDFType
-
-```typescript
-type PDFType = 'proposta' | 'contrato' | 'memorial' | 'documento-sst';
-```
-
-### PDFGenerationRequest
-
-```typescript
-interface PDFGenerationRequest {
-  tipo: PDFType;
-  osId: string;
-  dados: Record<string, unknown>;
-}
-```
-
-### PDFGenerationResponse
+### Retorno
 
 ```typescript
 interface PDFGenerationResponse {
   success: boolean;
-  url?: string;
-  error?: string;
+  url?: string;       // Signed URL válida por 1 hora
+  path?: string;      // Caminho persistente no Storage
+  error?: string;     // Mensagem de erro (se success=false)
   metadata?: {
     filename: string;
-    size: number;
+    size: number;     // Tamanho em bytes
     tipo: PDFType;
   };
 }
+```
+
+### Exemplo de Uso
+
+```tsx
+import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+
+function GerarPropostaButton({ osId, dadosProposta }) {
+  const { generating, generate, error } = usePDFGeneration();
+
+  const handleGerar = async () => {
+    const result = await generate('proposta', osId, dadosProposta);
+
+    if (result?.success) {
+      toast.success('PDF gerado com sucesso!');
+      window.open(result.url, '_blank');
+    } else {
+      toast.error(`Erro: ${result?.error || 'Falha na geração'}`);
+    }
+  };
+
+  return (
+    <Button onClick={handleGerar} disabled={generating}>
+      {generating ? 'Gerando...' : 'Gerar Proposta'}
+    </Button>
+  );
+}
+```
+
+---
+
+## Tipos de PDF (`PDFType`)
+
+```typescript
+type PDFType =
+  | 'proposta'           // Proposta comercial (OS 1-4)
+  | 'contrato'           // Contrato de serviços
+  | 'memorial'           // Memorial descritivo (OS 1-4)
+  | 'documento-sst'      // Documento SST
+  | 'parecer-reforma'    // Parecer técnico (OS-07)
+  | 'visita-tecnica'     // Relatório visita (OS-08)
+  | 'proposta-ass-anual' // Assessoria anual (OS-05)
+  | 'proposta-ass-pontual'; // Assessoria pontual (OS-06)
 ```
 
 ---
 
 ## Dados por Tipo de PDF
 
-### 1. Proposta Comercial
+### 1. Proposta Comercial (`proposta`)
 
-**Tipo**: `'proposta'`
+**Template:** `proposta-template.tsx`
+**OS:** 1-4
 
-**Campos Obrigatórios**:
 ```typescript
-{
-  codigoOS: string;         // Ex: 'OS-001'
-  clienteNome: string;      // Ex: 'João Silva'
-  clienteCpfCnpj: string;   // Ex: '123.456.789-00' ou '12.345.678/0001-99'
-  valorProposta: number;    // Ex: 15000
-}
-```
+interface PropostaData {
+  // Obrigatórios
+  codigoOS: string;
+  cliente: {
+    nome: string;
+    cpfCnpj: string;
+  };
+  valorProposta: number;
 
-**Campos Opcionais**:
-```typescript
-{
+  // Opcionais
   tipoOS?: string;
-  dataEmissao?: string;        // ISO 8601
-  clienteEmail?: string;
-  clienteTelefone?: string;
-  clienteEndereco?: string;
+  dataEmissao?: string;
+  cliente: {
+    email?: string;
+    telefone?: string;
+    endereco?: string;
+  };
   descricaoServico?: string;
   prazoEntrega?: string;
   observacoes?: string;
@@ -154,87 +148,46 @@ interface PDFGenerationResponse {
     valorUnitario: number;
     valorTotal: number;
   }>;
-  empresaNome?: string;
-  empresaCnpj?: string;
-  empresaEndereco?: string;
-  empresaTelefone?: string;
-  empresaEmail?: string;
+  empresa?: {
+    nome?: string;
+    cnpj?: string;
+    endereco?: string;
+    telefone?: string;
+    email?: string;
+  };
 }
 ```
-
-**Exemplo de Request**:
-```bash
-curl -X POST \
-  https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "tipo": "proposta",
-    "osId": "OS-001",
-    "dados": {
-      "codigoOS": "OS-001",
-      "clienteNome": "João Silva",
-      "clienteCpfCnpj": "111.444.777-35",
-      "clienteEmail": "joao@email.com",
-      "valorProposta": 15000,
-      "descricaoServico": "Projeto elétrico residencial",
-      "itens": [
-        {
-          "descricao": "Projeto elétrico",
-          "quantidade": 1,
-          "valorUnitario": 8000,
-          "valorTotal": 8000
-        },
-        {
-          "descricao": "ART",
-          "quantidade": 1,
-          "valorUnitario": 500,
-          "valorTotal": 500
-        }
-      ]
-    }
-  }'
-```
-
-**Validações Aplicadas**:
-- ✅ `codigoOS`, `clienteNome`, `clienteCpfCnpj`, `valorProposta` são obrigatórios
-- ✅ CPF/CNPJ validado por algoritmo verificador
-- ✅ Email validado se fornecido
 
 ---
 
-### 2. Contrato
+### 2. Contrato (`contrato`)
 
-**Tipo**: `'contrato'`
+**Template:** `contrato-template.tsx`
+**OS:** Geral
 
-**Campos Obrigatórios**:
 ```typescript
-{
+interface ContratoData {
+  // Obrigatórios
   codigoOS: string;
-  // Aceita ambos os formatos:
-  clienteNome?: string;          // OU contratanteNome
-  contratanteNome?: string;      // OU clienteNome
-  clienteCpfCnpj?: string;       // OU contratanteCpfCnpj
-  contratanteCpfCnpj?: string;   // OU clienteCpfCnpj
+  contratanteNome: string;
+  contratanteCpfCnpj: string;
   valorContrato: number;
-  dataInicio: string;            // ISO 8601 ou 'YYYY-MM-DD'
-}
-```
+  dataInicio: string; // ISO 8601
 
-**Campos Opcionais**:
-```typescript
-{
+  // Opcionais
   numeroContrato?: string;
   dataEmissao?: string;
   dataTermino?: string;
   contratanteEndereco?: string;
   contratanteCidade?: string;
   contratanteEstado?: string;
-  contratadoNome?: string;
-  contratadoCnpj?: string;
-  contratadoEndereco?: string;
-  contratadoCidade?: string;
-  contratadoEstado?: string;
+  contratado?: {
+    nome?: string;
+    cnpj?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
+  };
   objetoContrato?: string;
   formaPagamento?: string;
   clausulas?: Array<{
@@ -245,43 +198,16 @@ curl -X POST \
 }
 ```
 
-**Exemplo de Request**:
-```bash
-curl -X POST \
-  https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "tipo": "contrato",
-    "osId": "OS-001",
-    "dados": {
-      "codigoOS": "OS-001",
-      "numeroContrato": "CONT-2025-001",
-      "contratanteNome": "Maria Santos",
-      "contratanteCpfCnpj": "391.799.790-77",
-      "valorContrato": 15000,
-      "dataInicio": "2025-02-01",
-      "dataTermino": "2025-03-01",
-      "objetoContrato": "Prestação de serviços de engenharia",
-      "formaPagamento": "50% no início e 50% na entrega"
-    }
-  }'
-```
-
-**Validações Aplicadas**:
-- ✅ `codigoOS`, `valorContrato`, `dataInicio` são obrigatórios
-- ✅ Nome e CPF/CNPJ obrigatórios (aceita ambos formatos)
-- ✅ CPF/CNPJ validado se fornecido
-
 ---
 
-### 3. Memorial Descritivo
+### 3. Memorial Descritivo (`memorial`)
 
-**Tipo**: `'memorial'`
+**Template:** `memorial-template.tsx`
+**OS:** 1-4
 
-**Campos Obrigatórios**:
 ```typescript
-{
+interface MemorialData {
+  // Obrigatórios
   codigoOS: string;
   titulo: string;
   clienteNome: string;
@@ -289,60 +215,25 @@ curl -X POST \
     titulo: string;
     conteudo: string;
   }>;
-}
-```
 
-**Campos Opcionais**:
-```typescript
-{
+  // Opcionais
   dataEmissao?: string;
   local?: string;
 }
 ```
 
-**Exemplo de Request**:
-```bash
-curl -X POST \
-  https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "tipo": "memorial",
-    "osId": "OS-001",
-    "dados": {
-      "codigoOS": "OS-001",
-      "titulo": "Memorial Descritivo - Projeto Elétrico",
-      "clienteNome": "Carlos Alberto",
-      "local": "São Paulo/SP",
-      "secoes": [
-        {
-          "titulo": "1. INTRODUÇÃO",
-          "conteudo": "O presente memorial descritivo..."
-        },
-        {
-          "titulo": "2. NORMAS APLICÁVEIS",
-          "conteudo": "NBR 5410, NBR 5419..."
-        }
-      ]
-    }
-  }'
-```
-
-**Validações Aplicadas**:
-- ✅ `codigoOS`, `titulo`, `clienteNome`, `secoes` são obrigatórios
-- ✅ `secoes` deve ser um array com pelo menos 1 elemento
-
 ---
 
-### 4. Documento SST
+### 4. Documento SST (`documento-sst`)
 
-**Tipo**: `'documento-sst'`
+**Template:** `documento-sst-template.tsx`
+**OS:** Geral
 
-**Campos Obrigatórios**:
 ```typescript
-{
+interface DocumentoSSTData {
+  // Obrigatórios
   codigoOS: string;
-  tipoDocumento: string;    // Ex: 'Checklist de Segurança'
+  tipoDocumento: string;
   clienteNome: string;
   local: string;
   itens: Array<{
@@ -351,330 +242,290 @@ curl -X POST \
     categoria?: string;
     observacao?: string;
   }>;
-}
-```
 
-**Campos Opcionais**:
-```typescript
-{
+  // Opcionais
   dataEmissao?: string;
   responsavelTecnico?: string;
   conclusao?: string;
 }
 ```
 
-**Exemplo de Request**:
-```bash
-curl -X POST \
-  https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
-  -d '{
-    "tipo": "documento-sst",
-    "osId": "OS-001",
-    "dados": {
-      "codigoOS": "OS-001",
-      "tipoDocumento": "Checklist de Segurança",
-      "clienteNome": "Pedro Oliveira",
-      "local": "Obra Residencial - São Paulo/SP",
-      "responsavelTecnico": "Eng. José Silva - CREA 123456",
-      "itens": [
-        {
-          "categoria": "EPIs",
-          "descricao": "Capacete de segurança",
-          "status": "conforme"
-        },
-        {
-          "categoria": "EPIs",
-          "descricao": "Óculos de proteção",
-          "status": "nao-conforme",
-          "observacao": "2 colaboradores sem óculos"
-        }
-      ],
-      "conclusao": "Foram identificadas 2 não conformidades."
-    }
-  }'
-```
+---
 
-**Validações Aplicadas**:
-- ✅ `codigoOS`, `tipoDocumento`, `clienteNome`, `local`, `itens` são obrigatórios
-- ✅ `itens` deve ser um array com pelo menos 1 elemento
+### 5. Parecer Reforma (`parecer-reforma`)
+
+**Template:** `parecer-reforma-template.tsx`
+**OS:** 07
+
+```typescript
+interface ParecerReformaData {
+  // Obrigatórios
+  codigoOS: string;
+  cliente: {
+    nome: string;
+    cpfCnpj?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
+  };
+  parecer: {
+    tipo: 'favoravel' | 'condicionado' | 'desfavoravel';
+    descricao: string;
+  };
+
+  // Opcionais
+  dataVisita?: string;
+  descricaoReforma?: string;
+  observacoes?: string;
+  responsavelTecnico?: {
+    nome?: string;
+    cargo?: string;
+    crea?: string;
+  };
+}
+```
 
 ---
 
-## Códigos de Erro
+### 6. Visita Técnica (`visita-tecnica`)
 
-### Erro de Validação (400)
+**Template:** `visita-tecnica-template.tsx`
+**OS:** 08
 
-```json
-{
-  "success": false,
-  "error": "Validation failed"
-}
-```
-
-**Possíveis causas:**
-- Campos obrigatórios faltando
-- CPF/CNPJ inválido
-- Email inválido
-- Tipo de PDF inválido
-
-### Erro de Autenticação (401)
-
-```json
-{
-  "success": false,
-  "error": "Authorization header missing"
-}
-```
-
-**Causa:** Header `Authorization` não fornecido ou token inválido.
-
-**Solução:**
 ```typescript
-const { data: { session } } = await supabase.auth.getSession();
-const token = session?.access_token;
+interface VisitaTecnicaData {
+  // Metadados
+  codigoOS: string;
+  dataVisita: string;
+  dataGeracao: string;
+  finalidadeInspecao: FinalidadeInspecao;
+  tituloDocumento: string;
 
-fetch(url, {
-  headers: {
-    'Authorization': `Bearer ${token}`
+  // Cliente
+  cliente: {
+    nome: string;
+    cpfCnpj?: string;
+    endereco?: string;
+    bairro?: string;
+    cidade?: string;
+    estado?: string;
+    sindico?: string;
+  };
+
+  // Solicitante
+  solicitante: {
+    nome: string;
+    contato: string;
+    condominio?: string;
+  };
+
+  // Objetivo
+  objetivo: {
+    descricaoSolicitacao: string;
+    areaVistoriada: string;
+    tempoSituacao?: string;
+  };
+
+  // Qualidade
+  qualidade: {
+    engenheiroPontual: boolean;
+    moradorPontual: boolean;
+  };
+
+  // Fotos
+  fotos?: Array<{
+    url: string;
+    legenda: string;
+    isNaoConforme: boolean;
+  }>;
+
+  // Responsável
+  responsavelTecnico: {
+    nome: string;
+    cargo: string;
+    crea?: string;
+  };
+
+  // Condicional: Parecer ou Checklist
+  parecerTecnico?: {
+    manifestacaoPatologica: string;
+    recomendacoes: string;
+    gravidade: 'baixa' | 'media' | 'alta' | 'critica';
+    origemNBR: string;
+    observacoes: string;
+    resultadoVisita: string;
+    justificativa: string;
+  };
+
+  checklistRecebimento?: {
+    items: ChecklistItem[];
+    estatisticas: {
+      total: number;
+      conformes: number;
+      naoConformes: number;
+      naoAplica: number;
+    };
+  };
+}
+
+type FinalidadeInspecao =
+  | 'parecer_tecnico'
+  | 'escopo_intervencao'
+  | 'recebimento_unidade_autonoma'
+  | 'recebimento_areas_comuns';
+
+interface ChecklistItem {
+  id: string;
+  bloco: string;
+  label: string;
+  status: 'C' | 'NC' | 'NA';
+  observacao?: string;
+}
+```
+
+---
+
+### 7. Proposta Assessoria Anual (`proposta-ass-anual`)
+
+**Template:** `proposta-ass-anual.tsx`
+**OS:** 05
+
+```typescript
+interface PropostaAssAnualData {
+  // Obrigatórios
+  codigoOS: string;
+  cliente: {
+    nome: string;
+    cpfCnpj?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
+  };
+  valorMensal: number;
+  duracaoContrato: number; // meses
+
+  // Opcionais
+  dataEmissao?: string;
+  escopo?: string[];
+  metodologia?: string;
+  sla?: string;
+  horarioFuncionamento?: string;
+  observacoes?: string;
+}
+```
+
+---
+
+### 8. Proposta Assessoria Pontual (`proposta-ass-pontual`)
+
+**Template:** `proposta-ass-pontual.tsx`
+**OS:** 06
+
+```typescript
+interface PropostaAssPontualData {
+  // Obrigatórios
+  codigoOS: string;
+  cliente: {
+    nome: string;
+    cpfCnpj?: string;
+    endereco?: string;
+    cidade?: string;
+    estado?: string;
+  };
+  valorTotal: number;
+
+  // Opcionais
+  dataEmissao?: string;
+  escopo?: string[];
+  prazoExecucao?: string;
+  entregaveis?: string[];
+  observacoes?: string;
+}
+```
+
+---
+
+## Códigos de Erro Comuns
+
+| Erro | Causa | Solução |
+|------|-------|---------|
+| `Template não suportado: X` | Tipo de PDF inválido | Verifique se o tipo está em `PDFType` |
+| `Falha ao gerar o blob do PDF` | Erro de renderização | Verifique dados obrigatórios |
+| `Upload failed` | Erro de Storage | Verifique bucket `uploads` |
+| `ReferenceError: window is not defined` | Usado em Server Component | Use apenas em componentes client-side |
+
+---
+
+## Boas Práticas
+
+### 1. Tratamento de Erros
+
+```tsx
+const result = await generate('proposta', osId, dados);
+
+if (!result) {
+  // Hook retornou null (erro crítico)
+  return;
+}
+
+if (!result.success) {
+  toast.error(`Erro: ${result.error}`);
+  return;
+}
+
+// Sucesso
+toast.success('PDF gerado!');
+```
+
+### 2. Loading State
+
+```tsx
+<Button onClick={handleGerar} disabled={generating}>
+  {generating ? (
+    <>
+      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+      Gerando...
+    </>
+  ) : (
+    'Gerar PDF'
+  )}
+</Button>
+```
+
+### 3. Validação Prévia
+
+```tsx
+const handleGerar = async () => {
+  // Validar dados obrigatórios
+  if (!dados.cliente?.nome || !dados.valorProposta) {
+    toast.error('Preencha todos os campos obrigatórios');
+    return;
   }
-});
-```
 
-### Erro Interno (500)
-
-```json
-{
-  "success": false,
-  "error": "Erro ao renderizar template"
-}
-```
-
-**Possíveis causas:**
-- Erro no template React (sintaxe inválida)
-- Falha ao fazer upload para Storage
-- Timeout (>20s)
-
----
-
-## Autenticação
-
-### Obtendo o Token JWT
-
-```typescript
-import { supabase } from '@/lib/supabase-client';
-
-// Obter token da sessão atual
-const { data: { session } } = await supabase.auth.getSession();
-const token = session?.access_token;
-
-// Usar em requests
-const response = await fetch(edgeFunctionUrl, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  },
-  body: JSON.stringify({ tipo, osId, dados })
-});
-```
-
-### Token Expirado
-
-Tokens JWT expiram após 1 hora. O Supabase Auth faz refresh automático.
-
-Se o token expirar durante uma chamada:
-```typescript
-const { data, error } = await supabase.auth.refreshSession();
-if (data.session) {
-  const newToken = data.session.access_token;
-  // Retry request com novo token
-}
-```
-
----
-
-## Rate Limiting
-
-**Limites padrão do Supabase (Free Tier)**:
-- 500,000 invocações/mês
-- ~16,000 invocações/dia
-
-Para uso típico (10-20 PDFs/dia), não há risco de exceder limites.
-
----
-
-## CORS
-
-A Edge Function permite requests de qualquer origem:
-
-```typescript
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  const result = await generate('proposta', osId, dados);
+  // ...
 };
 ```
 
-**Preflight requests** (OPTIONS) são automaticamente tratados.
+### 4. Fallback para Valores Undefined
 
----
+Nos dados passados ao template, sempre use fallback:
 
-## Exemplos de Uso
-
-### JavaScript/TypeScript (Frontend)
-
-```typescript
-import { supabase } from '@/lib/supabase-client';
-
-async function gerarProposta(osId: string, dados: PropostaData) {
-  // 1. Obter token
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Não autenticado');
-
-  // 2. Chamar Edge Function
-  const response = await fetch(
-    'https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate',
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`
-      },
-      body: JSON.stringify({
-        tipo: 'proposta',
-        osId,
-        dados
-      })
-    }
-  );
-
-  // 3. Processar resposta
-  const result = await response.json();
-
-  if (result.success) {
-    console.log('PDF gerado:', result.url);
-    // Download automático
-    window.open(result.url, '_blank');
-  } else {
-    console.error('Erro:', result.error);
-  }
-
-  return result;
-}
-```
-
-### React Hook (Recomendado)
-
-```typescript
-import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
-
-function MyComponent() {
-  const { generating, generate } = usePDFGeneration();
-
-  const handleGenerate = async () => {
-    const result = await generate('proposta', 'OS-001', {
-      codigoOS: 'OS-001',
-      clienteNome: 'João Silva',
-      clienteCpfCnpj: '111.444.777-35',
-      valorProposta: 15000
-    });
-
-    if (result?.success) {
-      console.log('PDF gerado com sucesso!');
-    }
-  };
-
-  return (
-    <button onClick={handleGenerate} disabled={generating}>
-      {generating ? 'Gerando...' : 'Gerar PDF'}
-    </button>
-  );
-}
-```
-
-### cURL (Teste Manual)
-
-```bash
-# 1. Obter token (via Supabase Dashboard ou login)
-TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-
-# 2. Chamar endpoint
-curl -X POST \
-  https://zxfevlkssljndqqhxkjb.supabase.co/functions/v1/generate-pdf/generate \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $TOKEN" \
-  -d '{
-    "tipo": "proposta",
-    "osId": "test-001",
-    "dados": {
-      "codigoOS": "OS-001",
-      "clienteNome": "Teste",
-      "clienteCpfCnpj": "111.444.777-35",
-      "valorProposta": 5000
-    }
-  }' | jq
-```
-
----
-
-## Webhooks (Futuro)
-
-**Planejado para versão futura**: Notificação via webhook quando PDF é gerado.
-
-```typescript
-// Exemplo futuro
+```tsx
 {
-  "tipo": "proposta",
-  "osId": "OS-001",
-  "dados": {...},
-  "webhook_url": "https://seu-servidor.com/webhook/pdf-gerado"
+  cliente: {
+    nome: formData.clienteNome || 'Nome não informado',
+    cpfCnpj: formData.clienteCpfCnpj || '',
+  },
+  valorProposta: formData.valor || 0,
 }
 ```
 
 ---
 
-## Monitoramento
+## Referências
 
-### Logs
-
-Ver todos os logs:
-```bash
-npx supabase functions logs generate-pdf
-```
-
-Ver apenas erros:
-```bash
-npx supabase functions logs generate-pdf --level error
-```
-
-### Métricas Recomendadas
-
-1. **Taxa de sucesso**: `success: true` vs `success: false`
-2. **Tempo médio de geração**: Medir tempo entre request e response
-3. **Tamanho médio de PDFs**: Monitorar `metadata.size`
-4. **Tipos mais gerados**: Contar por `tipo`
-
----
-
-## Changelog
-
-### v1.0.0 (2025-01-15)
-- ✅ Implementação inicial
-- ✅ Suporte a 4 tipos: proposta, contrato, memorial, documento-sst
-- ✅ Validação de CPF/CNPJ
-- ✅ Upload automático para Supabase Storage
-- ✅ Metadata em banco de dados
-
-### Próximas Versões
-- [ ] v1.1.0: Suporte a múltiplas páginas
-- [ ] v1.2.0: Webhooks
-- [ ] v1.3.0: Geração em batch
-
----
-
-## Suporte
-
-- **Documentação**: [docs/pdf-system/](../pdf-system/)
-- **Issues**: GitHub Issues do projeto
-- **Email**: suporte@minerva.com.br
+- [Hook Source](file:///c:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/lib/hooks/use-pdf-generation.tsx)
+- [Types Source](file:///c:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/lib/types.ts)
+- [Templates Directory](file:///c:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/lib/pdf/templates)
+- [MCP_PDF_SYSTEM.md](./MCP_PDF_SYSTEM.md) - Índice completo

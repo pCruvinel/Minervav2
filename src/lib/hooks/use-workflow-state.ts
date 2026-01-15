@@ -134,16 +134,24 @@ export function useWorkflowState({ osId, totalSteps, initialStep = 1 }: Workflow
     let data: any;
     if (explicitData !== undefined) {
       data = explicitData;
-      logger.log(`💾 saveStep(${step}): Using explicit data (${Object.keys(data || {}).length} fields)`);
+      logger.log(`💾 saveStep(${step}): Using EXPLICIT data (${Object.keys(data || {}).length} fields)`);
     } else {
       data = getStepData(step);
-      logger.log(`💾 saveStep(${step}): Using state data (${Object.keys(data || {}).length} fields)`);
+      logger.log(`💾 saveStep(${step}): Using STATE data (${Object.keys(data || {}).length} fields)`);
+    }
+
+    // 🔍 Debug: Log data structure for troubleshooting
+    if (Object.keys(data || {}).length > 0) {
+      logger.log(`📊 Etapa ${step} data keys:`, Object.keys(data));
+    } else {
+      logger.warn(`⚠️ Etapa ${step}: NENHUM dado para salvar! Verifique se onDataChange está sendo chamado.`);
     }
 
     const etapa = etapas?.find(e => e.ordem === step);
 
     if (etapa) {
       await saveFormData(etapa.id, data, !isDraft);
+      logger.log(`✅ Etapa ${step} salva com sucesso (isDraft: ${isDraft})`);
       return true;
     }
     

@@ -1,779 +1,646 @@
-# 🎨 Guia de Templates - Sistema de Geração de PDFs
+# 🎨 Guia de Templates PDF - MinervaV2 v2.0
 
-## Índice
+> **Engine:** @react-pdf/renderer v3.x
+> **Última Atualização:** 2026-01-14
 
-1. [Anatomia de um Template](#anatomia-de-um-template)
-2. [Componentes @react-pdf/renderer](#componentes-react-pdfrenderer)
-3. [Sistema de Estilos](#sistema-de-estilos)
-4. [Formatação de Dados](#formatação-de-dados)
-5. [Boas Práticas](#boas-práticas)
-6. [Exemplos Práticos](#exemplos-práticos)
+---
+
+## 📋 Índice
+
+1. [Visão Geral](#visão-geral)
+2. [Templates Disponíveis](#templates-disponíveis)
+3. [Anatomia de um Template](#anatomia-de-um-template)
+4. [Primitivos React PDF](#primitivos-react-pdf)
+5. [Sistema de Estilos](#sistema-de-estilos)
+6. [Componentes Compartilhados](#componentes-compartilhados)
+7. [Formatadores](#formatadores)
+8. [Padrões Comuns](#padrões-comuns)
+9. [Limitações e Workarounds](#limitações-e-workarounds)
+
+---
+
+## Visão Geral
+
+Os templates são **componentes React puros** que utilizam primitivos especiais do `@react-pdf/renderer` para renderizar PDFs diretamente no navegador.
+
+### Localização
+
+```
+src/lib/pdf/templates/
+├── proposta-template.tsx       # 32KB - OS 1-4
+├── contrato-template.tsx       # 11KB - Geral
+├── memorial-template.tsx       # 3KB  - OS 1-4
+├── documento-sst-template.tsx  # 8KB  - Geral
+├── parecer-reforma-template.tsx # 9KB  - OS-07
+├── visita-tecnica-template.tsx # 31KB - OS-08
+├── proposta-ass-anual.tsx      # 23KB - OS-05
+└── proposta-ass-pontual.tsx    # 25KB - OS-06
+```
+
+---
+
+## Templates Disponíveis
+
+### 1. Proposta Comercial (`proposta`)
+
+**Arquivo:** `proposta-template.tsx`  
+**OS:** 1-4 (Obras)  
+**Tamanho:** ~32KB  
+
+**Seções:**
+- Cabeçalho com logo e código OS
+- Dados do cliente
+- Objetivo e escopo
+- Cronograma de execução
+- Memorial descritivo (itens e sub-itens)
+- Investimentos (tabela detalhada)
+- Condições de pagamento
+- Garantias
+- Rodapé com paginação
+
+---
+
+### 2. Contrato (`contrato`)
+
+**Arquivo:** `contrato-template.tsx`  
+**OS:** Geral  
+**Tamanho:** ~11KB  
+
+**Seções:**
+- Identificação das partes (Contratante/Contratado)
+- Objeto do contrato
+- Cláusulas contratuais
+- Valor e forma de pagamento
+- Assinaturas
+
+---
+
+### 3. Memorial Descritivo (`memorial`)
+
+**Arquivo:** `memorial-template.tsx`  
+**OS:** 1-4  
+**Tamanho:** ~3KB  
+
+**Seções:**
+- Cabeçalho
+- Seções dinâmicas (título + conteúdo)
+- Data e local
+
+---
+
+### 4. Documento SST (`documento-sst`)
+
+**Arquivo:** `documento-sst-template.tsx`  
+**OS:** Geral  
+**Tamanho:** ~8KB  
+
+**Seções:**
+- Cabeçalho
+- Tipo de documento
+- Checklist de itens (Conforme/Não-conforme/N/A)
+- Conclusão
+- Responsável técnico
+
+---
+
+### 5. Parecer Reforma (`parecer-reforma`)
+
+**Arquivo:** `parecer-reforma-template.tsx`  
+**OS:** OS-07  
+**Tamanho:** ~9KB  
+
+**Seções:**
+- Dados do imóvel
+- Descrição da reforma
+- Parecer técnico (Favorável/Condicionado/Desfavorável)
+- Observações
+- Assinatura do responsável
+
+---
+
+### 6. Visita Técnica (`visita-tecnica`)
+
+**Arquivo:** `visita-tecnica-template.tsx`  
+**OS:** OS-08  
+**Tamanho:** ~31KB  
+
+**Seções:**
+- Cliente e solicitante
+- Objetivo da visita
+- Área vistoriada
+- **Modo Parecer:** Manifestação patológica, gravidade, NBR
+- **Modo Recebimento:** Checklist 27 itens (C/NC/NA)
+- Fotos com legendas
+- Responsável técnico
+
+---
+
+### 7. Proposta Assessoria Anual (`proposta-ass-anual`)
+
+**Arquivo:** `proposta-ass-anual.tsx`  
+**OS:** OS-05  
+**Tamanho:** ~23KB  
+
+**Seções:**
+- Dados do cliente
+- Escopo do contrato
+- Metodologia
+- SLA e horário de funcionamento
+- Valor mensal
+- Condições
+
+---
+
+### 8. Proposta Assessoria Pontual (`proposta-ass-pontual`)
+
+**Arquivo:** `proposta-ass-pontual.tsx`  
+**OS:** OS-06  
+**Tamanho:** ~25KB  
+
+**Seções:**
+- Dados do cliente
+- Escopo do serviço
+- Prazo de execução
+- Entregáveis
+- Valor total
+- Condições
 
 ---
 
 ## Anatomia de um Template
 
-Todo template React PDF segue esta estrutura básica:
+### Estrutura Básica
 
 ```tsx
+// 1. Imports
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { colors, spacing, fonts, commonStyles } from './shared-styles.ts';
+import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
+import { colors, fonts, fontSize, spacing, commonStyles } from '../shared-styles';
+import { SharedHeader, SharedFooter } from '../components';
 
-// 1. Interface de Props
-interface MeuTemplateProps {
-  data: MeuTipoData;
+// 2. Interface de Dados
+export interface MeuTemplateData {
+  codigoOS: string;
+  titulo: string;
+  // ... campos específicos
 }
 
-// 2. Estilos do Template
+// 3. Estilos Locais
 const styles = StyleSheet.create({
-  page: commonStyles.page,
-  header: commonStyles.header,
-  // Estilos específicos do template...
+  page: {
+    padding: spacing.xl,
+    fontFamily: fonts.regular,
+    fontSize: fontSize.base,
+  },
+  section: {
+    marginTop: spacing.lg,
+  },
 });
 
-// 3. Componente Template
-export function MeuTemplate({ data }: MeuTemplateProps) {
+// 4. Componente Principal
+export default function MeuTemplate({ data }: { data: MeuTemplateData }) {
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Conteúdo do PDF */}
+        {/* Cabeçalho */}
+        <SharedHeader 
+          codigoOS={data.codigoOS} 
+          documentTitle="MEU DOCUMENTO" 
+        />
+        
+        {/* Corpo */}
+        <View style={styles.section}>
+          <Text>{data.titulo || ''}</Text>
+        </View>
+        
+        {/* Rodapé */}
+        <SharedFooter />
       </Page>
     </Document>
   );
 }
 ```
 
-### Estrutura Típica de um PDF
-
-```
-┌───────────────────────────────┐
-│        HEADER                  │  Logo, Título, Subtítulo
-│  [Logo]  TÍTULO                │
-│          Subtítulo             │
-├───────────────────────────────┤
-│                               │
-│   SEÇÃO 1: Informações Gerais │
-│   ┌─────────────────────────┐ │
-│   │ Campo: Valor            │ │
-│   │ Campo: Valor            │ │
-│   └─────────────────────────┘ │
-│                               │
-│   SEÇÃO 2: Tabela de Itens    │
-│   ┌─────────────────────────┐ │
-│   │ Item | Qtd | Valor      │ │
-│   │ Item 1 | 2  | R$ 100    │ │
-│   │ Item 2 | 1  | R$ 50     │ │
-│   └─────────────────────────┘ │
-│                               │
-│   SEÇÃO 3: Totais             │
-│   Subtotal: R$ 150,00         │
-│   Total:    R$ 150,00         │
-│                               │
-├───────────────────────────────┤
-│        FOOTER                  │  Data, Assinatura
-│   Gerado em: 15/01/2025       │
-└───────────────────────────────┘
-```
-
 ---
 
-## Componentes @react-pdf/renderer
+## Primitivos React PDF
 
-### Componentes Básicos
+O `@react-pdf/renderer` usa componentes específicos (não HTML):
 
-#### 1. Document
-
-Container raiz de todo PDF.
+### Document e Page
 
 ```tsx
-import { Document } from '@react-pdf/renderer';
-
 <Document>
-  {/* Pages aqui */}
+  <Page size="A4" style={styles.page}>
+    {/* Conteúdo */}
+  </Page>
 </Document>
 ```
 
-**Props:**
-- `title`: Título do documento (metadata)
-- `author`: Autor (metadata)
-- `subject`: Assunto (metadata)
+**Props do Page:**
+- `size`: 'A4' | 'LETTER' | { width, height }
+- `orientation`: 'portrait' | 'landscape'
+- `style`: objeto de estilos
 
-#### 2. Page
-
-Representa uma página do PDF.
+### View (equivalente a div)
 
 ```tsx
-import { Page } from '@react-pdf/renderer';
-
-<Page size="A4" style={styles.page}>
-  {/* Conteúdo da página */}
-</Page>
-```
-
-**Props:**
-- `size`: `'A4'` | `'LETTER'` | `[width, height]`
-- `orientation`: `'portrait'` (padrão) | `'landscape'`
-- `style`: Estilos da página
-
-**Tamanhos comuns:**
-- A4: 210mm x 297mm (595pt x 842pt)
-- Letter: 8.5" x 11" (612pt x 792pt)
-
-#### 3. View
-
-Container genérico (como `<div>` no HTML).
-
-```tsx
-import { View } from '@react-pdf/renderer';
-
-<View style={styles.section}>
-  {/* Outros componentes */}
+<View style={{ flexDirection: 'row', marginBottom: 10 }}>
+  <View style={{ flex: 1 }}>Coluna 1</View>
+  <View style={{ flex: 1 }}>Coluna 2</View>
 </View>
 ```
 
-**Props:**
-- `style`: Estilos (flexbox, padding, margin, etc.)
-- `wrap`: `boolean` - Permite quebra de página (padrão: true)
-- `break`: `boolean` - Força quebra de página
-
-#### 4. Text
-
-Renderiza texto (como `<span>` no HTML).
+### Text
 
 ```tsx
-import { Text } from '@react-pdf/renderer';
-
-<Text style={styles.title}>Meu Título</Text>
+<Text style={{ fontSize: 12, fontWeight: 'bold' }}>
+  Texto aqui
+</Text>
 ```
 
-**Props:**
-- `style`: Estilos de texto (fontSize, fontWeight, color, etc.)
-- `wrap`: `boolean` - Permite quebra de linha
-- `orphanControl`: `boolean` - Evita linhas órfãs
+> ⚠️ **Importante:** Todo texto DEVE estar dentro de `<Text>`. Não pode haver texto solto.
 
-**Importante:** Todo texto deve estar dentro de um `<Text>`.
-
-#### 5. Image
-
-Renderiza imagens.
+### Image
 
 ```tsx
-import { Image } from '@react-pdf/renderer';
+import { logoBase64 } from '../assets';
 
-<Image
-  src="https://example.com/logo.png"
-  style={{ width: 100, height: 50 }}
+<Image 
+  src={logoBase64} 
+  style={{ width: 100, height: 50 }} 
 />
 ```
 
-**Props:**
-- `src`: URL da imagem (http/https) ou base64
-- `style`: Estilos (width, height, object-fit)
+> ⚠️ URLs externas podem ter problemas de CORS. Prefira Base64.
 
-**Formatos suportados**: PNG, JPG, SVG
-
-#### 6. Link
-
-Cria links clicáveis.
+### Link
 
 ```tsx
-import { Link } from '@react-pdf/renderer';
-
-<Link src="https://minerva.com.br" style={styles.link}>
+<Link src="https://minerva.com.br">
   Visite nosso site
 </Link>
 ```
 
 ---
 
-### Layout com Flexbox
-
-@react-pdf/renderer usa **Flexbox** para layout (similar ao React Native).
-
-```tsx
-// Container horizontal
-<View style={{ flexDirection: 'row' }}>
-  <View style={{ flex: 1 }}>Coluna 1</View>
-  <View style={{ flex: 1 }}>Coluna 2</View>
-</View>
-
-// Container vertical (padrão)
-<View style={{ flexDirection: 'column' }}>
-  <View>Linha 1</View>
-  <View>Linha 2</View>
-</View>
-```
-
-**Propriedades Flexbox:**
-- `flexDirection`: `'row'` | `'column'` (padrão)
-- `justifyContent`: `'flex-start'` | `'center'` | `'flex-end'` | `'space-between'` | `'space-around'`
-- `alignItems`: `'flex-start'` | `'center'` | `'flex-end'` | `'stretch'`
-- `flex`: número (peso relativo)
-
----
-
 ## Sistema de Estilos
 
-### Shared Styles
+### StyleSheet.create
 
-Todos os templates compartilham estilos comuns definidos em `shared-styles.ts`:
-
-```typescript
-// shared-styles.ts
-
-export const colors = {
-  // Brand
-  primary: '#FF6B35',
-  primaryDark: '#E85D25',
-
-  // Neutrals
-  neutral50: '#FAFAFA',
-  neutral100: '#F5F5F5',
-  neutral200: '#E5E5E5',
-  neutral300: '#D4D4D4',
-  neutral400: '#A3A3A3',
-  neutral500: '#737373',
-  neutral600: '#525252',
-  neutral700: '#404040',
-  neutral800: '#262626',
-  neutral900: '#171717',
-
-  // States
-  success: '#22C55E',
-  warning: '#F59E0B',
-  error: '#EF4444',
-  info: '#3B82F6',
-
-  // Base
-  white: '#FFFFFF',
-  black: '#000000',
-};
-
-export const spacing = {
-  xs: 4,
-  sm: 8,
-  md: 16,
-  lg: 24,
-  xl: 32,
-  xxl: 48,
-};
-
-export const fonts = {
-  family: {
-    sans: 'Helvetica',
-    serif: 'Times-Roman',
-    mono: 'Courier',
-  },
-  size: {
-    xs: 10,
-    sm: 12,
-    md: 14,
-    lg: 16,
-    xl: 20,
-    xxl: 24,
-  },
-  weight: {
-    normal: 'normal' as const,
-    bold: 'bold' as const,
-  },
-};
-
-export const commonStyles = {
-  page: {
-    flexDirection: 'column' as const,
-    backgroundColor: colors.white,
-    padding: spacing.lg,
-    fontSize: fonts.size.md,
-    fontFamily: fonts.family.sans,
-  },
-  header: {
-    marginBottom: spacing.lg,
-    padding: spacing.md,
-    backgroundColor: colors.neutral50,
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
-  },
-  section: {
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    backgroundColor: colors.neutral50,
-    borderRadius: 4,
-  },
-  // ... mais estilos comuns
-};
-```
-
-### Criando Estilos Customizados
-
-```tsx
-import { StyleSheet } from '@react-pdf/renderer';
-import { colors, spacing, fonts } from './shared-styles.ts';
-
-const styles = StyleSheet.create({
-  // Reutilizar estilo comum
-  page: commonStyles.page,
-
-  // Estilo customizado
-  customSection: {
-    ...commonStyles.section,  // Herdar estilo comum
-    backgroundColor: colors.info,  // Sobrescrever propriedade
-    borderLeft: `4px solid ${colors.primary}`,  // Adicionar nova propriedade
-  },
-
-  // Estilo completamente novo
-  badge: {
-    padding: spacing.xs,
-    backgroundColor: colors.success,
-    borderRadius: 4,
-    color: colors.white,
-    fontSize: fonts.size.xs,
-    fontWeight: fonts.weight.bold,
-  },
-});
-```
-
-### Estilos Inline vs StyleSheet
-
-**Recomendado (StyleSheet):**
 ```tsx
 const styles = StyleSheet.create({
-  title: { fontSize: 20, fontWeight: 'bold' }
+  container: {
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+  },
 });
 
-<Text style={styles.title}>Título</Text>
-```
-
-**Evitar (Inline):**
-```tsx
-<Text style={{ fontSize: 20, fontWeight: 'bold' }}>Título</Text>
-```
-
-**Por quê?**
-- StyleSheet é otimizado internamente
-- Evita recriação de objetos em cada render
-- Melhor performance
-
----
-
-## Formatação de Dados
-
-Utilitários de formatação estão em `utils/pdf-formatter.ts`:
-
-### 1. Formatação de Moeda
-
-```typescript
-import { formatarMoeda } from '../utils/pdf-formatter.ts';
-
-const valorFormatado = formatarMoeda(15000);
-// "R$ 15.000,00"
-
-// No template
-<Text>Valor: {formatarMoeda(data.valorProposta)}</Text>
-```
-
-### 2. Formatação de Data
-
-```typescript
-import { formatarData } from '../utils/pdf-formatter.ts';
-
-const dataFormatada = formatarData(new Date());
-// "15/01/2025"
-
-const dataHoraFormatada = formatarData(new Date(), true);
-// "15/01/2025 10:30"
-
-// No template
-<Text>Data: {formatarData(data.dataEmissao)}</Text>
-```
-
-### 3. Formatação de CPF/CNPJ
-
-```typescript
-import { formatarCPF, formatarCNPJ } from '../utils/pdf-formatter.ts';
-
-const cpfFormatado = formatarCPF('11144477735');
-// "111.444.777-35"
-
-const cnpjFormatado = formatarCNPJ('12345678000199');
-// "12.345.678/0001-99"
-
-// No template (detecção automática)
-<Text>
-  CPF/CNPJ: {
-    data.cpfCnpj.length === 11
-      ? formatarCPF(data.cpfCnpj)
-      : formatarCNPJ(data.cpfCnpj)
-  }
-</Text>
-```
-
-### 4. Formatação de Telefone
-
-```typescript
-import { formatarTelefone } from '../utils/pdf-formatter.ts';
-
-const telefoneFormatado = formatarTelefone('11987654321');
-// "(11) 98765-4321"
-
-// No template
-<Text>Tel: {formatarTelefone(data.telefone)}</Text>
-```
-
----
-
-## Boas Práticas
-
-### 1. Estruture o Template em Componentes
-
-**Evitar:**
-```tsx
-export function MeuTemplate({ data }) {
-  return (
-    <Document>
-      <Page>
-        {/* 500 linhas de código aqui... */}
-      </Page>
-    </Document>
-  );
-}
-```
-
-**Recomendado:**
-```tsx
-// Componentes auxiliares
-function Header({ titulo }: { titulo: string }) {
-  return (
-    <View style={styles.header}>
-      <Text style={styles.headerTitle}>{titulo}</Text>
-    </View>
-  );
-}
-
-function TabelaItens({ itens }: { itens: Item[] }) {
-  return (
-    <View style={styles.tabela}>
-      {itens.map((item, i) => (
-        <View key={i} style={styles.tabelaRow}>
-          <Text>{item.descricao}</Text>
-          <Text>{formatarMoeda(item.valor)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// Template principal
-export function MeuTemplate({ data }) {
-  return (
-    <Document>
-      <Page style={styles.page}>
-        <Header titulo={data.titulo} />
-        <TabelaItens itens={data.itens} />
-      </Page>
-    </Document>
-  );
-}
-```
-
-### 2. Use Conditional Rendering
-
-```tsx
-// Mostrar seção apenas se houver dados
-{data.observacoes && (
-  <View style={styles.section}>
-    <Text style={styles.sectionTitle}>Observações</Text>
-    <Text>{data.observacoes}</Text>
-  </View>
-)}
-
-// Mostrar badge baseado em condição
-<View style={[
-  styles.badge,
-  data.status === 'aprovado' ? styles.badgeSuccess : styles.badgeError
-]}>
-  <Text>{data.status.toUpperCase()}</Text>
+// Uso
+<View style={styles.container}>
+  <Text style={styles.title}>Título</Text>
 </View>
 ```
 
-### 3. Evite Lógica Complexa no Template
+### Combinando Estilos
 
-**Evitar:**
 ```tsx
-<Text>
-  {data.itens.reduce((acc, item) =>
-    acc + item.quantidade * item.valorUnitario, 0
-  ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+// Array de estilos (último sobrescreve)
+<Text style={[styles.base, styles.bold, { color: 'red' }]}>
+  Texto vermelho e negrito
 </Text>
 ```
 
-**Recomendado:**
-```tsx
-// No handler, antes de renderizar:
-const dadosProcessados = {
-  ...dados,
-  valorTotal: calcularTotal(dados.itens),
-  valorTotalFormatado: formatarMoeda(calcularTotal(dados.itens))
-};
+### Flexbox
 
-// No template:
-<Text>{dadosProcessados.valorTotalFormatado}</Text>
-```
-
-### 4. Mantenha Consistência de Espaçamento
+React PDF usa modelo Flexbox semelhante ao React Native:
 
 ```tsx
-// Use valores de spacing.* sempre
-<View style={{ marginBottom: spacing.md }}>  // ✅
-<View style={{ marginBottom: 16 }}>          // ❌
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  column: {
+    flex: 1,
+    padding: 10,
+  },
+});
 
-// Use cores de colors.* sempre
-<Text style={{ color: colors.primary }}>    // ✅
-<Text style={{ color: '#FF6B35' }}>         // ❌
+<View style={styles.row}>
+  <View style={[styles.column, { backgroundColor: '#eee' }]}>
+    <Text>Coluna 1</Text>
+  </View>
+  <View style={styles.column}>
+    <Text>Coluna 2</Text>
+  </View>
+</View>
 ```
 
-### 5. Teste com Dados Reais
+### Propriedades Suportadas
 
-```tsx
-// Adicionar validações defensivas
-<Text>
-  Cliente: {data.clienteNome || 'Nome não informado'}
-</Text>
-
-<Text>
-  Total: {formatarMoeda(data.valorTotal ?? 0)}
-</Text>
-```
+| Categoria | Propriedades |
+|-----------|-------------|
+| **Layout** | width, height, flex, flexDirection, justifyContent, alignItems |
+| **Spacing** | margin, padding (e variantes) |
+| **Border** | border, borderRadius, borderColor, borderWidth, borderStyle |
+| **Background** | backgroundColor |
+| **Text** | fontSize, fontFamily, fontWeight, color, textAlign, lineHeight |
+| **Position** | position, top, left, right, bottom |
 
 ---
 
-## Exemplos Práticos
+## Componentes Compartilhados
 
-### Exemplo 1: Tabela Simples
-
-```tsx
-function TabelaSimples({ itens }: { itens: Item[] }) {
-  return (
-    <View>
-      {/* Cabeçalho */}
-      <View style={{
-        flexDirection: 'row',
-        backgroundColor: colors.primary,
-        padding: spacing.sm,
-        fontWeight: 'bold',
-        color: colors.white
-      }}>
-        <Text style={{ flex: 2 }}>Item</Text>
-        <Text style={{ flex: 1, textAlign: 'right' }}>Qtd</Text>
-        <Text style={{ flex: 1, textAlign: 'right' }}>Valor</Text>
-      </View>
-
-      {/* Linhas */}
-      {itens.map((item, index) => (
-        <View key={index} style={{
-          flexDirection: 'row',
-          padding: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: colors.neutral200
-        }}>
-          <Text style={{ flex: 2 }}>{item.descricao}</Text>
-          <Text style={{ flex: 1, textAlign: 'right' }}>{item.quantidade}</Text>
-          <Text style={{ flex: 1, textAlign: 'right' }}>{formatarMoeda(item.valor)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-```
-
-### Exemplo 2: Card com Informações
+### SharedHeader
 
 ```tsx
-function InfoCard({ titulo, dados }: { titulo: string; dados: Record<string, string> }) {
-  return (
-    <View style={{
-      marginBottom: spacing.md,
-      padding: spacing.md,
-      backgroundColor: colors.neutral50,
-      borderLeft: `4px solid ${colors.primary}`
-    }}>
-      <Text style={{
-        fontSize: fonts.size.lg,
-        fontWeight: 'bold',
-        color: colors.primary,
-        marginBottom: spacing.sm
-      }}>
-        {titulo}
-      </Text>
+import { SharedHeader } from '../components';
 
-      {Object.entries(dados).map(([label, value]) => (
-        <View key={label} style={{
-          flexDirection: 'row',
-          marginBottom: spacing.xs
-        }}>
-          <Text style={{ fontWeight: 'bold', width: 120 }}>{label}:</Text>
-          <Text style={{ flex: 1 }}>{value}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
-// Uso:
-<InfoCard
-  titulo="Informações do Cliente"
-  dados={{
-    'Nome': data.clienteNome,
-    'CPF/CNPJ': formatarCPF(data.clienteCpf),
-    'Email': data.clienteEmail,
-    'Telefone': formatarTelefone(data.clienteTelefone)
-  }}
+<SharedHeader 
+  codigoOS="OS0100001"
+  documentTitle="PROPOSTA COMERCIAL"
+  documentSubtitle="Serviços de Engenharia"  // opcional
+  documentDate="2026-01-14"                   // opcional
 />
 ```
 
-### Exemplo 3: Badge de Status
+### SharedFooter
 
 ```tsx
-function StatusBadge({ status }: { status: 'aprovado' | 'reprovado' | 'pendente' }) {
-  const badgeStyles = {
-    aprovado: { backgroundColor: colors.success, color: colors.white },
-    reprovado: { backgroundColor: colors.error, color: colors.white },
-    pendente: { backgroundColor: colors.warning, color: colors.neutral900 },
-  };
+import { SharedFooter } from '../components';
 
-  const labels = {
-    aprovado: 'APROVADO',
-    reprovado: 'REPROVADO',
-    pendente: 'PENDENTE',
-  };
+<SharedFooter />
 
-  return (
-    <View style={{
-      ...badgeStyles[status],
-      paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: 4,
-      alignSelf: 'flex-start'
+// Renderiza automaticamente:
+// - Número da página (Página 1 de 3)
+// - Dados da empresa Minerva
+// - Contatos
+```
+
+### Table Components
+
+```tsx
+import { 
+  Table, 
+  TableHeaderRow, 
+  TableHeaderCell, 
+  TableRow, 
+  TableCell,
+  CategoryRow,
+  SummaryRow
+} from '../components';
+
+<Table>
+  {/* Cabeçalho */}
+  <TableHeaderRow>
+    <TableHeaderCell flexValue={3}>Descrição</TableHeaderCell>
+    <TableHeaderCell flexValue={1}>Qtd</TableHeaderCell>
+    <TableHeaderCell flexValue={2}>Valor</TableHeaderCell>
+  </TableHeaderRow>
+  
+  {/* Categoria */}
+  <CategoryRow>CATEGORIA 1</CategoryRow>
+  
+  {/* Linhas de dados */}
+  <TableRow>
+    <TableCell flexValue={3}>Item A</TableCell>
+    <TableCell flexValue={1}>2</TableCell>
+    <TableCell flexValue={2}>R$ 1.000,00</TableCell>
+  </TableRow>
+  
+  {/* Resumo/Total */}
+  <SummaryRow label="TOTAL" value="R$ 1.000,00" />
+</Table>
+```
+
+---
+
+## Formatadores
+
+Disponíveis em `src/lib/pdf/utils/pdf-formatter.ts`:
+
+```typescript
+import { 
+  formatarMoeda, 
+  formatarData, 
+  formatarCPF, 
+  formatarCNPJ,
+  formatarTelefone,
+  formatarCEP,
+  capitalize
+} from '../utils/pdf-formatter';
+```
+
+### Uso
+
+```tsx
+// Moeda
+formatarMoeda(5000)           // "R$ 5.000,00"
+formatarMoeda(5000.5)         // "R$ 5.000,50"
+
+// Data
+formatarData('2026-01-14')    // "14/01/2026"
+
+// CPF
+formatarCPF('12345678900')    // "123.456.789-00"
+
+// CNPJ
+formatarCNPJ('12345678000100') // "12.345.678/0001-00"
+
+// Telefone
+formatarTelefone('11999998888') // "(11) 99999-8888"
+
+// CEP
+formatarCEP('01310100')       // "01310-100"
+
+// Capitalize
+capitalize('são paulo')       // "São Paulo"
+```
+
+> ⚠️ **Importante:** `formatarMoeda()` já inclui "R$". Não adicione manualmente!
+
+```tsx
+// ✅ Correto
+<Text>{formatarMoeda(valor)}</Text>
+
+// ❌ Incorreto - resulta em "R$ R$ 5.000,00"
+<Text>R$ {formatarMoeda(valor)}</Text>
+```
+
+---
+
+## Padrões Comuns
+
+### Seção com Título
+
+```tsx
+const SectionTitle = ({ children }) => (
+  <View style={{ marginTop: 16, marginBottom: 8 }}>
+    <Text style={{ 
+      fontSize: 12, 
+      fontFamily: 'Helvetica-Bold',
+      color: colors.primary 
     }}>
-      <Text style={{
-        fontSize: fonts.size.xs,
-        fontWeight: 'bold',
-        ...badgeStyles[status]
-      }}>
-        {labels[status]}
+      {children}
+    </Text>
+    <View style={{ 
+      height: 1, 
+      backgroundColor: colors.primary, 
+      marginTop: 4 
+    }} />
+  </View>
+);
+
+// Uso
+<SectionTitle>DADOS DO CLIENTE</SectionTitle>
+```
+
+### Linha de Dados (Label: Valor)
+
+```tsx
+const DataRow = ({ label, value }) => (
+  <View style={{ flexDirection: 'row', marginBottom: 4 }}>
+    <Text style={{ width: 120, fontFamily: 'Helvetica-Bold' }}>
+      {label}:
+    </Text>
+    <Text style={{ flex: 1 }}>
+      {value || '-'}
+    </Text>
+  </View>
+);
+
+// Uso
+<DataRow label="Nome" value={data.cliente.nome} />
+<DataRow label="CPF" value={formatarCPF(data.cliente.cpf)} />
+```
+
+### Badge/Status
+
+```tsx
+const StatusBadge = ({ status }) => {
+  const bgColor = status === 'aprovado' ? colors.success : colors.warning;
+  
+  return (
+    <View style={{ 
+      backgroundColor: bgColor, 
+      paddingHorizontal: 8,
+      paddingVertical: 2,
+      borderRadius: 4 
+    }}>
+      <Text style={{ color: '#fff', fontSize: 8 }}>
+        {status.toUpperCase()}
       </Text>
     </View>
   );
-}
+};
 ```
 
-### Exemplo 4: Quebra de Página
+### Quebra de Página
 
 ```tsx
-// Forçar quebra de página antes de uma seção
 <View break>
-  <Text style={styles.sectionTitle}>Nova Seção (nova página)</Text>
-</View>
-
-// Evitar quebra dentro de um bloco
-<View wrap={false}>
-  <Text style={styles.sectionTitle}>Seção Importante</Text>
-  <Text>Este conteúdo não será quebrado entre páginas</Text>
+  {/* Este conteúdo inicia em nova página */}
 </View>
 ```
 
-### Exemplo 5: Rodapé com Numeração
+### Evitar Quebra no Meio
 
 ```tsx
-function Footer({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) {
-  return (
-    <View fixed style={{
-      position: 'absolute',
-      bottom: spacing.md,
-      left: spacing.lg,
-      right: spacing.lg,
-      paddingTop: spacing.sm,
-      borderTopWidth: 1,
-      borderTopColor: colors.neutral300,
-      flexDirection: 'row',
-      justifyContent: 'space-between'
-    }}>
-      <Text style={{ fontSize: fonts.size.xs, color: colors.neutral600 }}>
-        Gerado em: {formatarData(new Date(), true)}
-      </Text>
-      <Text style={{ fontSize: fonts.size.xs, color: colors.neutral600 }}>
-        Página {pageNumber} de {totalPages}
-      </Text>
-    </View>
-  );
-}
-
-// Uso:
-<Page>
-  <View>{/* Conteúdo */}</View>
-  <Footer pageNumber={1} totalPages={3} />
-</Page>
+<View wrap={false}>
+  {/* Este bloco não será dividido entre páginas */}
+</View>
 ```
 
 ---
 
 ## Limitações e Workarounds
 
-### 1. Sem Suporte a CSS Grid
+### 1. Sem Herança de Estilos (CSS Cascade)
 
-**Solução**: Use Flexbox
+Diferente do CSS web, estilos não são herdados:
 
 ```tsx
-// Grid 2 colunas com Flexbox
-<View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-  <View style={{ width: '50%' }}>Coluna 1</View>
-  <View style={{ width: '50%' }}>Coluna 2</View>
-  <View style={{ width: '50%' }}>Coluna 3</View>
-  <View style={{ width: '50%' }}>Coluna 4</View>
+// ❌ Não funciona - filho não herda cor
+<View style={{ color: 'red' }}>
+  <Text>Não será vermelho</Text>
+</View>
+
+// ✅ Funciona - aplique direto no Text
+<View>
+  <Text style={{ color: 'red' }}>Será vermelho</Text>
 </View>
 ```
 
-### 2. Sem Suporte a Gradientes
-
-**Solução**: Use SVG ou imagem de fundo
-
-### 3. Fontes Customizadas Requerem Registro
+### 2. Todas as Strings Devem Estar em `<Text>`
 
 ```tsx
-import { Font } from '@react-pdf/renderer';
+// ❌ Erro - texto solto
+<View>
+  Olá mundo
+</View>
 
-Font.register({
-  family: 'Roboto',
-  src: 'https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf'
-});
+// ✅ Correto
+<View>
+  <Text>Olá mundo</Text>
+</View>
+```
 
-// Uso:
-<Text style={{ fontFamily: 'Roboto' }}>Texto</Text>
+### 3. Valores Undefined Quebram Renderização
+
+```tsx
+// ❌ Pode quebrar se data.nome for undefined
+<Text>{data.nome}</Text>
+
+// ✅ Use fallback
+<Text>{data.nome || ''}</Text>
+<Text>{data.nome ?? 'N/A'}</Text>
+```
+
+### 4. Imagens Externas Podem Falhar (CORS)
+
+```tsx
+// ❌ Pode falhar
+<Image src="https://example.com/logo.png" />
+
+// ✅ Use Base64
+import { logoBase64 } from '../assets';
+<Image src={logoBase64} />
+```
+
+### 5. Fontes Limitadas
+
+Fontes padrão disponíveis:
+- Helvetica (Regular, Bold, Oblique, BoldOblique)
+- Times-Roman (Regular, Bold, Italic, BoldItalic)
+- Courier (Regular, Bold, Oblique, BoldOblique)
+
+Para fontes customizadas, registre com `Font.register()`.
+
+### 6. Sem Suporte a Flexbox Gap
+
+```tsx
+// ❌ Não suportado
+<View style={{ gap: 10 }}>
+
+// ✅ Use margin
+<View>
+  <View style={{ marginBottom: 10 }}>Item 1</View>
+  <View style={{ marginBottom: 10 }}>Item 2</View>
+</View>
 ```
 
 ---
 
-## Checklist de Template
+## Referências
 
-Antes de fazer deploy de um novo template:
-
-- [ ] Template renderiza sem erros
-- [ ] Todos os dados obrigatórios são exibidos
-- [ ] Formatação aplicada (moeda, data, CPF/CNPJ)
-- [ ] Espaçamento consistente (`spacing.*`)
-- [ ] Cores do design system (`colors.*`)
-- [ ] Testado com dados reais
-- [ ] Testado com dados mínimos (campos opcionais vazios)
-- [ ] Quebras de página apropriadas
-- [ ] Tamanho do PDF <500KB (idealmente)
-- [ ] Validações defensivas (`|| 'valor padrão'`)
-
----
-
-## Recursos
-
-- [Documentação @react-pdf/renderer](https://react-pdf.org/)
-- [Playground Online](https://react-pdf.org/repl)
-- [Exemplos de Layouts](https://react-pdf.org/examples)
-- [Lista de Componentes](https://react-pdf.org/components)
-- [Estilos Suportados](https://react-pdf.org/styling)
+- [MCP_PDF_SYSTEM.md](./MCP_PDF_SYSTEM.md) - Índice completo
+- [GUIA_DESENVOLVEDOR.md](./GUIA_DESENVOLVEDOR.md) - Tutorial prático
+- [@react-pdf/renderer Docs](https://react-pdf.org/)
+- [API Reference](./API_REFERENCE.md) - Referência do hook

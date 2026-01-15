@@ -36,7 +36,8 @@ interface LeadData {
 }
 
 interface LeadSummaryWithTabsProps {
-    data: LeadData;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any;
     className?: string;
 }
 
@@ -51,7 +52,37 @@ interface LeadSummaryWithTabsProps {
  * ⚠️ NÃO suporta Adendos - dados de cliente não são alteráveis via adendo
  */
 export function LeadSummaryWithTabs({ data, className }: LeadSummaryWithTabsProps) {
-    const tipoLabel = data.tipo === 'juridica' ? 'Pessoa Jurídica' : 'Pessoa Física';
+    // 🛠️ Normalizar dados para suportar estrutura aninhada (LeadCompleto) ou plana
+    const normalizedData: LeadData = {
+        // Identificação
+        nome: data.identificacao?.nome || data.nome,
+        cpfCnpj: data.identificacao?.cpfCnpj || data.cpfCnpj,
+        tipo: data.identificacao?.tipo || data.tipo,
+        telefone: data.identificacao?.telefone || data.telefone,
+        email: data.identificacao?.email || data.email,
+        nomeResponsavel: data.identificacao?.nomeResponsavel || data.nomeResponsavel,
+        cargoResponsavel: data.identificacao?.cargoResponsavel || data.cargoResponsavel,
+
+        // Edificação
+        tipoEdificacao: data.edificacao?.tipoEdificacao || data.tipoEdificacao,
+        qtdUnidades: data.edificacao?.qtdUnidades || data.qtdUnidades,
+        qtdBlocos: data.edificacao?.qtdBlocos || data.qtdBlocos,
+        qtdPavimentos: data.edificacao?.qtdPavimentos || data.qtdPavimentos,
+        tipoTelhado: data.edificacao?.tipoTelhado || data.tipoTelhado,
+        possuiElevador: data.edificacao?.possuiElevador ?? data.possuiElevador,
+        possuiPiscina: data.edificacao?.possuiPiscina ?? data.possuiPiscina,
+
+        // Endereço
+        cep: data.endereco?.cep || data.cep,
+        endereco: data.endereco?.rua || data.endereco?.endereco || data.endereco, // 'rua' no Objeto, 'endereco' no Flat
+        numero: data.endereco?.numero || data.numero,
+        complemento: data.endereco?.complemento || data.complemento,
+        bairro: data.endereco?.bairro || data.bairro,
+        cidade: data.endereco?.cidade || data.cidade,
+        estado: data.endereco?.estado || data.estado,
+    };
+
+    const tipoLabel = normalizedData.tipo === 'juridica' ? 'Pessoa Jurídica' : 'Pessoa Física';
 
     return (
         <div className={className}>
@@ -87,30 +118,30 @@ export function LeadSummaryWithTabs({ data, className }: LeadSummaryWithTabsProp
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <SummaryField
                                     label="Nome/Razão Social"
-                                    value={data.nome}
+                                    value={normalizedData.nome}
                                 />
                                 <SummaryField
-                                    label={data.tipo === 'juridica' ? 'CNPJ' : 'CPF'}
-                                    value={data.cpfCnpj}
+                                    label={normalizedData.tipo === 'juridica' ? 'CNPJ' : 'CPF'}
+                                    value={normalizedData.cpfCnpj}
                                 />
                                 <SummaryField
                                     label="Telefone"
-                                    value={data.telefone}
+                                    value={normalizedData.telefone}
                                 />
                                 <SummaryField
                                     label="Email"
-                                    value={data.email}
+                                    value={normalizedData.email}
                                 />
-                                {data.nomeResponsavel && (
+                                {normalizedData.nomeResponsavel && (
                                     <SummaryField
                                         label="Responsável"
-                                        value={data.nomeResponsavel}
+                                        value={normalizedData.nomeResponsavel}
                                     />
                                 )}
-                                {data.cargoResponsavel && (
+                                {normalizedData.cargoResponsavel && (
                                     <SummaryField
                                         label="Cargo"
-                                        value={data.cargoResponsavel}
+                                        value={normalizedData.cargoResponsavel}
                                     />
                                 )}
                             </div>
@@ -131,36 +162,36 @@ export function LeadSummaryWithTabs({ data, className }: LeadSummaryWithTabsProp
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <SummaryField
                                     label="Tipo de Edificação"
-                                    value={data.tipoEdificacao}
+                                    value={normalizedData.tipoEdificacao}
                                     className="md:col-span-2"
                                 />
-                                {data.qtdUnidades && (
+                                {normalizedData.qtdUnidades && (
                                     <SummaryField
                                         label="Qtd. Unidades"
-                                        value={data.qtdUnidades}
+                                        value={normalizedData.qtdUnidades}
                                     />
                                 )}
-                                {data.qtdBlocos && (
+                                {normalizedData.qtdBlocos && (
                                     <SummaryField
                                         label="Qtd. Blocos"
-                                        value={data.qtdBlocos}
+                                        value={normalizedData.qtdBlocos}
                                     />
                                 )}
                                 <SummaryField
                                     label="Qtd. Pavimentos"
-                                    value={data.qtdPavimentos || 'Não informado'}
+                                    value={normalizedData.qtdPavimentos || 'Não informado'}
                                 />
                                 <SummaryField
                                     label="Tipo de Telhado"
-                                    value={data.tipoTelhado}
+                                    value={normalizedData.tipoTelhado}
                                 />
                                 <BooleanField
                                     label="Possui Elevador"
-                                    value={data.possuiElevador}
+                                    value={normalizedData.possuiElevador}
                                 />
                                 <BooleanField
                                     label="Possui Piscina"
-                                    value={data.possuiPiscina}
+                                    value={normalizedData.possuiPiscina}
                                 />
                             </div>
                         </CardContent>
@@ -180,31 +211,31 @@ export function LeadSummaryWithTabs({ data, className }: LeadSummaryWithTabsProp
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <SummaryField
                                     label="CEP"
-                                    value={data.cep}
+                                    value={normalizedData.cep}
                                 />
                                 <SummaryField
                                     label="Número"
-                                    value={data.numero}
+                                    value={normalizedData.numero}
                                 />
                                 <SummaryField
                                     label="Endereço"
-                                    value={data.endereco}
+                                    value={normalizedData.endereco}
                                     className="md:col-span-2"
                                 />
-                                {data.complemento && (
+                                {normalizedData.complemento && (
                                     <SummaryField
                                         label="Complemento"
-                                        value={data.complemento}
+                                        value={normalizedData.complemento}
                                         className="md:col-span-2"
                                     />
                                 )}
                                 <SummaryField
                                     label="Bairro"
-                                    value={data.bairro}
+                                    value={normalizedData.bairro}
                                 />
                                 <SummaryField
                                     label="Cidade/Estado"
-                                    value={data.cidade && data.estado ? `${data.cidade}/${data.estado}` : data.cidade || '--'}
+                                    value={normalizedData.cidade && normalizedData.estado ? `${normalizedData.cidade}/${normalizedData.estado}` : normalizedData.cidade || '--'}
                                 />
                             </div>
                         </CardContent>

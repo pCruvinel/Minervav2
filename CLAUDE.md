@@ -338,4 +338,4 @@ tipoContrato: 'ASSESSORIA',
 - **Todas as OS e Etapas:** Ver `docs/sistema/TODAS_OS_E_ETAPAS.md`
 - **Audit Completo:** Ver `COMPONENT_AUDIT.md`
 - **Plano de Limpeza:** Ver `COMPONENT_CLEANUP_PLAN.md`
-- **Análise de Código Morto:** Ver `UNUSED_COMPONENTS_ANALYSIS.md`
+- **Sistema de Responsabilidade:** Ver `docs/technical/STEP_RESPONSIBILITY_SYSTEM.md`

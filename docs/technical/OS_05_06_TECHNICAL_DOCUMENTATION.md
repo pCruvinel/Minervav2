@@ -1,11 +1,11 @@
 # 📋 Documentação Técnica: OS-05 e OS-06 - Assessoria Lead
 
-**Última Atualização:** 2026-01-13  
-**Versão:** v3.0  
-**Status Implementação:** 95% ✅  
+**Última Atualização:** 2026-01-14  
+**Versão:** v3.1  
+**Status Implementação:** 98% ✅  
 **Setor:** Assessoria
 
-> **🎉 ATUALIZAÇÃO v3.0:** Migração para Sistema de Accordion com Adendos concluída!
+> **🎉 ATUALIZAÇÃO v3.1:** Correções de persistência de dados implementadas!
 
 ---
 
@@ -301,6 +301,77 @@ if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovad
 | `solicitada` | Aguardando aprovador | Bloqueia avanço, exibe toast |
 | `aprovada` | Aprovador confirmou | Libera botão "Avançar" |
 | `rejeitada` | Aprovador negou | Abre modal para re-solicitar |
+
+---
+
+## 💾 Persistência de Dados (v3.1)
+
+> [!IMPORTANT]
+> **Atualização v3.1 (2026-01-14):** Correções críticas no fluxo de persistência.
+
+### Arquitetura de Persistência
+
+```
+Componente Step                                  
+    │ onDataChange(data)                         
+    ▼                                            
+setStepData(step, data)    ← Atualiza estado LOCAL (formDataByStep)
+    │                                            
+    ▼                                            
+handleNextStep()                                 
+    │                                            
+    ▼                                            
+saveStep(step, false, explicitData)              
+    │                                            
+    ▼                                            
+useEtapas.saveFormData(etapaId, data, markAsComplete)
+    │                                            
+    ▼                                            
+ordensServicoAPI.updateEtapa() → os_etapas.dados_etapa (JSONB)
+    │                                            
+    ▼                                            
+refreshEtapas()            ← ✅ FIX: Sincroniza estado após save
+```
+
+### Boas Práticas
+
+1. **Sempre passar dados explícitos** no `saveStep()`:
+   ```typescript
+   const currentData = formDataByStep[currentStep] || {};
+   await saveStep(currentStep, false, currentData);
+   ```
+
+2. **Chamar `refreshEtapas()`** após saves para sincronizar estado:
+   ```typescript
+   await saveStep(currentStep, false, currentData);
+   await refreshEtapas(); // ✅ Sincroniza com banco
+   ```
+
+3. **Incluir todos os dados no `onLeadChange`**:
+   ```typescript
+   onLeadChange={(id, data) => {
+     setStepData(1, {
+       leadId: id,
+       // Identificação
+       nome: data.identificacao?.nome,
+       // Edificação
+       tipoEdificacao: data.edificacao?.tipoEdificacao,
+       // Endereço (TODOS os campos)
+       cep: data.endereco?.cep,
+       // ... estruturas aninhadas para compatibilidade
+       identificacao: data.identificacao,
+       edificacao: data.edificacao,
+       endereco: data.endereco,
+     });
+   }}
+   ```
+
+### Debugging
+
+Verificar no Console do navegador:
+- `[Minerva] [LOG] 💾 saveStep(X): Using EXPLICIT data (Y fields)`
+- `[Minerva] [LOG] 📊 Etapa X data keys: [...]`
+- `[Minerva] [WARN] ⚠️ Etapa X: NENHUM dado para salvar!`
 
 ---
 
