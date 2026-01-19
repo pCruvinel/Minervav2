@@ -1,4 +1,4 @@
-import React from 'react';
+// React import não necessário com JSX Transform do React 17+
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -9,10 +9,35 @@ interface StepSelecaoTipoAssessoriaProps {
   data: {
     tipoOS: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { tipoOS: string }) => void;
+  /** Modo somente leitura */
+  readOnly?: boolean;
 }
 
-export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTipoAssessoriaProps) {
+export function StepSelecaoTipoAssessoria({
+  data,
+  onDataChange: _onDataChange,
+  readOnly = false
+}: StepSelecaoTipoAssessoriaProps) {
+  // Em modo read-only, mostrar apenas o resumo
+  if (readOnly) {
+    return (
+      <Card className="bg-success/5 border-success/20">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-3">
+            <Check className="h-5 w-5 text-success" />
+            <div>
+              <div className="text-sm text-muted-foreground">Tipo selecionado:</div>
+              <div className="text-base font-medium">
+                {data.tipoOS === 'OS-05' ? 'OS 05 - Assessoria Técnica Mensal' : 'OS 06 - Laudo Pontual'}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <Alert>
@@ -25,7 +50,7 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
       <div className="space-y-3">
         <RadioGroup
           value={data.tipoOS}
-          onValueChange={(value) => onDataChange({ tipoOS: value })}
+          onValueChange={(value) => _onDataChange({ tipoOS: value })}
           className="space-y-3"
         >
           <div className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-background transition-colors">
@@ -73,7 +98,7 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
       <Alert>
         <AlertCircle className="h-4 w-4" />
         <AlertDescription>
-          {data.tipoOS === 'OS-05' 
+          {data.tipoOS === 'OS-05'
             ? 'Após a conclusão, será criada automaticamente uma OS 12 (Execução de Assessoria).'
             : 'Após a conclusão, será criada automaticamente uma OS 11 (Execução de Laudo).'}
         </AlertDescription>
@@ -81,3 +106,4 @@ export function StepSelecaoTipoAssessoria({ data, onDataChange }: StepSelecaoTip
     </div>
   );
 }
+

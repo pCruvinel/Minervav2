@@ -1,42 +1,60 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  Calendar, 
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import {
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Calendar,
   Users,
   Wallet,
-  ArrowUpRight,
-  ArrowDownRight,
   FileText,
-  ArrowRight
+  ArrowRight,
+  CalendarDays,
+  Receipt,
+  Banknote,
+  Building2,
+  ClipboardList,
+  Loader2
 } from 'lucide-react';
-import { 
-  AreaChart, 
-  Area, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  Legend, 
-  ResponsiveContainer 
+import { PageHeader } from '@/components/shared/page-header';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
 } from 'recharts';
+import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 
-// Mock data - Em produção virá do Supabase
+// ============================================================
+// MOCK DATA - Em produção virá do Supabase
+// FRONTEND-ONLY MODE: Substituir por hooks reais
+// ============================================================
+
 const mockKPIs = {
   previsaoReceitaMes: 248000,
   previsaoFaturasMes: 114000,
   aReceberHoje: 22987,
   aPagarHoje: 6785,
-  lucroMes: 134000, // Calculado: Receita - Despesas
-  totalClientesMes: 47
+  lucroMes: 134000,
+  totalClientesMes: 47,
+  variacaoReceita: 8.5,
+  variacaoFaturas: 3.2,
+  variacaoLucro: 12.8,
+  novosClientes: 5,
 };
 
-// Dados de comparação mensal (últimos 6 meses)
 const mockReceitasComparacao = [
   { mes: 'Jul', previsto: 180000, realizado: 175000 },
   { mes: 'Ago', previsto: 195000, realizado: 198000 },
@@ -55,248 +73,338 @@ const mockDespesasComparacao = [
   { mes: 'Dez', previsto: 114000, realizado: 107000 }
 ];
 
-interface KPICardProps {
-  title: string;
-  value: string;
-  icon: React.ReactNode;
-  trend?: {
-    value: string;
-    isPositive: boolean;
-  };
-  iconBgColor?: string;
-}
+// ============================================================
+// TYPES
+// ============================================================
 
-function KPICard({ title, value, icon, trend, iconBgColor = 'bg-primary/10' }: KPICardProps) {
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm text-muted-foreground mb-1">{title}</p>
-            <h3 className="text-3xl mb-2">{value}</h3>
-            {trend && (
-              <div className={`flex items-center gap-1 text-sm ${trend.isPositive ? 'text-success' : 'text-destructive'}`}>
-                {trend.isPositive ? (
-                  <ArrowUpRight className="h-4 w-4" />
-                ) : (
-                  <ArrowDownRight className="h-4 w-4" />
-                )}
-                <span>{trend.value}</span>
-              </div>
-            )}
-          </div>
-          <div className={`${iconBgColor} rounded-full p-3`}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
+type PeriodoFiltro = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear';
 
 interface FinanceiroDashboardPageProps {
   onNavigate?: (page: string) => void;
 }
 
+const periodoLabels: Record<PeriodoFiltro, string> = {
+  thisMonth: 'Este Mês',
+  lastMonth: 'Mês Anterior',
+  thisQuarter: 'Este Trimestre',
+  thisYear: 'Este Ano',
+};
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
+/**
+ * FinanceiroDashboardPage - Dashboard Financeiro
+ * 
+ * Painel de Bordo da Diretoria com visão consolidada de:
+ * - KPIs de receitas, despesas e lucratividade
+ * - Gráficos comparativos (previsto vs realizado)
+ * - Análise de variação mensal
+ * - Acesso rápido aos módulos financeiros
+ */
 export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageProps) {
+  const [periodo, setPeriodo] = useState<PeriodoFiltro>('thisMonth');
+  const [isLoading] = useState(false);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
-      currency: 'BRL'
+      currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
+  const handleNavigate = (page: string) => {
+    if (onNavigate) {
+      onNavigate(page);
+    }
+  };
+
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl mb-2">Dashboard Financeiro</h1>
-        <p className="text-muted-foreground">
-          Painel de Bordo da Diretoria - Visão Consolidada de Receitas, Despesas e Indicadores
-        </p>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* ========== Header com Filtro de Período ========== */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <PageHeader
+          title="Dashboard Financeiro"
+          subtitle="Painel de Bordo da Diretoria - Visão Consolidada"
+          showBackButton
+        />
+        <div className="flex items-center gap-3">
+          <Select value={periodo} onValueChange={(v) => setPeriodo(v as PeriodoFiltro)}>
+            <SelectTrigger className="w-[180px]">
+              <CalendarDays className="w-4 h-4 mr-2 text-neutral-500" />
+              <SelectValue placeholder="Período" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="thisMonth">Este Mês</SelectItem>
+              <SelectItem value="lastMonth">Mês Anterior</SelectItem>
+              <SelectItem value="thisQuarter">Este Trimestre</SelectItem>
+              <SelectItem value="thisYear">Este Ano</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* KPIs Principais */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard
-          title="Previsão Total de Receita (Mês)"
-          value={formatCurrency(mockKPIs.previsaoReceitaMes)}
-          icon={<TrendingUp className="h-5 w-5 text-primary" />}
-          iconBgColor="bg-primary/10"
-          trend={{ value: '+8.5% vs mês anterior', isPositive: true }}
+      {/* ========== KPIs Principais ========== */}
+      <KPIFinanceiroGrid columns={3}>
+        <KPICardFinanceiro
+          title="Previsão de Receita"
+          value={mockKPIs.previsaoReceitaMes}
+          icon={<TrendingUp className="w-6 h-6" />}
+          variant="success"
+          trend={{ value: `+${mockKPIs.variacaoReceita}% vs mês anterior`, isPositive: true }}
+          onClick={() => handleNavigate('receitas-recorrentes')}
+          loading={isLoading}
         />
 
-        <KPICard
-          title="Previsão de Faturas (Mês)"
-          value={formatCurrency(mockKPIs.previsaoFaturasMes)}
-          icon={<Wallet className="h-5 w-5 text-warning" />}
-          iconBgColor="bg-warning/10"
-          trend={{ value: '+3.2% vs mês anterior', isPositive: true }}
+        <KPICardFinanceiro
+          title="Previsão de Faturas"
+          value={mockKPIs.previsaoFaturasMes}
+          icon={<Receipt className="w-6 h-6" />}
+          variant="warning"
+          trend={{ value: `+${mockKPIs.variacaoFaturas}% vs mês anterior`, isPositive: true }}
+          onClick={() => handleNavigate('faturas-recorrentes')}
+          loading={isLoading}
         />
 
-        <KPICard
-          title="A Receber HOJE"
-          value={formatCurrency(mockKPIs.aReceberHoje)}
-          icon={<DollarSign className="h-5 w-5 text-success" />}
-          iconBgColor="bg-success/10"
+        <KPICardFinanceiro
+          title="Lucro Projetado"
+          value={mockKPIs.lucroMes}
+          icon={<Banknote className="w-6 h-6" />}
+          variant="primary"
+          trend={{ value: `+${mockKPIs.variacaoLucro}% vs mês anterior`, isPositive: true }}
+          onClick={() => handleNavigate('fluxo-caixa')}
+          loading={isLoading}
+        />
+      </KPIFinanceiroGrid>
+
+      {/* ========== Segunda linha de KPIs ========== */}
+      <KPIFinanceiroGrid columns={3}>
+        <KPICardFinanceiro
+          title="A Receber Hoje"
+          value={mockKPIs.aReceberHoje}
+          icon={<DollarSign className="w-6 h-6" />}
+          variant="success"
+          subtitle="Vencimento hoje"
+          onClick={() => handleNavigate('receitas-recorrentes')}
+          loading={isLoading}
         />
 
-        <KPICard
-          title="A Pagar HOJE"
-          value={formatCurrency(mockKPIs.aPagarHoje)}
-          icon={<Calendar className="h-5 w-5 text-destructive" />}
-          iconBgColor="bg-destructive/10"
+        <KPICardFinanceiro
+          title="A Pagar Hoje"
+          value={mockKPIs.aPagarHoje}
+          icon={<Calendar className="w-6 h-6" />}
+          variant="destructive"
+          subtitle="Vencimento hoje"
+          onClick={() => handleNavigate('faturas-recorrentes')}
+          loading={isLoading}
         />
 
-        <KPICard
-          title="Lucro (Mês)"
-          value={formatCurrency(mockKPIs.lucroMes)}
-          icon={<TrendingUp className="h-5 w-5 text-primary" />}
-          iconBgColor="bg-primary/10"
-          trend={{ value: '+12.8% vs mês anterior', isPositive: true }}
-        />
-
-        <KPICard
-          title="Total Clientes (Mês)"
+        <KPICardFinanceiro
+          title="Clientes Ativos"
           value={mockKPIs.totalClientesMes.toString()}
-          icon={<Users className="h-5 w-5 text-primary" />}
-          iconBgColor="bg-primary/10"
-          trend={{ value: '+5 novos clientes', isPositive: true }}
+          icon={<Users className="w-6 h-6" />}
+          variant="info"
+          trend={{ value: `+${mockKPIs.novosClientes} novos`, isPositive: true }}
+          loading={isLoading}
         />
-      </div>
+      </KPIFinanceiroGrid>
 
-      {/* Gráficos de Comparação */}
+      {/* ========== Ações Rápidas ========== */}
+      <Card>
+        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+          <CardTitle className="text-base font-semibold">Acesso Rápido</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
+              onClick={() => handleNavigate('conciliacao')}
+            >
+              <Wallet className="w-5 h-5 text-primary" />
+              <span className="text-sm">Conciliação</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
+              onClick={() => handleNavigate('requisicoes')}
+            >
+              <ClipboardList className="w-5 h-5 text-primary" />
+              <span className="text-sm">Compras</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
+              onClick={() => handleNavigate('receitas-recorrentes')}
+            >
+              <TrendingUp className="w-5 h-5 text-primary" />
+              <span className="text-sm">Receitas</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
+              onClick={() => handleNavigate('fluxo-caixa')}
+            >
+              <Building2 className="w-5 h-5 text-primary" />
+              <span className="text-sm">Fluxo de Caixa</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ========== Gráficos de Comparação ========== */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Gráfico: Receitas - Previsto vs. Realizado */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-success" />
+        {/* Gráfico: Receitas */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-600" />
               Receitas - Previsto vs. Realizado
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockReceitasComparacao}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="mes" 
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend 
-                  wrapperStyle={{ fontSize: '14px' }}
-                  formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
-                />
-                <Bar dataKey="previsto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="realizado" fill="#16a34a" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-3 text-neutral-600">Carregando...</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={mockReceitasComparacao}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="mes"
+                    stroke="#71717a"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis
+                    stroke="#71717a"
+                    style={{ fontSize: '12px' }}
+                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px 0 rgb(0 0 0 / 0.1)'
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '14px' }}
+                    formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
+                  />
+                  <Bar dataKey="previsto" fill="#d3af37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="realizado" fill="#22c55e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
 
-        {/* Gráfico: Despesas - Previsto vs. Realizado */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingDown className="h-5 w-5 text-destructive" />
+        {/* Gráfico: Despesas */}
+        <Card className="shadow-card">
+          <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <TrendingDown className="w-5 h-5 text-red-600" />
               Despesas - Previsto vs. Realizado
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={mockDespesasComparacao}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="mes" 
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                />
-                <YAxis 
-                  stroke="#6b7280"
-                  style={{ fontSize: '12px' }}
-                  tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
-                />
-                <Tooltip 
-                  formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Legend 
-                  wrapperStyle={{ fontSize: '14px' }}
-                  formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
-                />
-                <Bar dataKey="previsto" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="realizado" fill="#dc2626" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <CardContent className="pt-6">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <span className="ml-3 text-neutral-600">Carregando...</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={mockDespesasComparacao}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="mes"
+                    stroke="#71717a"
+                    style={{ fontSize: '12px' }}
+                  />
+                  <YAxis
+                    stroke="#71717a"
+                    style={{ fontSize: '12px' }}
+                    tickFormatter={(value) => `R$ ${(value / 1000).toFixed(0)}k`}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => formatCurrency(value)}
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px 0 rgb(0 0 0 / 0.1)'
+                    }}
+                  />
+                  <Legend
+                    wrapperStyle={{ fontSize: '14px' }}
+                    formatter={(value) => value === 'previsto' ? 'Previsto' : 'Realizado'}
+                  />
+                  <Bar dataKey="previsto" fill="#d3af37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="realizado" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Análise de Variação */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Análise de Variação (Mês Atual)</CardTitle>
+      {/* ========== Análise de Variação ========== */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+          <CardTitle className="text-base font-semibold">
+            Análise de Variação - {periodoLabels[periodo]}
+          </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Variação de Receitas */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b">
-                <span className="text-sm">Receitas</span>
-                <span className="text-sm text-muted-foreground">Dez/2024</span>
+            <div className="space-y-3 p-4 rounded-lg bg-green-50/50 border border-green-100">
+              <div className="flex items-center justify-between pb-2 border-b border-green-200">
+                <span className="text-sm font-semibold text-green-800">Receitas</span>
+                <span className="text-sm text-green-600">Dez/2024</span>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Previsto:</span>
+                  <span className="text-sm text-neutral-600">Previsto:</span>
                   <span className="font-medium">{formatCurrency(248000)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Realizado:</span>
+                  <span className="text-sm text-neutral-600">Realizado:</span>
                   <span className="font-medium">{formatCurrency(241000)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm">Variação:</span>
-                  <span className="font-medium text-destructive">-{formatCurrency(7000)} (-2.8%)</span>
+                <div className="flex justify-between items-center pt-2 border-t border-green-200">
+                  <span className="text-sm font-medium">Variação:</span>
+                  <span className="font-bold text-red-600">-{formatCurrency(7000)} (-2.8%)</span>
                 </div>
               </div>
             </div>
 
             {/* Variação de Despesas */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b">
-                <span className="text-sm">Despesas</span>
-                <span className="text-sm text-muted-foreground">Dez/2024</span>
+            <div className="space-y-3 p-4 rounded-lg bg-red-50/50 border border-red-100">
+              <div className="flex items-center justify-between pb-2 border-b border-red-200">
+                <span className="text-sm font-semibold text-red-800">Despesas</span>
+                <span className="text-sm text-red-600">Dez/2024</span>
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Previsto:</span>
+                  <span className="text-sm text-neutral-600">Previsto:</span>
                   <span className="font-medium">{formatCurrency(114000)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Realizado:</span>
+                  <span className="text-sm text-neutral-600">Realizado:</span>
                   <span className="font-medium">{formatCurrency(107000)}</span>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t">
-                  <span className="text-sm">Variação:</span>
-                  <span className="font-medium text-success">-{formatCurrency(7000)} (-6.1%)</span>
+                <div className="flex justify-between items-center pt-2 border-t border-red-200">
+                  <span className="text-sm font-medium">Variação:</span>
+                  <span className="font-bold text-green-600">-{formatCurrency(7000)} (-6.1%)</span>
                 </div>
               </div>
             </div>
@@ -304,73 +412,75 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
         </CardContent>
       </Card>
 
-      {/* Seção de Prestação de Contas */}
-      <Card>
-        <CardHeader>
+      {/* ========== Prestação de Contas ========== */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-primary" />
-                Prestação de Contas
-              </CardTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Relatórios detalhados de lucratividade por projeto
-              </p>
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              <div>
+                <CardTitle className="text-base font-semibold">Prestação de Contas</CardTitle>
+                <CardDescription>Lucratividade por tipo de projeto</CardDescription>
+              </div>
             </div>
-            {onNavigate && (
-              <Button onClick={() => onNavigate('prestacao-contas')}>
-                Ver Relatório Completo
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            )}
+            <Button onClick={() => handleNavigate('prestacao-contas')}>
+              Ver Relatório
+              <ArrowRight className="ml-2 w-4 h-4" />
+            </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Card: Obras */}
-            <div className="p-4 border rounded-lg hover:border-primary transition-colors cursor-pointer"
-                 onClick={() => onNavigate && onNavigate('prestacao-contas')}>
+            <div
+              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
+              onClick={() => handleNavigate('prestacao-contas')}
+            >
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">Obras</h4>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-semibold text-neutral-900">Obras</h4>
+                <ArrowRight className="w-4 h-4 text-neutral-400" />
               </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Lucro calculado após encerramento do contrato
+              <p className="text-sm text-neutral-500 mb-2">
+                Lucro após encerramento
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-medium text-success">R$ 45.5k</span>
-                <span className="text-xs text-muted-foreground">(1 projeto encerrado)</span>
+                <span className="text-2xl font-bold text-green-600">R$ 45,5k</span>
+                <span className="text-xs text-neutral-500">(1 projeto)</span>
               </div>
             </div>
 
             {/* Card: Assessoria Anual */}
-            <div className="p-4 border rounded-lg hover:border-primary transition-colors cursor-pointer"
-                 onClick={() => onNavigate && onNavigate('prestacao-contas')}>
+            <div
+              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
+              onClick={() => handleNavigate('prestacao-contas')}
+            >
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">Assessoria Anual</h4>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-semibold text-neutral-900">Assessoria Anual</h4>
+                <ArrowRight className="w-4 h-4 text-neutral-400" />
               </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Lucro calculado mensalmente
+              <p className="text-sm text-neutral-500 mb-2">
+                Lucro mensal
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-medium text-success">R$ 24.2k</span>
-                <span className="text-xs text-muted-foreground">(mês atual)</span>
+                <span className="text-2xl font-bold text-green-600">R$ 24,2k</span>
+                <span className="text-xs text-neutral-500">(mês atual)</span>
               </div>
             </div>
 
             {/* Card: Laudo Pontual */}
-            <div className="p-4 border rounded-lg hover:border-primary transition-colors cursor-pointer"
-                 onClick={() => onNavigate && onNavigate('prestacao-contas')}>
+            <div
+              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
+              onClick={() => handleNavigate('prestacao-contas')}
+            >
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-medium">Laudo Pontual</h4>
-                <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                <h4 className="font-semibold text-neutral-900">Laudo Pontual</h4>
+                <ArrowRight className="w-4 h-4 text-neutral-400" />
               </div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Lucro calculado após encerramento
+              <p className="text-sm text-neutral-500 mb-2">
+                Lucro após encerramento
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-xl text-muted-foreground">Em andamento</span>
+                <span className="text-lg text-neutral-400">Em andamento</span>
               </div>
             </div>
           </div>

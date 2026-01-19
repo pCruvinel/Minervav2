@@ -18,8 +18,12 @@ import {
   Edit,
   Check,
   X,
-  Paperclip
+  Paperclip,
+  TrendingUp,
+  TrendingDown,
+  DollarSign
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -30,13 +34,13 @@ import { toast } from 'sonner';
 import { FinanceiroCategoria } from '../../lib/types';
 
 const TIPOS_CUSTO: FinanceiroCategoria[] = [
-  'MAO_DE_OBRA',
-  'MATERIAL',
-  'EQUIPAMENTO',
-  'APLICACAO',
-  'ESCRITORIO',
-  'IMPOSTOS',
-  'OUTROS'
+  'mao_de_obra',
+  'material',
+  'equipamento',
+  'aplicacao',
+  'escritorio',
+  'impostos',
+  'outros'
 ];
 
 const SETORES = [
@@ -67,7 +71,7 @@ const mockLancamentos: LancamentoBancario[] = [
     entrada: 5800.00,
     saida: null,
     status: 'CLASSIFICADO',
-    tipo: 'MAO_DE_OBRA',
+    tipo: 'mao_de_obra',
     setor: 'OBRAS',
     centroCusto: 'Condomínio Jardim das Flores',
   },
@@ -78,7 +82,7 @@ const mockLancamentos: LancamentoBancario[] = [
     entrada: 12500.00,
     saida: null,
     status: 'CLASSIFICADO',
-    tipo: 'MATERIAL',
+    tipo: 'material',
     setor: 'OBRAS',
     centroCusto: 'Obra Residencial Silva',
   },
@@ -89,7 +93,7 @@ const mockLancamentos: LancamentoBancario[] = [
     entrada: null,
     saida: 1250.80,
     status: 'CLASSIFICADO',
-    tipo: 'ESCRITORIO',
+    tipo: 'escritorio',
     setor: 'ADM',
     centroCusto: 'Despesas Administrativas',
   },
@@ -116,7 +120,7 @@ const mockLancamentos: LancamentoBancario[] = [
     entrada: null,
     saida: 18500.00,
     status: 'RATEADO',
-    tipo: 'MAO_DE_OBRA',
+    tipo: 'mao_de_obra',
     setor: 'OBRAS',
     centroCusto: 'Múltiplos CCs (ver rateio)',
   },
@@ -159,13 +163,13 @@ export function ConciliacaoBancariaPage() {
 
   const formatTipo = (tipo: FinanceiroCategoria | string) => {
     const map: Record<string, string> = {
-      'MAO_DE_OBRA': 'Mão de Obra',
-      'MATERIAL': 'Material',
-      'EQUIPAMENTO': 'Equipamento',
-      'APLICACAO': 'Aplicação',
-      'ESCRITORIO': 'Escritório',
-      'IMPOSTOS': 'Impostos',
-      'OUTROS': 'Outros'
+      'mao_de_obra': 'Mão de Obra',
+      'material': 'Material',
+      'equipamento': 'Equipamento',
+      'aplicacao': 'Aplicação',
+      'escritorio': 'Escritório',
+      'impostos': 'Impostos',
+      'outros': 'Outros'
     };
     return map[tipo] || tipo;
   };
@@ -242,11 +246,11 @@ export function ConciliacaoBancariaPage() {
   };
 
   const handleExportarPDF = () => {
-    alert('Funcionalidade de exportação para PDF será implementada com biblioteca específica');
+    toast.info('Funcionalidade de exportação para PDF será implementada com biblioteca específica');
   };
 
   const handleExportarExcel = () => {
-    alert('Funcionalidade de exportação para Excel será implementada com biblioteca específica');
+    toast.info('Funcionalidade de exportação para Excel será implementada com biblioteca específica');
   };
 
   // Aplicar filtros
@@ -271,20 +275,19 @@ export function ConciliacaoBancariaPage() {
   const saldo = totais.entradas - totais.saidas;
 
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl mb-2">Conciliação Bancária</h1>
-        <p className="text-muted-foreground">
-          Classificação e rateio de lançamentos financeiros importados da conta bancária
-        </p>
-      </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* ========== Header ========== */}
+      <PageHeader
+        title="Conciliação Bancária"
+        subtitle="Classificação e rateio de lançamentos financeiros importados"
+        showBackButton
+      />
 
-      {/* Filtros Avançados */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-5 w-5" />
+      {/* ========== Filtros Avançados ========== */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <Filter className="h-5 w-5 text-primary" />
             Filtros Avançados
           </CardTitle>
         </CardHeader>
@@ -407,34 +410,49 @@ export function ConciliacaoBancariaPage() {
         </CardContent>
       </Card>
 
-      {/* Resumo Financeiro */}
+      {/* ========== Resumo Financeiro (KPIs) ========== */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Total de Entradas</p>
-            <h3 className="text-2xl text-success">{formatCurrency(totais.entradas)}</h3>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-neutral-500">Total de Entradas</p>
+              <div className="p-2 rounded-lg bg-success/10">
+                <TrendingUp className="h-4 w-4 text-success" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-success">{formatCurrency(totais.entradas)}</h3>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Total de Saídas</p>
-            <h3 className="text-2xl text-destructive">{formatCurrency(totais.saidas)}</h3>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-neutral-500">Total de Saídas</p>
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <TrendingDown className="h-4 w-4 text-destructive" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-destructive">{formatCurrency(totais.saidas)}</h3>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="shadow-card">
           <CardContent className="pt-6">
-            <p className="text-sm text-muted-foreground mb-1">Saldo do Período</p>
-            <h3 className={`text-2xl ${saldo >= 0 ? 'text-success' : 'text-destructive'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-neutral-500">Saldo do Período</p>
+              <div className={`p-2 rounded-lg ${saldo >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
+                <DollarSign className={`h-4 w-4 ${saldo >= 0 ? 'text-success' : 'text-destructive'}`} />
+              </div>
+            </div>
+            <h3 className={`text-2xl font-bold ${saldo >= 0 ? 'text-success' : 'text-destructive'}`}>
               {formatCurrency(saldo)}
             </h3>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabela de Lançamentos */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Lançamentos Bancários ({lancamentosFiltrados.length})</CardTitle>
+      {/* ========== Tabela de Lançamentos ========== */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
+          <CardTitle className="text-base font-semibold">Lançamentos Bancários ({lancamentosFiltrados.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">

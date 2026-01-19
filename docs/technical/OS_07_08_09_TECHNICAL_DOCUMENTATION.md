@@ -197,28 +197,29 @@ Solicitação, agendamento e execução de **visita técnica** com geração de 
 ```
 src/components/os/assessoria/os-8/
 ├── pages/
-│   └── os08-workflow-page.tsx           # Workflow principal (457 linhas)
+│   └── os08-workflow-page.tsx           # Workflow principal (555 linhas)
 ├── components/
 │   └── checklist-recebimento.tsx        # Checklist Recebimento Unidade
 ├── types/
 │   └── os08-types.ts                    # Tipos e constantes
 └── steps/
     ├── index.ts
-    ├── step-identificacao-solicitante.tsx  # Etapa 1
-    ├── step-atribuir-cliente.tsx           # Etapa 2
-    ├── step-agendar-visita.tsx             # Etapa 3
-    ├── step-realizar-visita.tsx            # Etapa 4
-    ├── step-formulario-pos-visita.tsx      # Etapa 5 (dinâmico por finalidade)
-    ├── step-gerar-documento.tsx            # Etapa 6
-    └── step-enviar-documento.tsx           # Etapa 7
+    ├── step-detalhes-solicitacao.tsx    # Etapa 2: Detalhes da Solicitação
+    ├── step-agendar-visita.tsx          # Etapa 3
+    ├── step-realizar-visita.tsx         # Etapa 4
+    ├── step-formulario-pos-visita.tsx   # Etapa 5 (dinâmico por finalidade)
+    ├── step-gerar-documento.tsx         # Etapa 6
+    └── step-enviar-documento.tsx        # Etapa 7
 ```
+
+> **Nota:** Etapa 1 (Identificação do Cliente) usa o componente compartilhado `LeadCadastro`
 
 ## 🔄 Fluxo de 7 Etapas
 
 | # | Etapa | Responsável | Prazo | Setor |
 |:-:|-------|-------------|:-----:|-------|
-| **1** | Identificação do Solicitante | Administrativo | 1 dia | Administrativo |
-| **2** | Atribuir Cliente | Administrativo | 1 dia | Administrativo |
+| **1** | Identificação do Cliente | Administrativo | 1 dia | Administrativo |
+| **2** | Detalhes da Solicitação | Administrativo | 1 dia | Administrativo |
 | **3** | Agendar Visita | Administrativo | 2 dias | Administrativo |
 | **4** | Realizar Visita | Assessoria | 2 dias | Assessoria |
 | **5** | Formulário Pós-Visita | Assessoria | 2 dias | Assessoria |

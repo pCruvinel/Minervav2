@@ -14,6 +14,7 @@
 
 import { useAuth } from '@/lib/contexts/auth-context';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/shared/page-header';
 import { ExecutiveOverview } from './executive-overview';
 import { WorkloadTabContent } from './workload-tab-content';
 import { SystemAuditLog } from './system-audit-log';
@@ -74,12 +75,11 @@ export function ExecutiveDashboard() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-semibold mb-2">Dashboard Executivo</h1>
-                <p className="text-muted-foreground">
-                    Governança, Controladoria e Auditoria do Sistema
-                </p>
-            </div>
+            <PageHeader
+                title="Dashboard Executivo"
+                subtitle="Governança, Controladoria e Auditoria do Sistema"
+                showBackButton
+            />
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">

@@ -16,8 +16,10 @@ import { getPermissoes, type RoleLevel } from '@/lib/types';
 import { ActionKanban } from './action-kanban';
 import { ManagerTable } from './manager-table';
 import { MetricCard } from './metric-card';
+import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Link } from '@tanstack/react-router';
 import {
   Loader2,
@@ -96,12 +98,11 @@ export function DashboardPage() {
     return (
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Dashboard</h1>
-          <p className="text-neutral-600 mt-1">
-            Visão geral completa do sistema • Atualizado em tempo real
-          </p>
-        </div>
+        <PageHeader
+          title="Dashboard"
+          subtitle="Visão geral completa do sistema • Atualizado em tempo real"
+          showBackButton
+        />
 
         {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -156,12 +157,10 @@ export function DashboardPage() {
     return (
       <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Dashboard - {setorLabel}</h1>
-          <p className="text-neutral-600 mt-1">
-            Gerencie as ordens de serviço do seu setor • Visão completa de monitoramento
-          </p>
-        </div>
+        <PageHeader
+          title={`Dashboard - ${setorLabel}`}
+          subtitle="Gerencie as ordens de serviço do seu setor • Visão completa de monitoramento"
+        />
 
         {/* KPIs DO SETOR */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -263,12 +262,10 @@ export function DashboardPage() {
     return (
       <div className="container mx-auto p-6 space-y-6">
         {/* Header simples */}
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Minhas Tarefas</h1>
-          <p className="text-neutral-600 mt-1">
-            Foco total no que você precisa fazer agora
-          </p>
-        </div>
+        <PageHeader
+          title="Minhas Tarefas"
+          subtitle="Foco total no que você precisa fazer agora"
+        />
 
         {/* Mini KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -324,10 +321,10 @@ export function DashboardPage() {
   // FALLBACK GENÉRICO: Mostrar apenas Kanban
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-neutral-900">Dashboard</h1>
-        <p className="text-neutral-600 mt-1">Suas tarefas pendentes</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Suas tarefas pendentes"
+      />
       <ActionKanban
         minhasPendencias={minhasPendencias}
         aguardandoTerceiros={aguardandoTerceiros}

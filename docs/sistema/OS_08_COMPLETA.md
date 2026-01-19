@@ -24,21 +24,23 @@ Solicitação, agendamento e execução de **visita técnica** com geração de 
 ```
 src/components/os/assessoria/os-8/
 ├── pages/
-│   └── os08-workflow-page.tsx           # Workflow principal (457 linhas)
+│   └── os08-workflow-page.tsx           # Workflow principal (388 linhas)
 ├── components/
-│   └── checklist-recebimento.tsx        # Checklist para Recebimento de Unidade
+│   ├── checklist-recebimento.tsx        # Checklist para Recebimento de Unidade (legacy)
+│   └── checklist-recebimento-table.tsx  # Checklist em formato tabela (novo)
 ├── types/
 │   └── os08-types.ts                    # Tipos e constantes
 └── steps/
     ├── index.ts
-    ├── step-identificacao-solicitante.tsx  # Etapa 1 (299 linhas)
-    ├── step-atribuir-cliente.tsx           # Etapa 2 (58 linhas)
-    ├── step-agendar-visita.tsx             # Etapa 3 (165 linhas)
-    ├── step-realizar-visita.tsx            # Etapa 4 (156 linhas)
-    ├── step-formulario-pos-visita.tsx      # Etapa 5 (550+ linhas)
-    ├── step-gerar-documento.tsx            # Etapa 6 (218 linhas)
-    └── step-enviar-documento.tsx           # Etapa 7 (261 linhas)
+    ├── step-detalhes-solicitacao.tsx    # Etapa 2
+    ├── step-agendar-visita.tsx          # Etapa 3
+    ├── step-realizar-visita.tsx         # Etapa 4
+    ├── step-formulario-pos-visita.tsx   # Etapa 5 (dinâmico por finalidade)
+    ├── step-gerar-documento.tsx         # Etapa 6
+    └── step-enviar-documento.tsx        # Etapa 7
 ```
+
+> **Nota:** Etapa 1 (Identificação do Cliente) usa o componente compartilhado `LeadCadastro`
 
 ### Props do Componente Principal
 
@@ -57,9 +59,9 @@ interface OS08WorkflowPageProps {
 
 ```
 src/components/os/shared/components/
-├── workflow-accordion.tsx       # ✅ Accordion principal (207 linhas)
+├── workflow-stepper.tsx         # ✅ Stepper horizontal (155 linhas)
 ├── workflow-step-summary.tsx    # ✅ Resumo de etapa (221 linhas)
-├── field-with-adendos.tsx       # ✅ Campo com adendos (206 linhas)
+├── step-readonly-with-adendos.tsx # ✅ Container read-only com adendos
 └── workflow-footer.tsx          # Navegação inferior
 ```
 
@@ -74,44 +76,44 @@ src/lib/hooks/
 
 ---
 
-## 🎨 Sistema de Accordion com Adendos
+## 🎨 Sistema de Stepper Horizontal com Adendos
 
-> **Documentação Completa:** [ACCORDION_ADENDOS_SYSTEM.md](../technical/ACCORDION_ADENDOS_SYSTEM.md)
+> **Atualização 2026-01-18:** Migrado de Accordion vertical para Stepper horizontal.
 
-A OS-08 utiliza o **Sistema de Accordion com Adendos** para visualização do workflow:
+A OS-08 utiliza o **Stepper Horizontal** para navegação entre etapas:
 
 ### Características
 
 | Característica | Descrição |
-|----------------|-----------|
-| **Accordion Múltiplo** | `type="multiple"` - múltiplas etapas podem ser expandidas |
+|----------------|------------|
+| **Navegação Horizontal** | Stepper no topo com todas as etapas visíveis |
+| **Foco Único** | Apenas a etapa ativa é renderizada por vez |
 | **Estado Visual** | Etapas concluídas = verde, Atual = azul, Pendentes = cinza |
-| **Resumo Read-Only** | Etapas concluídas exibem resumo dos dados |
+| **Navegação Histórica** | Clique em etapas anteriores para revisar dados |
 | **Sistema de Adendos** | Permite adicionar complementos a etapas concluídas |
-| **Append-Only** | Adendos são imutáveis após inserção (auditoria) |
+| **Footer Fixo** | Botões "Voltar" e "Avançar" no rodapé da tela |
 
 ### Integração
 
 ```tsx
 // os08-workflow-page.tsx
-import { WorkflowAccordion } from '@/components/os/shared/components/workflow-accordion';
-import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
-import { useEtapaAdendos } from '@/lib/hooks/use-etapa-adendos';
+import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
+import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
 
-// Hook para gerenciar adendos da etapa atual
-const { addAdendo, getAdendosByCampo } = useEtapaAdendos(currentEtapa?.id);
+// Stepper no topo da página
+<WorkflowStepper
+  steps={steps}
+  currentStep={currentStep}
+  completedSteps={completedSteps}
+  onStepClick={handleStepChange}
+/>
 
-// renderSummary usa FieldWithAdendos para cada campo
-const renderSummary = (step, data) => (
-    <FieldWithAdendos
-        label="Campo"
-        campoKey="campo_key"
-        valorOriginal={data.valor}
-        adendos={getAdendosByCampo('campo_key')}
-        onAddAdendo={handleAddAdendo}
-        canAddAdendo={true}
-    />
-);
+// Conteúdo da etapa ativa com suporte a adendos
+{viewingCompletedStep && stepEtapa?.id ? (
+  <StepReadOnlyWithAdendos etapaId={stepEtapa.id}>
+    {formContent}
+  </StepReadOnlyWithAdendos>
+) : formContent}
 ```
 
 ### Tabela no Banco de Dados
@@ -135,8 +137,8 @@ CREATE TABLE os_etapas_adendos (
 
 | # | Etapa | Responsável | Prazo | Componente |
 |:-:|-------|-------------|:-----:|------------|
-| **1** | Identificação do Solicitante | Administrativo | 1 dia | `step-identificacao-solicitante.tsx` |
-| **2** | Atribuir Cliente | Administrativo | 1 dia | `step-atribuir-cliente.tsx` |
+| **1** | Identificação do Cliente | Administrativo | 1 dia | `LeadCadastro` |
+| **2** | Detalhes da Solicitação | Administrativo | 1 dia | `step-detalhes-solicitacao.tsx` |
 | **3** | Agendar Visita | Administrativo | 2 dias | `step-agendar-visita.tsx` |
 | **4** | Realizar Visita | Assessoria | 2 dias | `step-realizar-visita.tsx` |
 | **5** | Formulário Pós-Visita | Assessoria | 2 dias | `step-formulario-pos-visita.tsx` |
@@ -148,7 +150,7 @@ CREATE TABLE os_etapas_adendos (
 ## 🔀 Handoff: Etapa 2 → 3
 
 ```
-Administrativo (Etapa 2: Atribuir Cliente)
+Administrativo (Etapa 2: Detalhes da Solicitação)
         │
         ├─── Transferência Automática ───┐
         │                                  │

@@ -704,27 +704,37 @@ function SituacaoBadge({ situacao }: { situacao: StatusSituacao }) {
 > **Padrão obrigatório** para todas as páginas de listagem do sistema.  
 > Referência: `/comercial/contratos`
 
-### Container Principal
+### Container Principal (Padrão Ouro)
+Use exatamente este wrapper para garantir a largura e espaçamento padrão definidos em `/financeiro`:
 
 ```tsx
 <div className="container mx-auto p-6 space-y-6">
-  {/* Header + KPIs + Filtros + Tabela */}
+  {/* Conteúdo da página */}
 </div>
 ```
+- **`container`**: Centraliza e define max-width responsivo.
+- **`mx-auto`**: Centraliza horizontalmente.
+- **`p-6`**: Padding padrão (24px) em todas as bordas.
+- **`space-y-6`**: Espaçamento vertical padrão (24px) entre elementos filhos diretos.
 
 ### Header da Página
 
+> **NOVO PADRÃO**: Utilize o componente `PageHeader` para garantir consistência.
+
 ```tsx
-<div className="flex items-center justify-between">
-  <div>
-    <h1 className="text-3xl font-bold text-neutral-900">Título da Página</h1>
-    <p className="text-neutral-600 mt-1">Descrição breve</p>
-  </div>
+import { PageHeader } from '@/components/shared/page-header';
+
+<PageHeader
+  title="Título da Página"
+  subtitle="Descrição breve"
+  showBackButton={true} // OBRIGATÓRIO: Use true para todas as páginas internas (não-dashboard)
+>
+  {/* Ações renderizadas à direita */}
   <Button>
     <Plus className="w-4 h-4 mr-2" />
     Ação Principal
   </Button>
-</div>
+</PageHeader>
 ```
 
 ### Cards KPI (Resumo)

@@ -9,6 +9,7 @@ import { Link } from '@tanstack/react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, Plus, Users, Briefcase, Clock, CheckCircle2 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { RecrutamentoKanban } from './recrutamento-kanban';
 import { ModalDetalhesRequisicao } from './modal-detalhes-requisicao';
 import { useRequisicoesMaoDeObra } from '@/lib/hooks/use-recrutamento';
@@ -47,20 +48,18 @@ export function RecrutamentoPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Vagas e Recrutamento</h1>
-          <p className="text-neutral-600 mt-1">
-            Acompanhe e gerencie todas as requisições de mão de obra (OS-10)
-          </p>
-        </div>
+      <PageHeader
+        title="Gestão de Vagas e Recrutamento"
+        subtitle="Acompanhe e gerencie todas as requisições de mão de obra (OS-10)"
+        showBackButton
+      >
         <Button asChild>
           <Link to="/os/criar/requisicao-mao-de-obra">
             <Plus className="w-4 h-4 mr-2" />
             Nova Requisição de Pessoal
           </Link>
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

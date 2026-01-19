@@ -42,9 +42,9 @@ import {
   CONTRATO_STATUS_LABELS,
   CONTRATO_TIPO_COLORS,
   CONTRATO_STATUS_COLORS,
-  type ContratoStatus,
 } from '@/lib/hooks/use-contratos'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { PageHeader } from '@/components/shared/page-header'
 
 export const Route = createFileRoute('/_auth/comercial/contratos')({
   component: ContratosPage,
@@ -52,7 +52,7 @@ export const Route = createFileRoute('/_auth/comercial/contratos')({
 
 function ContratosPage() {
   const navigate = useNavigate()
-  const { contratos, summary, isLoading, error } = useContratos()
+  const { contratos, isLoading, error } = useContratos()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
 
@@ -78,18 +78,17 @@ function ContratosPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Contratos</h1>
-          <p className="text-neutral-600 mt-1">
-            Gerencie todos os contratos da empresa
-          </p>
-        </div>
+      {/* Header */}
+      <PageHeader
+        title="Contratos"
+        subtitle="Gerencie todos os contratos da empresa"
+        showBackButton
+      >
         <Button onClick={() => navigate({ to: '/comercial/novo-contrato' })}>
           <Plus className="w-4 h-4 mr-2" />
           Novo Contrato
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Error State */}
       {error && (

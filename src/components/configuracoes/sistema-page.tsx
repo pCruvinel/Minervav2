@@ -7,17 +7,18 @@ import { WhatsAppEmailTab } from './whatsapp-email-tab';
 import { TemplatesManager } from './templates-manager';
 import { MessageHistory } from './message-history';
 
+import { PageHeader } from '@/components/shared/page-header';
+
 export function SistemaPage() {
     const [activeTab, setActiveTab] = useState('conexoes');
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col gap-2">
-                <h1 className="text-3xl font-bold text-neutral-900">Configurações do Sistema</h1>
-                <p className="text-neutral-600">
-                    Gerencie integrações, templates de mensagens e parâmetros globais do sistema.
-                </p>
-            </div>
+        <div className="container mx-auto p-6 space-y-6">
+            <PageHeader
+                title="Configurações do Sistema"
+                subtitle="Gerencie integrações, templates de mensagens e parâmetros globais do sistema."
+                showBackButton
+            />
 
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="bg-muted/30 p-1 border border-border/50 rounded-lg">

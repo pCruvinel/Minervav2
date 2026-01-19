@@ -9,9 +9,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useAuth } from '@/lib/contexts/auth-context'
 import { useDashboardData } from '@/lib/hooks/use-dashboard-data'
 import { ActionKanban } from '@/components/dashboard/action-kanban'
-import { Button } from '@/components/ui/button'
-import { Link } from '@tanstack/react-router'
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { PageHeader } from '@/components/shared/page-header'
+import { Loader2 } from 'lucide-react'
 
 export const Route = createFileRoute('/_auth/dashboard/kanban')({
   component: KanbanRoute,
@@ -34,20 +33,12 @@ function KanbanRoute() {
     <div className="content-wrapper">
       <div className="space-y-6">
         {/* Header com botão voltar */}
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/dashboard">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-semibold">Minhas Tarefas</h1>
-            <p className="text-sm text-muted-foreground">
-              Foco no que você precisa fazer agora
-            </p>
-          </div>
-        </div>
+        {/* Header com botão voltar */}
+        <PageHeader
+          title="Minhas Tarefas"
+          subtitle="Foco no que você precisa fazer agora"
+          showBackButton
+        />
 
         {/* ActionKanban Principal - Agora com Aguardando Terceiros na coluna do Kanban */}
         <ActionKanban

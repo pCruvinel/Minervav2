@@ -1,4 +1,3 @@
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -12,11 +11,22 @@ interface StepRealizarVisitaProps {
     visitaRealizada: boolean;
     dataRealizacao: string;
   };
-  onDataChange: (data: any) => void;
+  onDataChange: (data: { visitaRealizada: boolean; dataRealizacao: string }) => void;
   readOnly?: boolean;
+  /** Dados do agendamento da Etapa 3 */
+  agendamentoData?: {
+    dataAgendamento?: string;
+    horarioInicio?: string;
+    horarioFim?: string;
+  };
+  /** Informações do cliente da Etapa 1 */
+  clienteInfo?: {
+    nome?: string;
+    edificacao?: string;
+  };
 }
 
-export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealizarVisitaProps) {
+export function StepRealizarVisita({ data, onDataChange, readOnly, agendamentoData, clienteInfo }: StepRealizarVisitaProps) {
   const handleIniciarVisita = () => {
     if (readOnly) return;
     const now = new Date().toISOString();
@@ -54,13 +64,17 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
             <h3 className="text-base mb-4" style={{ color: 'var(--primary)' }}>
               Informações da Visita
             </h3>
-            
+
             <div className="space-y-3">
               <div className="flex items-start gap-3">
                 <Calendar className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Data Agendada</p>
-                  <p>--/--/----</p>
+                  <p className="font-medium">
+                    {agendamentoData?.dataAgendamento
+                      ? format(new Date(agendamentoData.dataAgendamento), "dd/MM/yyyy (EEEE)", { locale: ptBR })
+                      : 'Não agendada'}
+                  </p>
                 </div>
               </div>
 
@@ -68,7 +82,11 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
                 <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Horário</p>
-                  <p>--:--</p>
+                  <p className="font-medium">
+                    {agendamentoData?.horarioInicio && agendamentoData?.horarioFim
+                      ? `${agendamentoData.horarioInicio} - ${agendamentoData.horarioFim}`
+                      : 'Horário não definido'}
+                  </p>
                 </div>
               </div>
 
@@ -76,7 +94,9 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
                 <MapPin className="w-5 h-5 text-muted-foreground mt-0.5" />
                 <div>
                   <p className="text-sm text-muted-foreground">Local</p>
-                  <p>Informações do cliente na Etapa 1</p>
+                  <p className="font-medium">
+                    {clienteInfo?.edificacao || clienteInfo?.nome || 'Ver informações do cliente'}
+                  </p>
                 </div>
               </div>
             </div>
@@ -87,13 +107,13 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
             <div className="w-20 h-20 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--primary)' }}>
               <MapPin className="w-10 h-10 text-white" />
             </div>
-            
+
             <div className="text-center">
               <h3 className="text-lg mb-2">Pronto para iniciar a visita?</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Ao clicar no botão abaixo, você confirmará o início da visita técnica
               </p>
-              
+
               <PrimaryButton
                 onClick={handleIniciarVisita}
                 className="px-8 py-3"
@@ -121,7 +141,7 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
               <div className="w-12 h-12 rounded-full bg-success flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-6 h-6 text-white" />
               </div>
-              
+
               <div className="flex-1">
                 <h3 className="text-lg mb-1 text-success">Visita Realizada</h3>
                 <p className="text-sm text-success mb-4">
@@ -129,7 +149,7 @@ export function StepRealizarVisita({ data, onDataChange, readOnly }: StepRealiza
                   {data.dataRealizacao &&
                     format(new Date(data.dataRealizacao), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                 </p>
-                
+
                 <Button
                   variant="outline"
                   onClick={handleCancelar}

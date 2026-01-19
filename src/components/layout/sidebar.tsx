@@ -11,7 +11,6 @@ import {
   PieChart,
   CreditCard,
   Kanban,
-  Receipt,
   TrendingUp,
   TrendingDown,
   UserCog,
@@ -92,11 +91,11 @@ const menuItems = [
     label: 'Financeiro',
     icon: DollarSign,
     submenu: [
-      { id: 'financeiro-dashboard', label: 'Dashboard Financeiro', icon: PieChart, to: '/financeiro' },
+      { id: 'financeiro-dashboard', label: 'Dashboard', icon: PieChart, to: '/financeiro' },
+      { id: 'fluxo-caixa', label: 'Fluxo de Caixa', icon: TrendingUp, to: '/financeiro/fluxo-caixa' },
+      { id: 'receitas', label: 'Receitas', icon: TrendingUp, to: '/financeiro/receitas-recorrentes' },
+      { id: 'despesas', label: 'Despesas', icon: TrendingDown, to: '/financeiro/faturas-recorrentes' },
       { id: 'conciliacao-bancaria', label: 'Conciliação Bancária', icon: CreditCard, to: '/financeiro/conciliacao' },
-      { id: 'prestacao-contas', label: 'Prestação de Contas', icon: Receipt, to: '/financeiro/prestacao-contas' },
-      { id: 'contas-pagar', label: 'Contas a Pagar', icon: TrendingDown, to: '/financeiro/contas-pagar' },
-      { id: 'contas-receber', label: 'Contas a Receber', icon: TrendingUp, to: '/financeiro/contas-receber' },
       { id: 'aprovar-requisicoes', label: 'Gestão de Compras', icon: ShoppingCart, to: '/financeiro/requisicoes' },
     ]
   },

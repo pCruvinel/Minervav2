@@ -21,6 +21,7 @@ import {
   Users,
   DollarSign,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { CardDescription } from '../ui/card';
 import { ModalConviteColaborador } from './modal-convite-colaborador';
 import { colaboradoresAPI } from '../../lib/api-client';
@@ -123,18 +124,16 @@ export function ColaboradoresListaPage() {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Colaboradores</h1>
-          <p className="text-neutral-600 mt-1">
-            Gerencia os documentos e informações de todos os Colaboradores.
-          </p>
-        </div>
+      <PageHeader
+        title="Gestão de Colaboradores"
+        subtitle="Gerencia os documentos e informações de todos os Colaboradores."
+        showBackButton
+      >
         <Button onClick={handleConvidar}>
           <Send className="w-4 h-4 mr-2" />
           Convidar Colaborador
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

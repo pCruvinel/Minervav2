@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, lazy, Suspense } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Plus, Calendar, Clock, Users, Briefcase, Edit, Trash2, Loader2, Lock, Ban } from 'lucide-react';
 import { Button } from '../ui/button';
+import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 import {
     Table,
@@ -15,7 +16,7 @@ import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { toast } from 'sonner';
 import { useTurnos, useDeleteTurno, useTurnosPorSemana, Turno } from '../../lib/hooks/use-turnos';
-import { useAgendamentos, useCancelarAgendamento } from '../../lib/hooks/use-agendamentos';
+import { useAgendamentos, useCancelarAgendamento, Agendamento } from '../../lib/hooks/use-agendamentos';
 import { useBloqueios, useDeleteBloqueio } from '../../lib/hooks/use-bloqueios';
 import { useAuth } from '../../lib/contexts/auth-context';
 import { PermissaoUtil } from '../../lib/auth-utils';
@@ -114,7 +115,7 @@ export function CalendarioPainelPage() {
     };
 
     // Handler para cancelar agendamento
-    const handleCancelarAgendamento = async (agendamento: any) => {
+    const handleCancelarAgendamento = async (agendamento: Agendamento) => {
         const confirmado = window.confirm(
             `Tem certeza que deseja cancelar o agendamento?\n\n` +
             `Colaborador: ${agendamento.usuarioNome || 'N/A'}\n` +
@@ -125,28 +126,20 @@ export function CalendarioPainelPage() {
 
         if (!confirmado) return;
 
-        const motivo = prompt('Digite o motivo do cancelamento (obrigatório):');
+        const motivo = window.prompt('Digite o motivo do cancelamento (obrigatório):');
         if (!motivo || motivo.trim() === '') {
             toast.error('O motivo do cancelamento é obrigatório');
             return;
         }
 
         try {
-            await cancelarAgendamento(
-                { id: agendamento.id, motivo: motivo.trim() },
-                {
-                    onSuccess: () => {
-                        toast.success('Agendamento cancelado com sucesso!');
-                        handleRefetch();
-                    },
-                    onError: (error: any) => {
-                        toast.error(`Erro ao cancelar agendamento: ${error.message || 'Erro desconhecido'}`);
-                    }
-                }
-            );
+            await cancelarAgendamento({ id: agendamento.id, motivo: motivo.trim() });
+            toast.success('Agendamento cancelado com sucesso!');
+            handleRefetch();
         } catch (error: any) {
             toast.error(`Erro ao cancelar agendamento: ${error.message || 'Erro desconhecido'}`);
         }
+
     };
 
     // v2.0: Handler para deletar bloqueio
@@ -204,11 +197,11 @@ export function CalendarioPainelPage() {
     return (
         <div className="container mx-auto p-6 space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-neutral-900">Painel do Calendário</h1>
-                    <p className="text-neutral-600 mt-1">Gerencie turnos, agendamentos e bloqueios</p>
-                </div>
+            <PageHeader
+                title="Painel do Calendário"
+                subtitle="Gerencie turnos, agendamentos e bloqueios"
+                showBackButton
+            >
                 <div className="flex gap-3">
                     <Button onClick={() => setModalCriarTurno(true)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -230,7 +223,7 @@ export function CalendarioPainelPage() {
                         Criar Agendamento
                     </Button>
                 </div>
-            </div>
+            </PageHeader>
 
             {/* Cards de Resumo */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

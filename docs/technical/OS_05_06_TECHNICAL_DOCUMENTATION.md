@@ -50,7 +50,8 @@ src/
 │   ├── components/
 │   │   ├── workflow-accordion.tsx          # ✅ Accordion principal
 │   │   ├── workflow-step-summary.tsx       # ✅ Resumo read-only
-│   │   ├── field-with-adendos.tsx          # ✅ Campo com adendos
+│   │   ├── field-with-adendos.tsx          # ⚠️ Legacy
+│   │   ├── step-readonly-with-adendos.tsx  # ✅ NOVO - Wrapper com adendos
 │   │   ├── workflow-footer.tsx             # Footer com ações
 │   │   ├── feedback-transferencia.tsx      # Modal de feedback
 │   │   └── aprovacao-modal.tsx             # Modal de aprovação
@@ -151,37 +152,40 @@ interface OS56WorkflowPageProps {
 />
 ```
 
-### Configuração de Resumo por Etapa
+### Arquitetura Read-Only Unificada (v3.1)
 
-Cada etapa possui uma configuração de campos para exibição read-only:
+Desde a versão 3.1, o **SUMMARY_CONFIG foi descontinuado** em favor da renderização dos próprios componentes de step em modo `readOnly`.
 
-```typescript
-const OS_56_SUMMARY_CONFIG: Record<number, (data: any) => SummaryField[]> = {
-  1: (data) => [
-    { label: 'Nome/Razão Social', value: data?.nome },
-    { label: 'CPF/CNPJ', value: data?.cpfCnpj },
-    { label: 'Email', value: data?.email },
-    { label: 'Telefone', value: data?.telefone },
-  ],
-  // ... demais etapas
-};
+```tsx
+// Exemplo de uso no renderSummary
+<StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+  <StepFollowup1OS5 data={data} readOnly={true} />
+</StepReadOnlyWithAdendos>
 ```
+
+**Benefícios:**
+- Visual 100% fiel ao formulário original
+- Suporte nativo a preview de arquivos e tabelas complexas
+- Manutenção centralizada (alterou o step, atualizou o summary)
 
 ### Sistema de Adendos
 
-Campos de etapas concluídas suportam **Adendos** (alterações imutáveis):
+Campos de etapas concluídas suportam **Adendos** através do componente wrapper:
 
 ```tsx
-<FieldWithAdendos
-  label="Nome/Razão Social"
-  campoKey="nome_razao_social"
-  valorOriginal={data?.nome}
-  adendos={getAdendosByCampo('nome_razao_social')}
+<StepReadOnlyWithAdendos
   etapaId={etapa.id}
-  onAddAdendo={handleAddAdendo}
-  canAddAdendo={isCompleted && !readonly}
-/>
+  readonly={readonly} // Se true, esconde botão de adicionar
+>
+  {/* Conteúdo do Step */}
+</StepReadOnlyWithAdendos>
 ```
+
+O componente renderiza automaticamente:
+1. O conteúdo do step (children)
+2. Uma seção colapsável "Adendos"
+3. Badge com contagem de adendos
+4. Formulário para novos adendos (se !readonly)
 
 ---
 
@@ -240,67 +244,16 @@ const OS_ASSESSORIA_BASICA_RULE: OSOwnershipRule = {
 
 ---
 
-## ✅ Sistema de Aprovação Hierárquica
+## ✅ Sistema de Aprovação (Simplificado v3.1)
 
-### Etapas com Aprovação Obrigatória
+### Fluxo Contínuo
 
-| Etapa | Nome | Aprovador | Status |
-|:-----:|------|-----------|:------:|
-| **6** | Gerar Proposta Comercial | Coordenador de Assessoria | ✅ Implementado |
-| **10** | Gerar Contrato (Upload) | Diretor | ✅ Implementado |
+Na versão 3.1, a **aprovação via modal bloqueante foi removida** para agilizar o fluxo operacional.
 
-### Implementação Atual (v2.7)
+- **Antes (v2.7):** O sistema bloqueava o avanço e exigia solicitação/aprovação explícita via modal.
+- **Agora (v3.1):** A aprovação é implícita pelo responsável da etapa ("Owner"). Ao clicar em "Avançar", o responsável atesta a conformidade.
 
-**Hooks e Componentes:**
-- `useAprovacaoEtapa` - Hook para verificar status de aprovação
-- `AprovacaoModal` - Modal para solicitar/aprovar/rejeitar
-
-**Fluxo de Aprovação:**
-```typescript
-// Estado para modal
-const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
-const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
-
-// Hook de aprovação
-const { aprovacaoInfo } = useAprovacaoEtapa(osId, currentStep);
-
-// Verificação antes de avançar (em handleNextStep)
-if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
-  if (aprovacaoInfo.statusAprovacao === 'pendente' || aprovacaoInfo.statusAprovacao === 'rejeitada') {
-    setEtapaNomeParaAprovacao(etapaNome);
-    setIsAprovacaoModalOpen(true);
-    return; // Bloqueia avanço
-  }
-  if (aprovacaoInfo.statusAprovacao === 'solicitada') {
-    toast.info('Aguardando aprovação do coordenador.');
-    return;
-  }
-}
-```
-
-**Modal de Aprovação:**
-```tsx
-<AprovacaoModal
-  open={isAprovacaoModalOpen}
-  onOpenChange={setIsAprovacaoModalOpen}
-  osId={osId}
-  etapaOrdem={currentStep}
-  etapaNome={etapaNomeParaAprovacao}
-  onAprovado={async () => {
-    setCurrentStep(prev => prev + 1);
-    setLastActiveStep(prev => Math.max(prev ?? 0, currentStep + 1));
-  }}
-/>
-```
-
-### Status de Aprovação
-
-| Status | Descrição | Ação do Sistema |
-|--------|-----------|----------------|
-| `pendente` | Nenhuma solicitação feita | Abre modal para solicitar |
-| `solicitada` | Aguardando aprovador | Bloqueia avanço, exibe toast |
-| `aprovada` | Aprovador confirmou | Libera botão "Avançar" |
-| `rejeitada` | Aprovador negou | Abre modal para re-solicitar |
+> **Nota:** As regras de negócio sobre quem pode executar a etapa continuam valendo através das `Ownership Rules`.
 
 ---
 
@@ -885,7 +838,7 @@ WHERE parent_os_id = 'uuid-da-os-05-ou-06';
 | **Criação da OS** | Etapa 2 → 3 | **Etapa 1 → 2** |
 | **Handoffs** | 2 handoffs (Admin ↔ Obras) | **Nenhum handoff** |
 | **Responsável** | Muda entre setores | **Sempre Administrativo** |
-| **Aprovações** | Etapas 9 e 13 | **Etapas 6 e 10** |
+| **Aprovações** | Etapas 9 e 13 | **Implícita (Fluxo Contínuo)** |
 | **OS Filha** | OS-13 (Start de Contrato) | **OS-12 ou OS-11** |
 
 ### Diagrama de Fluxo

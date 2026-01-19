@@ -1,7 +1,6 @@
 import { Link } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Plus,
@@ -11,20 +10,17 @@ import {
   DollarSign,
   TrendingUp,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { useComprasKPIs } from '@/lib/hooks/use-aprovacao-requisicoes';
 import { TabPendentesAprovacao } from './compras/tab-pendentes-aprovacao';
 import { TabHistoricoCompras } from './compras/tab-historico-compras';
+import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 
 /**
  * GestaoComprasPage - Hub de Gestão de Compras (Procurement)
  *
  * Página principal para gerenciamento de requisições de compra (OS-09).
  * Inclui aprovação de requisições pendentes e histórico completo.
- *
- * @example
- * ```tsx
- * <GestaoComprasPage />
- * ```
  */
 export function GestaoComprasPage() {
   const { kpis, loading: loadingKPIs } = useComprasKPIs();
@@ -33,143 +29,91 @@ export function GestaoComprasPage() {
     return value.toLocaleString('pt-BR', {
       style: 'currency',
       currency: 'BRL',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Gestão de Compras</h1>
-          <p className="text-muted-foreground">
-            Aprovação de requisições e histórico de aquisições
-          </p>
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {/* ========== Header ========== */}
+      <PageHeader
+        title="Gestão de Compras"
+        subtitle="Aprovação de requisições e histórico de aquisições"
+        showBackButton
+      >
         <Button asChild>
           <Link to="/os/criar/requisicao-compras" search={{ osId: undefined }}>
             <Plus className="mr-2 h-4 w-4" />
             Nova Requisição
           </Link>
         </Button>
-      </div>
+      </PageHeader>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-warning/10">
-                <Clock className="h-6 w-6 text-warning" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Pendentes</p>
-                {loadingKPIs ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{kpis?.pendentes || 0}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ========== KPIs ========== */}
+      <KPIFinanceiroGrid columns={5}>
+        <KPICardFinanceiro
+          title="Pendentes"
+          value={kpis?.pendentes?.toString() || '0'}
+          icon={<Clock className="w-6 h-6" />}
+          variant="warning"
+          loading={loadingKPIs}
+        />
+        <KPICardFinanceiro
+          title="Em Andamento"
+          value={kpis?.emAndamento?.toString() || '0'}
+          icon={<TrendingUp className="w-6 h-6" />}
+          variant="primary"
+          loading={loadingKPIs}
+        />
+        <KPICardFinanceiro
+          title="Aprovadas (Mês)"
+          value={kpis?.aprovadasMes?.toString() || '0'}
+          icon={<CheckCircle className="w-6 h-6" />}
+          variant="success"
+          loading={loadingKPIs}
+        />
+        <KPICardFinanceiro
+          title="Recusadas"
+          value={kpis?.canceladas?.toString() || '0'}
+          icon={<XCircle className="w-6 h-6" />}
+          variant="destructive"
+          loading={loadingKPIs}
+        />
+        <KPICardFinanceiro
+          title="Valor Pendente"
+          value={formatCurrency(kpis?.valorTotalPendente || 0)}
+          icon={<DollarSign className="w-6 h-6" />}
+          variant="info"
+          loading={loadingKPIs}
+        />
+      </KPIFinanceiroGrid>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-primary/10">
-                <TrendingUp className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Em Andamento</p>
-                {loadingKPIs ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{kpis?.emAndamento || 0}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* ========== Tabs ========== */}
+      <Card className="shadow-card">
+        <CardContent className="pt-6">
+          <Tabs defaultValue="pendentes" className="space-y-4">
+            <TabsList>
+              <TabsTrigger value="pendentes" className="gap-2">
+                <Clock className="h-4 w-4" />
+                Aguardando Aprovação
+              </TabsTrigger>
+              <TabsTrigger value="historico" className="gap-2">
+                <CheckCircle className="h-4 w-4" />
+                Histórico
+              </TabsTrigger>
+            </TabsList>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-success/10">
-                <CheckCircle className="h-6 w-6 text-success" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Aprovadas (Mês)</p>
-                {loadingKPIs ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{kpis?.aprovadasMes || 0}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            <TabsContent value="pendentes">
+              <TabPendentesAprovacao />
+            </TabsContent>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-destructive/10">
-                <XCircle className="h-6 w-6 text-destructive" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Recusadas</p>
-                {loadingKPIs ? (
-                  <Skeleton className="h-8 w-12" />
-                ) : (
-                  <p className="text-2xl font-bold">{kpis?.canceladas || 0}</p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full bg-chart-1/10">
-                <DollarSign className="h-6 w-6 text-chart-1" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Valor Pendente</p>
-                {loadingKPIs ? (
-                  <Skeleton className="h-8 w-24" />
-                ) : (
-                  <p className="text-xl font-bold">
-                    {formatCurrency(kpis?.valorTotalPendente || 0)}
-                  </p>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Tabs */}
-      <Tabs defaultValue="pendentes" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="pendentes" className="gap-2">
-            <Clock className="h-4 w-4" />
-            Aguardando Aprovação
-          </TabsTrigger>
-          <TabsTrigger value="historico" className="gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Histórico
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="pendentes">
-          <TabPendentesAprovacao />
-        </TabsContent>
-
-        <TabsContent value="historico">
-          <TabHistoricoCompras />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="historico">
+              <TabHistoricoCompras />
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 }

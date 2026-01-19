@@ -17,6 +17,7 @@ import {
   Clock,
   Filter,
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { CardDescription } from '../ui/card';
 import { CadastrarLead, FormDataCompleto } from '../os/shared/steps/cadastrar-lead';
 import { cn } from '../ui/utils';
@@ -42,8 +43,8 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
 
   // Mapear dados do backend para o formato esperado pelo componente
   const clientes: Cliente[] = clientesBackend
-    .filter((cliente: any) => cliente.nome_razao_social !== 'Sistema - Requisições em Andamento')
-    .map((cliente: any) => {
+    .filter((cliente) => cliente.nome_razao_social !== 'Sistema - Requisições em Andamento')
+    .map((cliente) => {
       // Calcular status financeiro baseado em faturas atrasadas e contas inadimplentes
       const faturasAtrasadas = cliente.faturas_atrasadas || 0;
       const contasInadimplentes = cliente.contas_inadimplentes || 0;
@@ -186,18 +187,15 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-neutral-900">Gestão de Contatos</h1>
-          <p className="text-neutral-600 mt-1">
-            Gerencie contatos, contratos e centros de custo
-          </p>
-        </div>
+      <PageHeader
+        title="Gestão de Contatos"
+        subtitle="Gerencie contatos, contratos e centros de custo"
+      >
         <Button onClick={() => setIsCadastroOpen(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Cadastrar
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Componente CadastrarLead (Oculto, mas renderiza o Dialog quando isCadastroOpen é true) */}
       <div className="hidden">

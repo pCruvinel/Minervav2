@@ -23,7 +23,7 @@ import { toast } from '@/lib/utils/safe-toast';
 import { ordensServicoAPI } from '@/lib/api-client';
 import { uploadFile } from '@/lib/utils/supabase-storage';
 import { useAuth } from '@/lib/contexts/auth-context';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase-client';
 
 interface OS07FormPublicoProps {
   osId: string;

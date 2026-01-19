@@ -21,7 +21,7 @@
 "use client";
 
 import { logger } from '@/lib/utils/logger';
-import { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,13 +32,12 @@ import { supabase } from '@/lib/supabase-client';
 // Componentes de Workflow (Accordion Pattern)
 import { WorkflowAccordion, type WorkflowStepDefinition } from '@/components/os/shared/components/workflow-accordion';
 import { WorkflowStepSummary, type SummaryField } from '@/components/os/shared/components/workflow-step-summary';
-import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
+import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
 import { LeadSummaryWithTabs } from '@/components/os/shared/components/lead-summary-with-tabs';
 
 // Hooks de Workflow
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
-import { useEtapaAdendos } from '@/lib/hooks/use-etapa-adendos';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
 import { useOS } from '@/lib/hooks/use-os';
 import { useTransferenciaSetor } from '@/lib/hooks/use-transferencia-setor';
@@ -61,9 +60,7 @@ import { StepSelecaoTipoAssessoria } from '@/components/os/assessoria/os-5-6/ste
 import { StepAtivarContratoAssessoria } from '@/components/os/assessoria/os-5-6/steps/step-ativar-contrato-assessoria';
 import { StepEscopoAssessoria, type StepEscopoAssessoriaHandle, type StepEscopoAssessoriaData } from '@/components/os/shared/steps/step-escopo-assessoria';
 
-// Sistema de Aprovação
-import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
-import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
+// NOTA: Sistema de aprovação removido - OS 5-6 não requer mais aprovação
 
 // Types
 import type { TransferenciaInfo } from '@/types/os-setor-config';
@@ -91,58 +88,154 @@ const STEPS: WorkflowStepDefinition[] = [
 ];
 
 /**
- * Configuração de resumo por etapa para WorkflowStepSummary
+ * ✅ v3.2: Configuração COMPLETA de summary para todas as etapas OS 5-6
+ * 
+ * IMPORTANTE: Os nomes das chaves devem coincidir EXATAMENTE com os nomes
+ * usados nos componentes de step (ex: motivo_contato, não motivoProcura)
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const OS_56_SUMMARY_CONFIG: Record<number, (data: any) => SummaryField[]> = {
+    // Etapa 1: Identificar o Lead (resumo - detalhes via LeadSummaryWithTabs)
     1: (data) => [
-        { label: 'Nome/Razão Social', value: data?.nome },
+        { label: 'Nome/Razão Social', value: data?.nome || data?.nomeFantasia },
         { label: 'CPF/CNPJ', value: data?.cpfCnpj },
         { label: 'Email', value: data?.email },
         { label: 'Telefone', value: data?.telefone },
     ],
+
+    // Etapa 2: Selecionar Tipo de OS
     2: (data) => [
-        { label: 'Tipo de OS Selecionado', value: data?.tipoOS === 'OS-05' ? 'Assessoria Mensal' : 'Assessoria Avulsa' },
+        { label: 'Tipo de OS', value: data?.tipoOS === 'OS-05' ? 'Assessoria Mensal (OS-05)' : 'Assessoria Avulsa (OS-06)' },
     ],
+
+    // ✅ Etapa 3: Follow-up 1 - CORRIGIDO com chaves reais do step-followup-1-os5.tsx
     3: (data) => [
         { label: 'Idade da Edificação', value: data?.idadeEdificacao },
-        { label: 'Motivo da Procura', value: data?.motivoProcura, fullWidth: true },
-        { label: 'Grau de Urgência', value: data?.grauUrgencia },
-        { label: 'Previsão Orçamentária', value: data?.previsaoOrcamentaria, type: 'currency' as const },
-    ],
-    4: (data) => [
-        { label: 'Objetivo', value: data?.objetivo, fullWidth: true },
-        { label: 'Especificações Técnicas', value: data?.especificacoesTecnicas?.join(', ') || '', fullWidth: true },
-        { label: 'Metodologia', value: data?.metodologia },
-    ],
+        { label: 'Motivo do Contato', value: data?.motivo_contato, fullWidth: true },
+        { label: 'Histórico/Tempo', value: data?.historico_tempo, fullWidth: true },
+        { label: 'Ações Realizadas', value: data?.acoes_realizadas, fullWidth: true },
+        { label: 'Previsão Orçamentária', value: data?.previsao_orcamentaria, type: 'currency' as const },
+        { label: 'Agendamento Proposta', value: data?.agendamento_proposta },
+        { label: 'Anexos', value: data?.anexos, type: 'files' as const },
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // ✅ Etapa 4: Escopo - CORRIGIDO para tratar especificacoesTecnicas como array de objetos
+    4: (data) => {
+        // Extrair descrições das especificações técnicas (array de {descricao: string})
+        const specs = data?.especificacoesTecnicas;
+        let specsFormatted: string | undefined;
+        if (Array.isArray(specs) && specs.length > 0) {
+            specsFormatted = specs
+                .map((s: { descricao?: string }) => s?.descricao || '')
+                .filter(Boolean)
+                .join('; ');
+        }
+
+        // Campos base
+        const fields: SummaryField[] = [
+            { label: 'Objetivo', value: data?.objetivo, fullWidth: true },
+            { label: 'Especificações Técnicas', value: specsFormatted, fullWidth: true },
+            { label: 'Metodologia', value: data?.metodologia, fullWidth: true },
+            { label: 'Garantia', value: data?.garantia, fullWidth: true },
+        ];
+
+        // Campos de prazo - depende do tipo de OS
+        const prazo = data?.prazo;
+        if (prazo) {
+            // OS-05 (Anual): Horário de funcionamento
+            if (prazo.horarioInicio || prazo.horarioFim || prazo.diasSemana) {
+                fields.push({
+                    label: 'Horário de Atendimento',
+                    value: `${prazo.diasSemana || ''} de ${prazo.horarioInicio || ''} às ${prazo.horarioFim || ''}`.trim() || undefined
+                });
+                if (prazo.suporteEmergencial) {
+                    fields.push({ label: 'Suporte Emergencial', value: prazo.suporteEmergencial, fullWidth: true });
+                }
+            }
+
+            // OS-06 (Pontual): Dias úteis
+            if (prazo.planejamentoInicial || prazo.composicaoLaudo) {
+                const prazoParts = [];
+                if (prazo.planejamentoInicial) prazoParts.push(`Planejamento: ${prazo.planejamentoInicial}d`);
+                if (prazo.logisticaTransporte) prazoParts.push(`Logística: ${prazo.logisticaTransporte}d`);
+                if (prazo.levantamentoCampo) prazoParts.push(`Levantamento: ${prazo.levantamentoCampo}d`);
+                if (prazo.composicaoLaudo) prazoParts.push(`Composição: ${prazo.composicaoLaudo}d`);
+                if (prazo.apresentacaoCliente) prazoParts.push(`Apresentação: ${prazo.apresentacaoCliente}d`);
+                if (prazoParts.length > 0) {
+                    fields.push({ label: 'Prazo (Dias Úteis)', value: prazoParts.join(', '), fullWidth: true });
+                }
+            }
+        }
+
+        return fields.filter(f => f.value !== undefined && f.value !== null && f.value !== '');
+    },
+
+    // ✅ Etapa 5: Precificação - COMPLETO com todos os campos
     5: (data) => [
         { label: 'Custo Base', value: data?.custoBase, type: 'currency' as const },
-        { label: 'Percentual Imposto', value: `${data?.percentualImposto || 14}%` },
-        { label: 'Valor Final', value: data?.precoFinal || data?.valorBase, type: 'currency' as const },
-    ],
+        { label: '% Imprevisto', value: data?.percentualImprevisto ? `${data.percentualImprevisto}%` : undefined },
+        { label: 'Valor Imprevisto', value: data?.valorImprevisto, type: 'currency' as const },
+        { label: '% Lucro', value: data?.percentualLucro ? `${data.percentualLucro}%` : undefined },
+        { label: 'Valor Lucro', value: data?.valorLucro, type: 'currency' as const },
+        { label: '% Imposto (ISS)', value: data?.percentualImposto ? `${data.percentualImposto}%` : undefined },
+        { label: 'Valor Imposto', value: data?.valorImposto, type: 'currency' as const },
+        { label: 'Valor Total', value: data?.valorTotal, type: 'currency' as const },
+        { label: '% Entrada', value: data?.percentualEntrada ? `${data.percentualEntrada}%` : undefined },
+        { label: 'Valor Entrada', value: data?.valorEntrada, type: 'currency' as const },
+        { label: 'Nº Parcelas', value: data?.numeroParcelas },
+        { label: 'Valor Parcela', value: data?.valorParcela, type: 'currency' as const },
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // Etapa 6: Gerar Proposta (tratamento especial via PropostaSummary, mas fallback aqui)
     6: (data) => [
         { label: 'Proposta Gerada', value: data?.propostaGerada, type: 'boolean' as const },
         { label: 'Data de Geração', value: data?.dataGeracao, type: 'date' as const },
-    ],
+        { label: 'Valor Total', value: data?.valorTotal, type: 'currency' as const },
+    ].filter(f => f.value !== undefined && f.value !== null),
+
+    // ✅ Etapa 7: Agendar Apresentação - COMPLETO
     7: (data) => [
-        { label: 'Data do Agendamento', value: data?.dataAgendamento, type: 'datetime' as const },
-    ],
+        { label: 'Data do Agendamento', value: data?.dataAgendamento, type: 'date' as const },
+        { label: 'Horário', value: data?.horarioInicio && data?.horarioFim ? `${data.horarioInicio} - ${data.horarioFim}` : undefined },
+        { label: 'Duração', value: data?.duracaoHoras ? `${data.duracaoHoras}h` : undefined },
+        { label: 'Responsável', value: data?.responsavelAgendamentoNome },
+        { label: 'Agendado Por', value: data?.agendadoPorNome },
+        { label: 'Notificação Enviada', value: data?.notificacaoEnviada, type: 'boolean' as const },
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // ✅ Etapa 8: Realizar Apresentação - CORRIGIDO com chaves reais
     8: (data) => [
         { label: 'Apresentação Realizada', value: data?.apresentacaoRealizada, type: 'boolean' as const },
-    ],
+        { label: 'Data da Apresentação', value: data?.dataApresentacao, type: 'datetime' as const },
+        { label: 'Observações', value: data?.observacoes, fullWidth: true },
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // ✅ Etapa 9: Análise/Relatório - COMPLETO com todos os 8 campos
     9: (data) => [
-        { label: 'Proposta Apresentada', value: data?.propostaApresentada },
+        { label: 'Proposta Apresentada', value: data?.propostaApresentada, fullWidth: true },
+        { label: 'Método de Apresentação', value: data?.metodoApresentacao },
+        { label: 'Opinião sobre Proposta', value: data?.clienteAchouProposta, fullWidth: true },
+        { label: 'Opinião sobre Contrato', value: data?.clienteAchouContrato, fullWidth: true },
+        { label: 'Dores Não Atendidas', value: data?.doresNaoAtendidas, fullWidth: true },
         { label: 'Indicador de Fechamento', value: data?.indicadorFechamento },
+        { label: 'Participantes', value: data?.quemEstavaNaApresentacao, fullWidth: true },
         { label: 'Nível de Satisfação', value: data?.nivelSatisfacao },
-    ],
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // ✅ Etapa 10: Gerar Contrato - CORRIGIDO para usar contratoUrl/contratoPath
     10: (data) => [
-        { label: 'Contrato Enviado', value: !!data?.contratoFile, type: 'boolean' as const },
+        { label: 'Contrato Enviado', value: !!(data?.contratoUrl || data?.contratoPath), type: 'boolean' as const },
         { label: 'Data de Upload', value: data?.dataUpload, type: 'date' as const },
-    ],
+    ].filter(f => f.value !== undefined && f.value !== null),
+
+    // ✅ Etapa 11: Contrato Assinado - COMPLETO
     11: (data) => [
         { label: 'Contrato Assinado', value: data?.contratoAssinado, type: 'boolean' as const },
-        { label: 'Data da Assinatura', value: data?.dataAssinatura, type: 'date' as const },
-    ],
+        { label: 'Data da Assinatura', value: data?.dataAssinatura, type: 'datetime' as const },
+        { label: 'Confirmado Por', value: data?.usuarioConfirmacao },
+    ].filter(f => f.value !== undefined && f.value !== null && f.value !== ''),
+
+    // Etapa 12: Ativar Contrato (etapa de ação, sem dados persistidos)
     12: () => [
         { label: 'Status', value: 'Contrato Ativado' },
     ],
@@ -274,9 +367,7 @@ export function OS56WorkflowPage({
     const [internalOsId, setInternalOsId] = useState<string | null>(null);
     const finalOsId = osIdProp || internalOsId;
 
-    // Estado para modal de aprovação
-    const [isAprovacaoModalOpen, setIsAprovacaoModalOpen] = useState(false);
-    const [etapaNomeParaAprovacao, setEtapaNomeParaAprovacao] = useState('');
+    // Estado de salvamento
     const [isSaving, setIsSaving] = useState(false);
 
     // Hooks de integração
@@ -339,12 +430,7 @@ export function OS56WorkflowPage({
         completedStepsFromHook,
     });
 
-    // Hook de Adendos (para etapa atual)
-    const currentEtapa = etapas?.find(e => e.ordem === currentStep);
-    const { addAdendo, getAdendosByCampo } = useEtapaAdendos(currentEtapa?.id);
-
-    // Hook de aprovação de etapa
-    const { aprovacaoInfo } = useAprovacaoEtapa(finalOsId || undefined, currentStep);
+    // NOTA: Adendos agora são gerenciados pelo StepReadOnlyWithAdendos wrapper
 
     // Refs para componentes com validação imperativa
     const stepLeadRef = useRef<LeadCadastroHandle>(null);
@@ -375,11 +461,9 @@ export function OS56WorkflowPage({
         }
     }, [etapa1Data.leadId, selectedLeadId]);
 
-    // Handler para adicionar adendo
-    const handleAddAdendo = useCallback(async (campoKey: string, conteudo: string) => {
-        const result = await addAdendo(campoKey, conteudo);
-        return !!result;
-    }, [addAdendo]);
+    // NOTA: Handler de adendo removido temporariamente
+    // Será reimplementado quando integrarmos adendos diretamente aos componentes read-only
+
 
     // Calcular valores financeiros da etapa 5
     const valoresFinanceiros = useMemo(() => {
@@ -486,12 +570,7 @@ export function OS56WorkflowPage({
             }
         }
 
-        // Verificar aprovação
-        if (aprovacaoInfo?.requerAprovacao && aprovacaoInfo.statusAprovacao !== 'aprovada') {
-            setEtapaNomeParaAprovacao(STEPS.find(s => s.id === currentStep)?.title || '');
-            setIsAprovacaoModalOpen(true);
-            return;
-        }
+        // NOTA: Sistema de aprovação removido - avanço direto sem verificação
 
         // Avançar
         if (currentStep < STEPS.length) {
@@ -784,56 +863,183 @@ export function OS56WorkflowPage({
     };
 
     /**
-     * Renderiza o resumo de uma etapa concluída com suporte a adendos
+     * Renderiza o resumo de uma etapa concluída usando COMPONENTES ORIGINAIS em modo read-only
+     * 
+     * ✅ FIX v2.0: Arquitetura Read-Only Unificada
+     * - Usa os mesmos componentes do formulário com readOnly=true
+     * - Resolve problemas de [object Object] em anexos e especificações técnicas
+     * - Mantém consistência visual entre edição e visualização
+     * 
+     * ✅ FIX v2.1: Integração de Adendos
+     * - Cada etapa concluída (exceto etapa 1) tem seção de adendos
+     * - Wrapper StepReadOnlyWithAdendos gerencia hook de adendos
      */
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const renderSummary = (step: number, data: any) => {
+        // Obter etapa do banco para ter acesso ao ID
+        const stepEtapa = etapas?.find(e => e.ordem === step);
+        const etapaId = stepEtapa?.id;
+
         // 🆕 Etapa 1 (Identifique o Lead): Exibição especial com tabs, SEM adendos
         if (step === 1) {
             return <LeadSummaryWithTabs data={data} />;
         }
 
-        // 🆕 Etapa 6 (Gerar Proposta): Exibição com botões de PDF
+        // 🆕 Etapa 2 (Tipo de OS): Exibição simples COM adendos
+        if (step === 2) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepSelecaoTipoAssessoria
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 3 (Follow-up 1): Componente original com anexos
+        if (step === 3) {
+            const FollowupComponent = tipoOS === 'OS-05' ? StepFollowup1OS5 : StepFollowup1OS6;
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <FollowupComponent
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                        osId={finalOsId || undefined}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 4 (Escopo): Componente original com tabela de especificações
+        if (step === 4) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepEscopoAssessoria
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                        tipoOS={tipoOS}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 5 (Precificação): Componente original com campos monetários
+        if (step === 5) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepPrecificacaoAssessoria
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 6 (Gerar Proposta): Exibição com PDF preview e botões
         if (step === 6) {
             return (
-                <PropostaSummary
-                    data={data}
-                    pdfUrl={data?.pdfUrl as string}
-                    responsavel={currentUser?.nome_completo || currentUser?.email || '-'}
-                />
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <PropostaSummary
+                        data={data}
+                        pdfUrl={data?.pdfUrl as string}
+                        responsavel={currentUser?.nome_completo || currentUser?.email || '-'}
+                    />
+                </StepReadOnlyWithAdendos>
             );
         }
 
+        // 🆕 Etapa 7 (Agendar Apresentação)
+        if (step === 7) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepAgendarApresentacao
+                        osId={finalOsId || ''}
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 8 (Realizar Apresentação)
+        if (step === 8) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepRealizarApresentacao
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 9 (Análise e Relatório)
+        if (step === 9) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepAnaliseRelatorio
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 10 (Gerar Contrato): Com PDF
+        if (step === 10) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepGerarContrato
+                        data={{
+                            ...data,
+                            osId: finalOsId || '',
+                            codigoOS: os?.codigo_os || '',
+                        }}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 11 (Contrato Assinado)
+        if (step === 11) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepContratoAssinado
+                        data={data}
+                        onDataChange={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // 🆕 Etapa 12 (Ativar Contrato): Botão final
+        if (step === 12) {
+            return (
+                <StepReadOnlyWithAdendos etapaId={etapaId} readonly={readonly}>
+                    <StepAtivarContratoAssessoria
+                        tipoOS={tipoOS}
+                        onAtivarContrato={() => { }} // No-op em read-only
+                        readOnly={true}
+                    />
+                </StepReadOnlyWithAdendos>
+            );
+        }
+
+        // Fallback: usar WorkflowStepSummary (legacy)
         const configFn = OS_56_SUMMARY_CONFIG[step];
         if (!configFn) return null;
-
-        const fields = configFn(data);
-        const stepEtapa = etapas?.find(e => e.ordem === step);
-        const isCompleted = completedSteps.includes(step);
-        const canAddAdendo = isCompleted && !!stepEtapa?.id && !readonly;
-
-        // Se etapa concluída, mostrar com FieldWithAdendos
-        if (isCompleted && stepEtapa) {
-            return (
-                <div className="space-y-4">
-                    {fields.map((field, idx) => (
-                        <FieldWithAdendos
-                            key={idx}
-                            label={field.label}
-                            campoKey={field.label.toLowerCase().replace(/\s+/g, '_')}
-                            valorOriginal={field.value as string}
-                            adendos={getAdendosByCampo(field.label.toLowerCase().replace(/\s+/g, '_'))}
-                            etapaId={stepEtapa.id}
-                            onAddAdendo={handleAddAdendo}
-                            canAddAdendo={canAddAdendo}
-                        />
-                    ))}
-                </div>
-            );
-        }
-
-        // Resumo simples
-        return <WorkflowStepSummary fields={fields} />;
+        return <WorkflowStepSummary fields={configFn(data)} />;
     };
 
     // ============================================================
@@ -919,19 +1125,6 @@ export function OS56WorkflowPage({
                     </CardContent>
                 </Card>
             </div>
-
-            {/* Modal de Aprovação */}
-            <AprovacaoModal
-                open={isAprovacaoModalOpen}
-                onOpenChange={setIsAprovacaoModalOpen}
-                osId={finalOsId || ''}
-                etapaOrdem={currentStep}
-                etapaNome={etapaNomeParaAprovacao}
-                onSolicitado={() => {
-                    toast.info('Aprovação solicitada ao coordenador');
-                    setIsAprovacaoModalOpen(false);
-                }}
-            />
         </div>
     );
 }

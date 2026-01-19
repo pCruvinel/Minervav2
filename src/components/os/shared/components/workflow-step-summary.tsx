@@ -29,18 +29,100 @@ interface WorkflowStepSummaryProps {
 
 /**
  * Formatar valor baseado no tipo
+ * 
+ * ✅ v3.2: Tratamento robusto para arrays de objetos e objetos aninhados
  */
 function formatValue(value: any, type?: SummaryFieldType): string {
     if (value === undefined || value === null || value === '') return '-';
 
+    // ✅ FIX v3.3: Tratar tipo 'files' PRIMEIRO, antes do processamento genérico de arrays
+    if (type === 'files') {
+        if (!Array.isArray(value)) {
+            // Se for objeto único, contar como 1 arquivo
+            if (typeof value === 'object' && value !== null) return '📎 1 arquivo';
+            return '-';
+        }
+        if (value.length === 0) return '-';
+        // Para arquivos, extrair nome se disponível, senão apenas contar
+        const fileNames = value.map((f: any) => {
+            if (typeof f === 'string') return f;
+            return f?.name || f?.nome || f?.filename || f?.originalname || null;
+        }).filter(Boolean);
+
+        if (fileNames.length > 0 && fileNames.length <= 3) {
+            return `📎 ${fileNames.join(', ')}`;
+        }
+        return `📎 ${value.length} arquivo(s)`;
+    }
+
+    // ✅ FIX: Detectar e tratar arrays ANTES do switch (exceto 'files' já tratado acima)
+    if (Array.isArray(value)) {
+        if (value.length === 0) return '-';
+
+        // Se for array de objetos, extrair campo descritivo
+        if (typeof value[0] === 'object' && value[0] !== null) {
+            // Tentar extrair campos comuns: descricao, nome, label, value, titulo
+            const extractedValues = value.map((item: any) => {
+                if (typeof item === 'string') return item;
+                if (typeof item === 'number') return String(item);
+                // Ordem de prioridade para campos descritivos
+                return item.descricao || item.nome || item.label || item.titulo || item.value || item.name || '';
+            }).filter(Boolean);
+
+            return extractedValues.length > 0
+                ? extractedValues.join('; ')
+                : `${value.length} item(s)`;
+        }
+
+        // Array de primitivos - usar join direto
+        return value.filter((v: any) => v !== null && v !== undefined && v !== '').join(', ') || '-';
+    }
+
+    // ✅ FIX: Detectar e tratar objetos aninhados (não-arrays) ANTES do switch
+    if (typeof value === 'object' && value !== null) {
+        // Para objetos de prazo (OS-05/06), formatar especialmente
+        if ('horarioInicio' in value && 'horarioFim' in value) {
+            const dias = value.diasSemana || '';
+            return `${dias} de ${value.horarioInicio || ''} às ${value.horarioFim || ''}`.trim() || '-';
+        }
+
+        // Para objetos de prazo OS-06 (dias úteis)
+        if ('planejamentoInicial' in value || 'composicaoLaudo' in value) {
+            const partes = [];
+            if (value.planejamentoInicial) partes.push(`Planejamento: ${value.planejamentoInicial}d`);
+            if (value.logisticaTransporte) partes.push(`Logística: ${value.logisticaTransporte}d`);
+            if (value.levantamentoCampo) partes.push(`Levantamento: ${value.levantamentoCampo}d`);
+            if (value.composicaoLaudo) partes.push(`Composição: ${value.composicaoLaudo}d`);
+            if (value.apresentacaoCliente) partes.push(`Apresentação: ${value.apresentacaoCliente}d`);
+            return partes.length > 0 ? partes.join(', ') : '-';
+        }
+
+        // Tentar extrair campos comuns
+        if ('descricao' in value && value.descricao) return String(value.descricao);
+        if ('nome' in value && value.nome) return String(value.nome);
+        if ('label' in value && value.label) return String(value.label);
+        if ('value' in value && value.value) return String(value.value);
+        if ('titulo' in value && value.titulo) return String(value.titulo);
+
+        // Fallback: mostrar contagem de chaves ou stringify seguro
+        const keys = Object.keys(value).filter(k => value[k] !== null && value[k] !== undefined && value[k] !== '');
+        if (keys.length === 0) return '-';
+        if (keys.length <= 3) {
+            // Poucos campos, tentar mostrar resumo
+            return keys.map(k => `${k}: ${String(value[k]).substring(0, 30)}`).join('; ');
+        }
+        return `${keys.length} campos configurados`;
+    }
+
     switch (type) {
-        case 'currency':
+        case 'currency': {
             const numValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^\d.,]/g, '').replace(',', '.'));
             if (isNaN(numValue)) return '-';
             return new Intl.NumberFormat('pt-BR', {
                 style: 'currency',
                 currency: 'BRL',
             }).format(numValue);
+        }
 
         case 'date':
             try {
@@ -70,17 +152,20 @@ function formatValue(value: any, type?: SummaryFieldType): string {
             return value ? 'Sim' : 'Não';
 
         case 'list':
+            // Já tratado acima, mas fallback
             if (!Array.isArray(value)) return String(value);
             if (value.length === 0) return '-';
             return value.join(', ');
 
-        case 'files':
-            if (!Array.isArray(value)) return '-';
-            if (value.length === 0) return '-';
-            return `📎 ${value.length} arquivo(s)`;
+        // case 'files' tratado no início da função (antes do switch)
 
-        default:
-            return String(value);
+        default: {
+            // ✅ FIX: Último fallback - garantir que string seja retornada
+            const strValue = String(value);
+            // Evitar mostrar "[object Object]"
+            if (strValue === '[object Object]') return '-';
+            return strValue;
+        }
     }
 }
 

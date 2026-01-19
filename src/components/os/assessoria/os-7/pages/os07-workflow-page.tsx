@@ -15,10 +15,10 @@ import { ordensServicoAPI } from '@/lib/api-client';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { WorkflowAccordion, WorkflowStepDefinition } from '@/components/os/shared/components/workflow-accordion';
 import { WorkflowStepSummary, OS_07_SUMMARY_CONFIG } from '@/components/os/shared/components/workflow-step-summary';
-import { FieldWithAdendos } from '@/components/os/shared/components/field-with-adendos';
+import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
 import { useWorkflowState } from '@/lib/hooks/use-workflow-state';
 import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
-import { useEtapaAdendos } from '@/lib/hooks/use-etapa-adendos';
+
 import { useEtapas } from '@/lib/hooks/use-etapas';
 import { usePDFGeneration } from '@/lib/hooks/use-pdf-generation';
 import { logger } from '@/lib/utils/logger';
@@ -77,10 +77,7 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
     totalSteps: steps.length
   });
 
-  // Obter etapa atual para adendos
-  const currentEtapa = etapas?.find(e => e.ordem === currentStep);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { adendos, addAdendo, getAdendosByCampo } = useEtapaAdendos(currentEtapa?.id);
+
 
   // Hook para gerenciar etapas
   const { createEtapasBatch } = useEtapas();
@@ -99,9 +96,11 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
   // Setters - only used in some handlers
   const setEtapa1Data = (data: unknown) => setStepData(1, data);
   const setEtapa2Data = (data: unknown) => setStepData(2, data);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setEtapa3Data = (data: unknown) => setStepData(3, data);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setEtapa4Data = (data: unknown) => setStepData(4, data);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const setEtapa5Data = (data: unknown) => setStepData(5, data);
 
@@ -264,35 +263,6 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
     }
   };
 
-  const handlePrevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    }
-  };
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleNextStep = async () => {
-    if (currentStep === 1) {
-      await handleIdentificarCliente();
-      return;
-    }
-
-    if (finalOsId) {
-      await saveStep(currentStep, true);
-    }
-
-    if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1);
-      toast.success('Etapa concluída!', { icon: '✅' });
-    }
-  };
-
-  const handleSaveStep = async () => {
-    if (finalOsId) {
-      await saveStep(currentStep, true);
-      toast.success('Dados salvos com sucesso!');
-    }
-  };
-
   // Handler para geração de PDF do parecer
   const handleGerarPDF = async () => {
     if (!finalOsId) {
@@ -329,6 +299,54 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
     }
   };
 
+  // Handler centralizado para Salvar e Avançar
+  const handleSaveAndAdvance = async (step: number): Promise<boolean> => {
+    try {
+      if (step === 1) {
+        await handleIdentificarCliente();
+        return true;
+      }
+
+      if (step === 3) {
+        // Navegar para análise técnica
+        if (finalOsId) {
+          window.location.href = `/os/07/analise/${finalOsId}`;
+          return true;
+        }
+        return false;
+      }
+
+      if (step === 4) {
+        if (!etapa4Data?.pdfGerado) {
+          await handleGerarPDF();
+          return !!etapa4Data?.pdfGerado; // Retorna sucesso se gerou
+        }
+        // Se já gerou, apenas avança
+        setCurrentStep(5);
+        return true;
+      }
+
+      if (step === 5) {
+        await handleConcluirOS();
+        return true;
+      }
+
+      // Default: Salvar e Avançar
+      if (finalOsId) {
+        await saveStep(step, true);
+        if (step < steps.length) {
+          setCurrentStep(step + 1);
+          return true;
+        }
+      }
+
+      return false;
+    } catch (error) {
+      logger.error(`Erro ao salvar etapa ${step}:`, error);
+      return false;
+    }
+  };
+
   // Handler para concluir a OS
   const handleConcluirOS = async () => {
     if (!finalOsId) return;
@@ -347,10 +365,7 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
   // Renderização
   // =====================================================
 
-  const handleAddAdendo = useCallback(async (campoKey: string, conteudo: string): Promise<boolean> => {
-    const result = await addAdendo(campoKey, conteudo);
-    return !!result;
-  }, [addAdendo]);
+
 
   const renderForm = (step: number) => {
     const isReadOnly = completedSteps.includes(step) && step !== currentStep;
@@ -369,18 +384,8 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
               readOnly={isReadOnly}
             />
 
-            {/* Botão Salvar e Avançar dentro do accordion */}
-            {!isReadOnly && (
-              <div className="pt-4 border-t border-border">
-                <PrimaryButton
-                  onClick={handleIdentificarCliente}
-                  isLoading={isCreatingOS}
-                  className="w-full sm:w-auto"
-                >
-                  {isCreatingOS ? 'Criando OS...' : 'Salvar e Avançar'}
-                </PrimaryButton>
-              </div>
-            )}
+
+            {/* Botão Salvar e Avançar removido - agora no accordion */}
           </div>
         );
 
@@ -492,11 +497,6 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
                 </div>
               </div>
             </div>
-
-            <PrimaryButton onClick={() => window.location.href = `/os/07/analise/${finalOsId}`}>
-              Ir para Análise Técnica
-              <CheckCircle2 className="w-4 h-4 ml-2" />
-            </PrimaryButton>
           </div>
         );
 
@@ -506,34 +506,8 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
             <div className="bg-muted/30 border border-border rounded-lg p-4">
               <h4 className="font-medium mb-2">Geração do PDF do Parecer Técnico</h4>
               <p className="text-sm text-muted-foreground mb-4">
-                Clique no botão abaixo para gerar o documento PDF do Termo de Comunicação de Reforma.
+                Clique no botão "Salvar e Avançar" para gerar o documento PDF do Termo de Comunicação de Reforma.
               </p>
-
-              {etapa4Data?.pdfGerado && etapa4Data?.pdfUrl && (
-                <div className="bg-success/10 border border-success/30 rounded-lg p-3 mb-4">
-                  <div className="flex items-center gap-2 text-success">
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span className="text-sm font-medium">PDF gerado com sucesso!</span>
-                  </div>
-                  <a
-                    href={etapa4Data.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-info underline mt-2 inline-block"
-                  >
-                    Baixar PDF
-                  </a>
-                </div>
-              )}
-
-              <PrimaryButton
-                onClick={handleGerarPDF}
-                isLoading={isGeneratingPDF}
-                disabled={etapa4Data?.pdfGerado}
-                className="w-full sm:w-auto"
-              >
-                {isGeneratingPDF ? 'Gerando PDF...' : etapa4Data?.pdfGerado ? 'PDF Gerado ✓' : 'Gerar PDF e Avançar'}
-              </PrimaryButton>
             </div>
           </div>
         );
@@ -548,17 +522,6 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
                 O Termo de Comunicação de Reforma foi processado com sucesso.
               </p>
             </div>
-
-            {!etapa5Data?.concluida && (
-              <div className="pt-4 border-t border-border">
-                <PrimaryButton
-                  onClick={handleConcluirOS}
-                  className="w-full sm:w-auto"
-                >
-                  Concluir OS
-                </PrimaryButton>
-              </div>
-            )}
           </div>
         );
 
@@ -568,34 +531,137 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
   };
 
   const renderSummary = (step: number, data: any) => {
-    const configFn = OS_07_SUMMARY_CONFIG[step];
-    if (!configFn) return null;
-
-    const fields = configFn(data);
     const stepEtapa = etapas?.find(e => e.ordem === step);
     const isCompleted = completedSteps.includes(step);
     const canAddAdendo = isCompleted && !!stepEtapa?.id;
 
-    if (isCompleted && stepEtapa) {
-      return (
-        <div className="space-y-4">
-          {fields.map((field, idx) => (
-            <FieldWithAdendos
-              key={idx}
-              label={field.label}
-              campoKey={field.label.toLowerCase().replace(/\s+/g, '_')}
-              valorOriginal={field.value as string}
-              adendos={getAdendosByCampo(field.label.toLowerCase().replace(/\s+/g, '_'))}
-              etapaId={stepEtapa.id}
-              onAddAdendo={handleAddAdendo}
-              canAddAdendo={canAddAdendo}
-            />
-          ))}
-        </div>
-      );
+    // Se não estiver completa ou sem etapa definida, fallback para o antigo
+    if (!isCompleted || !stepEtapa) {
+      const configFn = OS_07_SUMMARY_CONFIG[step];
+      if (!configFn) return null;
+      const fields = configFn(data);
+      return <WorkflowStepSummary fields={fields} />;
     }
 
-    return <WorkflowStepSummary fields={fields} />;
+    let content = null;
+
+    switch (step) {
+      case 1:
+        content = (
+          <LeadCadastro
+            ref={stepLeadRef}
+            selectedLeadId={selectedLeadId}
+            onLeadChange={() => { }}
+            showEdificacao={true}
+            showEndereco={true}
+            statusFilter={['lead', 'ativo']}
+            readOnly={true}
+          />
+        );
+        break;
+
+      case 2: {
+        const link = linkFormulario || etapa2Data?.linkFormulario;
+        content = (
+          <div className="space-y-4">
+            <div className="bg-background border border-border rounded-lg p-3">
+              <Label className="text-xs text-muted-foreground">Link do Formulário</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <LinkIcon className="w-4 h-4 text-info" />
+                <a href={link} target="_blank" rel="noopener noreferrer" className="text-sm text-info hover:underline truncate block">
+                  {link || 'Link não gerado'}
+                </a>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className={etapa2Data?.formularioEnviado ? "bg-green-100 text-green-700 border-green-200" : "bg-muted text-muted-foreground border-border"}>
+                {etapa2Data?.formularioEnviado ? 'Formulário Enviado' : 'Aguardando Envio'}
+              </Badge>
+            </div>
+          </div>
+        );
+        break;
+      }
+
+      case 3:
+        content = (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium">Formulário Recebido</p>
+                  <p className="text-xs text-muted-foreground">
+                    {data?.dataRecebimento ? new Date(data.dataRecebimento).toLocaleString() : ''}
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" size="sm" asChild>
+                <a href={`/os/07/analise/${finalOsId}`} target="_blank">
+                  Ver Análise <ExternalLink className="w-3 h-3 ml-2" />
+                </a>
+              </Button>
+            </div>
+          </div>
+        );
+        break;
+
+      case 4:
+        content = (
+          <div className="space-y-3">
+            {data?.pdfUrl ? (
+              <div className="bg-muted/30 border border-border rounded-lg p-3 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded bg-red-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-red-600">PDF</span>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium">Parecer Técnico</p>
+                    <p className="text-xs text-muted-foreground">Termo de Comunicação</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" asChild>
+                  <a href={data.pdfUrl} target="_blank" rel="noopener noreferrer">
+                    Baixar <ExternalLink className="w-3 h-3 ml-2" />
+                  </a>
+                </Button>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">PDF não gerado.</p>
+            )}
+          </div>
+        );
+        break;
+
+      case 5:
+        content = (
+          <div className="flex items-center gap-3 bg-success/5 p-3 rounded-lg border border-success/20">
+            <CheckCircle2 className="w-5 h-5 text-success" />
+            <div>
+              <p className="text-sm font-medium text-success">OS Concluída</p>
+              {data?.dataConclusao && (
+                <p className="text-xs text-muted-foreground">
+                  em {new Date(data.dataConclusao).toLocaleString()}
+                </p>
+              )}
+            </div>
+          </div>
+        );
+        break;
+    }
+
+    if (!content) return null;
+
+    return (
+      <StepReadOnlyWithAdendos
+        etapaId={stepEtapa.id}
+        readonly={!canAddAdendo}
+      >
+        {content}
+      </StepReadOnlyWithAdendos>
+    );
   };
 
   return (
@@ -640,26 +706,16 @@ export function OS07WorkflowPage({ onBack, osId: propOsId }: OS07WorkflowPagePro
               onStepChange={handleStepChange}
               renderForm={renderForm}
               renderSummary={renderSummary}
+              onSaveAndAdvance={handleSaveAndAdvance}
+              saveButtonText="Salvar e Avançar"
+              finalButtonText="Concluir OS"
+              isSaving={isLoadingData || isCreatingOS || isGeneratingPDF}
             />
           </div>
         </Card>
       </div>
 
-      {/* Footer simplificado - botões principais movidos para dentro dos accordions */}
-      {currentStep > 1 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-border px-6 py-3">
-          <div className="max-w-4xl mx-auto flex justify-between items-center">
-            <Button variant="outline" onClick={handlePrevStep}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <Button variant="ghost" onClick={handleSaveStep} disabled={isLoadingData}>
-              {isLoadingData ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-              Salvar Rascunho
-            </Button>
-          </div>
-        </div>
-      )}
+      {/* Footer removido em favor do WorkflowAccordion */}
     </div>
   );
 }
