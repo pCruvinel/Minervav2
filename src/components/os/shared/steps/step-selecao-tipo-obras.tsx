@@ -1,15 +1,14 @@
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle, Check } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface StepSelecaoTipoObrasProps {
     data: {
         tipoOS?: string;
+        descricaoOutros?: string;
     };
-    onDataChange: (data: { tipoOS: string }) => void;
+    onDataChange: (data: { tipoOS?: string; descricaoOutros?: string }) => void;
     disabled?: boolean;
 }
 
@@ -22,19 +21,14 @@ export function StepSelecaoTipoObras({ data, onDataChange, disabled }: StepSelec
         'OS 04: Outros': 'Outros serviços de obras não categorizados',
     };
 
+    const isOutros = data.tipoOS === 'OS 04: Outros';
+
     return (
         <div className="space-y-6">
-            <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                    Selecione o tipo de ordem de serviço que será criada. Esta definição é crucial para o fluxo de trabalho.
-                </AlertDescription>
-            </Alert>
-
             <div className="space-y-3">
                 <RadioGroup
                     value={data.tipoOS}
-                    onValueChange={(value) => onDataChange({ tipoOS: value })}
+                    onValueChange={(value) => onDataChange({ ...data, tipoOS: value })}
                     className="space-y-3"
                     disabled={disabled}
                 >
@@ -54,30 +48,23 @@ export function StepSelecaoTipoObras({ data, onDataChange, disabled }: StepSelec
                 </RadioGroup>
             </div>
 
-            {data.tipoOS && (
-                <Card className="bg-success/5 border-success/20">
-                    <CardContent className="pt-6">
-                        <div className="flex items-center gap-3">
-                            <Check className="h-5 w-5 text-success" />
-                            <div>
-                                <div className="text-sm font-medium">Tipo selecionado:</div>
-                                <div className="text-base">
-                                    {data.tipoOS}
-                                </div>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            {data.tipoOS && (
-                <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                        Após a conclusão desta OS Comercial, será criada automaticamente uma OS 13 (Start de Contrato) para a execução da obra.
-                    </AlertDescription>
-                </Alert>
+            {/* Campo de descrição para OS 04: Outros */}
+            {isOutros && (
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor="descricao-outros" className="text-sm font-medium">
+                        Descreva o tipo de serviço: <span className="text-destructive">*</span>
+                    </Label>
+                    <Input
+                        id="descricao-outros"
+                        placeholder="Ex: Impermeabilização de laje, Instalação de guarda-corpos..."
+                        value={data.descricaoOutros || ''}
+                        onChange={(e) => onDataChange({ ...data, descricaoOutros: e.target.value })}
+                        disabled={disabled}
+                        className="w-full"
+                    />
+                </div>
             )}
         </div>
     );
 }
+

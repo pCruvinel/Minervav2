@@ -1,29 +1,17 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { useState, useMemo } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
-  TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
   FileText,
-  Search,
-  Filter,
   Eye,
   Download,
   Plus,
@@ -45,6 +33,13 @@ import {
 } from '@/lib/hooks/use-contratos'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { PageHeader } from '@/components/shared/page-header'
+import {
+  CompactTableWrapper,
+  CompactTableHead,
+  CompactTableCell,
+  CompactTableRow,
+} from '@/components/shared/compact-table'
+import { FilterBar, SearchInput, FilterSelect, DateRangePicker, type DateRange } from '@/components/shared/filters'
 
 export const Route = createFileRoute('/_auth/comercial/contratos')({
   component: ContratosPage,
@@ -55,6 +50,13 @@ function ContratosPage() {
   const { contratos, isLoading, error } = useContratos()
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('todos')
+  const [dateRange, setDateRange] = useState<DateRange | null>(null)
+
+  // Pagination and sorting state
+  const [page, setPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [sortField, setSortField] = useState<'numero_contrato' | 'cliente_nome' | 'valor_total' | 'data_inicio' | 'status' | null>(null)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
   // Filtrar contratos
   const filteredContratos = contratos.filter((contrato) => {
@@ -67,6 +69,42 @@ function ContratosPage() {
 
     return matchesSearch && matchesStatus
   })
+
+  // Handle Sort
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+    setPage(1)
+  }
+
+  // Sorted contracts
+  const sortedContratos = useMemo(() => {
+    if (!sortField) return filteredContratos
+    return [...filteredContratos].sort((a, b) => {
+      const aVal = a[sortField]
+      const bVal = b[sortField]
+      if (aVal === null || aVal === undefined) return 1
+      if (bVal === null || bVal === undefined) return -1
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal)
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal
+      }
+      return 0
+    })
+  }, [filteredContratos, sortField, sortDirection])
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sortedContratos.length / itemsPerPage))
+  const paginatedContratos = sortedContratos.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  )
 
   // Calcular totais filtrados
   const totalContratos = filteredContratos.length
@@ -160,154 +198,181 @@ function ContratosPage() {
       </div>
 
       {/* Filtros e Busca */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <Input
-                placeholder="Buscar por número, cliente ou tipo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Status</SelectItem>
-                <SelectItem value="rascunho">Rascunho</SelectItem>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="suspenso">Suspenso</SelectItem>
-                <SelectItem value="encerrado">Encerrado</SelectItem>
-                <SelectItem value="cancelado">Cancelado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar>
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Buscar por número, cliente ou tipo..."
+        />
+        <FilterSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'rascunho', label: 'Rascunho' },
+            { value: 'ativo', label: 'Ativo' },
+            { value: 'suspenso', label: 'Suspenso' },
+            { value: 'encerrado', label: 'Encerrado' },
+            { value: 'cancelado', label: 'Cancelado' },
+          ]}
+          placeholder="Status"
+        />
+        <DateRangePicker
+          startDate={dateRange?.start}
+          endDate={dateRange?.end}
+          onChange={setDateRange}
+          placeholder="Período"
+        />
+      </FilterBar>
 
       {/* Tabela de Contratos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Lista de Contratos</CardTitle>
-          <CardDescription>
-            {isLoading ? 'Carregando...' : `${filteredContratos.length} contrato(s) encontrado(s)`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
+      {isLoading ? (
+        <Card>
+          <CardContent className="py-12">
+            <div className="flex items-center justify-center">
               <Loader2 className="w-8 h-8 animate-spin text-primary" />
               <span className="ml-3 text-neutral-600">Carregando contratos...</span>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número</TableHead>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Início</TableHead>
-                  <TableHead>Término</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredContratos.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-neutral-500">
-                      {contratos.length === 0
-                        ? 'Nenhum contrato cadastrado ainda'
-                        : 'Nenhum contrato encontrado com os filtros aplicados'}
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredContratos.map((contrato) => (
-                    <TableRow key={contrato.id}>
-                      <TableCell className="font-medium">
-                        {contrato.numero_contrato || '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Link
-                          to="/contatos/$clienteId"
-                          params={{ clienteId: contrato.cliente_id }}
-                          className="flex items-center gap-2 text-primary hover:underline"
-                        >
-                          <Building2 className="w-4 h-4 text-neutral-400" />
-                          {contrato.cliente_nome}
-                        </Link>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={CONTRATO_TIPO_COLORS[contrato.tipo]}
-                        >
-                          {CONTRATO_TIPO_LABELS[contrato.tipo]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatCurrency(contrato.valor_total)}
-                      </TableCell>
-                      <TableCell>{formatDate(contrato.data_inicio)}</TableCell>
-                      <TableCell>{formatDate(contrato.data_fim)}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={CONTRATO_STATUS_COLORS[contrato.status]}
-                        >
-                          {CONTRATO_STATUS_LABELS[contrato.status]}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {/* Ver OS de Origem */}
-                          {contrato.os_id && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                navigate({
-                                  to: '/os/$osId',
-                                  params: { osId: contrato.os_id! }
-                                })
-                              }}
-                              title={`Ver OS ${contrato.os_codigo || ''}`}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {/* Download do contrato */}
-                          {contrato.arquivo_url && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                window.open(contrato.arquivo_url!, '_blank')
-                              }}
-                              title="Download do contrato"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      ) : (
+        <CompactTableWrapper
+          title="Lista de Contratos"
+          totalItems={sortedContratos.length}
+          currentCount={paginatedContratos.length}
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          itemsPerPage={itemsPerPage}
+          onItemsPerPageChange={(perPage) => {
+            setItemsPerPage(perPage)
+            setPage(1)
+          }}
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
+                <CompactTableHead
+                  onSort={() => handleSort('numero_contrato')}
+                  sortDirection={sortField === 'numero_contrato' ? sortDirection : undefined}
+                >
+                  Número
+                </CompactTableHead>
+                <CompactTableHead
+                  onSort={() => handleSort('cliente_nome')}
+                  sortDirection={sortField === 'cliente_nome' ? sortDirection : undefined}
+                >
+                  Cliente
+                </CompactTableHead>
+                <CompactTableHead>Tipo</CompactTableHead>
+                <CompactTableHead
+                  onSort={() => handleSort('valor_total')}
+                  sortDirection={sortField === 'valor_total' ? sortDirection : undefined}
+                >
+                  Valor
+                </CompactTableHead>
+                <CompactTableHead
+                  onSort={() => handleSort('data_inicio')}
+                  sortDirection={sortField === 'data_inicio' ? sortDirection : undefined}
+                >
+                  Início
+                </CompactTableHead>
+                <CompactTableHead>Término</CompactTableHead>
+                <CompactTableHead
+                  onSort={() => handleSort('status')}
+                  sortDirection={sortField === 'status' ? sortDirection : undefined}
+                >
+                  Status
+                </CompactTableHead>
+                <CompactTableHead className="text-right">Ações</CompactTableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedContratos.length === 0 ? (
+                <CompactTableRow>
+                  <CompactTableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    {contratos.length === 0
+                      ? 'Nenhum contrato cadastrado ainda'
+                      : 'Nenhum contrato encontrado com os filtros aplicados'}
+                  </CompactTableCell>
+                </CompactTableRow>
+              ) : (
+                paginatedContratos.map((contrato) => (
+                  <CompactTableRow key={contrato.id}>
+                    <CompactTableCell className="font-medium">
+                      {contrato.numero_contrato || '-'}
+                    </CompactTableCell>
+                    <CompactTableCell>
+                      <Link
+                        to="/contatos/$clienteId"
+                        params={{ clienteId: contrato.cliente_id }}
+                        className="flex items-center gap-2 text-primary hover:underline"
+                      >
+                        <Building2 className="w-4 h-4 text-muted-foreground" />
+                        {contrato.cliente_nome}
+                      </Link>
+                    </CompactTableCell>
+                    <CompactTableCell>
+                      <Badge
+                        variant="outline"
+                        className={CONTRATO_TIPO_COLORS[contrato.tipo]}
+                      >
+                        {CONTRATO_TIPO_LABELS[contrato.tipo]}
+                      </Badge>
+                    </CompactTableCell>
+                    <CompactTableCell className="font-medium">
+                      {formatCurrency(contrato.valor_total)}
+                    </CompactTableCell>
+                    <CompactTableCell>{formatDate(contrato.data_inicio)}</CompactTableCell>
+                    <CompactTableCell>{formatDate(contrato.data_fim)}</CompactTableCell>
+                    <CompactTableCell>
+                      <Badge
+                        variant="outline"
+                        className={CONTRATO_STATUS_COLORS[contrato.status]}
+                      >
+                        {CONTRATO_STATUS_LABELS[contrato.status]}
+                      </Badge>
+                    </CompactTableCell>
+                    <CompactTableCell className="text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {/* Ver OS de Origem */}
+                        {contrato.os_id && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              navigate({
+                                to: '/os/$osId',
+                                params: { osId: contrato.os_id! }
+                              })
+                            }}
+                            title={`Ver OS ${contrato.os_codigo || ''}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {/* Download do contrato */}
+                        {contrato.arquivo_url && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              window.open(contrato.arquivo_url!, '_blank')
+                            }}
+                            title="Download do contrato"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </CompactTableCell>
+                  </CompactTableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CompactTableWrapper>
+      )}
     </div>
   )
 }

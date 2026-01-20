@@ -9,8 +9,10 @@ function FinanceiroIndexRoute() {
   const navigate = useNavigate()
 
   return (
-    <FinanceiroDashboardPage
-      onNavigate={(page) => navigate({ to: `/financeiro/${page}` as any })}
-    />
+    <div className="content-wrapper">
+      <FinanceiroDashboardPage
+        onNavigate={(page) => navigate({ to: `/financeiro/${page}` as any })}
+      />
+    </div>
   )
 }

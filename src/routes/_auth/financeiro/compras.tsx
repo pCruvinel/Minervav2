@@ -21,7 +21,7 @@ export const Route = createFileRoute('/_auth/financeiro/compras')({
 
 function ComprasRoute() {
   return (
-    <div className="container mx-auto py-8">
+    <div className="content-wrapper">
       <GestaoComprasPage />
     </div>
   );

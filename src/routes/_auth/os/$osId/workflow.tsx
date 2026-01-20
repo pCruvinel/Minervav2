@@ -4,7 +4,7 @@ import { useOrdemServico } from '@/lib/hooks/use-ordens-servico'
 import { getOSRouteConfigWithFallback } from '@/lib/constants/os-routing-config'
 
 // Import de todas as páginas de workflow
-import { OSDetailsWorkflowPage } from '@/components/os/shared/pages/os-details-workflow-page'
+import { OS14WorkflowPage } from '@/components/os/obras/os-1-4/pages/os-1-4-workflow-page'
 import { OSDetailsAssessoriaPage } from '@/components/os/assessoria/os-5-6/pages/os-details-assessoria-page'
 import { OS07WorkflowPage } from '@/components/os/assessoria/os-7/pages/os07-workflow-page'
 import { OS08WorkflowPage } from '@/components/os/assessoria/os-8/pages/os08-workflow-page'
@@ -74,7 +74,7 @@ function OSWorkflowRoute() {
     case 4:
       // OS 1-4: Obras (15 etapas)
       return (
-        <OSDetailsWorkflowPage
+        <OS14WorkflowPage
           osId={osId}
           initialStep={step}
           onBack={handleBack}
@@ -130,7 +130,7 @@ function OSWorkflowRoute() {
       // Fallback: usar página de workflow padrão de Obras
       console.warn(`[Workflow Route] Tipo de OS não mapeado: ${osCodigo}, usando fallback`)
       return (
-        <OSDetailsWorkflowPage
+        <OS14WorkflowPage
           osId={osId}
           initialStep={step}
           onBack={handleBack}

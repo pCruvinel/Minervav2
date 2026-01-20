@@ -3,6 +3,7 @@
       "version": "0.1.0",
       "private": true,
       "dependencies": {
+            "@hookform/resolvers": "^5.2.2",
             "@jsr/supabase__supabase-js": "^2.49.8",
             "@radix-ui/react-accordion": "^1.2.3",
             "@radix-ui/react-alert-dialog": "^1.1.6",
@@ -101,7 +102,7 @@
             "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
             "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
             "validate-colors": "node scripts/validate-colors.js",
-            "update-types": "npx supabase gen types typescript --project-id aghusqwfowsxwhwxajpb > src/types/supabase.ts",
+            "update-types": "npx supabase gen types typescript --project-id zxfevlkssljndqqhxkjb > src/types/supabase.ts",
             "update-types:local": "npx supabase gen types typescript --local > src/types/supabase.ts"
       }
 }

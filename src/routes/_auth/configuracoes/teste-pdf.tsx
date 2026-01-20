@@ -274,31 +274,110 @@ const MOCK_DATA: Record<PDFType, Record<string, unknown>> = {
     creaResponsavel: 'CREA-MA 54321',
   },
 
-  'visita-tecnica': {
+  'visita-tecnica-parecer': {
     codigoOS: 'OS-008-2026',
     dataVisita: '2026-01-06',
+    dataGeracao: new Date().toISOString(),
+    tituloDocumento: 'PARECER TÉCNICO DE ENGENHARIA',
+    finalidadeInspecao: 'parecer_tecnico',
     cliente: {
       nome: 'Edifício Comercial Centro',
-      endereco: 'Praça Deodoro, 100 - Centro - São Luís/MA',
+      endereco: 'Praça Deodoro, 100',
+      bairro: 'Centro',
+      cidade: 'São Luís',
+      estado: 'MA',
       contato: '(98) 99999-8888',
+      sindico: 'Sr. Roberto Alves'
     },
-    visitante: {
+    solicitante: {
+      nome: 'Sr. Roberto Alves',
+      cargo: 'Síndico Profissional',
+      contato: '(98) 99999-8888',
+      condominio: 'Edifício Comercial Centro'
+    },
+    responsavelTecnico: {
       nome: 'Eng. Ana Paula Lima',
       cargo: 'Engenheira Civil',
       crea: 'CREA-MA 67890',
     },
-    motivoVisita: 'Inspeção de infiltrações na cobertura do edifício, conforme solicitação do síndico.',
-    atividadesRealizadas: [
-      'Inspeção visual de toda a laje de cobertura',
-      'Verificação do sistema de escoamento pluvial',
-      'Identificação de pontos de infiltração',
-      'Registro fotográfico das anomalias encontradas',
-    ],
-    pendencias: [
-      'Aguardando orçamento de empresa especializada em impermeabilização',
-      'Síndico deve aprovar início dos serviços em assembleia',
-    ],
-    observacoes: 'Foram identificadas 3 áreas críticas de infiltração que necessitam de intervenção imediata para evitar danos estruturais.',
+    objetivo: {
+      descricaoSolicitacao: 'Inspeção de infiltrações na cobertura do edifício, conforme solicitação do síndico.',
+      areaVistoriada: 'Cobertura e Barrilete',
+      tempoSituacao: 'Aproximadamente 3 meses',
+    },
+    qualidade: {
+      engenheiroPontual: true,
+      moradorPontual: true
+    },
+    parecerTecnico: {
+      manifestacaoPatologica: 'Foram identificados pontos críticos de infiltração na laje de cobertura, com desplacamento de manta asfáltica e acúmulo de água (poças) devido a caimento inadequado.',
+      recomendacoes: 'Recomenda-se a remoção total da impermeabilização existente, regularização do caimento para os ralos e aplicação de nova manta asfáltica aluminizada de 4mm.',
+      gravidade: 'alta',
+      origemNBR: 'NBR 9575:2010 - Impermeabilização - Seleção e projeto',
+      observacoes: 'A intervenção deve ser realizada com urgência para evitar danos à armadura da laje.',
+      resultadoVisita: 'Concluída com identificação de patologias',
+      justificativa: 'Necessidade de reforma imediata'
+    },
+    fotos: [
+      { url: 'https://placehold.co/600x400/png?text=Infiltracao+Laje', legenda: 'Ponto de infiltração na laje', isNaoConforme: true },
+      { url: 'https://placehold.co/600x400/png?text=Manta+Danificada', legenda: 'Detalhe da manta asfáltica danificada', isNaoConforme: true },
+    ]
+  },
+
+  'visita-tecnica-recebimento': {
+    codigoOS: 'OS-009-2026',
+    dataVisita: '2026-01-15',
+    dataGeracao: new Date().toISOString(),
+    tituloDocumento: 'RELATÓRIO DE INSPEÇÃO DE RECEBIMENTO',
+    finalidadeInspecao: 'recebimento_unidade',
+    cliente: {
+      nome: 'Residencial Altos do Calhau',
+      endereco: 'Av. do Vale, 500',
+      bairro: 'Calhau',
+      cidade: 'São Luís',
+      estado: 'MA',
+      sindico: 'Dra. Luiza Martins'
+    },
+    solicitante: {
+      nome: 'Sra. Maria Clara',
+      cargo: 'Proprietária',
+      contato: '(98) 98888-7777',
+      unidadeBloco: 'Apt 101 - Bloco B'
+    },
+    responsavelTecnico: {
+      nome: 'Eng. Carlos Souza',
+      cargo: 'Engenheiro Civil',
+    },
+    objetivo: {
+      descricaoSolicitacao: 'Vistoria para recebimento de unidade nova (chaves).',
+      areaVistoriada: 'Apartamento 101 - Bloco B (Completo)',
+    },
+    qualidade: {
+      engenheiroPontual: true,
+      moradorPontual: true
+    },
+    checklistRecebimento: {
+      items: [
+        { id: 'item1', bloco: 'ACABAMENTOS', label: 'Pintura Paredes/Tetos', status: 'C', observacao: 'Acabamento uniforme' },
+        { id: 'item2', bloco: 'ACABAMENTOS', label: 'Revestimento Cerâmico', status: 'NC', observacao: 'Peça trincada na cozinha', observacaoCritical: true },
+        { id: 'item3', bloco: 'ESQUADRIAS', label: 'Portas e Fechaduras', status: 'C', observacao: 'Funcionando corretamente' },
+        { id: 'item4', bloco: 'ESQUADRIAS', label: 'Janelas e Vidros', status: 'C', observacao: '' },
+        { id: 'item5', bloco: 'INSTALAÇÕES', label: 'Pontos Elétricos', status: 'C', observacao: 'Testados e energizados' },
+        { id: 'item6', bloco: 'INSTALAÇÕES', label: 'Pontos Hidráulicos', status: 'C', observacao: 'Sem vazamentos' },
+        { id: 'item7', bloco: 'INSTALAÇÕES', label: 'Louças e Metais', status: 'NC', observacao: 'Torneira wc social pingando' },
+      ],
+      estatisticas: {
+        total: 7,
+        conformes: 5,
+        naoConformes: 2,
+        naoAplica: 0
+      }
+    },
+    fotos: [
+      { url: 'https://placehold.co/600x400/png?text=Ceramica+Trincada', legenda: 'Revestimento trincado na cozinha', isNaoConforme: true },
+      { url: 'https://placehold.co/600x400/png?text=Torneira', legenda: 'Torneira com vazamento', isNaoConforme: true },
+      { url: 'https://placehold.co/600x400/png?text=Vista+Geral', legenda: 'Vista geral da sala', isNaoConforme: false },
+    ]
   },
 
   'laudo-tecnico': {
@@ -333,7 +412,8 @@ const PDF_TYPES: { value: PDFType; label: string }[] = [
   { value: 'memorial', label: 'Memorial Descritivo' },
   { value: 'documento-sst', label: 'Documento SST' },
   { value: 'parecer-reforma', label: 'Parecer de Reforma (OS 7)' },
-  { value: 'visita-tecnica', label: 'Visita Técnica (OS 8)' },
+  { value: 'visita-tecnica-parecer' as any, label: 'Visita Técnica (Parecer - OS 8)' },
+  { value: 'visita-tecnica-recebimento' as any, label: 'Visita Técnica (Recebimento - OS 8)' },
 ];
 
 // ============================================================
@@ -341,7 +421,7 @@ const PDF_TYPES: { value: PDFType; label: string }[] = [
 // ============================================================
 
 function PDFTestPage() {
-  const [selectedType, setSelectedType] = useState<PDFType | ''>('');
+  const [selectedType, setSelectedType] = useState<PDFType | string>('');
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
 
@@ -353,13 +433,19 @@ function PDFTestPage() {
     setLastError(null);
     setGeneratedUrl(null);
 
+    // Mapear tipos de teste para tipos reais suportados pelo hook
+    let realType: PDFType = selectedType as PDFType;
+    if (selectedType === 'visita-tecnica-parecer' || selectedType === 'visita-tecnica-recebimento') {
+      realType = 'visita-tecnica';
+    }
+
     const mockData = MOCK_DATA[selectedType];
     if (!mockData) {
       setLastError(`Dados mock não encontrados para o tipo: ${selectedType}`);
       return;
     }
 
-    const result = await generate(selectedType, MOCK_OS_ID, mockData);
+    const result = await generate(realType, MOCK_OS_ID, mockData);
 
     if (result?.success && result.url) {
       setGeneratedUrl(result.url);

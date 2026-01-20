@@ -126,6 +126,7 @@ const menuItems = [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield, to: '/configuracoes' },
       { id: 'sistema', label: 'WhatsApp e Email', icon: Settings, to: '/configuracoes/sistema' },
       { id: 'teste-pdf', label: 'Teste de PDFs', icon: FileText, to: '/configuracoes/teste-pdf' },
+      { id: 'seed-usuarios', label: 'Seed de Usuários', icon: UserPlus, to: '/configuracoes/seed-usuarios' },
     ]
   },
 ];

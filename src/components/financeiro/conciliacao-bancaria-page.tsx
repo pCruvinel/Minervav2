@@ -1,24 +1,14 @@
 import { logger } from '@/lib/utils/logger';
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { Label } from '../ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
-import { Calendar } from '../ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { MultiSelect, MultiSelectOption } from '../ui/multi-select';
 import {
-  Calendar as CalendarIcon,
-  Filter,
   FileText,
   FileSpreadsheet,
-  Search,
   Edit,
-  Check,
-  X,
-  Paperclip,
   TrendingUp,
   TrendingDown,
   DollarSign
@@ -30,6 +20,13 @@ import { ptBR } from 'date-fns/locale';
 import { ModalClassificarLancamento } from './modal-classificar-lancamento';
 import { ModalCustoFlutuante } from './modal-custo-flutuante';
 import { toast } from 'sonner';
+import {
+  CompactTableWrapper,
+  CompactTableHead,
+  CompactTableRow,
+  CompactTableCell
+} from '@/components/shared/compact-table';
+import { SearchInput, FilterSelect, DateRangePicker, type DateRange } from '@/components/shared/filters';
 
 import { FinanceiroCategoria } from '../../lib/types';
 
@@ -43,10 +40,17 @@ const TIPOS_CUSTO: FinanceiroCategoria[] = [
   'outros'
 ];
 
-const SETORES = [
-  'ADM',
-  'OBRAS',
-  'ASSESSORIA_TECNICA'
+const SETORES_OPTIONS: MultiSelectOption[] = [
+  { label: 'Administrativo', value: 'ADM' },
+  { label: 'Obras', value: 'OBRAS' },
+  { label: 'Assessoria Técnica', value: 'ASSESSORIA_TECNICA' }
+];
+
+const CENTROS_CUSTO_OPTIONS: MultiSelectOption[] = [
+  { label: 'Condomínio Jardim das Flores', value: 'cc-1' },
+  { label: 'Obra Residencial Silva', value: 'cc-2' },
+  { label: 'Despesas Administrativas', value: 'cc-3' },
+  { label: 'Múltiplos CCs', value: 'cc-4' },
 ];
 
 // Mock data - Lançamentos bancários importados
@@ -136,13 +140,31 @@ const mockLancamentos: LancamentoBancario[] = [
 
 export function ConciliacaoBancariaPage() {
   const [lancamentos, setLancamentos] = useState(mockLancamentos);
-  const [filtroDataInicial, setFiltroDataInicial] = useState<Date>();
-  const [filtroDataFinal, setFiltroDataFinal] = useState<Date>();
+  const [dateRange, setDateRange] = useState<DateRange | null>(null);
   const [filtroTipo, setFiltroTipo] = useState<string>('');
-  const [filtroSetor, setFiltroSetor] = useState<string>('');
-  const [filtroCentroCusto, setFiltroCentroCusto] = useState<string>('');
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<LancamentoBancario>>({});
+  const [filtroSetores, setFiltroSetores] = useState<string[]>([]);
+  const [filtroCentrosCusto, setFiltroCentrosCusto] = useState<string[]>([]);
+  const [buscaCC, setBuscaCC] = useState<string>('');
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Sorting
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof LancamentoBancario;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+
+  const handleSort = (key: keyof LancamentoBancario) => {
+    setSortConfig((current) => {
+      if (current?.key === key) {
+        if (current.direction === 'asc') return { key, direction: 'desc' };
+        return null;
+      }
+      return { key, direction: 'asc' };
+    });
+  };
 
   // Estados dos modais
   const [modalClassificarOpen, setModalClassificarOpen] = useState(false);
@@ -176,15 +198,14 @@ export function ConciliacaoBancariaPage() {
 
   const formatSetor = (setor: string) => {
     const map: Record<string, string> = {
-      'ADM': 'Administrativo',
+      'ADM': 'ADM',
       'OBRAS': 'Obras',
-      'ASSESSORIA_TECNICA': 'Assessoria Técnica'
+      'ASSESSORIA_TECNICA': 'Assessoria'
     };
     return map[setor] || setor;
   };
 
   const handleIniciarClassificacao = (lancamento: LancamentoBancario) => {
-    // Abrir modal de classificação avançada
     setLancamentoSelecionado({
       id: lancamento.id,
       descricao: lancamento.descricao,
@@ -194,10 +215,9 @@ export function ConciliacaoBancariaPage() {
     setModalClassificarOpen(true);
   };
 
-  const handleSalvarClassificacaoModal = (dados: any) => {
+  const handleSalvarClassificacaoModal = (dados: { tipo: FinanceiroCategoria; setor: string; rateios: { centroCusto: string }[] }) => {
     if (!lancamentoSelecionado) return;
 
-    // Atualizar lançamento com dados do rateio
     setLancamentos(prev =>
       prev.map(lanc =>
         lanc.id === lancamentoSelecionado.id
@@ -225,7 +245,7 @@ export function ConciliacaoBancariaPage() {
     setModalCustoFlutuanteOpen(true);
   };
 
-  const handleSalvarCustoFlutuante = (dados: any) => {
+  const handleSalvarCustoFlutuante = (dados: { recalcularCustoDia?: boolean }) => {
     if (!lancamentoSelecionado) return;
 
     logger.log('Custo Flutuante salvo:', dados);
@@ -240,28 +260,54 @@ export function ConciliacaoBancariaPage() {
     );
   };
 
-  const handleCancelarEdicao = () => {
-    setEditandoId(null);
-    setEditForm({});
-  };
-
   const handleExportarPDF = () => {
-    toast.info('Funcionalidade de exportação para PDF será implementada com biblioteca específica');
+    toast.info('Funcionalidade de exportação para PDF será implementada');
   };
 
   const handleExportarExcel = () => {
-    toast.info('Funcionalidade de exportação para Excel será implementada com biblioteca específica');
+    toast.info('Funcionalidade de exportação para Excel será implementada');
   };
 
   // Aplicar filtros
-  const lancamentosFiltrados = lancamentos.filter(lanc => {
-    if (filtroDataInicial && new Date(lanc.data) < filtroDataInicial) return false;
-    if (filtroDataFinal && new Date(lanc.data) > filtroDataFinal) return false;
-    if (filtroTipo && lanc.tipo !== filtroTipo) return false;
-    if (filtroSetor && lanc.setor !== filtroSetor) return false;
-    if (filtroCentroCusto && !lanc.centroCusto?.toLowerCase().includes(filtroCentroCusto.toLowerCase())) return false;
-    return true;
-  });
+  const lancamentosFiltrados = useMemo(() => {
+    return lancamentos.filter(lanc => {
+      const lancDate = new Date(lanc.data);
+      if (dateRange?.start && lancDate < dateRange.start) return false;
+      if (dateRange?.end && lancDate > dateRange.end) return false;
+      if (filtroTipo && lanc.tipo !== filtroTipo) return false;
+      if (filtroSetores.length > 0 && lanc.setor && !filtroSetores.includes(lanc.setor)) return false;
+      if (buscaCC && !lanc.centroCusto?.toLowerCase().includes(buscaCC.toLowerCase())) return false;
+      return true;
+    }).sort((a, b) => {
+      if (!sortConfig) return 0;
+
+      const { key, direction } = sortConfig;
+
+      let aValue = a[key];
+      let bValue = b[key];
+
+      // Handle specifics like dates or nulls if needed, 
+      // but for string/number simpler comparison works for now
+      if (aValue == null) aValue = '';
+      if (bValue == null) bValue = '';
+
+      if (aValue < bValue) return direction === 'asc' ? -1 : 1;
+      if (aValue > bValue) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [lancamentos, dateRange, filtroTipo, filtroSetores, buscaCC, sortConfig]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(lancamentosFiltrados.length / itemsPerPage);
+  const paginatedLancamentos = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return lancamentosFiltrados.slice(startIndex, startIndex + itemsPerPage);
+  }, [lancamentosFiltrados, currentPage, itemsPerPage]);
+
+  // Reset page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [dateRange, filtroTipo, filtroSetores, buscaCC]);
 
   // Calcular totais
   const totais = lancamentosFiltrados.reduce(
@@ -275,369 +321,232 @@ export function ConciliacaoBancariaPage() {
   const saldo = totais.entradas - totais.saidas;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {/* ========== Header ========== */}
+    <div className="container mx-auto p-6 space-y-4">
+      {/* Header */}
       <PageHeader
         title="Conciliação Bancária"
         subtitle="Classificação e rateio de lançamentos financeiros importados"
         showBackButton
       />
 
-      {/* ========== Filtros Avançados ========== */}
-      <Card className="shadow-card">
-        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Filter className="h-5 w-5 text-primary" />
-            Filtros Avançados
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {/* Filtro: Data Inicial */}
-            <div className="space-y-2">
-              <Label>Data Inicial</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start font-normal",
-                      !filtroDataInicial && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filtroDataInicial ? format(filtroDataInicial, 'dd/MM/yyyy', { locale: ptBR }) : "Selecione..."}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={filtroDataInicial}
-                    onSelect={setFiltroDataInicial}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+      {/* Filtros Compactos + KPIs */}
+      <Card className="shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            {/* DateRangePicker unificado */}
+            <DateRangePicker
+              startDate={dateRange?.start}
+              endDate={dateRange?.end}
+              onChange={setDateRange}
+              placeholder="Período"
+            />
 
-            {/* Filtro: Data Final */}
-            <div className="space-y-2">
-              <Label>Data Final</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full justify-start font-normal",
-                      !filtroDataFinal && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {filtroDataFinal ? format(filtroDataFinal, 'dd/MM/yyyy', { locale: ptBR }) : "Selecione..."}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={filtroDataFinal}
-                    onSelect={setFiltroDataFinal}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+            {/* Tipo */}
+            <FilterSelect
+              value={filtroTipo || 'all'}
+              onChange={(v) => setFiltroTipo(v === 'all' ? '' : v)}
+              options={[
+                { value: 'all', label: 'Todos' },
+                ...TIPOS_CUSTO.map(tipo => ({ value: tipo, label: formatTipo(tipo) }))
+              ]}
+              placeholder="Tipo"
+              width="w-[140px]"
+            />
 
-            {/* Filtro: Tipo */}
-            <div className="space-y-2">
-              <Label>Tipo de Custo</Label>
-              <Select value={filtroTipo} onValueChange={setFiltroTipo}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os tipos" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_CUSTO.map(tipo => (
-                    <SelectItem key={tipo} value={tipo}>
-                      {formatTipo(tipo)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Setores - MultiSelect */}
+            <MultiSelect
+              options={SETORES_OPTIONS}
+              selected={filtroSetores}
+              onChange={setFiltroSetores}
+              placeholder="Setores"
+              className="w-40 h-9"
+            />
 
-            {/* Filtro: Setor */}
-            <div className="space-y-2">
-              <Label>Setor</Label>
-              <Select value={filtroSetor} onValueChange={setFiltroSetor}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Todos os setores" />
-                </SelectTrigger>
-                <SelectContent>
-                  {SETORES.map(setor => (
-                    <SelectItem key={setor} value={setor}>
-                      {formatSetor(setor)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Busca CC */}
+            <SearchInput
+              value={buscaCC}
+              onChange={setBuscaCC}
+              placeholder="Buscar CC..."
+              className="min-w-[150px]"
+            />
 
-            {/* Filtro: Centro de Custo */}
-            <div className="space-y-2">
-              <Label>Centro de Custo</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por CC..."
-                  value={filtroCentroCusto}
-                  onChange={(e) => setFiltroCentroCusto(e.target.value)}
-                  className="pl-9"
-                />
+            {/* Spacer */}
+            <div className="flex-1" />
+
+            {/* KPIs Inline */}
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-success/10">
+                  <TrendingUp className="h-3.5 w-3.5 text-success" />
+                </div>
+                <span className="text-muted-foreground">Entradas:</span>
+                <span className="font-semibold text-success">{formatCurrency(totais.entradas)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="p-1 rounded bg-destructive/10">
+                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
+                </div>
+                <span className="text-muted-foreground">Saídas:</span>
+                <span className="font-semibold text-destructive">{formatCurrency(totais.saidas)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className={cn("p-1 rounded", saldo >= 0 ? "bg-success/10" : "bg-destructive/10")}>
+                  <DollarSign className={cn("h-3.5 w-3.5", saldo >= 0 ? "text-success" : "text-destructive")} />
+                </div>
+                <span className="text-muted-foreground">Saldo:</span>
+                <span className={cn("font-semibold", saldo >= 0 ? "text-success" : "text-destructive")}>
+                  {formatCurrency(saldo)}
+                </span>
               </div>
             </div>
-          </div>
 
-          {/* Botões de Exportação */}
-          <div className="flex gap-3 mt-4 pt-4 border-t">
-            <Button variant="outline" onClick={handleExportarPDF}>
-              <FileText className="mr-2 h-4 w-4" />
-              Exportar PDF
-            </Button>
-            <Button variant="outline" onClick={handleExportarExcel}>
-              <FileSpreadsheet className="mr-2 h-4 w-4" />
-              Exportar Excel
-            </Button>
+            {/* Export Buttons */}
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-9">
+                <FileText className="mr-1.5 h-3.5 w-3.5" />
+                PDF
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportarExcel} className="h-9">
+                <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
+                Excel
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* ========== Resumo Financeiro (KPIs) ========== */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="shadow-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-neutral-500">Total de Entradas</p>
-              <div className="p-2 rounded-lg bg-success/10">
-                <TrendingUp className="h-4 w-4 text-success" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-success">{formatCurrency(totais.entradas)}</h3>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-neutral-500">Total de Saídas</p>
-              <div className="p-2 rounded-lg bg-destructive/10">
-                <TrendingDown className="h-4 w-4 text-destructive" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-destructive">{formatCurrency(totais.saidas)}</h3>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-neutral-500">Saldo do Período</p>
-              <div className={`p-2 rounded-lg ${saldo >= 0 ? 'bg-success/10' : 'bg-destructive/10'}`}>
-                <DollarSign className={`h-4 w-4 ${saldo >= 0 ? 'text-success' : 'text-destructive'}`} />
-              </div>
-            </div>
-            <h3 className={`text-2xl font-bold ${saldo >= 0 ? 'text-success' : 'text-destructive'}`}>
-              {formatCurrency(saldo)}
-            </h3>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Tabela de Lançamentos - Compacta */}
+      {/* Tabela de Lançamentos - Compacta */}
+      <CompactTableWrapper
+        title="Lançamentos Bancários"
+        subtitle="Exibindo dados importados"
+        totalItems={lancamentosFiltrados.length}
+        currentCount={paginatedLancamentos.length}
+        page={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40">
+              <CompactTableHead
+                className="w-20"
+                onSort={() => handleSort('data')}
+                sortDirection={sortConfig?.key === 'data' ? sortConfig.direction : null}
+              >
+                Data
+              </CompactTableHead>
+              <CompactTableHead
+                className="min-w-[200px]"
+                onSort={() => handleSort('descricao')}
+                sortDirection={sortConfig?.key === 'descricao' ? sortConfig.direction : null}
+              >
+                Descrição
+              </CompactTableHead>
+              <CompactTableHead
+                className="w-24 text-right"
+                align="right"
+                onSort={() => handleSort('entrada')}
+                sortDirection={sortConfig?.key === 'entrada' ? sortConfig.direction : null}
+              >
+                Entrada
+              </CompactTableHead>
+              <CompactTableHead
+                className="w-24 text-right"
+                align="right"
+                onSort={() => handleSort('saida')}
+                sortDirection={sortConfig?.key === 'saida' ? sortConfig.direction : null}
+              >
+                Saída
+              </CompactTableHead>
+              <CompactTableHead
+                className="w-20"
+                onSort={() => handleSort('status')}
+                sortDirection={sortConfig?.key === 'status' ? sortConfig.direction : null}
+              >
+                Status
+              </CompactTableHead>
+              <CompactTableHead className="w-20">Tipo</CompactTableHead>
+              <CompactTableHead className="w-20">Setor</CompactTableHead>
+              <CompactTableHead className="min-w-[120px]">CC</CompactTableHead>
+              <CompactTableHead className="w-16 text-center" align="center">Ações</CompactTableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedLancamentos.map((lancamento) => (
+              <CompactTableRow key={lancamento.id}>
+                <CompactTableCell>
+                  {format(new Date(lancamento.data), 'dd/MM', { locale: ptBR })}
+                </CompactTableCell>
+                <CompactTableCell className="truncate max-w-[250px]" title={lancamento.descricao}>
+                  {lancamento.descricao}
+                </CompactTableCell>
+                <CompactTableCell className="text-right">
+                  {lancamento.entrada ? (
+                    <span className="text-success font-medium">
+                      {formatCurrency(lancamento.entrada)}
+                    </span>
+                  ) : '-'}
+                </CompactTableCell>
+                <CompactTableCell className="text-right">
+                  {lancamento.saida ? (
+                    <span className="text-destructive font-medium">
+                      {formatCurrency(lancamento.saida)}
+                    </span>
+                  ) : '-'}
+                </CompactTableCell>
+                <CompactTableCell>
+                  <Badge
+                    variant={
+                      lancamento.status === 'CLASSIFICADO'
+                        ? 'default'
+                        : lancamento.status === 'RATEADO'
+                          ? 'secondary'
+                          : 'outline'
+                    }
+                    className="text-[10px] py-0 px-1.5"
+                  >
+                    {lancamento.status === 'CLASSIFICADO'
+                      ? 'Classif.'
+                      : lancamento.status === 'RATEADO'
+                        ? 'Rateado'
+                        : 'Pend.'}
+                  </Badge>
+                </CompactTableCell>
+                <CompactTableCell>
+                  {lancamento.tipo ? formatTipo(lancamento.tipo).slice(0, 8) : '-'}
+                </CompactTableCell>
+                <CompactTableCell>
+                  {lancamento.setor ? formatSetor(lancamento.setor) : '-'}
+                </CompactTableCell>
+                <CompactTableCell className="truncate max-w-[120px]" title={lancamento.centroCusto}>
+                  {lancamento.centroCusto || '-'}
+                </CompactTableCell>
+                <CompactTableCell className="text-center">
+                  <Button
+                    size="sm"
+                    variant={lancamento.status === 'PENDENTE' ? 'outline' : 'ghost'}
+                    className="h-6 w-6 p-0"
+                    onClick={() => handleIniciarClassificacao(lancamento)}
+                  >
+                    <Edit className="h-3 w-3" />
+                  </Button>
+                </CompactTableCell>
+              </CompactTableRow>
+            ))}
 
-      {/* ========== Tabela de Lançamentos ========== */}
-      <Card className="shadow-card">
-        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-          <CardTitle className="text-base font-semibold">Lançamentos Bancários ({lancamentosFiltrados.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Data</TableHead>
-                  <TableHead className="min-w-[250px]">Descrição (Banco)</TableHead>
-                  <TableHead className="w-[120px] text-right">Entrada</TableHead>
-                  <TableHead className="w-[120px] text-right">Saída</TableHead>
-                  <TableHead className="w-[100px]">Status</TableHead>
-                  <TableHead className="w-[150px]">Tipo</TableHead>
-                  <TableHead className="w-[150px]">Setor</TableHead>
-                  <TableHead className="min-w-[200px]">Centro de Custo</TableHead>
-                  <TableHead className="w-[100px]">Anexo NF</TableHead>
-                  <TableHead className="w-[120px] text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {lancamentosFiltrados.map((lancamento) => {
-                  const isEditando = editandoId === lancamento.id;
-
-                  return (
-                    <TableRow key={lancamento.id}>
-                      <TableCell className="font-medium">
-                        {format(new Date(lancamento.data), 'dd/MM/yy', { locale: ptBR })}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {lancamento.descricao}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {lancamento.entrada ? (
-                          <span className="text-success font-medium">
-                            {formatCurrency(lancamento.entrada)}
-                          </span>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {lancamento.saida ? (
-                          <span className="text-destructive font-medium">
-                            {formatCurrency(lancamento.saida)}
-                          </span>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            lancamento.status === 'CLASSIFICADO'
-                              ? 'default'
-                              : lancamento.status === 'RATEADO'
-                                ? 'secondary'
-                                : 'outline'
-                          }
-                        >
-                          {lancamento.status === 'CLASSIFICADO'
-                            ? 'Classificado'
-                            : lancamento.status === 'RATEADO'
-                              ? 'Rateado'
-                              : 'Pendente'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {isEditando ? (
-                          <Select
-                            value={editForm.tipo}
-                            onValueChange={(value) => setEditForm({ ...editForm, tipo: value as FinanceiroCategoria })}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {TIPOS_CUSTO.map(tipo => (
-                                <SelectItem key={tipo} value={tipo}>
-                                  {formatTipo(tipo)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-sm">
-                            {lancamento.tipo ? formatTipo(lancamento.tipo) : '-'}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isEditando ? (
-                          <Select
-                            value={editForm.setor}
-                            onValueChange={(value) => setEditForm({ ...editForm, setor: value })}
-                          >
-                            <SelectTrigger className="h-8">
-                              <SelectValue placeholder="Selecione..." />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {SETORES.map(setor => (
-                                <SelectItem key={setor} value={setor}>
-                                  {formatSetor(setor)}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-sm">
-                            {lancamento.setor ? formatSetor(lancamento.setor) : '-'}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isEditando ? (
-                          <Input
-                            placeholder="Digite o CC..."
-                            value={editForm.centroCusto}
-                            onChange={(e) => setEditForm({ ...editForm, centroCusto: e.target.value })}
-                            className="h-8"
-                          />
-                        ) : (
-                          <span className="text-sm">{lancamento.centroCusto || '-'}</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {isEditando ? (
-                          <Button variant="outline" size="sm" className="h-8">
-                            <Paperclip className="h-3 w-3" />
-                          </Button>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            {lancamento.anexoNF || '-'}
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {isEditando ? (
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleCancelarEdicao()}
-                            >
-                              <Check className="h-4 w-4 text-success" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 w-8 p-0"
-                              onClick={handleCancelarEdicao}
-                            >
-                              <X className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        ) : lancamento.status === 'PENDENTE' ? (
-                          <div className="flex gap-1 justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleIniciarClassificacao(lancamento)}
-                            >
-                              <Edit className="h-3 w-3 mr-1" />
-                              Classificar
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleIniciarClassificacao(lancamento)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-
-          {lancamentosFiltrados.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Nenhum lançamento encontrado com os filtros aplicados.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {paginatedLancamentos.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="h-24 text-center">
+                  Nenhum lançamento encontrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </CompactTableWrapper>
 
       {/* Modais */}
       <ModalClassificarLancamento

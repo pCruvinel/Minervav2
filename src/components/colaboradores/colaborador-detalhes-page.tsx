@@ -7,11 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import { format, parseISO, subMonths, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { format, parseISO, subMonths, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
     User,
@@ -250,7 +249,7 @@ export function ColaboradorDetalhesPage() {
 
         setIsResendingInvite(true);
         try {
-            const { error } = await supabase.functions.invoke('invite-user', {
+            const { data, error } = await supabase.functions.invoke('invite-user', {
                 body: {
                     invites: [{
                         email: colaborador.email,
@@ -263,12 +262,47 @@ export function ColaboradorDetalhesPage() {
             });
 
             if (error) throw error;
+
+            // Check for logical errors in the response (since batch processing returns 200 OK)
+            if (data && !data.success) {
+                const firstError = data.results?.failed?.[0]?.error;
+                throw new Error(firstError || 'Erro ao processar o convite');
+            }
+
             toast.success('Convite reenviado com sucesso!', {
                 description: `Email enviado para ${colaborador.email}`
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error('Erro ao reenviar convite:', err);
-            toast.error('Erro ao reenviar convite');
+
+            // Fallback: Se o usuário já existe, enviar email de recuperação
+            if (err.message && (err.message.includes('already been registered') || err.message.includes('already registered'))) {
+                try {
+                    toast.info('Usuário já cadastrado. Enviando email de recuperação de senha...');
+
+                    const { error: resetError } = await supabase.auth.resetPasswordForEmail(colaborador.email, {
+                        redirectTo: `${window.location.origin}/auth/callback-reset-password`
+                    });
+
+                    if (resetError) throw resetError;
+
+                    toast.success('Email de recuperação enviado!', {
+                        description: 'O usuário receberá um link para definir sua senha.'
+                    });
+                    return;
+
+                } catch (recoveryErr: any) {
+                    console.error('Erro no fallback de recuperação:', recoveryErr);
+                    toast.error('Erro ao enviar recuperação', {
+                        description: recoveryErr.message
+                    });
+                    return;
+                }
+            }
+
+            toast.error('Erro ao reenviar convite', {
+                description: err.message || 'Verifique se o email é válido ou se houve limite de envios.'
+            });
         } finally {
             setIsResendingInvite(false);
         }
@@ -280,7 +314,7 @@ export function ColaboradorDetalhesPage() {
 
         const novoStatus = !colaborador.ativo;
         const acao = novoStatus ? 'ativar' : 'desativar';
-        
+
         if (!confirm(`Tem certeza que deseja ${acao} este colaborador?${!novoStatus ? '\n\nO colaborador não poderá mais acessar o sistema.' : ''}`)) {
             return;
         }
@@ -289,7 +323,7 @@ export function ColaboradorDetalhesPage() {
         try {
             const { error } = await supabase
                 .from('colaboradores')
-                .update({ 
+                .update({
                     ativo: novoStatus,
                     bloqueado_sistema: !novoStatus // Se desativar, bloqueia o sistema
                 })
@@ -301,7 +335,7 @@ export function ColaboradorDetalhesPage() {
                 novoStatus ? 'Colaborador ativado!' : 'Colaborador desativado!',
                 { description: novoStatus ? 'O colaborador agora pode acessar o sistema.' : 'O acesso ao sistema foi bloqueado.' }
             );
-            
+
             fetchData(); // Recarregar dados
         } catch (err) {
             console.error('Erro ao alterar status:', err);
@@ -411,7 +445,7 @@ export function ColaboradorDetalhesPage() {
                         <Edit className="mr-2 h-4 w-4" />
                         Editar Cadastro
                     </Button>
-                    <Button 
+                    <Button
                         variant={colaborador.ativo ? "destructive" : "default"}
                         onClick={handleToggleStatus}
                         disabled={isTogglingStatus}
@@ -816,12 +850,12 @@ export function ColaboradorDetalhesPage() {
                         <CardContent>
                             {(() => {
                                 // Obter lista de documentos obrigatórios do colaborador
-                                const docsObrigatorios: string[] = colaborador.documentos_obrigatorios 
-                                    ? (Array.isArray(colaborador.documentos_obrigatorios) 
-                                        ? colaborador.documentos_obrigatorios 
+                                const docsObrigatorios: string[] = colaborador.documentos_obrigatorios
+                                    ? (Array.isArray(colaborador.documentos_obrigatorios)
+                                        ? colaborador.documentos_obrigatorios
                                         : Object.keys(colaborador.documentos_obrigatorios))
                                     : [];
-                                
+
                                 // Criar mapa de documentos enviados por tipo
                                 const docsEnviados = new Map<string, Documento>();
                                 documentos.forEach(doc => {
@@ -924,7 +958,7 @@ export function ColaboradorDetalhesPage() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell>
-                                                        {item.documento?.created_at 
+                                                        {item.documento?.created_at
                                                             ? format(parseISO(item.documento.created_at), 'dd/MM/yyyy HH:mm')
                                                             : '-'
                                                         }

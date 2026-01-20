@@ -37,6 +37,7 @@ import { StepContratoAssinado } from '@/components/os/shared/steps/step-contrato
 import { StepRealizarVisita } from '@/components/os/shared/steps/step-realizar-visita';
 import { EtapaStartContrato } from '@/components/os/shared/components/etapa-start-contrato';
 import { StepSelecaoTipoObras } from '@/components/os/shared/steps/step-selecao-tipo-obras';
+import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
 import { ordensServicoAPI, clientesAPI } from '@/lib/api-client';
 import { useOrdemServico } from '@/lib/hooks/use-ordens-servico';
 import { toast } from '@/lib/utils/safe-toast';
@@ -219,7 +220,7 @@ type EtapaData =
 // Usar constante importada de os-workflow.ts
 const steps = OS_WORKFLOW_STEPS;
 
-interface OSDetailsWorkflowPageProps {
+interface OS14WorkflowPageProps {
   onBack?: () => void;
   osId?: string;
   initialStep?: number;
@@ -227,15 +228,15 @@ interface OSDetailsWorkflowPageProps {
   parentOSId?: string;
 }
 
-export function OSDetailsWorkflowPage({
+export function OS14WorkflowPage({
   onBack,
   osId: osIdProp,
   initialStep,
   parentOSId,
-}: OSDetailsWorkflowPageProps = {}) {
+}: OS14WorkflowPageProps = {}) {
   // DEBUG: Track component lifecycle
   React.useEffect(() => {
-    logger.log('🎯 OSDetailsWorkflowPage mounted', {
+    logger.log('🎯 OS14WorkflowPage mounted', {
       osId: osIdProp,
       initialStep,
       parentOSId,
@@ -1508,254 +1509,256 @@ export function OSDetailsWorkflowPage({
 
 
             <CardContent className="space-y-6 flex-1 overflow-y-auto">
+              <StepReadOnlyWithAdendos etapaId={currentEtapaId} readonly={isReadOnly}>
 
-              {/* ETAPA 1: Identificação do Cliente/Lead */}
-              {currentStep === 1 && (
-                <ErrorBoundary>
-                  <LeadCadastro
-                    ref={stepLeadRef}
-                    selectedLeadId={selectedLeadId}
-                    onLeadChange={(id: string, data: LeadCompleto | null) => {
-                      setSelectedLeadId(id);
-                      if (data) {
-                        setEtapa1Data({
-                          ...etapa1Data,
-                          leadId: id,
-                          nome: data.identificacao.nome,
-                          cpfCnpj: data.identificacao.cpfCnpj,
-                          tipo: data.identificacao.tipo,
-                          email: data.identificacao.email,
-                          telefone: data.identificacao.telefone,
-                          // Edificacao
-                          tipoEdificacao: data.edificacao.tipoEdificacao,
-                          tipoTelhado: data.edificacao.tipoTelhado,
-                          qtdUnidades: data.edificacao.qtdUnidades,
-                          qtdBlocos: data.edificacao.qtdBlocos,
-                          qtdPavimentos: data.edificacao.qtdPavimentos,
-                          possuiElevador: data.edificacao.possuiElevador,
-                          possuiPiscina: data.edificacao.possuiPiscina,
-                          // Endereco
-                          cep: data.endereco.cep,
-                          rua: data.endereco.rua,
-                          numero: data.endereco.numero,
-                          complemento: data.endereco.complemento,
-                          bairro: data.endereco.bairro,
-                          cidade: data.endereco.cidade,
-                          estado: data.endereco.estado,
-                        });
-                      }
-                    }}
-                    readOnly={isReadOnly}
-                    showEdificacao={true}
-                    showEndereco={true}
-                  />
-                </ErrorBoundary>
-              )}
+                {/* ETAPA 1: Identificação do Cliente/Lead */}
+                {currentStep === 1 && (
+                  <ErrorBoundary>
+                    <LeadCadastro
+                      ref={stepLeadRef}
+                      selectedLeadId={selectedLeadId}
+                      onLeadChange={(id: string, data: LeadCompleto | null) => {
+                        setSelectedLeadId(id);
+                        if (data) {
+                          setEtapa1Data({
+                            ...etapa1Data,
+                            leadId: id,
+                            nome: data.identificacao.nome,
+                            cpfCnpj: data.identificacao.cpfCnpj,
+                            tipo: data.identificacao.tipo,
+                            email: data.identificacao.email,
+                            telefone: data.identificacao.telefone,
+                            // Edificacao
+                            tipoEdificacao: data.edificacao.tipoEdificacao,
+                            tipoTelhado: data.edificacao.tipoTelhado,
+                            qtdUnidades: data.edificacao.qtdUnidades,
+                            qtdBlocos: data.edificacao.qtdBlocos,
+                            qtdPavimentos: data.edificacao.qtdPavimentos,
+                            possuiElevador: data.edificacao.possuiElevador,
+                            possuiPiscina: data.edificacao.possuiPiscina,
+                            // Endereco
+                            cep: data.endereco.cep,
+                            rua: data.endereco.rua,
+                            numero: data.endereco.numero,
+                            complemento: data.endereco.complemento,
+                            bairro: data.endereco.bairro,
+                            cidade: data.endereco.cidade,
+                            estado: data.endereco.estado,
+                          });
+                        }
+                      }}
+                      readOnly={isReadOnly}
+                      showEdificacao={true}
+                      showEndereco={true}
+                    />
+                  </ErrorBoundary>
+                )}
 
-              {/* ETAPA 2: Seleção do Tipo de OS */}
-              {currentStep === 2 && (
-                <div className="relative">
-                  {/* Overlay de Loading */}
-                  {isCreatingOS && (
-                    <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg">
-                      <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                        <div className="text-center">
-                          <p className="font-medium">Criando Ordem de Serviço</p>
-                          <p className="text-sm text-muted-foreground">Aguarde enquanto criamos as 15 etapas no banco de dados...</p>
+                {/* ETAPA 2: Seleção do Tipo de OS */}
+                {currentStep === 2 && (
+                  <div className="relative">
+                    {/* Overlay de Loading */}
+                    {isCreatingOS && (
+                      <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-20 flex items-center justify-center rounded-lg">
+                        <div className="flex flex-col items-center gap-3">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <div className="text-center">
+                            <p className="font-medium">Criando Ordem de Serviço</p>
+                            <p className="text-sm text-muted-foreground">Aguarde enquanto criamos as 15 etapas no banco de dados...</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  <StepSelecaoTipoObras
-                    data={etapa2Data}
-                    onDataChange={setEtapa2Data}
-                    disabled={isCreatingOS}
+                    <StepSelecaoTipoObras
+                      data={etapa2Data}
+                      onDataChange={setEtapa2Data}
+                      disabled={isCreatingOS}
+                    />
+                  </div>
+                )}
+
+                {/* ETAPA 3: Follow-up 1 (Entrevista Inicial) */}
+                {currentStep === 3 && (
+                  <StepFollowup1
+                    ref={stepFollowup1Ref}
+                    data={etapa3Data}
+                    onDataChange={setEtapa3Data}
+                    readOnly={isReadOnly}
+                    osId={osId || undefined}
+                    colaboradorId={currentUserId}
+                    etapaId={currentEtapaId}
                   />
-                </div>
-              )}
+                )}
 
-              {/* ETAPA 3: Follow-up 1 (Entrevista Inicial) */}
-              {currentStep === 3 && (
-                <StepFollowup1
-                  ref={stepFollowup1Ref}
-                  data={etapa3Data}
-                  onDataChange={setEtapa3Data}
-                  readOnly={isReadOnly}
-                  osId={osId || undefined}
-                  colaboradorId={currentUserId}
-                  etapaId={currentEtapaId}
-                />
-              )}
+                {/* ETAPA 4: Agendar Visita Técnica */}
+                {/* ETAPA 4: Agendar Apresentação */}
+                {currentStep === 4 && osId && (
+                  <StepAgendarApresentacao
+                    ref={stepAgendarApresentacaoEtapa4Ref}
+                    osId={osId}
+                    data={etapa4Data}
+                    onDataChange={setEtapa4Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 4: Agendar Visita Técnica */}
-              {/* ETAPA 4: Agendar Apresentação */}
-              {currentStep === 4 && osId && (
-                <StepAgendarApresentacao
-                  ref={stepAgendarApresentacaoEtapa4Ref}
-                  osId={osId}
-                  data={etapa4Data}
-                  onDataChange={setEtapa4Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 5: Realizar Visita (Técnica) */}
+                {currentStep === 5 && (
+                  <StepRealizarVisita
+                    data={etapa5Data}
+                    onDataChange={setEtapa5Data}
+                    readOnly={isReadOnly}
+                    tipoVisita="tecnica"
+                  />
+                )}
 
-              {/* ETAPA 5: Realizar Visita (Técnica) */}
-              {currentStep === 5 && (
-                <StepRealizarVisita
-                  data={etapa5Data}
-                  onDataChange={setEtapa5Data}
-                  readOnly={isReadOnly}
-                  tipoVisita="tecnica"
-                />
-              )}
+                {/* ETAPA 6: Follow-up 2 (Pós-Visita) */}
+                {/* ETAPA 6: Preparar Orçamentos (Formulário Técnico Pós-Visita) */}
+                {currentStep === 6 && (
+                  <StepPrepararOrcamentos
+                    data={etapa6Data}
+                    onDataChange={setEtapa6Data}
+                    readOnly={isReadOnly}
+                    osId={osId || undefined}
+                  />
+                )}
 
-              {/* ETAPA 6: Follow-up 2 (Pós-Visita) */}
-              {/* ETAPA 6: Preparar Orçamentos (Formulário Técnico Pós-Visita) */}
-              {currentStep === 6 && (
-                <StepPrepararOrcamentos
-                  data={etapa6Data}
-                  onDataChange={setEtapa6Data}
-                  readOnly={isReadOnly}
-                  osId={osId || undefined}
-                />
-              )}
+                {/* ETAPA 7: Formulário Memorial (Escopo e Prazos) */}
+                {/* ETAPA 7: Formulário Memorial (Escopo) */}
+                {currentStep === 7 && (
+                  <StepMemorialEscopo
+                    ref={stepMemorialRef}
+                    data={etapa7Data}
+                    onDataChange={setEtapa7Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 7: Formulário Memorial (Escopo e Prazos) */}
-              {/* ETAPA 7: Formulário Memorial (Escopo) */}
-              {currentStep === 7 && (
-                <StepMemorialEscopo
-                  ref={stepMemorialRef}
-                  data={etapa7Data}
-                  onDataChange={setEtapa7Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 8: Precificação */}
+                {currentStep === 8 && (
+                  <StepPrecificacao
+                    memorialData={etapa7Data}
+                    data={etapa8Data}
+                    onDataChange={setEtapa8Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 8: Precificação */}
-              {currentStep === 8 && (
-                <StepPrecificacao
-                  memorialData={etapa7Data}
-                  data={etapa8Data}
-                  onDataChange={setEtapa8Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 9: Gerar Proposta Comercial */}
+                {currentStep === 9 && (
+                  (() => {
+                    // ✅ FIX: Parsing robusto dos valores financeiros da Etapa 8
+                    const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
+                    // Remove R$, espaços e converte vírgula para ponto se não houver ponto
+                    const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
+                    const valorTotalCalc = parseFloat(precoClean) || 0;
 
-              {/* ETAPA 9: Gerar Proposta Comercial */}
-              {currentStep === 9 && (
-                (() => {
-                  // ✅ FIX: Parsing robusto dos valores financeiros da Etapa 8
-                  const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
-                  // Remove R$, espaços e converte vírgula para ponto se não houver ponto
-                  const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
-                  const valorTotalCalc = parseFloat(precoClean) || 0;
+                    const pcEntrada = parseFloat(etapa8Data.percentualEntrada?.toString() || '40');
+                    const numParcelas = parseInt(etapa8Data.numeroParcelas?.toString() || '2');
 
-                  const pcEntrada = parseFloat(etapa8Data.percentualEntrada?.toString() || '40');
-                  const numParcelas = parseInt(etapa8Data.numeroParcelas?.toString() || '2');
+                    const valorEntradaCalc = valorTotalCalc * (pcEntrada / 100);
+                    const valorParcelaCalc = (valorTotalCalc - valorEntradaCalc) / (numParcelas || 1);
 
-                  const valorEntradaCalc = valorTotalCalc * (pcEntrada / 100);
-                  const valorParcelaCalc = (valorTotalCalc - valorEntradaCalc) / (numParcelas || 1);
+                    return (
+                      <StepGerarPropostaOS0104
+                        osId={osId!}
+                        etapa1Data={etapa1Data}
+                        etapa2Data={etapa2Data}
+                        etapa7Data={etapa7Data}
+                        etapa8Data={etapa8Data}
+                        // Passar valores calculados para garantir consistência
+                        valorTotal={valorTotalCalc}
+                        valorEntrada={valorEntradaCalc}
+                        valorParcela={valorParcelaCalc}
+                        data={etapa9Data}
+                        onDataChange={setEtapa9Data}
+                        readOnly={isReadOnly}
+                        etapaId={currentEtapaId}
+                      />
+                    );
+                  })()
+                )}
 
-                  return (
-                    <StepGerarPropostaOS0104
-                      osId={osId!}
-                      etapa1Data={etapa1Data}
-                      etapa2Data={etapa2Data}
-                      etapa7Data={etapa7Data}
-                      etapa8Data={etapa8Data}
-                      // Passar valores calculados para garantir consistência
-                      valorTotal={valorTotalCalc}
-                      valorEntrada={valorEntradaCalc}
-                      valorParcela={valorParcelaCalc}
-                      data={etapa9Data}
-                      onDataChange={setEtapa9Data}
-                      readOnly={isReadOnly}
-                      etapaId={currentEtapaId}
-                    />
-                  );
-                })()
-              )}
+                {/* ETAPA 10: Agendar Visita (Apresentação) */}
+                {currentStep === 10 && osId && (
+                  <StepAgendarApresentacao
+                    ref={stepAgendarApresentacaoEtapa10Ref}
+                    osId={osId}
+                    data={etapa10Data}
+                    onDataChange={setEtapa10Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 10: Agendar Visita (Apresentação) */}
-              {currentStep === 10 && osId && (
-                <StepAgendarApresentacao
-                  ref={stepAgendarApresentacaoEtapa10Ref}
-                  osId={osId}
-                  data={etapa10Data}
-                  onDataChange={setEtapa10Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 11: Realizar Visita (Apresentação) */}
+                {currentStep === 11 && (
+                  <StepRealizarApresentacao
+                    data={etapa11Data}
+                    onDataChange={setEtapa11Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 11: Realizar Visita (Apresentação) */}
-              {currentStep === 11 && (
-                <StepRealizarApresentacao
-                  data={etapa11Data}
-                  onDataChange={setEtapa11Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 12: Follow-up 3 (Pós-Apresentação) */}
+                {/* ETAPA 12: Follow-up 3 (Análise e Relatório) */}
+                {currentStep === 12 && (
+                  <StepAnaliseRelatorio
+                    data={etapa12Data}
+                    onDataChange={setEtapa12Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 12: Follow-up 3 (Pós-Apresentação) */}
-              {/* ETAPA 12: Follow-up 3 (Análise e Relatório) */}
-              {currentStep === 12 && (
-                <StepAnaliseRelatorio
-                  data={etapa12Data}
-                  onDataChange={setEtapa12Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 13: Gerar Contrato (Upload) */}
+                {/* ETAPA 13: Gerar Contrato (Upload) */}
+                {currentStep === 13 && (
+                  (() => {
+                    const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
+                    const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
+                    const valorTotalCalc = parseFloat(precoClean) || 0;
 
-              {/* ETAPA 13: Gerar Contrato (Upload) */}
-              {/* ETAPA 13: Gerar Contrato (Upload) */}
-              {currentStep === 13 && (
-                (() => {
-                  const precoFinalStr = etapa8Data.precoFinal?.toString() || '0';
-                  const precoClean = precoFinalStr.replace(/[^\d,.-]/g, '').replace(',', '.');
-                  const valorTotalCalc = parseFloat(precoClean) || 0;
+                    return (
+                      <StepGerarContrato
+                        data={{
+                          ...etapa13Data,
+                          osId: osId!, // ✅ FIX: Passar osId para upload funcionar
+                          codigoOS: os?.codigo_os || '',
+                          clienteNome: etapa1Data?.nome || os?.cliente?.nome_razao_social || '',
+                          clienteCpfCnpj: etapa1Data?.cpfCnpj || '',
+                          valorContrato: valorTotalCalc,
+                          dataInicio: new Date().toISOString().split('T')[0],
+                        }}
+                        onDataChange={setEtapa13Data}
+                        readOnly={isReadOnly}
+                        etapaId={currentEtapaId}
+                      />
+                    );
+                  })()
+                )}
 
-                  return (
-                    <StepGerarContrato
-                      data={{
-                        ...etapa13Data,
-                        osId: osId!, // ✅ FIX: Passar osId para upload funcionar
-                        codigoOS: os?.codigo_os || '',
-                        clienteNome: etapa1Data?.nome || os?.cliente?.nome_razao_social || '',
-                        clienteCpfCnpj: etapa1Data?.cpfCnpj || '',
-                        valorContrato: valorTotalCalc,
-                        dataInicio: new Date().toISOString().split('T')[0],
-                      }}
-                      onDataChange={setEtapa13Data}
-                      readOnly={isReadOnly}
-                      etapaId={currentEtapaId}
-                    />
-                  );
-                })()
-              )}
+                {/* ETAPA 14: Contrato Assinado */}
+                {currentStep === 14 && (
+                  <StepContratoAssinado
+                    data={etapa14Data}
+                    onDataChange={setEtapa14Data}
+                    readOnly={isReadOnly}
+                  />
+                )}
 
-              {/* ETAPA 14: Contrato Assinado */}
-              {currentStep === 14 && (
-                <StepContratoAssinado
-                  data={etapa14Data}
-                  onDataChange={setEtapa14Data}
-                  readOnly={isReadOnly}
-                />
-              )}
+                {/* ETAPA 15: Iniciar Contrato de Obra */}
+                {currentStep === 15 && (
+                  <EtapaStartContrato
+                    onStart={handleConcluirOS}
+                    isLoading={isCreatingOS}
+                    isProcessing={isCreatingOS}
+                    readOnly={isReadOnly}
+                    isCompleted={os?.status === 'concluida'}
+                    clienteNome={os?.cliente?.nome_razao_social || 'Cliente'}
+                  />
+                )}
 
-              {/* ETAPA 15: Iniciar Contrato de Obra */}
-              {currentStep === 15 && (
-                <EtapaStartContrato
-                  onStart={handleConcluirOS}
-                  isLoading={isCreatingOS}
-                  isProcessing={isCreatingOS}
-                  readOnly={isReadOnly}
-                  isCompleted={os?.status === 'concluida'}
-                  clienteNome={os?.cliente?.nome_razao_social || 'Cliente'}
-                />
-              )}
-
+              </StepReadOnlyWithAdendos>
             </CardContent>
 
             {/* Footer com botões de navegação */}

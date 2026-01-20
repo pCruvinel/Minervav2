@@ -6,5 +6,9 @@ export const Route = createFileRoute('/_auth/financeiro/faturas-recorrentes')({
 })
 
 function FaturasRecorrentesRoute() {
-    return <FaturasRecorrentesPage />
+    return (
+        <div className="content-wrapper">
+            <FaturasRecorrentesPage />
+        </div>
+    )
 }

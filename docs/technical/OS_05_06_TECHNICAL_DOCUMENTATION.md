@@ -1,8 +1,8 @@
 # 📋 Documentação Técnica: OS-05 e OS-06 - Assessoria Lead
 
-**Última Atualização:** 2026-01-14  
-**Versão:** v3.1  
-**Status Implementação:** 98% ✅  
+**Última Atualização:** 2026-01-20  
+**Versão:** v4.0 (Migração Stepper)  
+**Status Implementação:** 100% ✅ (Migrado para Stepper)  
 **Setor:** Assessoria
 
 > **🎉 ATUALIZAÇÃO v3.1:** Correções de persistência de dados implementadas!
@@ -37,7 +37,7 @@ As **Ordens de Serviço OS-05 e OS-06** representam o fluxo comercial completo p
 src/
 ├── components/os/assessoria/os-5-6/
 │   ├── pages/
-│   │   ├── os-5-6-workflow-page.tsx        # ✅ NOVO - Componente Accordion (783 linhas)
+│   │   ├── os-5-6-workflow-page.tsx        # ✅ NOVO - Componente Stepper (Refatorado)
 │   │   ├── os-details-assessoria-page.tsx  # ⚠️ DEPRECATED - Legado Stepper
 │   │   ├── os05-workflow-page.tsx          # ⚠️ DEPRECATED - Stub
 │   │   └── os06-workflow-page.tsx          # ⚠️ DEPRECATED - Stub
@@ -96,15 +96,15 @@ src/
 
 ---
 
-## 🎹 Sistema de Accordion com Adendos (v3.0)
+## 🎹 Sistema de Stepper Horizontal com Adendos (v4.0)
 
 ### Visão Geral da Nova Arquitetura
 
-A partir da versão 3.0, o workflow de OS 5-6 utiliza o padrão **WorkflowAccordion** com suporte a **Adendos**, alinhado com OS-07 e OS-08.
+A partir da versão 4.0, o workflow de OS 5-6 utiliza o padrão **WorkflowStepper** (Stepper Horizontal) unificando a experiência com OS-08. O antigo padrão Accordion foi descontinuado.
 
 ### Componente Principal
 
-**Arquivo:** `os-5-6-workflow-page.tsx` (783 linhas)
+**Arquivo:** `os-5-6-workflow-page.tsx`
 
 ```typescript
 interface OS56WorkflowPageProps {
@@ -132,24 +132,18 @@ interface OS56WorkflowPageProps {
 ### Componentes Reutilizáveis
 
 ```tsx
-// Accordion expandível por etapa
-<WorkflowAccordion
+// Stepper de Navegação
+<WorkflowStepper
   steps={STEPS}
   currentStep={currentStep}
-  formDataByStep={formDataByStep}
   completedSteps={completedSteps}
-  renderForm={renderForm}
-  renderSummary={renderSummary}
+  onStepClick={handleStepNavigation}
 />
 
-// Footer com navegação
-<WorkflowFooter
-  currentStep={currentStep}
-  totalSteps={12}
-  onPrevStep={handlePrevStep}
-  onNextStep={handleNextStep}
-  onSaveDraft={handleSaveDraft}
-/>
+// Renderização Condicional da Etapa
+<Card>
+    {renderCurrentStepForm()}
+</Card>
 ```
 
 ### Arquitetura Read-Only Unificada (v3.1)

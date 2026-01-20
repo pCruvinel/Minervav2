@@ -5,5 +5,9 @@ export const Route = createFileRoute('/_auth/financeiro/custo-mao-de-obra')({
 })
 
 function RouteComponent() {
-  return <div>Hello "/_auth/financeiro/custo-mao-de-obra"!</div>
+  return (
+    <div className="content-wrapper">
+      <div>Hello "/_auth/financeiro/custo-mao-de-obra"!</div>
+    </div>
+  )
 }

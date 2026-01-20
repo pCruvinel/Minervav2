@@ -1,236 +1,185 @@
-# Sistema de Validação - Hook useFieldValidation
+# 🛡️ Sistema de Validação Padrão (Validation System)
 
-## Visão Geral
-
-O hook `useFieldValidation` é o componente central do sistema de validação de formulários do Minerva ERP v2.0. Ele integra validação Zod com componentes React, fornecendo validação em tempo real, tracking de campos tocados e feedback visual consistente.
-
-## Arquitetura
-
-### Localização
-- **Arquivo**: `src/lib/hooks/use-field-validation.ts`
-- **Dependências**: Zod (`zod`), React hooks
-- **Integração**: Usado por componentes de formulário em todo o workflow OS
-
-### Funcionalidades Principais
-
-1. **Validação por Campo**: Valida campos individuais conforme schema Zod
-2. **Validação Completa**: Valida todo o formulário antes do submit
-3. **Tracking de Estado**: Monitora quais campos foram interagidos (touched)
-4. **Feedback Visual**: Fornece estados de erro/sucesso para componentes UI
-5. **Suporte a Schemas Refinados**: Compatível com `ZodEffects` (schemas com `.refine()`)
-
-## API do Hook
-
-### Interface
-
-```typescript
-interface UseFieldValidationResult {
-  errors: ValidationErrors;           // Mapa campo -> mensagem de erro
-  touched: TouchedFields;             // Mapa campo -> boolean (foi tocado?)
-  validateField: (fieldName: string, value: any) => boolean;
-  validateAll: (formData: any) => boolean;
-  markFieldTouched: (fieldName: string) => void;
-  markAllTouched: () => void;
-  clearErrors: () => void;
-  clearFieldError: (fieldName: string) => void;
-  isValid: boolean;
-  hasAnyTouched: boolean;
-}
-```
-
-### Uso Básico
-
-```typescript
-import { useFieldValidation } from '@/lib/hooks/use-field-validation';
-import { etapa1Schema } from '@/lib/validations/os-etapas-schema';
-
-function MyFormComponent() {
-  const {
-    errors,
-    touched,
-    validateField,
-    validateAll,
-    markFieldTouched,
-    isValid
-  } = useFieldValidation(etapa1Schema);
-
-  // Uso em componentes de input
-  return (
-    <FormInput
-      value={formData.nome}
-      onChange={(e) => {
-        setFormData({...formData, nome: e.target.value});
-        if (touched.nome) validateField('nome', e.target.value);
-      }}
-      onBlur={() => {
-        markFieldTouched('nome');
-        validateField('nome', formData.nome);
-      }}
-      error={touched.nome ? errors.nome : undefined}
-      success={touched.nome && !errors.nome && formData.nome.length > 0}
-    />
-  );
-}
-```
-
-## Suporte a Schemas Zod
-
-### Tipos de Schema Suportados
-
-1. **ZodObject Puro**:
-   ```typescript
-   const schema = z.object({
-     nome: z.string().min(1, 'Nome obrigatório'),
-     email: z.string().email('Email inválido')
-   });
-   ```
-
-2. **ZodEffects (Refinados)**:
-   ```typescript
-   const schema = z.object({
-     nome: z.string().min(1),
-     email: z.string().email()
-   }).refine(
-     (data) => data.nome && data.email,
-     { message: 'Nome e email são obrigatórios', path: ['nome'] }
-   );
-   ```
-
-### Extração de Schema Base
-
-Para schemas refinados, o hook utiliza uma função helper `getBaseSchema()` que extrai o `ZodObject` subjacente de um `ZodEffects`:
-
-```typescript
-function getBaseSchema(schema: z.ZodType<any>): z.ZodObject<any> {
-  if (schema instanceof ZodObject) {
-    return schema;
-  }
-  if (schema instanceof ZodEffects) {
-    const innerSchema = schema._def.schema;
-    if (innerSchema instanceof ZodObject) {
-      return innerSchema;
-    }
-    return getBaseSchema(innerSchema); // Recursão para efeitos aninhados
-  }
-  throw new Error('Schema deve ser um ZodObject ou ZodEffects baseado em ZodObject');
-}
-```
-
-## Integração com Workflow OS
-
-### Uso no Workflow de 15 Etapas
-
-O hook é usado em todas as etapas do workflow OS que possuem validação:
-
-- **Etapa 1**: `etapa1Schema` (identificação do lead)
-- **Etapa 3**: `etapa3Schema` (follow-up 1)
-- **Etapa 6**: `etapa6Schema` (follow-up 2)
-- E outras etapas com validação complexa
-
-### Padrão de Implementação
-
-```typescript
-// No componente da etapa
-const {
-  errors,
-  touched,
-  validateField,
-  validateAll,
-  markFieldTouched,
-  markAllTouched,
-} = useFieldValidation(etapaSchema);
-
-// Validação imperativa no handleNextStep
-const handleNextStep = () => {
-  markAllTouched();
-  if (!validateAll(formData)) {
-    toast.error('Corrija os erros antes de continuar');
-    return;
-  }
-  // Prosseguir...
-};
-```
-
-## Estados e Ciclo de Vida
-
-### Estados Internos
-
-- **`errors`**: Objeto com mensagens de erro por campo
-- **`touched`**: Objeto indicando quais campos foram interagidos
-- **`isValid`**: Boolean indicando se não há erros
-- **`hasAnyTouched`**: Boolean indicando se algum campo foi tocado
-
-### Ciclo de Validação
-
-1. **Inicial**: Formulário vazio, nenhum campo tocado
-2. **Interação**: Usuário digita em campo
-3. **Blur**: Campo marcado como tocado, validação executada
-4. **Submit**: Todos os campos marcados como tocados, validação completa
-
-## Tratamento de Erros
-
-### Tipos de Erro
-
-1. **Erros de Schema**: Validações Zod falham
-2. **Erros de Campo**: Campo específico inválido
-3. **Erros de Formulário**: Validação cruzada entre campos (`.refine()`)
-
-### Estratégia de Exibição
-
-- **Erros só aparecem após interação** (campo tocado)
-- **Feedback visual consistente**: vermelho para erro, verde para sucesso
-- **Mensagens claras e específicas** vindas do schema Zod
-
-## Performance
-
-### Otimizações
-
-- **`useMemo`** para extração do schema base (evita recálculos)
-- **`useCallback`** para funções de validação (estabilidade de referência)
-- **Validação lazy**: só valida quando necessário (onBlur, onSubmit)
-
-### Casos de Uso Pesados
-
-Para formulários muito grandes, considere:
-- Dividir em seções menores
-- Usar validação assíncrona para campos complexos
-- Implementar debouncing para validação em tempo real
-
-## Debugging
-
-### Logs de Desenvolvimento
-
-O hook inclui logs detalhados para debugging:
-
-```typescript
-logger.log('🔍 validate(): Resultado da validação:', isValid);
-logger.log('🔍 validate(): Erros encontrados:', errors);
-```
-
-### Problemas Comuns
-
-1. **Schema não encontrado**: Verificar importação correta
-2. **Campos não validados**: Verificar se campo existe no schema.shape
-3. **Erros não aparecem**: Verificar se campo foi marcado como touched
-
-## Manutenção
-
-### Atualização de Schemas
-
-Ao modificar schemas Zod:
-1. Atualizar tipos TypeScript correspondentes
-2. Testar validação em todos os componentes que usam o schema
-3. Verificar impacto em outras etapas do workflow
-
-### Extensões Futuras
-
-Possíveis melhorias:
-- Suporte a validação assíncrona
-- Integração com bibliotecas de máscara (react-input-mask)
-- Validação condicional baseada em outros campos
-- Suporte a arrays e objetos aninhados complexos
+> **Regra de Ouro:** Toda validação de formulário deve prover feedback visual imediato (Anéis Verde/Vermelho) e feedback textual claro, seguindo o padrão Zod + useFieldValidation.
 
 ---
 
-*Documentação técnica do hook useFieldValidation - Minerva ERP v2.0*
-*Última atualização: 24/11/2025*
+## 📌 Visão Geral
+
+O sistema de validação do Minerva ERP v2.0 foi desenhado para maximizar a UX (Experiência do Usuário), fornecendo:
+1.  **Feedback Visual Positivo (Green Ring):** Confirmação imediata quando um campo está preenchido corretamente.
+2.  **Feedback Visual Negativo (Red Ring):** Alerta claro com mensagem quando há erro.
+3.  **Validação Híbrida:** Validação em tempo real (`onChange` após `touched`) e final (`onSubmit`).
+
+### Stack Tecnológica
+- **Schema:** [Zod](https://zod.dev/)
+- **Hook:** `useFieldValidation` (`@/lib/hooks/use-field-validation`)
+- **UI Components:** `FormInput`, `FormSelect`, `FormTextarea` (`@/components/ui/*`)
+
+---
+
+## 🏗️ Padrão de UX (O "Green Ring")
+
+A assinatura visual do sistema é o "Green Ring" (Anel Verde) que aparece quando um campo obrigatório é preenchido corretamente.
+
+### Regras de Feedback
+
+| Estado | Visual | Condição Lógica (`FormInput`) |
+|--------|--------|-------------------------------|
+| **Normal** | Borda padrão (cinza) | `!touched` |
+| **Sucesso** | Borda Verde + Ícone Check | `touched && !error && isValid` |
+| **Erro** | Borda Vermelha + Ícone Alerta | `touched && error` |
+
+**Nota:** O feedback de sucesso NÃO deve aparecer enquanto o usuário digita pela primeira vez (antes do primeiro `blur`), para evitar "piscar" desnecessário, a menos que o campo já tenha sido tocado.
+
+---
+
+## 🛠️ Guia de Implementação
+
+### 1. Definindo o Schema (Zod)
+
+Crie o schema em `@/lib/validations/`. Cada campo deve ter uma descrição (`.describe()`) e mensagens de erro amigáveis.
+
+```typescript
+// src/lib/validations/exemplo-schema.ts
+import { z } from 'zod';
+
+export const exemploSchema = z.object({
+  nome: z.string()
+    .min(3, { message: 'Nome deve ter no mínimo 3 caracteres' })
+    .describe('Nome completo do cliente'),
+    
+  email: z.string()
+    .email({ message: 'Email inválido' })
+    .describe('Email corporativo'),
+    
+  idade: z.number()
+    .min(18, { message: 'Deve ser maior de 18 anos' })
+});
+
+export type ExemploData = z.infer<typeof exemploSchema>;
+```
+
+### 2. Configurando o Hook
+
+No componente da página ou etapa (`src/components/...`), inicialize o hook.
+
+```typescript
+import { useFieldValidation } from '@/lib/hooks/use-field-validation';
+import { exemploSchema } from '@/lib/validations/exemplo-schema';
+
+export function MinhaEtapa({ data, onDataChange }) {
+  const {
+    errors,          // Objeto { campo: "mensagem" }
+    touched,         // Objeto { campo: true }
+    validateField,   // (campo, valor) => boolean
+    markFieldTouched,// (campo) => void
+    validateAll,     // (dados) => boolean
+    markAllTouched   // () => void
+  } = useFieldValidation(exemploSchema);
+  
+  // ...
+}
+```
+
+### 3. Implementando os Componentes UI
+
+Use **sempre** os componentes `Form*` (`FormInput`, `FormSelect`, etc.), pois eles encapsulam a lógica de renderização dos anéis e ícones.
+
+#### Pattern de Props Obrigatórias
+
+Para ativar o sistema de validação, você deve passar 4 props essenciais para cada input:
+
+1.  **`onChange`**: Atualiza estado E valida se já tocado.
+2.  **`onBlur`**: Marca como tocado E valida.
+3.  **`error`**: Passa a mensagem de erro se o campo foi tocado.
+4.  **`success`**: Passa a condição de sucesso.
+
+```typescript
+<FormInput
+  id="nome"
+  label="Nome Completo"
+  required
+  
+  // 1. Value Binding
+  value={data.nome}
+  
+  // 2. Interação Change (Validação Instantânea se tocado)
+  onChange={(e) => {
+    const newVal = e.target.value;
+    onDataChange({ ...data, nome: newVal });
+    if (touched.nome) validateField('nome', newVal);
+  }}
+  
+  // 3. Interação Blur (Marca tocado e valida)
+  onBlur={() => {
+    markFieldTouched('nome');
+    validateField('nome', data.nome);
+  }}
+  
+  // 4. Estados Visuais
+  error={touched.nome ? errors.nome : undefined}
+  success={touched.nome && !errors.nome && data.nome.length >= 3}
+  
+  helperText="Digite o nome completo"
+/>
+```
+
+> **Dica Pro:** A prop `success` aceita qualquer boleano. Use-a para lógica customizada (ex: `success={!errors.cpf && validarCPF(data.cpf)}`).
+
+### 4. Validação Final e Scroll-to-Error
+
+Exponha uma função de validação para o componente pai (geralmente o gerenciador de passos do workflow) usando `useImperativeHandle`.
+
+```typescript
+useImperativeHandle(ref, () => ({
+  validate: () => {
+    markAllTouched(); // Dispara o visual de erro em todos os campos vazios
+    const isValid = validateAll(data);
+
+    if (!isValid) {
+      // UX: Scroll automático para o primeiro erro
+      const firstErrorField = Object.keys(errors)[0];
+      if (firstErrorField) {
+        document.getElementById(firstErrorField)?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        document.getElementById(firstErrorField)?.focus();
+      }
+    }
+    return isValid;
+  }
+}));
+```
+
+---
+
+## 🧩 Componentes Disponíveis
+
+Todos os componentes abaixo suportam as props `error` e `success`:
+
+| Componente | Uso Principal | Importação |
+|------------|---------------|------------|
+| `FormInput` | Textos curtos, números | `@/components/ui/form-input` |
+| `FormTextarea` | Textos longos, observações | `@/components/ui/form-textarea` |
+| `FormSelect` | Seleção simples (Dropdown) | `@/components/ui/form-select` |
+| `FormMaskedInput` | CPF, CNPJ, Telefone, Moeda | `@/components/ui/form-masked-input` |
+| `FormDatePicker` | Datas | `@/components/ui/form-date-picker` |
+
+---
+
+## ❓ FAQ e Solução de Problemas
+
+**Q: O anel verde não aparece.**
+R: Verifique a prop `success`. Ela precisa ser `true`. Geralmente a lógica é `touched.campo && !errors.campo && valor.length > 0`.
+
+**Q: O erro aparece assim que carrega a página.**
+R: Você provavelmente passou `error={errors.campo}` direto. O correto é `error={touched.campo ? errors.campo : undefined}`. Erros só devem aparecer se `touched` for true.
+
+**Q: Validação de arrays/listas (ex: uploads)?**
+R: O hook `useFieldValidation` suporta arrays se definidos no Zod. Para componentes complexos como Upload, passe o estado de erro para o componente container ou trate a validação na função `validateAll`.
+
+---
+
+*Documentação atualizada em: 20/01/2026*

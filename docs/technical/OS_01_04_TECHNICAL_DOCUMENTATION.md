@@ -28,12 +28,11 @@ As **Ordens de Serviço OS-01 a OS-04** representam o fluxo comercial completo p
 
 ```
 src/
+├── components/os/obras/os-1-4/pages/
+│   └── os-1-4-workflow-page.tsx             # Componente principal (Workflow Stepper Horizontal)
 ├── components/os/shared/
-│   ├── pages/
-│   │   └── os-details-workflow-page.tsx     # Componente principal (1997 linhas)
 │   ├── components/
 │   │   ├── workflow-stepper.tsx             # Stepper visual de progresso
-│   │   ├── workflow-footer.tsx              # Botões de navegação e ações
 │   │   ├── feedback-transferencia.tsx       # Modal de feedback pós-transferência
 │   │   └── aprovacao-modal.tsx              # Modal de aprovação hierárquica
 │   └── steps/
@@ -64,7 +63,7 @@ src/
 │       └── os-ownership-rules.ts            # Regras de responsabilidade (506 linhas)
 │
 └── routes/_auth/os/
-    └── details-workflow/$id.tsx             # Rota TanStack Router
+    └── details-workflow/$id.tsx             # Rota TanStack Router (Renderiza OS14WorkflowPage)
 ```
 
 ---

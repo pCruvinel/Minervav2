@@ -28,6 +28,7 @@ import {
 } from 'recharts';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 import { useNavigate } from '@tanstack/react-router';
+import { useCustoMOPorCC, useCustoMOPorColaborador, useCustoMOKPIs } from '@/lib/hooks/use-custo-mo';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -99,7 +100,32 @@ export function CustoMaoDeObraPage() {
     const [periodo, setPeriodo] = useState<PeriodoFiltro>('thisMonth');
     const [busca, setBusca] = useState('');
     const [setorFiltro, setSetorFiltro] = useState<string>('todos');
-    const [isLoading] = useState(false);
+
+    // ========== HOOKS DE DADOS REAIS ==========
+    const kpis = useCustoMOKPIs();
+    const { data: custoPorCC, isLoading: ccLoading } = useCustoMOPorCC();
+    const { data: custoPorColaborador, isLoading: colabLoading } = useCustoMOPorColaborador();
+
+    const isLoading = ccLoading || colabLoading;
+
+    // Dados com fallback para mock
+    const dadosCustoPorCC = custoPorCC && custoPorCC.length > 0 ? custoPorCC : mockCustoPorCC;
+    const dadosColaboradores = custoPorColaborador && custoPorColaborador.length > 0
+        ? custoPorColaborador.map(c => ({
+            id: c.colaborador_id,
+            nome: c.colaborador_nome,
+            cargo: '-',
+            setor: '-',
+            salarioBase: c.salario_base,
+            encargos: Math.round(c.salario_base * 0.46),
+            beneficios: 450,
+            custosVariaveis: 0,
+            custoDia: c.salario_base / 22,
+            diasTrabalhados: c.dias_trabalhados,
+            custoTotal: c.custo_total,
+            ccs: c.ccs,
+        }))
+        : mockColaboradores;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -116,7 +142,7 @@ export function CustoMaoDeObraPage() {
         last3Months: 'Últimos 3 meses',
     };
 
-    const colaboradoresFiltrados = mockColaboradores.filter(col => {
+    const colaboradoresFiltrados = dadosColaboradores.filter(col => {
         const matchBusca = col.nome.toLowerCase().includes(busca.toLowerCase()) ||
             col.cargo.toLowerCase().includes(busca.toLowerCase());
         const matchSetor = setorFiltro === 'todos' || col.setor === setorFiltro;
@@ -162,7 +188,7 @@ export function CustoMaoDeObraPage() {
             <KPIFinanceiroGrid columns={4}>
                 <KPICardFinanceiro
                     title="Custo Total MO"
-                    value={mockKPIs.custoTotalMO}
+                    value={kpis.custoTotal}
                     icon={<DollarSign className="w-6 h-6" />}
                     variant="primary"
                     subtitle={periodoLabels[periodo]}
@@ -170,7 +196,7 @@ export function CustoMaoDeObraPage() {
                 />
                 <KPICardFinanceiro
                     title="Custo/Dia Médio"
-                    value={formatCurrency(mockKPIs.custoDiaMedio)}
+                    value={formatCurrency(kpis.custoDiaMedio)}
                     icon={<TrendingUp className="w-6 h-6" />}
                     variant="info"
                     subtitle="Por colaborador"
@@ -178,7 +204,7 @@ export function CustoMaoDeObraPage() {
                 />
                 <KPICardFinanceiro
                     title="Total Presenças"
-                    value={mockKPIs.totalPresencas.toString()}
+                    value={kpis.totalAlocacoes.toString()}
                     icon={<CalendarDays className="w-6 h-6" />}
                     variant="success"
                     subtitle="Dias registrados"
@@ -186,10 +212,10 @@ export function CustoMaoDeObraPage() {
                 />
                 <KPICardFinanceiro
                     title="Colaboradores"
-                    value={mockKPIs.colaboradoresAtivos.toString()}
+                    value={kpis.colaboradoresAtivos.toString()}
                     icon={<Users className="w-6 h-6" />}
                     variant="neutral"
-                    subtitle={`em ${mockKPIs.ccsAtivos} CCs`}
+                    subtitle={`em ${kpis.ccsAtivos} CCs`}
                     loading={isLoading}
                 />
             </KPIFinanceiroGrid>
@@ -210,7 +236,7 @@ export function CustoMaoDeObraPage() {
                                 <Loader2 className="w-8 h-8 animate-spin text-primary" />
                             </div>
                         ) : (
-                            mockCustoPorCC.map((cc) => (
+                            dadosCustoPorCC.map((cc) => (
                                 <div
                                     key={cc.cc_id}
                                     className="flex items-center gap-4 p-3 rounded-lg hover:bg-muted/50 hover:shadow-card-hover cursor-pointer transition-all border border-transparent hover:border-primary/20"
@@ -219,13 +245,13 @@ export function CustoMaoDeObraPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between mb-1">
                                             <span className="font-medium truncate text-neutral-900">{cc.cc_nome}</span>
-                                            <span className="font-bold text-primary">{formatCurrency(cc.custo)}</span>
+                                            <span className="font-bold text-primary">{formatCurrency('custo_total' in cc ? cc.custo_total : cc.custo)}</span>
                                         </div>
                                         <div className="flex items-center gap-2 text-sm text-neutral-500">
                                             <Users className="w-3 h-3" />
-                                            <span>{cc.colaboradores} colaborador(es)</span>
+                                            <span>{'colaboradores_distintos' in cc ? cc.colaboradores_distintos : cc.colaboradores} colaborador(es)</span>
                                             <span>•</span>
-                                            <span>{cc.percentual}%</span>
+                                            <span>{'percentual' in cc ? cc.percentual : 0}%</span>
                                         </div>
                                         <Progress value={cc.percentual} className="h-2 mt-2" />
                                     </div>
@@ -249,7 +275,7 @@ export function CustoMaoDeObraPage() {
                             </div>
                         ) : (
                             <ResponsiveContainer width="100%" height={280}>
-                                <BarChart data={mockCustoPorCC} layout="vertical">
+                                <BarChart data={dadosCustoPorCC.map(c => ({ ...c, custo: 'custo_total' in c ? c.custo_total : c.custo }))} layout="vertical">
                                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                                     <XAxis
                                         type="number"

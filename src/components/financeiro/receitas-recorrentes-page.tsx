@@ -1,11 +1,9 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
     Dialog,
     DialogContent,
@@ -13,7 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
 import {
     TrendingUp,
     Calendar,
@@ -32,7 +30,14 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
+import { CompactTableWrapper, CompactTableHead, CompactTableCell, CompactTableRow } from '@/components/shared/compact-table';
 import { useNavigate } from '@tanstack/react-router';
+import {
+    useReceitasRecorrentes,
+    useParcelasPendentes,
+    useReceitasKPIs,
+    type ReceitaRecorrente
+} from '@/lib/hooks/use-receitas-recorrentes';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -78,7 +83,6 @@ const mockReceitasRecorrentes = [
     },
 ];
 
-// Parcelas pendentes consolidadas (antes em contas-receber)
 const mockParcelasPendentes = [
     { id: 'par-1', cliente: 'Construtora Silva Ltda', ccCodigo: 'CC13001-SOLAR_I', ccId: 'cc-13001', contrato: 'CNT-2024-003', parcela: '5/6', vencimento: '2024-11-01', valor: 21333.33, status: 'inadimplente' },
     { id: 'par-2', cliente: 'Construtora Silva Ltda', ccCodigo: 'CC13001-SOLAR_I', ccId: 'cc-13001', contrato: 'CNT-2024-003', parcela: '6/6', vencimento: '2024-11-30', valor: 21333.34, status: 'em_aberto' },
@@ -108,14 +112,12 @@ const mockParcelasContrato = [
 // ============================================================
 
 /**
- * ReceitasRecorrentesPage - Gestão de Receitas Recorrentes
+ * ReceitasRecorrentesPage - Gestão de Receitas Recorrentes (Refatorada)
  * 
- * Visualização de contratos ativos com receitas programadas,
- * incluindo regras de reajuste e status de parcelas.
- * 
- * Consolida funcionalidade de:
- * - Receitas recorrentes (contratos)
- * - Contas a receber (parcelas pendentes)
+ * Design System v2.0:
+ * - Alerta minimalista inline
+ * - Filtros compactos sem card wrapper
+ * - CompactTableWrapper com linha de totais
  */
 export function ReceitasRecorrentesPage() {
     const navigate = useNavigate();
@@ -123,8 +125,65 @@ export function ReceitasRecorrentesPage() {
     const [tipoFiltro, setTipoFiltro] = useState<string>('todos');
     const [statusParcela, setStatusParcela] = useState<string>('todos');
     const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
-    const [selectedReceita, setSelectedReceita] = useState<typeof mockReceitasRecorrentes[0] | null>(null);
-    const [isLoading] = useState(false);
+    const [selectedReceita, setSelectedReceita] = useState<ReceitaRecorrente | typeof mockReceitasRecorrentes[0] | null>(null);
+
+    // Paginação
+    const [pageContratos, setPageContratos] = useState(1);
+    const [pageParcelas, setPageParcelas] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
+
+    // Sorting - Contratos
+    type SortFieldContratos = 'ccCodigo' | 'cliente' | 'tipo' | 'proximoVencimento' | 'valorMensal';
+    const [sortFieldContratos, setSortFieldContratos] = useState<SortFieldContratos | null>(null);
+    const [sortDirContratos, setSortDirContratos] = useState<'asc' | 'desc'>('asc');
+
+    // Sorting - Parcelas
+    type SortFieldParcelas = 'cliente' | 'ccCodigo' | 'vencimento' | 'valor' | 'status';
+    const [sortFieldParcelas, setSortFieldParcelas] = useState<SortFieldParcelas | null>(null);
+    const [sortDirParcelas, setSortDirParcelas] = useState<'asc' | 'desc'>('asc');
+
+    // ========== HOOKS DE DADOS REAIS ==========
+    const { data: receitasData, isLoading: receitasLoading } = useReceitasRecorrentes();
+    const { data: parcelasData, isLoading: parcelasLoading } = useParcelasPendentes();
+    const { data: kpisData, isLoading: kpisLoading } = useReceitasKPIs();
+
+    const isLoading = receitasLoading || parcelasLoading || kpisLoading;
+
+    // Dados com fallback para mock
+    const receitas = receitasData && receitasData.length > 0
+        ? receitasData.map(r => ({
+            id: r.id,
+            ccId: r.contrato_id,
+            ccCodigo: r.contrato_numero,
+            cliente: r.cliente_nome,
+            tipo: 'Contrato',
+            valorMensal: r.valor_mensal,
+            frequencia: 'Mensal',
+            dataInicio: '',
+            dataFim: null,
+            parcelasPagas: r.parcelas_pagas,
+            parcelasTotal: r.parcelas_total,
+            proximoVencimento: r.proxima_cobranca,
+            reajusteAnual: 0,
+            status: r.status,
+        }))
+        : mockReceitasRecorrentes;
+
+    const parcelas = parcelasData && parcelasData.length > 0
+        ? parcelasData.map(p => ({
+            id: p.id,
+            cliente: p.cliente_nome,
+            ccCodigo: p.descricao,
+            ccId: p.cc_id ?? p.contrato_id,
+            contrato: `Parcela ${p.parcela_num}/${p.total_parcelas}`,
+            parcela: `${p.parcela_num}/${p.total_parcelas}`,
+            vencimento: p.vencimento,
+            valor: p.valor_previsto,
+            status: p.dias_atraso > 0 ? 'inadimplente' : p.status === 'pendente' ? 'em_aberto' : p.status,
+        }))
+        : mockParcelasPendentes;
+
+    const kpis = kpisData ?? mockKPIs;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -145,23 +204,84 @@ export function ReceitasRecorrentesPage() {
         return new Date() > new Date(vencimento);
     };
 
-    const receitasFiltradas = mockReceitasRecorrentes.filter(r => {
+    const receitasFiltradas = receitas.filter(r => {
         const matchBusca = r.cliente.toLowerCase().includes(busca.toLowerCase()) ||
             r.ccCodigo.toLowerCase().includes(busca.toLowerCase());
         const matchTipo = tipoFiltro === 'todos' || r.tipo === tipoFiltro;
         return matchBusca && matchTipo;
     });
 
-    const parcelasFiltradas = mockParcelasPendentes.filter(p => {
+    const parcelasFiltradas = parcelas.filter(p => {
         const matchBusca = p.cliente.toLowerCase().includes(busca.toLowerCase()) ||
             p.ccCodigo.toLowerCase().includes(busca.toLowerCase());
         const matchStatus = statusParcela === 'todos' || p.status === statusParcela;
         return matchBusca && matchStatus;
     });
 
-    const totalInadimplente = mockParcelasPendentes
+    const totalInadimplente = parcelas
         .filter(p => p.status === 'inadimplente')
         .reduce((acc, p) => acc + p.valor, 0);
+
+    const totalValorReceitas = receitasFiltradas.reduce((acc, r) => acc + r.valorMensal, 0);
+    const totalValorParcelas = parcelasFiltradas.reduce((acc, p) => acc + p.valor, 0);
+
+    // Sorting helper
+    const handleSortContratos = (field: SortFieldContratos) => {
+        if (sortFieldContratos === field) {
+            setSortDirContratos(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortFieldContratos(field);
+            setSortDirContratos('asc');
+        }
+    };
+
+    const handleSortParcelas = (field: SortFieldParcelas) => {
+        if (sortFieldParcelas === field) {
+            setSortDirParcelas(prev => prev === 'asc' ? 'desc' : 'asc');
+        } else {
+            setSortFieldParcelas(field);
+            setSortDirParcelas('asc');
+        }
+    };
+
+    // Sorted data
+    const receitasOrdenadas = [...receitasFiltradas].sort((a, b) => {
+        if (!sortFieldContratos) return 0;
+        const multiplier = sortDirContratos === 'asc' ? 1 : -1;
+        switch (sortFieldContratos) {
+            case 'ccCodigo':
+            case 'cliente':
+            case 'tipo':
+                return a[sortFieldContratos].localeCompare(b[sortFieldContratos]) * multiplier;
+            case 'proximoVencimento':
+                return (new Date(a.proximoVencimento || '').getTime() - new Date(b.proximoVencimento || '').getTime()) * multiplier;
+            case 'valorMensal':
+                return (a.valorMensal - b.valorMensal) * multiplier;
+            default:
+                return 0;
+        }
+    });
+
+    const parcelasOrdenadas = [...parcelasFiltradas].sort((a, b) => {
+        if (!sortFieldParcelas) return 0;
+        const multiplier = sortDirParcelas === 'asc' ? 1 : -1;
+        switch (sortFieldParcelas) {
+            case 'cliente':
+            case 'ccCodigo':
+            case 'status':
+                return a[sortFieldParcelas].localeCompare(b[sortFieldParcelas]) * multiplier;
+            case 'vencimento':
+                return (new Date(a.vencimento).getTime() - new Date(b.vencimento).getTime()) * multiplier;
+            case 'valor':
+                return (a.valor - b.valor) * multiplier;
+            default:
+                return 0;
+        }
+    });
+
+    // Paginação com dados ordenados
+    const paginatedReceitas = receitasOrdenadas.slice((pageContratos - 1) * itemsPerPage, pageContratos * itemsPerPage);
+    const paginatedParcelas = parcelasOrdenadas.slice((pageParcelas - 1) * itemsPerPage, pageParcelas * itemsPerPage);
 
     const handleVerParcelas = (receita: typeof mockReceitasRecorrentes[0]) => {
         setSelectedReceita(receita);
@@ -191,6 +311,17 @@ export function ReceitasRecorrentesPage() {
         }
     };
 
+    const getTipoBadge = (tipo: string) => {
+        switch (tipo) {
+            case 'Obra':
+                return <Badge className="bg-primary/10 text-primary">{tipo}</Badge>;
+            case 'Assessoria Anual':
+                return <Badge className="bg-success/10 text-success">{tipo}</Badge>;
+            default:
+                return <Badge className="bg-warning/10 text-warning">{tipo}</Badge>;
+        }
+    };
+
     return (
         <div className="container mx-auto p-6 space-y-6">
             {/* ========== Header ========== */}
@@ -205,38 +336,39 @@ export function ReceitasRecorrentesPage() {
                 </Button>
             </PageHeader>
 
-            {/* ========== Alerta de Inadimplência ========== */}
+            {/* ========== Alerta Minimalista de Inadimplência ========== */}
             {totalInadimplente > 0 && (
-                <Alert className="border-destructive/30 bg-destructive/5">
-                    <AlertTriangle className="h-4 w-4 text-destructive" />
-                    <AlertDescription className="text-destructive">
-                        <strong>Atenção:</strong> Existem {mockParcelasPendentes.filter(p => p.status === 'inadimplente').length} parcela(s) inadimplente(s)
-                        totalizando <strong>{formatCurrency(totalInadimplente)}</strong>. Veja na aba "Parcelas Pendentes".
-                    </AlertDescription>
-                </Alert>
+                <div className="flex items-center gap-2 p-3 rounded-lg border bg-muted/50">
+                    <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                    <p className="text-sm text-destructive">
+                        <span className="font-semibold">{parcelas.filter(p => p.status === 'inadimplente').length} parcela(s) inadimplente(s)</span>
+                        {' '}totalizando <span className="font-semibold">{formatCurrency(totalInadimplente)}</span>.
+                        Veja na aba "Parcelas".
+                    </p>
+                </div>
             )}
 
             {/* ========== KPIs ========== */}
             <KPIFinanceiroGrid columns={4}>
                 <KPICardFinanceiro
                     title="Total Mensal"
-                    value={mockKPIs.totalMensal}
+                    value={'totalReceitasMes' in kpis ? kpis.totalReceitasMes : kpis.totalMensal}
                     icon={<DollarSign className="w-6 h-6" />}
                     variant="success"
                     subtitle="Previsto"
                     loading={isLoading}
                 />
                 <KPICardFinanceiro
-                    title="Projeção 12 Meses"
-                    value={mockKPIs.projecao12Meses}
+                    title="Recebido"
+                    value={'recebidoMes' in kpis ? kpis.recebidoMes : 0}
                     icon={<TrendingUp className="w-6 h-6" />}
                     variant="primary"
-                    subtitle="Considerando reajustes"
+                    subtitle="Este mês"
                     loading={isLoading}
                 />
                 <KPICardFinanceiro
                     title="Parcelas Pendentes"
-                    value={mockKPIs.parcelasPendentes.toString()}
+                    value={parcelasFiltradas.length.toString()}
                     icon={<Clock className="w-6 h-6" />}
                     variant="warning"
                     loading={isLoading}
@@ -265,211 +397,256 @@ export function ReceitasRecorrentesPage() {
 
                 {/* ========== Tab: Contratos ========== */}
                 <TabsContent value="contratos" className="space-y-4">
-                    {/* Filtros */}
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Filtros</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                                    <Input
-                                        placeholder="Buscar por cliente ou centro de custo..."
-                                        value={busca}
-                                        onChange={(e) => setBusca(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                <Select value={tipoFiltro} onValueChange={setTipoFiltro}>
-                                    <SelectTrigger className="w-full md:w-[200px]">
-                                        <SelectValue placeholder="Tipo" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="todos">Todos os Tipos</SelectItem>
-                                        <SelectItem value="Obra">Obra</SelectItem>
-                                        <SelectItem value="Assessoria Anual">Assessoria Anual</SelectItem>
-                                        <SelectItem value="Laudo Pontual">Laudo Pontual</SelectItem>
-                                    </SelectContent>
-                                </Select>
+                    {/* Filtros Inline (sem card wrapper) */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input
+                                placeholder="Buscar por cliente ou CC..."
+                                value={busca}
+                                onChange={(e) => setBusca(e.target.value)}
+                                className="pl-10 h-9"
+                            />
+                        </div>
+                        <Select value={tipoFiltro} onValueChange={setTipoFiltro}>
+                            <SelectTrigger className="w-full md:w-[180px] h-9">
+                                <SelectValue placeholder="Tipo" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todos">Todos os Tipos</SelectItem>
+                                <SelectItem value="Obra">Obra</SelectItem>
+                                <SelectItem value="Assessoria Anual">Assessoria Anual</SelectItem>
+                                <SelectItem value="Laudo Pontual">Laudo Pontual</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Tabela Compacta de Contratos */}
+                    <CompactTableWrapper
+                        title="Receitas Programadas"
+                        totalItems={receitasFiltradas.length}
+                        currentCount={paginatedReceitas.length}
+                        page={pageContratos}
+                        totalPages={Math.ceil(receitasFiltradas.length / itemsPerPage)}
+                        onPageChange={setPageContratos}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={setItemsPerPage}
+                    >
+                        {isLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                                <span className="ml-3 text-neutral-600">Carregando...</span>
                             </div>
-                        </CardContent>
-                    </Card>
-
-                    {/* Lista de Contratos */}
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Receitas Programadas</CardTitle>
-                            <CardDescription>{receitasFiltradas.length} contrato(s) encontrado(s)</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            {isLoading ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                    <span className="ml-3 text-neutral-600">Carregando...</span>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {receitasFiltradas.map((receita) => (
-                                        <div
-                                            key={receita.id}
-                                            className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/20 transition-all"
-                                        >
-                                            <div className="flex flex-col md:flex-row md:items-center gap-4">
-                                                <div className="flex-1 min-w-0">
-                                                    <div className="flex items-center gap-3 mb-2">
-                                                        <h3 className="font-bold text-lg text-neutral-900 truncate">{receita.ccCodigo}</h3>
-                                                        <Badge
-                                                            variant="secondary"
-                                                            className={
-                                                                receita.tipo === 'Obra' ? 'bg-primary/10 text-primary' :
-                                                                    receita.tipo === 'Assessoria Anual' ? 'bg-success/10 text-success' :
-                                                                        'bg-warning/10 text-warning'
-                                                            }
-                                                        >
-                                                            {receita.tipo}
-                                                        </Badge>
-                                                    </div>
-                                                    <p className="text-neutral-600">
-                                                        <span className="font-medium">{receita.cliente}</span>
-                                                    </p>
-                                                    <div className="flex flex-wrap gap-4 mt-2 text-sm text-neutral-500">
-                                                        <span>
-                                                            <Calendar className="w-3 h-3 inline mr-1" />
-                                                            Próx. vcto: {formatDate(receita.proximoVencimento)}
+                        ) : (
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/40">
+                                        <CompactTableHead
+                                            onSort={() => handleSortContratos('ccCodigo')}
+                                            sortDirection={sortFieldContratos === 'ccCodigo' ? sortDirContratos : null}
+                                        >Centro de Custo</CompactTableHead>
+                                        <CompactTableHead
+                                            onSort={() => handleSortContratos('cliente')}
+                                            sortDirection={sortFieldContratos === 'cliente' ? sortDirContratos : null}
+                                        >Cliente</CompactTableHead>
+                                        <CompactTableHead
+                                            onSort={() => handleSortContratos('tipo')}
+                                            sortDirection={sortFieldContratos === 'tipo' ? sortDirContratos : null}
+                                        >Tipo</CompactTableHead>
+                                        <CompactTableHead
+                                            onSort={() => handleSortContratos('proximoVencimento')}
+                                            sortDirection={sortFieldContratos === 'proximoVencimento' ? sortDirContratos : null}
+                                        >Próx. Vcto</CompactTableHead>
+                                        <CompactTableHead>Parcelas</CompactTableHead>
+                                        <CompactTableHead
+                                            className="text-right"
+                                            onSort={() => handleSortContratos('valorMensal')}
+                                            sortDirection={sortFieldContratos === 'valorMensal' ? sortDirContratos : null}
+                                        >Valor/Mês</CompactTableHead>
+                                        <CompactTableHead className="text-center w-[100px]">Ações</CompactTableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {paginatedReceitas.map((receita) => (
+                                        <CompactTableRow key={receita.id}>
+                                            <CompactTableCell className="font-medium">
+                                                <Button
+                                                    variant="link"
+                                                    className="p-0 h-auto text-primary hover:underline font-semibold"
+                                                    onClick={() => handleVerCC(receita.ccId)}
+                                                >
+                                                    {receita.ccCodigo}
+                                                </Button>
+                                            </CompactTableCell>
+                                            <CompactTableCell>{receita.cliente}</CompactTableCell>
+                                            <CompactTableCell>{getTipoBadge(receita.tipo)}</CompactTableCell>
+                                            <CompactTableCell>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3 text-neutral-400" />
+                                                    {formatDate(receita.proximoVencimento)}
+                                                </span>
+                                            </CompactTableCell>
+                                            <CompactTableCell>
+                                                <span className="flex items-center gap-1">
+                                                    {receita.parcelasPagas}/{receita.parcelasTotal}
+                                                    {receita.reajusteAnual > 0 && (
+                                                        <span className="text-primary text-xs ml-1">
+                                                            <RefreshCw className="w-3 h-3 inline" />
+                                                            +{receita.reajusteAnual}%
                                                         </span>
-                                                        <span>
-                                                            Parcelas: {receita.parcelasPagas}/{receita.parcelasTotal}
-                                                        </span>
-                                                        {receita.reajusteAnual > 0 && (
-                                                            <span className="text-primary font-medium">
-                                                                <RefreshCw className="w-3 h-3 inline mr-1" />
-                                                                +{receita.reajusteAnual}%/ano
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-
-                                                <div className="text-right">
-                                                    <p className="text-2xl font-bold text-success">
-                                                        {formatCurrency(receita.valorMensal)}
-                                                        <span className="text-sm font-normal text-neutral-500">
-                                                            /{receita.frequencia === 'Mensal' ? 'mês' : 'único'}
-                                                        </span>
-                                                    </p>
-                                                </div>
-
-                                                <div className="flex gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleVerParcelas(receita)}>
-                                                        <Eye className="w-4 h-4 mr-1" />
-                                                        Parcelas
+                                                    )}
+                                                </span>
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-right font-bold text-success">
+                                                {formatCurrency(receita.valorMensal)}
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-center">
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerParcelas(receita)}>
+                                                        <Eye className="w-4 h-4" />
                                                     </Button>
-                                                    <Button variant="outline" size="sm" onClick={() => handleVerCC(receita.ccId)}>
-                                                        <Building2 className="w-4 h-4 mr-1" />
-                                                        Ver CC
+                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(receita.ccId)}>
+                                                        <Building2 className="w-4 h-4" />
                                                     </Button>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </CompactTableCell>
+                                        </CompactTableRow>
                                     ))}
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                </TableBody>
+                                {/* Linha de Total */}
+                                <TableFooter>
+                                    <TableRow className="bg-muted/60 font-semibold">
+                                        <CompactTableCell colSpan={5} className="text-right">
+                                            Total ({receitasFiltradas.length} contratos)
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-right font-bold text-success">
+                                            {formatCurrency(totalValorReceitas)}
+                                        </CompactTableCell>
+                                        <CompactTableCell />
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        )}
+                    </CompactTableWrapper>
                 </TabsContent>
 
                 {/* ========== Tab: Parcelas Pendentes ========== */}
                 <TabsContent value="parcelas" className="space-y-4">
-                    {/* Filtros */}
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Filtros</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <div className="flex flex-col md:flex-row gap-4">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                                    <Input
-                                        placeholder="Buscar por cliente ou centro de custo..."
-                                        value={busca}
-                                        onChange={(e) => setBusca(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                                <Select value={statusParcela} onValueChange={setStatusParcela}>
-                                    <SelectTrigger className="w-full md:w-[200px]">
-                                        <SelectValue placeholder="Status" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="todos">Todos</SelectItem>
-                                        <SelectItem value="inadimplente">Inadimplente</SelectItem>
-                                        <SelectItem value="em_aberto">Em Aberto</SelectItem>
-                                        <SelectItem value="futuro">Futuro</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </CardContent>
-                    </Card>
+                    {/* Filtros Inline */}
+                    <div className="flex flex-col md:flex-row gap-3">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+                            <Input
+                                placeholder="Buscar por cliente ou CC..."
+                                value={busca}
+                                onChange={(e) => setBusca(e.target.value)}
+                                className="pl-10 h-9"
+                            />
+                        </div>
+                        <Select value={statusParcela} onValueChange={setStatusParcela}>
+                            <SelectTrigger className="w-full md:w-[180px] h-9">
+                                <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="todos">Todos</SelectItem>
+                                <SelectItem value="inadimplente">Inadimplente</SelectItem>
+                                <SelectItem value="em_aberto">Em Aberto</SelectItem>
+                                <SelectItem value="futuro">Futuro</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
-                    {/* Tabela de Parcelas */}
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Parcelas a Receber</CardTitle>
-                            <CardDescription>{parcelasFiltradas.length} parcela(s) encontrada(s)</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Cliente</TableHead>
-                                        <TableHead>Centro de Custo</TableHead>
-                                        <TableHead>Contrato</TableHead>
-                                        <TableHead>Parcela</TableHead>
-                                        <TableHead>Vencimento</TableHead>
-                                        <TableHead className="text-right">Valor</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {parcelasFiltradas.map((parcela) => (
-                                        <TableRow
-                                            key={parcela.id}
-                                            className={parcela.status === 'inadimplente' ? 'bg-destructive/5 border-l-4 border-l-destructive' : ''}
-                                        >
-                                            <TableCell className="font-medium">{parcela.cliente}</TableCell>
-                                            <TableCell>
-                                                <Button
-                                                    variant="link"
-                                                    className="p-0 h-auto text-primary hover:underline"
-                                                    onClick={() => handleVerCC(parcela.ccId)}
-                                                >
-                                                    {parcela.ccCodigo}
-                                                </Button>
-                                            </TableCell>
-                                            <TableCell><Badge variant="outline">{parcela.contrato}</Badge></TableCell>
-                                            <TableCell>{parcela.parcela}</TableCell>
-                                            <TableCell>
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3 text-neutral-400" />
-                                                    {formatDate(parcela.vencimento)}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-right font-bold text-success">
-                                                {formatCurrency(parcela.valor)}
-                                            </TableCell>
-                                            <TableCell>{getStatusBadge(parcela.status, parcela.vencimento)}</TableCell>
-                                            <TableCell>
-                                                <Button variant="ghost" size="sm" onClick={() => handleVerCC(parcela.ccId)}>
-                                                    <Building2 className="w-4 h-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    {/* Tabela Compacta de Parcelas */}
+                    <CompactTableWrapper
+                        title="Parcelas a Receber"
+                        totalItems={parcelasFiltradas.length}
+                        currentCount={paginatedParcelas.length}
+                        page={pageParcelas}
+                        totalPages={Math.ceil(parcelasFiltradas.length / itemsPerPage)}
+                        onPageChange={setPageParcelas}
+                        itemsPerPage={itemsPerPage}
+                        onItemsPerPageChange={setItemsPerPage}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => handleSortParcelas('cliente')}
+                                        sortDirection={sortFieldParcelas === 'cliente' ? sortDirParcelas : null}
+                                    >Cliente</CompactTableHead>
+                                    <CompactTableHead
+                                        onSort={() => handleSortParcelas('ccCodigo')}
+                                        sortDirection={sortFieldParcelas === 'ccCodigo' ? sortDirParcelas : null}
+                                    >Centro de Custo</CompactTableHead>
+                                    <CompactTableHead>Parcela</CompactTableHead>
+                                    <CompactTableHead
+                                        onSort={() => handleSortParcelas('vencimento')}
+                                        sortDirection={sortFieldParcelas === 'vencimento' ? sortDirParcelas : null}
+                                    >Vencimento</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => handleSortParcelas('valor')}
+                                        sortDirection={sortFieldParcelas === 'valor' ? sortDirParcelas : null}
+                                    >Valor</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-center"
+                                        onSort={() => handleSortParcelas('status')}
+                                        sortDirection={sortFieldParcelas === 'status' ? sortDirParcelas : null}
+                                    >Status</CompactTableHead>
+                                    <CompactTableHead className="text-center w-[60px]"></CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {paginatedParcelas.map((parcela) => (
+                                    <CompactTableRow
+                                        key={parcela.id}
+                                        className={parcela.status === 'inadimplente' ? 'bg-destructive/5 border-l-2 border-l-destructive' : ''}
+                                    >
+                                        <CompactTableCell className="font-medium">{parcela.cliente}</CompactTableCell>
+                                        <CompactTableCell>
+                                            <Button
+                                                variant="link"
+                                                className="p-0 h-auto text-primary hover:underline"
+                                                onClick={() => handleVerCC(parcela.ccId)}
+                                            >
+                                                {parcela.ccCodigo}
+                                            </Button>
+                                        </CompactTableCell>
+                                        <CompactTableCell>{parcela.parcela}</CompactTableCell>
+                                        <CompactTableCell>
+                                            <span className="flex items-center gap-1">
+                                                <Calendar className="w-3 h-3 text-neutral-400" />
+                                                {formatDate(parcela.vencimento)}
+                                            </span>
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-right font-bold text-success">
+                                            {formatCurrency(parcela.valor)}
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-center">
+                                            {getStatusBadge(parcela.status, parcela.vencimento)}
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-center">
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(parcela.ccId)}>
+                                                <Building2 className="w-4 h-4" />
+                                            </Button>
+                                        </CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                            {/* Linha de Total */}
+                            <TableFooter>
+                                <TableRow className="bg-muted/60 font-semibold">
+                                    <CompactTableCell colSpan={4} className="text-right">
+                                        Total ({parcelasFiltradas.length} parcelas)
+                                    </CompactTableCell>
+                                    <CompactTableCell className="text-right font-bold text-success">
+                                        {formatCurrency(totalValorParcelas)}
+                                    </CompactTableCell>
+                                    <CompactTableCell colSpan={2} />
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
             </Tabs>
 
@@ -482,40 +659,51 @@ export function ReceitasRecorrentesPage() {
                             Cliente: {selectedReceita?.cliente}
                         </DialogDescription>
                     </DialogHeader>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Parcela</TableHead>
-                                <TableHead>Vencimento</TableHead>
-                                <TableHead className="text-right">Valor</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Data Pgto</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {mockParcelasContrato.map((p) => (
-                                <TableRow key={p.parcela}>
-                                    <TableCell>{p.parcela}/{mockParcelasContrato.length}</TableCell>
-                                    <TableCell>{formatDate(p.vencimento)}</TableCell>
-                                    <TableCell className="text-right font-medium">{formatCurrency(p.valor)}</TableCell>
-                                    <TableCell>
-                                        <Badge
-                                            className={
-                                                p.status === 'Pago'
-                                                    ? 'bg-success/10 text-success'
-                                                    : p.status === 'Pendente'
-                                                        ? 'bg-warning/10 text-warning'
-                                                        : 'bg-muted text-muted-foreground'
-                                            }
-                                        >
-                                            {p.status}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>{p.dataPagamento ? formatDate(p.dataPagamento) : '-'}</TableCell>
+                    <div className="max-h-[400px] overflow-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead>Parcela</CompactTableHead>
+                                    <CompactTableHead>Vencimento</CompactTableHead>
+                                    <CompactTableHead className="text-right">Valor</CompactTableHead>
+                                    <CompactTableHead className="text-center">Status</CompactTableHead>
+                                    <CompactTableHead>Data Pgto</CompactTableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {mockParcelasContrato.map((p) => (
+                                    <CompactTableRow key={p.parcela}>
+                                        <CompactTableCell>{p.parcela}/{mockParcelasContrato.length}</CompactTableCell>
+                                        <CompactTableCell>{formatDate(p.vencimento)}</CompactTableCell>
+                                        <CompactTableCell className="text-right font-medium">{formatCurrency(p.valor)}</CompactTableCell>
+                                        <CompactTableCell className="text-center">
+                                            <Badge
+                                                className={
+                                                    p.status === 'Pago'
+                                                        ? 'bg-success/10 text-success'
+                                                        : p.status === 'Pendente'
+                                                            ? 'bg-warning/10 text-warning'
+                                                            : 'bg-muted text-muted-foreground'
+                                                }
+                                            >
+                                                {p.status}
+                                            </Badge>
+                                        </CompactTableCell>
+                                        <CompactTableCell>{p.dataPagamento ? formatDate(p.dataPagamento) : '-'}</CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="bg-muted/60 font-semibold">
+                                    <CompactTableCell colSpan={2} className="text-right">Total</CompactTableCell>
+                                    <CompactTableCell className="text-right font-bold">
+                                        {formatCurrency(mockParcelasContrato.reduce((acc, p) => acc + p.valor, 0))}
+                                    </CompactTableCell>
+                                    <CompactTableCell colSpan={2} />
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </div>
                 </DialogContent>
             </Dialog>
         </div>

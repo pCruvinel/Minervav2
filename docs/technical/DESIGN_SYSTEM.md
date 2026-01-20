@@ -704,18 +704,39 @@ function SituacaoBadge({ situacao }: { situacao: StatusSituacao }) {
 > **Padrão obrigatório** para todas as páginas de listagem do sistema.  
 > Referência: `/comercial/contratos`
 
-### Container Principal (Padrão Ouro)
-Use exatamente este wrapper para garantir a largura e espaçamento padrão definidos em `/financeiro`:
+### Estrutura de Rotas e Páginas (Padrão Ouro)
+Use exatamente este padrão para garantir consistência visual e evitar margens duplas (double container).
+
+**1. No Arquivo de Rota (`src/routes/...`)**
+Use a classe `content-wrapper` para envolver o componente da página. Isso garante que o layout base seja respeitado sem forçar larguras fixas prematuramente.
 
 ```tsx
-<div className="container mx-auto p-6 space-y-6">
-  {/* Conteúdo da página */}
-</div>
+export const Route = createFileRoute('/path')({
+  component: PageRoute,
+});
+
+function PageRoute() {
+  return (
+    <div className="content-wrapper">
+      <MyPage />
+    </div>
+  );
+}
 ```
-- **`container`**: Centraliza e define max-width responsivo.
-- **`mx-auto`**: Centraliza horizontalmente.
-- **`p-6`**: Padding padrão (24px) em todas as bordas.
-- **`space-y-6`**: Espaçamento vertical padrão (24px) entre elementos filhos diretos.
+
+**2. No Componente da Página (`src/components/...`)**
+O componente deve gerenciar seu próprio container.
+
+```tsx
+export function MyPage() {
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      <PageHeader ... />
+      {/* Conteúdo da página */}
+    </div>
+  );
+}
+```
 
 ### Header da Página
 
@@ -813,6 +834,63 @@ import { PageHeader } from '@/components/shared/page-header';
     )}
   </CardContent>
 </Card>
+```
+
+### Tabela de Dados (Padrão Compacto)
+
+> **NOVO PADRÃO**: Para tabelas com alta densidade de dados (Financeiro, Listagens Operacionais), use o componente `CompactTableWrapper`.
+
+**Benefícios:**
+- Padroniza o Card, Título e Contadores
+- Implementa paginação e suporte a quantidade por página
+- Estilização compacta consistente
+
+```tsx
+import {
+  CompactTableWrapper,
+  CompactTableHead,
+  CompactTableRow,
+  CompactTableCell
+} from '@/components/shared/compact-table';
+
+// Exemplo de uso
+<CompactTableWrapper
+  title="Lançamentos Bancários"
+  subtitle="Exibindo dados importados"
+  totalItems={150}
+  currentCount={10}
+  page={currentPage}
+  totalPages={Math.ceil(150 / 10)}
+  onPageChange={setCurrentPage}
+  itemsPerPage={itemsPerPage}
+  onItemsPerPageChange={setItemsPerPage}
+>
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/40">
+        {/* Use CompactTableHead para header denso */}
+        <CompactTableHead>Data</CompactTableHead>
+        <CompactTableHead>Descrição</CompactTableHead>
+        <CompactTableHead className="text-right">Valor</CompactTableHead>
+        <CompactTableHead className="text-center">Status</CompactTableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {data.map((item) => (
+        // Use CompactTableRow para hover sutil
+        <CompactTableRow key={item.id}>
+          {/* Use CompactTableCell para padding reduzido */}
+          <CompactTableCell>{item.date}</CompactTableCell>
+          <CompactTableCell>{item.description}</CompactTableCell>
+          <CompactTableCell className="text-right">R$ {item.value}</CompactTableCell>
+          <CompactTableCell className="text-center">
+             <Badge>{item.status}</Badge>
+          </CompactTableCell>
+        </CompactTableRow>
+      ))}
+    </TableBody>
+  </Table>
+</CompactTableWrapper>
 ```
 
 ---
@@ -916,6 +994,102 @@ const statusBadges = {
   </DialogContent>
 </Dialog>
 ```
+
+---
+
+## 🗂️ Tabs (Abas)
+
+> [!IMPORTANT]
+> **Componente Padrão:** `@/components/ui/tabs` (Tabs-01 do Shadcn Studio)  
+> **API:** `{ Tabs, TabsList, TabsTrigger, TabsContent }`
+
+### Uso Padrão
+
+```tsx
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+// Definir array de tabs para consistência
+const tabs = [
+  { name: 'Geral', value: 'geral', content: <ConteudoGeral /> },
+  { name: 'Detalhes', value: 'detalhes', content: <ConteudoDetalhes /> },
+  { name: 'Histórico', value: 'historico', content: <ConteudoHistorico /> },
+];
+
+// Renderização padrão
+<Tabs defaultValue="geral">
+  <TabsList>
+    {tabs.map(tab => (
+      <TabsTrigger key={tab.value} value={tab.value}>
+        {tab.name}
+      </TabsTrigger>
+    ))}
+  </TabsList>
+
+  {tabs.map(tab => (
+    <TabsContent key={tab.value} value={tab.value}>
+      {tab.content}
+    </TabsContent>
+  ))}
+</Tabs>
+```
+
+### Estilização
+
+O componente já possui estilização padrão:
+- **TabsList:** `bg-muted text-muted-foreground rounded-xl`
+- **TabsTrigger (ativo):** `bg-card` com transição suave
+- **TabsTrigger (inativo):** `text-muted-foreground`
+
+Para customização adicional:
+
+```tsx
+// Container responsivo
+<div className="w-full max-w-md">
+  <Tabs defaultValue="tab1">...</Tabs>
+</div>
+
+// Conteúdo com estilo muted
+<TabsContent value="tab1">
+  <p className="text-muted-foreground text-sm">{conteudo}</p>
+</TabsContent>
+
+// Texto destacado dentro do conteúdo
+<span className="text-foreground font-semibold">texto destacado</span>
+```
+
+### ✅ Boas Práticas
+
+| Prática | Exemplo |
+|---------|---------|
+| Usar array de configuração | `const tabs = [{ name, value, content }]` |
+| Iteração com `.map()` | Evita duplicação de código |
+| `defaultValue` sempre definido | `<Tabs defaultValue="primeiro">` |
+| Keys únicas nos loops | `key={tab.value}` |
+
+### ❌ Evitar
+
+```tsx
+// ❌ NÃO faça - Tabs hardcoded repetitivas
+<TabsTrigger value="tab1">Tab 1</TabsTrigger>
+<TabsTrigger value="tab2">Tab 2</TabsTrigger>
+<TabsTrigger value="tab3">Tab 3</TabsTrigger>
+
+// ❌ NÃO faça - Estilos inline no TabsList
+<TabsList className="bg-blue-500"> // Use o estilo padrão
+
+// ❌ NÃO faça - Tabs sem defaultValue
+<Tabs> // Causa comportamento inesperado
+```
+
+### Quando Usar
+
+| Cenário | Recomendação |
+|---------|--------------|
+| Páginas de detalhes (Cliente, Colaborador, OS) | ✅ Usar Tabs |
+| Alternância de visualizações (Lista/Grid) | ✅ Usar Tabs |
+| Configurações com múltiplas seções | ✅ Usar Tabs |
+| Formulários multi-step | ❌ Usar Stepper/Wizard |
+| Navegação principal | ❌ Usar Menu lateral |
 
 ---
 

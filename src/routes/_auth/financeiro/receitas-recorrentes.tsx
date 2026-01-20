@@ -6,5 +6,9 @@ export const Route = createFileRoute('/_auth/financeiro/receitas-recorrentes')({
 })
 
 function ReceitasRecorrentesRoute() {
-    return <ReceitasRecorrentesPage />
+    return (
+        <div className="content-wrapper">
+            <ReceitasRecorrentesPage />
+        </div>
+    )
 }

@@ -30,8 +30,10 @@ import {
   Building,
   X,
   Paperclip,
-  History
+  History,
+  LayoutList
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
 import { format, subDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -757,511 +759,529 @@ export function ControlePresencaTabelaPage() {
 
   return (
     <TooltipProvider>
-      <div className="flex flex-col h-full bg-background">
+      <div className="container mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="bg-white border-b px-6 py-4 shadow-sm">
-          <div className="flex flex-col gap-4">
-            {/* Título e Ações */}
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl font-bold text-neutral-900">Controle de Presença Diária</h1>
-                <p className="text-neutral-600 mt-1">
-                  Interface de alta produtividade para lançamento rápido
-                </p>
-              </div>
+        <PageHeader
+          title="Controle de Presença Diária"
+          subtitle="Interface de alta produtividade para lançamento rápido"
+          showBackButton={true}
+        >
+          <div className="flex items-center gap-2">
+            <Link to="/colaboradores/presenca">
+              <Button variant="outline" className="h-9">
+                <LayoutList className="mr-2 h-4 w-4" />
+                Modo Detalhado
+              </Button>
+            </Link>
 
-              <div className="flex items-center gap-3">
-                {algumRegistroConfirmado && (
+            {algumRegistroConfirmado && (
+              <div className="flex items-center gap-2 mr-2">
+                <Badge variant="secondary" className="bg-success/10 text-success border-success/20 h-9 px-3">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Confirmado
+                </Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReverterConfirmacao}
+                  disabled={saving}
+                  className="h-9"
+                >
+                  Reverter
+                </Button>
+              </div>
+            )}
+
+            <Link to="/colaboradores/presenca-historico">
+              <Button variant="outline" className="h-9">
+                <History className="mr-2 h-4 w-4" />
+                Ver Histórico
+              </Button>
+            </Link>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-56 h-9">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={dataSelecionada}
+                  onSelect={(date) => date && setDataSelecionada(date)}
+                  locale={ptBR}
+                  initialFocus
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        </PageHeader>
+
+        {/* KPIs e Filtros */}
+        <div className="space-y-4">
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-primary/5 border-primary/20 shadow-none">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Total</p>
+                  <p className="text-2xl font-bold text-neutral-900">{colaboradores.length}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-success/5 border-success/20 shadow-none">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Presentes</p>
+                  <p className="text-2xl font-bold text-success">{stats.presentes}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-destructive/5 border-destructive/20 shadow-none">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center">
+                  <XCircle className="h-5 w-5 text-destructive" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Ausentes</p>
+                  <p className="text-2xl font-bold text-destructive">{stats.ausentes}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-warning/5 border-warning/20 shadow-none">
+              <CardContent className="p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-warning" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-neutral-500">Atrasados</p>
+                  <p className="text-2xl font-bold text-warning">{stats.atrasados}</p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Filtros e Ações */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            {/* Bulk Actions Bar */}
+            {selecionados.size > 0 && !algumRegistroConfirmado ? (
+              <div className="flex-1 w-full bg-primary/5 border border-primary/20 rounded-lg px-4 py-2 flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium">
+                    <CheckCircle className="inline-block mr-2 h-4 w-4 text-primary" />
+                    {selecionados.size} selecionado{selecionados.size > 1 ? 's' : ''}
+                  </span>
+
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-success/10 text-success border-success/20">
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      Confirmado
-                    </Badge>
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={handleReverterConfirmacao}
-                      disabled={saving}
-                      className="text-xs"
+                      onClick={() => handleBulkSetStatus('OK')}
+                      className="bg-success/10 border-success/30 text-success hover:bg-success/20 h-8"
                     >
-                      Reverter
+                      <CheckCircle className="mr-2 h-3.5 w-3.5" />
+                      OK
                     </Button>
-                  </div>
-                )}
 
-                {/* Link para Histórico */}
-                <Link to="/colaboradores/presenca-historico">
-                  <Button variant="outline">
-                    <History className="mr-2 h-4 w-4" />
-                    Ver Histórico
-                  </Button>
-                </Link>
-
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-56">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {format(dataSelecionada, "dd 'de' MMMM", { locale: ptBR })}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleBulkSetStatus('FALTA')}
+                      className="bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20 h-8"
+                    >
+                      <XCircle className="mr-2 h-3.5 w-3.5" />
+                      Falta
                     </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={dataSelecionada}
-                      onSelect={(date) => date && setDataSelecionada(date)}
-                      locale={ptBR}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
 
-            {/* KPIs e Filtros */}
-            <div className="flex items-center justify-between">
-              {/* KPI Cards */}
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="h-4 w-4 text-primary" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500">Total</p>
-                    <p className="text-lg font-bold text-neutral-900">{colaboradores.length}</p>
-                  </div>
-                </div>
+                    <Popover open={bulkCCOpen} onOpenChange={setBulkCCOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8">
+                          <Building className="mr-2 h-3.5 w-3.5" />
+                          CC
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-80">
+                        <div className="space-y-2">
+                          <Label>Selecione os CCs</Label>
+                          <div className="space-y-2 max-h-60 overflow-y-auto">
+                            {centrosCusto.map(cc => (
+                              <label key={cc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
+                                <Checkbox
+                                  checked={bulkCCSelection.includes(cc.id)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      setBulkCCSelection([...bulkCCSelection, cc.id]);
+                                    } else {
+                                      setBulkCCSelection(bulkCCSelection.filter(id => id !== cc.id));
+                                    }
+                                  }}
+                                />
+                                <span className="text-sm">{cc.nome}</span>
+                              </label>
+                            ))}
+                          </div>
+                          <Button
+                            className="w-full mt-2"
+                            onClick={() => handleBulkSetCC(bulkCCSelection)}
+                            disabled={bulkCCSelection.length === 0}
+                          >
+                            Aplicar
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
 
-                <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-success/5 border border-success/20">
-                  <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center">
-                    <CheckCircle className="h-4 w-4 text-success" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-neutral-500">Presentes</p>
-                    <p className="text-lg font-bold text-success">{stats.presentes}</p>
-                  </div>
-                </div>
-
-                {stats.ausentes > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-destructive/5 border border-destructive/20">
-                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                      <XCircle className="h-4 w-4 text-destructive" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Ausentes</p>
-                      <p className="text-lg font-bold text-destructive">{stats.ausentes}</p>
-                    </div>
-                  </div>
-                )}
-
-                {stats.atrasados > 0 && (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-warning/5 border border-warning/20">
-                    <div className="w-8 h-8 rounded-full bg-warning/10 flex items-center justify-center">
-                      <Clock className="h-4 w-4 text-warning" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-neutral-500">Atrasados</p>
-                      <p className="text-lg font-bold text-warning">{stats.atrasados}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Filtros e Ações */}
-              <div className="flex items-center gap-3">
-                <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading || algumRegistroConfirmado}>
-                  <Copy className="mr-2 h-4 w-4" />
-                  Repetir de Ontem
-                </Button>
-
-                <Select value={setorFiltro} onValueChange={setSetorFiltro}>
-                  <SelectTrigger className="w-44">
-                    <SelectValue placeholder="Filtrar por setor" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="todos">Todos os setores</SelectItem>
-                    {setoresUnicos.map(setor => (
-                      <SelectItem key={setor} value={setor || ''}>
-                        {setor ? setor.charAt(0).toUpperCase() + setor.slice(1) : 'Sem setor'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabela Grid */}
-        <div className="flex-1 overflow-auto px-6 py-4">
-          {/* Bulk Actions Bar */}
-          {selecionados.size > 0 && !algumRegistroConfirmado && (
-            <div className="bg-primary/5 border border-primary/20 rounded-lg px-4 py-3 mb-4 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <span className="text-sm font-medium">
-                  <CheckCircle className="inline-block mr-2 h-4 w-4 text-primary" />
-                  {selecionados.size} selecionado{selecionados.size > 1 ? 's' : ''}
-                </span>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkSetStatus('OK')}
-                    className="bg-success/10 border-success/30 text-success hover:bg-success/20"
-                  >
-                    <CheckCircle className="mr-2 h-4 w-4" />
-                    Marcar OK
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleBulkSetStatus('FALTA')}
-                    className="bg-destructive/10 border-destructive/30 text-destructive hover:bg-destructive/20"
-                  >
-                    <XCircle className="mr-2 h-4 w-4" />
-                    Marcar Falta
-                  </Button>
-
-                  <Popover open={bulkCCOpen} onOpenChange={setBulkCCOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Building className="mr-2 h-4 w-4" />
-                        Atribuir CC
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-80">
-                      <div className="space-y-2">
-                        <Label>Selecione os CCs</Label>
-                        <div className="space-y-2 max-h-60 overflow-y-auto">
-                          {centrosCusto.map(cc => (
-                            <label key={cc.id} className="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer">
-                              <Checkbox
-                                checked={bulkCCSelection.includes(cc.id)}
-                                onCheckedChange={(checked) => {
-                                  if (checked) {
-                                    setBulkCCSelection([...bulkCCSelection, cc.id]);
-                                  } else {
-                                    setBulkCCSelection(bulkCCSelection.filter(id => id !== cc.id));
-                                  }
-                                }}
-                              />
-                              <span className="text-sm">{cc.nome}</span>
-                            </label>
+                    <Popover open={bulkPerformanceOpen} onOpenChange={setBulkPerformanceOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8">
+                          <Star className="mr-2 h-3.5 w-3.5" />
+                          Perf.
+                          <ChevronDown className="ml-1 h-3 w-3" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-48">
+                        <div className="space-y-1">
+                          {(['OTIMA', 'BOA', 'REGULAR', 'RUIM'] as const).map(perf => (
+                            <Button
+                              key={perf}
+                              variant="ghost"
+                              className="w-full justify-start"
+                              onClick={() => handleBulkSetPerformance(perf)}
+                            >
+                              {perf === 'OTIMA' ? 'Ótima' : perf === 'BOA' ? 'Boa' : perf === 'REGULAR' ? 'Regular' : 'Ruim'}
+                            </Button>
                           ))}
                         </div>
-                        <Button
-                          className="w-full mt-2"
-                          onClick={() => handleBulkSetCC(bulkCCSelection)}
-                          disabled={bulkCCSelection.length === 0}
-                        >
-                          Aplicar a {selecionados.size} colaborador(es)
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
 
-                  <Popover open={bulkPerformanceOpen} onOpenChange={setBulkPerformanceOpen}>
+                <div className="flex items-center gap-2">
+                  <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Star className="mr-2 h-4 w-4" />
-                        Performance
-                        <ChevronDown className="ml-2 h-4 w-4" />
+                      <Button variant="ghost" size="sm" className="h-8">
+                        Setor
+                        <ChevronDown className="ml-1 h-3 w-3" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-48">
                       <div className="space-y-1">
-                        {(['OTIMA', 'BOA', 'REGULAR', 'RUIM'] as const).map(perf => (
+                        {setoresUnicos.map(setor => (
                           <Button
-                            key={perf}
+                            key={setor}
                             variant="ghost"
-                            className="w-full justify-start"
-                            onClick={() => handleBulkSetPerformance(perf)}
+                            className="w-full justify-start capitalize"
+                            onClick={() => handleSelectBySetor(setor || '')}
                           >
-                            {perf === 'OTIMA' ? 'Ótima' : perf === 'BOA' ? 'Boa' : perf === 'REGULAR' ? 'Regular' : 'Ruim'}
+                            {setor || 'Sem setor'}
                           </Button>
                         ))}
                       </div>
                     </PopoverContent>
                   </Popover>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSelecionados(new Set())}
+                    className="h-8 w-8"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
+            ) : (
+              // Empty div to keep alignment if needed, or nothing
+              <div className="hidden sm:block" />
+            )}
 
-              <div className="flex items-center gap-2">
-                {/* Selecionar por Setor */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="ghost" size="sm">
-                      Selecionar por Setor
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-48">
-                    <div className="space-y-1">
-                      {setoresUnicos.map(setor => (
-                        <Button
-                          key={setor}
-                          variant="ghost"
-                          className="w-full justify-start capitalize"
-                          onClick={() => handleSelectBySetor(setor || '')}
-                        >
-                          {setor || 'Sem setor'}
-                        </Button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+            <div className="flex items-center gap-3 ml-auto">
+              <Button variant="outline" onClick={handleRepetirAlocacaoOntem} disabled={loading || algumRegistroConfirmado}>
+                <Copy className="mr-2 h-4 w-4" />
+                Repetir de Ontem
+              </Button>
 
-                {/* Limpar seleção */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelecionados(new Set())}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+              <Select value={setorFiltro} onValueChange={setSetorFiltro}>
+                <SelectTrigger className="w-44">
+                  <SelectValue placeholder="Filtrar por setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos os setores</SelectItem>
+                  {setoresUnicos.map(setor => (
+                    <SelectItem key={setor} value={setor || ''}>
+                      {setor ? setor.charAt(0).toUpperCase() + setor.slice(1) : 'Sem setor'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
+          </div>
+        </div>
 
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted">
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={todosSelecionados}
-                        onCheckedChange={handleSelecionarTodos}
-                      />
-                    </TableHead>
-                    <TableHead className="w-80">Colaborador</TableHead>
-                    <TableHead className="w-32">Setor</TableHead>
-                    <TableHead className="w-48">Status</TableHead>
-                    <TableHead className="w-48">Performance</TableHead>
-                    <TableHead className="w-80">Centro de Custo</TableHead>
-                    <TableHead className="w-20 text-center">Info</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {colaboradoresFiltrados.map((colaborador) => {
-                    const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
-                    const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
+        {/* Tabela Grid */}
+        <Card className="shadow-card overflow-hidden">
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                  <TableHead className="w-12 text-center">
+                    <Checkbox
+                      checked={todosSelecionados}
+                      onCheckedChange={handleSelecionarTodos}
+                    />
+                  </TableHead>
+                  <TableHead className="w-80">Colaborador</TableHead>
+                  <TableHead className="w-32">Setor</TableHead>
+                  <TableHead className="w-48">Status</TableHead>
+                  <TableHead className="w-48">Performance</TableHead>
+                  <TableHead className="w-80">Centro de Custo</TableHead>
+                  <TableHead className="w-20 text-center">Info</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {colaboradoresFiltrados.map((colaborador) => {
+                  const registro = registros[colaborador.id] || { status: 'OK', performance: 'BOA', centrosCusto: [] };
+                  const temJustificativa = registro.justificativaStatus || registro.justificativaPerformance;
 
-                    return (
-                      <TableRow
-                        key={colaborador.id}
-                        className={cn(
-                          "hover:bg-muted",
-                          registro.status === 'FALTA' && "bg-destructive/5",
-                          registro.status === 'ATRASADO' && "bg-warning/5"
-                        )}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selecionados.has(colaborador.id)}
-                            onCheckedChange={(checked) => handleSelecionarColaborador(colaborador.id, checked as boolean)}
-                          />
-                        </TableCell>
+                  return (
+                    <TableRow
+                      key={colaborador.id}
+                      className={cn(
+                        "hover:bg-muted/50 transition-colors",
+                        registro.status === 'FALTA' && "bg-destructive/5 hover:bg-destructive/10",
+                        registro.status === 'ATRASADO' && "bg-warning/5 hover:bg-warning/10"
+                      )}
+                    >
+                      <TableCell className="text-center">
+                        <Checkbox
+                          checked={selecionados.has(colaborador.id)}
+                          onCheckedChange={(checked) => handleSelecionarColaborador(colaborador.id, checked as boolean)}
+                        />
+                      </TableCell>
 
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden">
-                              {colaborador.avatar_url ? (
-                                <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
-                              ) : (
-                                <User className="h-5 w-5 text-primary" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-medium">{colaborador.nome_completo}</p>
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
-                              </div>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center overflow-hidden shrink-0">
+                            {colaborador.avatar_url ? (
+                              <img src={colaborador.avatar_url} alt={colaborador.nome} className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="h-5 w-5 text-primary" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-neutral-900">{colaborador.nome_completo}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span className="capitalize">{colaborador.funcao?.replace('_', ' ').toLowerCase() || 'N/A'}</span>
                             </div>
                           </div>
-                        </TableCell>
+                        </div>
+                      </TableCell>
 
-                        <TableCell>
-                          <Badge variant="outline" className="capitalize">
-                            {colaborador.setor || '-'}
-                          </Badge>
-                        </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize font-normal text-muted-foreground">
+                          {colaborador.setor || '-'}
+                        </Badge>
+                      </TableCell>
 
-                        <TableCell>
-                          <Select
-                            value={registro.status}
-                            onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
-                            disabled={isRegistroConfirmado(registro)}
-                          >
-                            <SelectTrigger className={cn("w-full", getValidationClass(colaborador, registro, 'status'))}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="OK">OK</SelectItem>
-                              <SelectItem value="ATRASADO">Atrasado</SelectItem>
-                              <SelectItem value="FALTA">Falta</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
+                      <TableCell>
+                        <Select
+                          value={registro.status}
+                          onValueChange={(value) => handleStatusChange(colaborador.id, value as RegistroPresenca['status'])}
+                          disabled={isRegistroConfirmado(registro)}
+                        >
+                          <SelectTrigger className={cn("w-full h-9", getValidationClass(colaborador, registro, 'status'))}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="OK">OK</SelectItem>
+                            <SelectItem value="ATRASADO">Atrasado</SelectItem>
+                            <SelectItem value="FALTA">Falta</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
 
-                        <TableCell>
-                          <Select
-                            value={registro.status === 'FALTA' ? '' : (registro.performance || '')}
-                            onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
-                            disabled={isRegistroConfirmado(registro) || registro.status === 'FALTA'}
-                          >
-                            <SelectTrigger className={cn(
-                              "w-full",
-                              getValidationClass(colaborador, registro, 'performance'),
-                              registro.status === 'FALTA' && "opacity-50 cursor-not-allowed bg-muted"
-                            )}>
-                              <SelectValue placeholder={registro.status === 'FALTA' ? 'N/A' : 'Selecione'} />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="OTIMA">Ótima</SelectItem>
-                              <SelectItem value="BOA">Boa</SelectItem>
-                              <SelectItem value="REGULAR">Regular</SelectItem>
-                              <SelectItem value="RUIM">Ruim</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </TableCell>
+                      <TableCell>
+                        <Select
+                          value={registro.status === 'FALTA' ? '' : (registro.performance || '')}
+                          onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
+                          disabled={isRegistroConfirmado(registro) || registro.status === 'FALTA'}
+                        >
+                          <SelectTrigger className={cn(
+                            "w-full h-9",
+                            getValidationClass(colaborador, registro, 'performance'),
+                            registro.status === 'FALTA' && "opacity-50 cursor-not-allowed bg-muted"
+                          )}>
+                            <SelectValue placeholder={registro.status === 'FALTA' ? 'N/A' : 'Selecione'} />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="OTIMA">Ótima</SelectItem>
+                            <SelectItem value="BOA">Boa</SelectItem>
+                            <SelectItem value="REGULAR">Regular</SelectItem>
+                            <SelectItem value="RUIM">Ruim</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
 
-                        <TableCell>
+                      <TableCell>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn("w-full justify-between h-auto min-h-9 py-2", getValidationClass(colaborador, registro, 'centrosCusto'))}
+                              disabled={isRegistroConfirmado(registro)}
+                            >
+                              <div className="flex flex-wrap gap-1 text-left">
+                                {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
+                                  registro.centrosCusto.map(ccId => (
+                                    <Badge
+                                      key={ccId}
+                                      variant="secondary"
+                                      className="text-[10px] bg-info/10 text-info hover:bg-info/20 border-none"
+                                    >
+                                      {getCentroCustoNome(ccId)}
+                                    </Badge>
+                                  ))
+                                ) : (
+                                  <span className="text-sm text-neutral-400">
+                                    Selecione os CCs...
+                                  </span>
+                                )}
+                              </div>
+                              <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-96 p-0" align="start">
+                            <div className="p-3 border-b bg-muted/30">
+                              <Label className="text-sm font-medium">
+                                Centros de Custo (Multiselect)
+                              </Label>
+                            </div>
+                            <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                              {centrosCusto.map(cc => (
+                                <label
+                                  key={cc.id}
+                                  className={cn(
+                                    "flex items-center gap-3 p-2 rounded-md cursor-pointer transition-all",
+                                    registro.centrosCusto?.includes(cc.id)
+                                      ? "bg-primary/5 text-primary"
+                                      : "hover:bg-muted"
+                                  )}
+                                >
+                                  <Checkbox
+                                    checked={registro.centrosCusto?.includes(cc.id)}
+                                    onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
+                                    className="border-muted-foreground/30 data-[state=checked]:border-primary"
+                                  />
+                                  <span className="text-sm flex-1">{cc.nome}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </PopoverContent>
+                        </Popover>
+                      </TableCell>
+
+                      <TableCell className="text-center">
+                        {temJustificativa && (
                           <Popover>
                             <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={cn("w-full justify-between h-auto min-h-10 py-2", getValidationClass(colaborador, registro, 'centrosCusto'))}
-                                disabled={isRegistroConfirmado(registro)}
-                              >
-                                <div className="flex flex-wrap gap-1">
-                                  {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
-                                    registro.centrosCusto.map(ccId => (
-                                      <Badge
-                                        key={ccId}
-                                        variant="secondary"
-                                        className="text-xs bg-info/10 text-info"
-                                      >
-                                        {getCentroCustoNome(ccId)}
-                                      </Badge>
-                                    ))
-                                  ) : (
-                                    <span className="text-sm text-muted-foreground">
-                                      Selecione os CCs...
-                                    </span>
-                                  )}
-                                </div>
-                                <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0" />
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-primary">
+                                <MessageSquare className="h-4 w-4" />
                               </Button>
                             </PopoverTrigger>
-                            <PopoverContent className="w-96" align="start">
-                              <div className="space-y-2">
-                                <Label className="text-sm font-medium">
-                                  Centros de Custo (Multiselect)
-                                </Label>
-                                <div className="space-y-2 max-h-60 overflow-y-auto">
-                                  {centrosCusto.map(cc => (
-                                    <label
-                                      key={cc.id}
-                                      className={cn(
-                                        "flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all border",
-                                        registro.centrosCusto?.includes(cc.id)
-                                          ? "border-primary bg-primary/5"
-                                          : "border-transparent hover:bg-muted"
-                                      )}
-                                    >
-                                      <Checkbox
-                                        checked={registro.centrosCusto?.includes(cc.id)}
-                                        onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
-                                      />
-                                      <span className="text-sm flex-1">{cc.nome}</span>
-                                    </label>
-                                  ))}
-                                </div>
+                            <PopoverContent className="w-80" align="end">
+                              <div className="space-y-3">
+                                <h4 className="font-medium text-sm border-b pb-2">Justificativas</h4>
+                                {registro.justificativaStatus && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                                      {registro.status === 'FALTA' ? 'Falta' : 'Atraso'}
+                                      {registro.minutosAtraso && ` (${registro.minutosAtraso} min)`}
+                                    </Label>
+                                    <p className="text-sm mt-1 bg-muted/50 p-2 rounded-md">{registro.justificativaStatus}</p>
+                                  </div>
+                                )}
+                                {registro.justificativaPerformance && (
+                                  <div>
+                                    <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
+                                      Performance
+                                    </Label>
+                                    <p className="text-sm mt-1 bg-muted/50 p-2 rounded-md">{registro.justificativaPerformance}</p>
+                                  </div>
+                                )}
                               </div>
                             </PopoverContent>
                           </Popover>
-                        </TableCell>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
 
-                        <TableCell className="text-center">
-                          {temJustificativa && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MessageSquare className="h-4 w-4 text-primary" />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-80" align="end">
-                                <div className="space-y-2">
-                                  {registro.justificativaStatus && (
-                                    <div>
-                                      <Label className="text-xs text-muted-foreground">
-                                        Justificativa de {registro.status === 'FALTA' ? 'Falta' : 'Atraso'}
-                                        {registro.minutosAtraso && ` (${registro.minutosAtraso} min)`}
-                                      </Label>
-                                      <p className="text-sm mt-1">{registro.justificativaStatus}</p>
-                                    </div>
-                                  )}
-                                  {registro.justificativaPerformance && (
-                                    <div>
-                                      <Label className="text-xs text-muted-foreground">
-                                        Justificativa de Performance
-                                      </Label>
-                                      <p className="text-sm mt-1">{registro.justificativaPerformance}</p>
-                                    </div>
-                                  )}
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Padding para compensar footer fixo */}
+        <div className="h-24" />
 
         {/* Rodapé Fixo */}
-        <div className="bg-white/95 backdrop-blur-sm border-t px-6 py-4 shadow-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-6">
-              {/* Custo Total */}
-              <div className="flex items-center gap-3 px-4 py-2 rounded-lg bg-primary/5 border border-primary/20">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <DollarSign className="h-5 w-5 text-primary" />
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t shadow-lg z-50">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-start">
+                {/* Custo Total */}
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <DollarSign className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-500 font-medium uppercase tracking-wide">Custo Dia</p>
+                    <p className="text-xl font-bold text-primary leading-none">{formatCurrency(custoTotalDia)}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-neutral-500">Custo Total do Dia</p>
-                  <p className="text-xl font-bold text-primary">{formatCurrency(custoTotalDia)}</p>
+
+                <div className="hidden sm:block h-8 w-px bg-border" />
+
+                {/* Resumo */}
+                <div className="hidden sm:block text-sm space-y-0.5">
+                  <p className="text-muted-foreground">
+                    <strong className="text-success">{stats.presentes}</strong> presentes •
+                    <strong className="text-foreground ml-2">{stats.ausentes}</strong> ausentes
+                    {stats.atrasados > 0 && (
+                      <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} com CC alocado
+                  </p>
                 </div>
               </div>
 
-              <div className="h-10 w-px bg-border" />
-
-              {/* Resumo */}
-              <div className="text-sm space-y-1">
-                <p className="text-neutral-600">
-                  <strong className="text-success">{stats.presentes}</strong> presentes •
-                  <strong className="text-neutral-900 ml-2">{stats.ausentes}</strong> ausentes
-                  {stats.atrasados > 0 && (
-                    <> • <strong className="text-warning">{stats.atrasados}</strong> atrasados</>
-                  )}
-                </p>
-                <p className="text-xs text-neutral-500">
-                  {colaboradores.filter(c => registros[c.id]?.centrosCusto?.length > 0).length} colaboradores com CC alocado
-                </p>
+              <div className="w-full sm:w-auto">
+                <Button
+                  size="lg"
+                  onClick={handleAbrirModalConfirmacao}
+                  className="w-full sm:w-auto px-8 shadow-md"
+                  disabled={saving || algumRegistroConfirmado}
+                >
+                  {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
+                  {algumRegistroConfirmado ? 'Presenças Já Confirmadas' : 'Registrar Presenças'}
+                </Button>
               </div>
             </div>
-
-            <Button size="lg" onClick={handleAbrirModalConfirmacao} className="px-8 shadow-md" disabled={saving || algumRegistroConfirmado}>
-              {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <CheckCircle className="mr-2 h-5 w-5" />}
-              {algumRegistroConfirmado ? 'Presenças Já Confirmadas' : 'Registrar Presenças'}
-            </Button>
           </div>
         </div>
 

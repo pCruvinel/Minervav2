@@ -230,7 +230,7 @@ export function OSHeaderDelegacao({
                     .from('os_etapas_responsavel')
                     .select(`
             etapa_id,
-            responsavel:colaboradores!os_etapas_responsavel_responsavel_id_fkey(nome)
+            responsavel:colaboradores!os_etapas_responsavel_responsavel_id_fkey(nome_completo)
           `)
                     .in('etapa_id', etapas.map(e => e.id))
                     .eq('ativo', true);
@@ -243,8 +243,8 @@ export function OSHeaderDelegacao({
                     const etapa = etapas.find(e => e.id === d.etapa_id);
                     if (etapa && d.responsavel) {
                         try {
-                            const resp = d.responsavel as unknown as { nome: string } | { nome: string }[];
-                            const nome = Array.isArray(resp) ? resp[0]?.nome : resp.nome;
+                            const resp = d.responsavel as unknown as { nome_completo: string } | { nome_completo: string }[];
+                            const nome = Array.isArray(resp) ? resp[0]?.nome_completo : resp.nome_completo;
                             if (nome) delegMap[etapa.ordem] = nome;
                         } catch (e) {
                             console.warn('Erro ao processar responsável:', e);

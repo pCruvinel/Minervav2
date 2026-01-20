@@ -1,13 +1,10 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { useState, useMemo } from 'react';
+import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Table, TableBody, TableHeader, TableRow } from '../ui/table';
 import {
   Building2,
-  Search,
   Plus,
   Calendar,
   FileText,
@@ -15,13 +12,18 @@ import {
   XCircle,
   AlertTriangle,
   Clock,
-  Filter,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
-import { CardDescription } from '../ui/card';
 import { CadastrarLead, FormDataCompleto } from '../os/shared/steps/cadastrar-lead';
 import { cn } from '../ui/utils';
 import { useClientes } from '../../lib/hooks/use-clientes';
+import {
+  CompactTableWrapper,
+  CompactTableHead,
+  CompactTableCell,
+  CompactTableRow,
+} from '@/components/shared/compact-table';
+import { FilterBar, SearchInput, FilterSelect } from '@/components/shared/filters';
 
 interface Cliente {
   id: string;
@@ -74,6 +76,12 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
 
   const [filtro, setFiltro] = useState('');
   const [filtroStatus, setFiltroStatus] = useState<string>('');
+
+  // Pagination and sorting state
+  const [page, setPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [sortField, setSortField] = useState<keyof Cliente | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   // Estado para o componente CadastrarLead
   const [isCadastroOpen, setIsCadastroOpen] = useState(false);
@@ -166,6 +174,42 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
 
     return matchesSearch && matchesStatus;
   });
+
+  // Handle Sort
+  const handleSort = (field: keyof Cliente) => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+    setPage(1);
+  };
+
+  // Sorted clients
+  const sortedClientes = useMemo(() => {
+    if (!sortField) return clientesFiltrados;
+    return [...clientesFiltrados].sort((a, b) => {
+      const aVal = a[sortField];
+      const bVal = b[sortField];
+      if (aVal === null || aVal === undefined) return 1;
+      if (bVal === null || bVal === undefined) return -1;
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      return 0;
+    });
+  }, [clientesFiltrados, sortField, sortDirection]);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sortedClientes.length / itemsPerPage));
+  const paginatedClientes = sortedClientes.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
 
   // Calcular estatísticas
   const stats = {
@@ -271,107 +315,122 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
       </div>
 
       {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <Input
-                placeholder="Buscar por nome..."
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={filtroStatus} onValueChange={setFiltroStatus}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Status</SelectItem>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="inativo">Inativo</SelectItem>
-                <SelectItem value="lead">Lead</SelectItem>
-                <SelectItem value="blacklist">Blacklist</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar>
+        <SearchInput
+          value={filtro}
+          onChange={setFiltro}
+          placeholder="Buscar por nome..."
+        />
+        <FilterSelect
+          value={filtroStatus || 'todos'}
+          onChange={setFiltroStatus}
+          options={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'ativo', label: 'Ativo' },
+            { value: 'inativo', label: 'Inativo' },
+            { value: 'lead', label: 'Lead' },
+            { value: 'blacklist', label: 'Blacklist' },
+          ]}
+          placeholder="Status"
+        />
+      </FilterBar>
 
       {/* Tabela */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Lista de Clientes</CardTitle>
-          <CardDescription>{clientesFiltrados.length} cliente(s) encontrado(s)</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente / Razão Social</TableHead>
-                <TableHead>CPF / CNPJ</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-center">Contratos</TableHead>
-                <TableHead>Status Financeiro</TableHead>
-                <TableHead>Próxima Fatura</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clientesFiltrados.map((cliente) => (
-                <TableRow
+      <CompactTableWrapper
+        title="Lista de Clientes"
+        totalItems={sortedClientes.length}
+        currentCount={paginatedClientes.length}
+        page={page}
+        totalPages={totalPages}
+        onPageChange={setPage}
+        itemsPerPage={itemsPerPage}
+        onItemsPerPageChange={(perPage) => {
+          setItemsPerPage(perPage);
+          setPage(1);
+        }}
+      >
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <CompactTableHead
+                onSort={() => handleSort('nomeRazaoSocial')}
+                sortDirection={sortField === 'nomeRazaoSocial' ? sortDirection : undefined}
+              >
+                Cliente / Razão Social
+              </CompactTableHead>
+              <CompactTableHead>CPF / CNPJ</CompactTableHead>
+              <CompactTableHead
+                onSort={() => handleSort('status')}
+                sortDirection={sortField === 'status' ? sortDirection : undefined}
+              >
+                Status
+              </CompactTableHead>
+              <CompactTableHead
+                className="text-center"
+                onSort={() => handleSort('qtdContratos')}
+                sortDirection={sortField === 'qtdContratos' ? sortDirection : undefined}
+              >
+                Contratos
+              </CompactTableHead>
+              <CompactTableHead
+                onSort={() => handleSort('statusFinanceiro')}
+                sortDirection={sortField === 'statusFinanceiro' ? sortDirection : undefined}
+              >
+                Status Financeiro
+              </CompactTableHead>
+              <CompactTableHead>Próxima Fatura</CompactTableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {paginatedClientes.length === 0 ? (
+              <CompactTableRow>
+                <CompactTableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                  Nenhum cliente encontrado com os filtros aplicados.
+                </CompactTableCell>
+              </CompactTableRow>
+            ) : (
+              paginatedClientes.map((cliente) => (
+                <CompactTableRow
                   key={cliente.id}
                   className={cn(
-                    "hover:bg-muted/50 cursor-pointer transition-colors",
+                    "cursor-pointer transition-colors",
                     cliente.status === 'inativo' && "opacity-60"
                   )}
                   onClick={() => handleClienteClick(cliente.id)}
                 >
-                  <TableCell>
+                  <CompactTableCell>
                     <p className="font-medium">{cliente.nomeRazaoSocial}</p>
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-mono text-sm text-muted-foreground">
+                  </CompactTableCell>
+                  <CompactTableCell>
+                    <span className="font-mono text-muted-foreground">
                       {formatCpfCnpj(cliente.cpfCnpj)}
                     </span>
-                  </TableCell>
-                  <TableCell>
+                  </CompactTableCell>
+                  <CompactTableCell>
                     {getStatusBadge(cliente.status)}
-                  </TableCell>
-                  <TableCell className="text-center">
+                  </CompactTableCell>
+                  <CompactTableCell className="text-center">
                     <Badge variant="outline" className="font-mono">
                       {cliente.qtdContratos}
                     </Badge>
-                  </TableCell>
-                  <TableCell>
+                  </CompactTableCell>
+                  <CompactTableCell>
                     {getStatusFinanceiroBadge(cliente.statusFinanceiro)}
-                  </TableCell>
-                  <TableCell>
+                  </CompactTableCell>
+                  <CompactTableCell>
                     <div className="flex items-center gap-2">
                       {cliente.proximaFatura && (
                         <Calendar className="h-4 w-4 text-muted-foreground" />
                       )}
                       {formatDate(cliente.proximaFatura)}
                     </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-
-          {clientesFiltrados.length === 0 && (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">
-                Nenhum cliente encontrado com os filtros aplicados.
-              </p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </CompactTableCell>
+                </CompactTableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CompactTableWrapper>
     </div >
   );
 }

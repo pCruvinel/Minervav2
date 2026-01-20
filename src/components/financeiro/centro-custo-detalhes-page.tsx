@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
+import { CompactTableWrapper, CompactTableHead, CompactTableCell, CompactTableRow } from '@/components/shared/compact-table';
 import {
     ArrowLeft,
     Building2,
@@ -18,7 +19,8 @@ import {
     ExternalLink,
     Download,
     AlertCircle,
-    Loader2
+    Loader2,
+    Paperclip
 } from 'lucide-react';
 import {
     BarChart,
@@ -34,6 +36,8 @@ import {
     Cell
 } from 'recharts';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
+import { useLucratividadeCC } from '@/lib/hooks/use-lucratividade-cc';
+import { useCustoMODetalhado } from '@/lib/hooks/use-custo-mo';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -116,9 +120,57 @@ export function CentroCustoDetalhesPage() {
     const navigate = useNavigate();
     const { ccId } = useParams({ strict: false });
     const [activeTab, setActiveTab] = useState('resumo');
-    const [isLoading] = useState(false);
 
-    const cc = mockCentroCusto; // Em produção: useCentroCusto(ccId)
+    // ========== SORTING STATE ==========
+    const [sortCategoria, setSortCategoria] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+    const [sortReceitas, setSortReceitas] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+    const [sortDespesas, setSortDespesas] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+    const [sortMO, setSortMO] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+    const [sortDocs, setSortDocs] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+
+    // ========== HOOKS DE DADOS REAIS ==========
+    // TODO: Integrar quando API de useCentroCusto for atualizada
+    // const { data: centroCusto, isLoading: ccLoading } = useCentroCusto(ccId);
+    const { data: lucratividade, isLoading: lucroLoading } = useLucratividadeCC(ccId);
+    const { data: custosMO, isLoading: moLoading } = useCustoMODetalhado({ ccId: ccId ?? undefined });
+
+    const isLoading = lucroLoading || moLoading;
+
+    // Usar mock data enquanto não há integração completa
+    const cc = {
+        ...mockCentroCusto,
+        // Sobrescrever com dados reais da view de lucratividade quando disponíveis
+        ...(lucratividade && {
+            receitaPrevista: Number(lucratividade.receita_prevista ?? 0),
+            receitaRealizada: Number(lucratividade.receita_realizada ?? 0),
+            despesaPrevista: Number(lucratividade.despesa_operacional_total ?? 0),
+            despesaRealizada: Number(lucratividade.despesa_operacional_paga ?? 0),
+            lucroRealizado: Number(lucratividade.lucro_bruto_realizado ?? 0),
+            margemRealizada: Number(lucratividade.margem_realizada_pct ?? 0),
+        }),
+    };
+
+    // Agrupar custos MO por colaborador quando dados reais disponíveis
+    const presencasReais = custosMO && custosMO.length > 0
+        ? Object.values(
+            custosMO.reduce((acc, item) => {
+                const key = item.colaborador_id;
+                if (!acc[key]) {
+                    acc[key] = {
+                        id: key,
+                        colaborador: item.colaborador_nome,
+                        cargo: '-',
+                        diasTrabalhados: 0,
+                        custoDia: Number(item.salario_base) / 22,
+                        custoTotal: 0,
+                    };
+                }
+                acc[key].diasTrabalhados++;
+                acc[key].custoTotal += Number(item.custo_alocado || 0);
+                return acc;
+            }, {} as Record<string, { id: string; colaborador: string; cargo: string; diasTrabalhados: number; custoDia: number; custoTotal: number }>)
+        )
+        : mockPresencas;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -160,7 +212,14 @@ export function CentroCustoDetalhesPage() {
                             </Badge>
                         </div>
                         <p className="text-neutral-600 mt-1">
-                            <span className="font-medium">{cc.cliente}</span> •
+                            <Button
+                                variant="link"
+                                className="p-0 h-auto text-neutral-600 hover:text-primary font-medium"
+                                onClick={() => navigate({ to: '/contatos/$id', params: { id: cc.clienteId } })}
+                            >
+                                {cc.cliente}
+                            </Button>
+                            <span className="ml-1">•</span>
                             <span className="ml-2">OS: {cc.osOrigem}</span> •
                             <span className="ml-2">Tipo: {cc.tipo}</span>
                         </p>
@@ -318,220 +377,370 @@ export function CentroCustoDetalhesPage() {
                     </div>
 
                     {/* Tabela de Detalhamento */}
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Detalhamento por Categoria</CardTitle>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Categoria</TableHead>
-                                        <TableHead className="text-right">Previsto</TableHead>
-                                        <TableHead className="text-right">Realizado</TableHead>
-                                        <TableHead className="text-right">Variação</TableHead>
-                                        <TableHead className="text-right">% Total</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {cc.custosPorCategoria.map((cat) => {
-                                        const variacao = cat.realizado - cat.previsto;
-                                        const variacaoPercent = ((variacao / cat.previsto) * 100).toFixed(1);
-                                        return (
-                                            <TableRow key={cat.categoria}>
-                                                <TableCell className="font-medium">{cat.categoria}</TableCell>
-                                                <TableCell className="text-right">{formatCurrency(cat.previsto)}</TableCell>
-                                                <TableCell className="text-right">{formatCurrency(cat.realizado)}</TableCell>
-                                                <TableCell className={`text-right font-medium ${variacao > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                                    {variacao > 0 ? '+' : ''}{formatCurrency(variacao)} ({variacaoPercent}%)
-                                                </TableCell>
-                                                <TableCell className="text-right">{cat.percentual}%</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <CompactTableWrapper
+                        title="Detalhamento por Categoria"
+                        totalItems={cc.custosPorCategoria.length}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortCategoria(prev =>
+                                                prev?.field === 'categoria'
+                                                    ? { field: 'categoria', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'categoria', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortCategoria?.field === 'categoria' ? sortCategoria.dir : null}
+                                    >Categoria</CompactTableHead>
+                                    <CompactTableHead className="text-right">Previsto</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => {
+                                            setSortCategoria(prev =>
+                                                prev?.field === 'realizado'
+                                                    ? { field: 'realizado', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'realizado', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortCategoria?.field === 'realizado' ? sortCategoria.dir : null}
+                                    >Realizado</CompactTableHead>
+                                    <CompactTableHead className="text-right">Variação</CompactTableHead>
+                                    <CompactTableHead className="text-right">% Total</CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {cc.custosPorCategoria.map((cat) => {
+                                    const variacao = cat.realizado - cat.previsto;
+                                    const variacaoPercent = ((variacao / cat.previsto) * 100).toFixed(1);
+                                    return (
+                                        <CompactTableRow key={cat.categoria}>
+                                            <CompactTableCell className="font-medium">{cat.categoria}</CompactTableCell>
+                                            <CompactTableCell className="text-right">{formatCurrency(cat.previsto)}</CompactTableCell>
+                                            <CompactTableCell className="text-right">{formatCurrency(cat.realizado)}</CompactTableCell>
+                                            <CompactTableCell className={`text-right font-medium ${variacao > 0 ? 'text-destructive' : 'text-success'}`}>
+                                                {variacao > 0 ? '+' : ''}{formatCurrency(variacao)} ({variacaoPercent}%)
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-right">{cat.percentual}%</CompactTableCell>
+                                        </CompactTableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
 
                 {/* Tab: Receitas */}
                 <TabsContent value="receitas" className="mt-6">
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Lançamentos de Receita</CardTitle>
-                            <CardDescription>Parcelas e entradas vinculadas</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Descrição</TableHead>
-                                        <TableHead className="text-right">Valor</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mockLancamentos.filter(l => l.tipo === 'Receita').map((lanc) => (
-                                        <TableRow key={lanc.id}>
-                                            <TableCell>{formatDate(lanc.data)}</TableCell>
-                                            <TableCell>{lanc.descricao}</TableCell>
-                                            <TableCell className="text-right text-green-600 font-medium">
-                                                {formatCurrency(lanc.valor)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className={lanc.status === 'Conciliado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}>
-                                                    {lanc.status}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <CompactTableWrapper
+                        title="Lançamentos de Receita"
+                        subtitle="Parcelas e entradas vinculadas"
+                        totalItems={mockLancamentos.filter(l => l.tipo === 'Receita').length}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortReceitas(prev =>
+                                                prev?.field === 'data'
+                                                    ? { field: 'data', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'data', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortReceitas?.field === 'data' ? sortReceitas.dir : null}
+                                    >Data</CompactTableHead>
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortReceitas(prev =>
+                                                prev?.field === 'descricao'
+                                                    ? { field: 'descricao', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'descricao', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortReceitas?.field === 'descricao' ? sortReceitas.dir : null}
+                                    >Descrição</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => {
+                                            setSortReceitas(prev =>
+                                                prev?.field === 'valor'
+                                                    ? { field: 'valor', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'valor', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortReceitas?.field === 'valor' ? sortReceitas.dir : null}
+                                    >Valor</CompactTableHead>
+                                    <CompactTableHead>Status</CompactTableHead>
+                                    <CompactTableHead>Observação</CompactTableHead>
+                                    <CompactTableHead className="text-center w-[60px]">Anexo</CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mockLancamentos.filter(l => l.tipo === 'Receita').map((lanc) => (
+                                    <CompactTableRow key={lanc.id}>
+                                        <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
+                                        <CompactTableCell>{lanc.descricao}</CompactTableCell>
+                                        <CompactTableCell className="text-right text-success font-medium">
+                                            {formatCurrency(lanc.valor)}
+                                        </CompactTableCell>
+                                        <CompactTableCell>
+                                            <Badge className={lanc.status === 'Conciliado' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
+                                                {lanc.status}
+                                            </Badge>
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
+                                            -
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-center">
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled>
+                                                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                                            </Button>
+                                        </CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="bg-muted/60 font-semibold">
+                                    <CompactTableCell colSpan={2} className="text-right">Total Receitas</CompactTableCell>
+                                    <CompactTableCell className="text-right text-success font-bold">
+                                        {formatCurrency(mockLancamentos.filter(l => l.tipo === 'Receita').reduce((acc, l) => acc + l.valor, 0))}
+                                    </CompactTableCell>
+                                    <CompactTableCell colSpan={3} />
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
 
                 {/* Tab: Despesas */}
                 <TabsContent value="despesas" className="mt-6">
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Lançamentos de Despesa</CardTitle>
-                            <CardDescription>Custos operacionais</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Data</TableHead>
-                                        <TableHead>Descrição</TableHead>
-                                        <TableHead className="text-right">Valor</TableHead>
-                                        <TableHead>Status</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mockLancamentos.filter(l => l.tipo === 'Despesa').map((lanc) => (
-                                        <TableRow key={lanc.id}>
-                                            <TableCell>{formatDate(lanc.data)}</TableCell>
-                                            <TableCell>{lanc.descricao}</TableCell>
-                                            <TableCell className="text-right text-red-600 font-medium">
-                                                {formatCurrency(lanc.valor)}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge className={lanc.status === 'Conciliado' ? 'bg-green-100 text-green-600' : 'bg-yellow-100 text-yellow-600'}>
-                                                    {lanc.status}
-                                                </Badge>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <CompactTableWrapper
+                        title="Lançamentos de Despesa"
+                        subtitle="Custos operacionais"
+                        totalItems={mockLancamentos.filter(l => l.tipo === 'Despesa').length}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortDespesas(prev =>
+                                                prev?.field === 'data'
+                                                    ? { field: 'data', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'data', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortDespesas?.field === 'data' ? sortDespesas.dir : null}
+                                    >Data</CompactTableHead>
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortDespesas(prev =>
+                                                prev?.field === 'descricao'
+                                                    ? { field: 'descricao', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'descricao', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortDespesas?.field === 'descricao' ? sortDespesas.dir : null}
+                                    >Descrição</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => {
+                                            setSortDespesas(prev =>
+                                                prev?.field === 'valor'
+                                                    ? { field: 'valor', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'valor', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortDespesas?.field === 'valor' ? sortDespesas.dir : null}
+                                    >Valor</CompactTableHead>
+                                    <CompactTableHead>Status</CompactTableHead>
+                                    <CompactTableHead>Observação</CompactTableHead>
+                                    <CompactTableHead className="text-center w-[60px]">Anexo</CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mockLancamentos.filter(l => l.tipo === 'Despesa').map((lanc) => (
+                                    <CompactTableRow key={lanc.id}>
+                                        <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
+                                        <CompactTableCell>{lanc.descricao}</CompactTableCell>
+                                        <CompactTableCell className="text-right text-destructive font-medium">
+                                            {formatCurrency(lanc.valor)}
+                                        </CompactTableCell>
+                                        <CompactTableCell>
+                                            <Badge className={lanc.status === 'Conciliado' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
+                                                {lanc.status}
+                                            </Badge>
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
+                                            -
+                                        </CompactTableCell>
+                                        <CompactTableCell className="text-center">
+                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled>
+                                                <Paperclip className="w-4 h-4 text-muted-foreground" />
+                                            </Button>
+                                        </CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="bg-muted/60 font-semibold">
+                                    <CompactTableCell colSpan={2} className="text-right">Total Despesas</CompactTableCell>
+                                    <CompactTableCell className="text-right text-destructive font-bold">
+                                        {formatCurrency(mockLancamentos.filter(l => l.tipo === 'Despesa').reduce((acc, l) => acc + l.valor, 0))}
+                                    </CompactTableCell>
+                                    <CompactTableCell colSpan={3} />
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
 
                 {/* Tab: Mão de Obra */}
                 <TabsContent value="mao-de-obra" className="mt-6">
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Custo de Mão de Obra</CardTitle>
-                            <CardDescription>Baseado no registro de presença</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Colaborador</TableHead>
-                                        <TableHead>Cargo</TableHead>
-                                        <TableHead className="text-right">Dias</TableHead>
-                                        <TableHead className="text-right">Custo/Dia</TableHead>
-                                        <TableHead className="text-right">Total</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mockPresencas.map((p) => (
-                                        <TableRow key={p.id}>
-                                            <TableCell className="font-medium">{p.colaborador}</TableCell>
-                                            <TableCell>{p.cargo}</TableCell>
-                                            <TableCell className="text-right">{p.diasTrabalhados}</TableCell>
-                                            <TableCell className="text-right">{formatCurrency(p.custoDia)}</TableCell>
-                                            <TableCell className="text-right font-medium">{formatCurrency(p.custoTotal)}</TableCell>
-                                        </TableRow>
-                                    ))}
-                                    <TableRow className="bg-muted/50">
-                                        <TableCell colSpan={4} className="font-bold">Total</TableCell>
-                                        <TableCell className="text-right font-bold">
-                                            {formatCurrency(mockPresencas.reduce((acc, p) => acc + p.custoTotal, 0))}
-                                        </TableCell>
-                                    </TableRow>
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <CompactTableWrapper
+                        title="Custo de Mão de Obra"
+                        subtitle="Baseado no registro de presença"
+                        totalItems={mockPresencas.length}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortMO(prev =>
+                                                prev?.field === 'colaborador'
+                                                    ? { field: 'colaborador', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'colaborador', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortMO?.field === 'colaborador' ? sortMO.dir : null}
+                                    >Colaborador</CompactTableHead>
+                                    <CompactTableHead>Cargo</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => {
+                                            setSortMO(prev =>
+                                                prev?.field === 'dias'
+                                                    ? { field: 'dias', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'dias', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortMO?.field === 'dias' ? sortMO.dir : null}
+                                    >Dias</CompactTableHead>
+                                    <CompactTableHead className="text-right">Custo/Dia</CompactTableHead>
+                                    <CompactTableHead
+                                        className="text-right"
+                                        onSort={() => {
+                                            setSortMO(prev =>
+                                                prev?.field === 'total'
+                                                    ? { field: 'total', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'total', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortMO?.field === 'total' ? sortMO.dir : null}
+                                    >Total</CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mockPresencas.map((p) => (
+                                    <CompactTableRow key={p.id}>
+                                        <CompactTableCell className="font-medium">{p.colaborador}</CompactTableCell>
+                                        <CompactTableCell>{p.cargo}</CompactTableCell>
+                                        <CompactTableCell className="text-right">{p.diasTrabalhados}</CompactTableCell>
+                                        <CompactTableCell className="text-right">{formatCurrency(p.custoDia)}</CompactTableCell>
+                                        <CompactTableCell className="text-right font-medium">{formatCurrency(p.custoTotal)}</CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow className="bg-muted/60 font-semibold">
+                                    <CompactTableCell colSpan={4} className="text-right font-bold">Total Mão de Obra</CompactTableCell>
+                                    <CompactTableCell className="text-right font-bold">
+                                        {formatCurrency(mockPresencas.reduce((acc, p) => acc + p.custoTotal, 0))}
+                                    </CompactTableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
 
                 {/* Tab: Documentos */}
                 <TabsContent value="documentos" className="mt-6">
-                    <Card className="shadow-card">
-                        <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                            <CardTitle className="text-base font-semibold">Documentos do Projeto</CardTitle>
-                            <CardDescription>
-                                Documentos obrigatórios para encerramento
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-6">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Documento</TableHead>
-                                        <TableHead>Tipo</TableHead>
-                                        <TableHead>Enviado</TableHead>
-                                        <TableHead>Obrigatório</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead></TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {mockDocumentos.map((doc) => (
-                                        <TableRow key={doc.id}>
-                                            <TableCell className="font-medium">{doc.nome}</TableCell>
-                                            <TableCell>{doc.tipo}</TableCell>
-                                            <TableCell>{doc.uploadedAt ? formatDate(doc.uploadedAt) : '-'}</TableCell>
-                                            <TableCell>
-                                                {doc.obrigatorio ? (
-                                                    <Badge variant="secondary">Obrigatório</Badge>
-                                                ) : (
-                                                    <span className="text-neutral-500">Opcional</span>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {doc.status === 'ok' ? (
-                                                    <Badge className="bg-green-100 text-green-600">✓ Enviado</Badge>
-                                                ) : (
-                                                    <Badge className="bg-yellow-100 text-yellow-600">
-                                                        <AlertCircle className="w-3 h-3 mr-1" />
-                                                        Pendente
-                                                    </Badge>
-                                                )}
-                                            </TableCell>
-                                            <TableCell>
-                                                {doc.status === 'ok' ? (
-                                                    <Button variant="ghost" size="sm">
-                                                        <Download className="w-4 h-4" />
-                                                    </Button>
-                                                ) : (
-                                                    <Button variant="outline" size="sm">
-                                                        Upload
-                                                    </Button>
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </CardContent>
-                    </Card>
+                    <CompactTableWrapper
+                        title="Documentos do Projeto"
+                        subtitle="Documentos obrigatórios para encerramento"
+                        totalItems={mockDocumentos.length}
+                    >
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/40">
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortDocs(prev =>
+                                                prev?.field === 'nome'
+                                                    ? { field: 'nome', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'nome', dir: 'asc' }
+                                            );
+                                        }}
+                                        sortDirection={sortDocs?.field === 'nome' ? sortDocs.dir : null}
+                                    >Documento</CompactTableHead>
+                                    <CompactTableHead>Tipo</CompactTableHead>
+                                    <CompactTableHead
+                                        onSort={() => {
+                                            setSortDocs(prev =>
+                                                prev?.field === 'enviado'
+                                                    ? { field: 'enviado', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
+                                                    : { field: 'enviado', dir: 'desc' }
+                                            );
+                                        }}
+                                        sortDirection={sortDocs?.field === 'enviado' ? sortDocs.dir : null}
+                                    >Enviado</CompactTableHead>
+                                    <CompactTableHead>Obrigatório</CompactTableHead>
+                                    <CompactTableHead>Status</CompactTableHead>
+                                    <CompactTableHead className="w-[80px]"></CompactTableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {mockDocumentos.map((doc) => (
+                                    <CompactTableRow key={doc.id}>
+                                        <CompactTableCell className="font-medium">{doc.nome}</CompactTableCell>
+                                        <CompactTableCell>{doc.tipo}</CompactTableCell>
+                                        <CompactTableCell>{doc.uploadedAt ? formatDate(doc.uploadedAt) : '-'}</CompactTableCell>
+                                        <CompactTableCell>
+                                            {doc.obrigatorio ? (
+                                                <Badge variant="secondary">Obrigatório</Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground">Opcional</span>
+                                            )}
+                                        </CompactTableCell>
+                                        <CompactTableCell>
+                                            {doc.status === 'ok' ? (
+                                                <Badge className="bg-success/10 text-success">✓ Enviado</Badge>
+                                            ) : (
+                                                <Badge className="bg-warning/10 text-warning">
+                                                    <AlertCircle className="w-3 h-3 mr-1" />
+                                                    Pendente
+                                                </Badge>
+                                            )}
+                                        </CompactTableCell>
+                                        <CompactTableCell>
+                                            {doc.status === 'ok' ? (
+                                                <Button variant="ghost" size="sm">
+                                                    <Download className="w-4 h-4" />
+                                                </Button>
+                                            ) : (
+                                                <Button variant="outline" size="sm">
+                                                    Upload
+                                                </Button>
+                                            )}
+                                        </CompactTableCell>
+                                    </CompactTableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CompactTableWrapper>
                 </TabsContent>
             </Tabs>
         </div>

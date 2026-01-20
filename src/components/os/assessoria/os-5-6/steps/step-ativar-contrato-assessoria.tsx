@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from '@/components/ui/button';
+// Button import removed
 import { PrimaryButton } from '@/components/ui/primary-button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CheckCircle } from 'lucide-react';
@@ -8,15 +8,21 @@ interface StepAtivarContratoAssessoriaProps {
   tipoOS: 'OS-05' | 'OS-06';
   onAtivarContrato: () => void;
   readOnly?: boolean;
+  isActivating?: boolean;
 }
 
-export function StepAtivarContratoAssessoria({ tipoOS, onAtivarContrato, readOnly = false }: StepAtivarContratoAssessoriaProps) {
+export function StepAtivarContratoAssessoria({
+  tipoOS,
+  onAtivarContrato,
+  readOnly = false,
+  isActivating = false
+}: StepAtivarContratoAssessoriaProps) {
   return (
     <div className="space-y-6">
       <Alert className="bg-primary/10 border-primary/20">
         <CheckCircle className="h-4 w-4 text-primary" />
         <AlertDescription className="text-primary">
-          Todas as etapas anteriores foram concluídas com sucesso! 
+          Todas as etapas anteriores foram concluídas com sucesso!
           Clique no botão abaixo para ativar o contrato e criar a {tipoOS === 'OS-05' ? 'OS 12 (Execução de Assessoria)' : 'OS 11 (Execução de Laudo)'}.
         </AlertDescription>
       </Alert>
@@ -33,10 +39,9 @@ export function StepAtivarContratoAssessoria({ tipoOS, onAtivarContrato, readOnl
         <PrimaryButton
           size="lg"
           onClick={onAtivarContrato}
-          disabled={readOnly}
+          disabled={readOnly || isActivating}
         >
-          <CheckCircle className="w-5 h-5 mr-2" />
-          Ativar Contrato
+          {isActivating ? 'Ativando...' : 'Ativar Contrato'}
         </PrimaryButton>
 
         <p className="text-xs text-muted-foreground text-center max-w-md">

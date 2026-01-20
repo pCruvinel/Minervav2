@@ -6,5 +6,9 @@ export const Route = createFileRoute('/_auth/financeiro/centro-custo/$ccId')({
 })
 
 function CentroCustoDetalhesRoute() {
-    return <CentroCustoDetalhesPage />
+    return (
+        <div className="content-wrapper">
+            <CentroCustoDetalhesPage />
+        </div>
+    )
 }

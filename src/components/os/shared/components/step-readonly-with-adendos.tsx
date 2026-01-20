@@ -75,10 +75,8 @@ function AdendosSection({
         setNovoAdendo('');
     };
 
-    // Se não há adendos e não pode adicionar, não mostrar nada
-    if (adendos.length === 0 && !canAddAdendo) {
-        return null;
-    }
+    // Adendos devem SEMPRE ser visíveis - é a funcionalidade principal para adicionar 
+    // informações APÓS conclusão da etapa
 
     return (
         <div className={cn('', className)}>
@@ -213,7 +211,8 @@ interface StepReadOnlyWithAdendosProps {
 export function StepReadOnlyWithAdendos({
     etapaId,
     children,
-    readonly = false,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    readonly: _readonly = false,  // Mantido por compatibilidade, mas não afeta adendos
     className,
 }: StepReadOnlyWithAdendosProps) {
     // Hook de adendos
@@ -237,7 +236,7 @@ export function StepReadOnlyWithAdendos({
                     <AdendosSection
                         adendos={adendos}
                         onAddAdendo={handleAddAdendo}
-                        canAddAdendo={!readonly}
+                        canAddAdendo={true}  // Adendos são para adicionar informações APÓS conclusão
                     />
                 </div>
             )}

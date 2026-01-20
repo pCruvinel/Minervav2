@@ -12,11 +12,10 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import {
     Select,
     SelectContent,
@@ -28,21 +27,23 @@ import { GroupedMultiSelect } from '@/components/dashboard/grouped-multi-select'
 import {
     Table,
     TableBody,
-    TableCell,
-    TableHead,
     TableHeader,
     TableRow,
+    TableCell,
 } from '@/components/ui/table';
 import {
     Search,
     Filter,
     AlertTriangle,
-    ArrowUpDown,
-    ChevronLeft,
-    ChevronRight
 } from 'lucide-react';
 import { type OSComEtapa } from '@/lib/hooks/use-dashboard-data';
 import { type SetorSlug } from '@/lib/types';
+import {
+    CompactTableWrapper,
+    CompactTableHead,
+    CompactTableRow,
+    CompactTableCell
+} from '@/components/shared/compact-table';
 
 // ============================================================
 // TIPOS
@@ -68,7 +69,7 @@ type SortDirection = 'asc' | 'desc';
 // ============================================================
 
 const SETORES: { value: SetorSlug | 'todos'; label: string }[] = [
-    { value: 'todos', label: 'Todos os Setores' },
+    { value: 'todos', label: 'Todos' },
     { value: 'administrativo', label: 'Administrativo' },
     { value: 'assessoria', label: 'Assessoria' },
     { value: 'obras', label: 'Obras' },
@@ -146,7 +147,7 @@ export function ManagerTable({
 
     // Estado de paginação
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 20;
+    const [itemsPerPage, setItemsPerPage] = useState(20);
 
     // Extrair responsáveis únicos dos dados se não fornecidos
     const responsaveisUnicos = useMemo(() => {
@@ -259,8 +260,6 @@ export function ManagerTable({
 
     // Cálculos de paginação
     const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-    const startItem = filteredData.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
-    const endItem = Math.min(currentPage * itemsPerPage, filteredData.length);
 
     // Handlers
     const handleSort = (field: SortField) => {
@@ -289,311 +288,240 @@ export function ManagerTable({
         return <Badge variant="outline" className={config.className}>{config.label}</Badge>;
     };
 
-
-
     return (
-        <Card>
-            <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">{title}</CardTitle>
-                    <Badge variant="outline" className="text-sm">
-                        {filteredData.length} de {data.length}
-                    </Badge>
-                </div>
+        <div className="space-y-4">
+            {/* Filtros em Card Separado */}
+            <Card className="shadow-sm">
+                <CardContent className="p-4">
+                    <div className="flex flex-wrap gap-3">
+                        {/* Busca */}
+                        <div className="relative flex-1 min-w-[200px]">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Buscar por cliente, código ou tipo..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-9 h-9"
+                            />
+                        </div>
 
-                {/* Filtros */}
-                <div className="flex flex-wrap gap-3 mt-4">
-                    {/* Busca */}
-                    <div className="relative flex-1 min-w-[200px]">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Buscar por cliente, código ou tipo..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
+                        {/* Filtro Setor */}
+                        {showSetorFilter && (
+                            <Select value={setorFilter} onValueChange={(v) => setSetorFilter(v as SetorSlug | 'todos')}>
+                                <SelectTrigger className="w-[180px] h-9">
+                                    <Filter className="h-4 w-4 mr-2" />
+                                    <SelectValue placeholder="Setor" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {SETORES.map(s => (
+                                        <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
 
-                    {/* Filtro Setor */}
-                    {showSetorFilter && (
-                        <Select value={setorFilter} onValueChange={(v) => setSetorFilter(v as SetorSlug | 'todos')}>
-                            <SelectTrigger className="w-[180px]">
-                                <Filter className="h-4 w-4 mr-2" />
-                                <SelectValue placeholder="Setor" />
+                        {/* Filtro Responsável */}
+                        <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
+                            <SelectTrigger className="w-[200px] h-9">
+                                <SelectValue placeholder="Responsável" />
                             </SelectTrigger>
                             <SelectContent>
-                                {SETORES.map(s => (
-                                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                                <SelectItem value="todos">Todos</SelectItem>
+                                {responsaveisUnicos.map(r => (
+                                    <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
-                    )}
 
-                    {/* Filtro Responsável */}
-                    <Select value={responsavelFilter} onValueChange={setResponsavelFilter}>
-                        <SelectTrigger className="w-[200px]">
-                            <SelectValue placeholder="Responsável" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="todos">Todos os Responsáveis</SelectItem>
-                            {responsaveisUnicos.map(r => (
-                                <SelectItem key={r.id} value={r.id}>{r.nome}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-
-                    {/* Filtro Dropdown Agrupado (Status e Situação) */}
-                    <GroupedMultiSelect
-                        title="Status e Situação"
-                        selectedValues={groupedFilters}
-                        onChange={setGroupedFilters}
-                        groups={[
-                            {
-                                key: 'status',
-                                label: 'Status Geral',
-                                options: STATUS_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
-                                    ...opt,
-                                    icon: undefined // Pode adicionar ícones se quiser
-                                }))
-                            },
-                            {
-                                key: 'situacao',
-                                label: 'Situação',
-                                options: STATUS_SITUACAO_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
-                                    ...opt,
-                                    icon: undefined
-                                }))
-                            }
-                        ]}
-                    />
-                </div>
-            </CardHeader>
-
-            <CardContent className="px-6 pb-6">
-                <div className="rounded-md border">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[100px]">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('codigo_os')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        ID
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('cliente_nome')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Cliente
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('status_geral')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Status
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>Tipo</TableHead>
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('prazoEtapa')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Etapa
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('created_at')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Data Início
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleSort('prazoEtapa')}
-                                        className="h-8 px-2 -ml-2"
-                                    >
-                                        Prazo
-                                        <ArrowUpDown className="ml-1 h-3 w-3" />
-                                    </Button>
-                                </TableHead>
-                                <TableHead>Situação</TableHead>
-                                <TableHead>Resp. Atual</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {paginatedData.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
-                                        Nenhuma ordem de serviço encontrada.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                paginatedData.map((os) => (
-                                    <TableRow
-                                        key={os.id}
-                                        className={`cursor-pointer ${os.prazoVencido ? 'bg-destructive/5 hover:bg-destructive/10' : 'hover:bg-muted/50'}`}
-                                        onClick={() => navigate({ to: '/os/$osId', params: { osId: os.id } })}
-                                    >
-                                        {/* ID */}
-                                        <TableCell className="font-mono font-medium text-primary">
-                                            {os.codigo_os}
-                                        </TableCell>
-
-                                        {/* Cliente */}
-                                        <TableCell className="max-w-[200px] truncate">
-                                            {os.cliente_nome || '-'}
-                                        </TableCell>
-
-                                        {/* Status */}
-                                        <TableCell>
-                                            {getStatusBadge(os.status_geral)}
-                                        </TableCell>
-
-                                        {/* Tipo OS */}
-                                        <TableCell className="max-w-[180px] truncate">
-                                            {os.tipo_os_nome || '-'}
-                                        </TableCell>
-
-                                        {/* Etapa Atual */}
-                                        <TableCell>
-                                            {os.etapaAtual ? (
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-sm">
-                                                        {os.etapaAtual.numero}. {os.etapaAtual.titulo}
-                                                    </span>
-                                                    {os.prazoVencido && (
-                                                        <AlertTriangle className="h-4 w-4 text-destructive" />
-                                                    )}
-                                                </div>
-                                            ) : (
-                                                <span className="text-muted-foreground">-</span>
-                                            )}
-                                        </TableCell>
-
-                                        {/* Data Início */}
-                                        <TableCell>
-                                            {formatDate(os.created_at || os.data_entrada)}
-                                        </TableCell>
-
-                                        {/* Prazo da Etapa */}
-                                        <TableCell>
-                                            {os.prazoEtapa ? formatDate(os.prazoEtapa) : '-'}
-                                        </TableCell>
-
-                                        {/* Situação */}
-                                        <TableCell>
-                                            {os.status_situacao ? (
-                                                <Badge variant="outline" className={STATUS_SITUACAO_CONFIG[os.status_situacao]?.className || 'bg-muted/10 text-muted-foreground'}>
-                                                    {STATUS_SITUACAO_CONFIG[os.status_situacao]?.label || os.status_situacao}
-                                                </Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground">-</span>
-                                            )}
-                                        </TableCell>
-
-                                        {/* Responsável Atual */}
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                <Avatar className="h-7 w-7">
-                                                    <AvatarImage
-                                                        src={os.responsavel_avatar_url || undefined}
-                                                        alt={os.responsavel_nome || 'Responsável'}
-                                                    />
-                                                    <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                                                        {getInitials(os.responsavel_nome || '')}
-                                                    </AvatarFallback>
-                                                </Avatar>
-                                                <span className="text-sm truncate max-w-[120px]">
-                                                    {os.responsavel_nome || 'Não atribuído'}
-                                                </span>
-                                            </div>
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </div>
-
-                {/* Paginação */}
-                {filteredData.length > 0 && (
-                    <div className="flex items-center justify-between mt-4">
-                        <p className="text-sm text-muted-foreground">
-                            Mostrando {startItem} a {endItem} de {filteredData.length} registros
-                        </p>
-                        <div className="flex items-center gap-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={currentPage === 1}
-                            >
-                                <ChevronLeft className="h-4 w-4" />
-                                Anterior
-                            </Button>
-                            <div className="flex items-center gap-1">
-                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                                    let pageNum: number;
-                                    if (totalPages <= 5) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage <= 3) {
-                                        pageNum = i + 1;
-                                    } else if (currentPage >= totalPages - 2) {
-                                        pageNum = totalPages - 4 + i;
-                                    } else {
-                                        pageNum = currentPage - 2 + i;
-                                    }
-                                    return (
-                                        <Button
-                                            key={pageNum}
-                                            variant={currentPage === pageNum ? 'default' : 'outline'}
-                                            size="sm"
-                                            className="w-8 h-8 p-0"
-                                            onClick={() => setCurrentPage(pageNum)}
-                                        >
-                                            {pageNum}
-                                        </Button>
-                                    );
-                                })}
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                disabled={currentPage === totalPages}
-                            >
-                                Próximo
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
+                        {/* Filtro Dropdown Agrupado (Status e Situação) */}
+                        <GroupedMultiSelect
+                            title="Status e Situação"
+                            selectedValues={groupedFilters}
+                            onChange={setGroupedFilters}
+                            groups={[
+                                {
+                                    key: 'status',
+                                    label: 'Status Geral',
+                                    options: STATUS_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
+                                        ...opt,
+                                        icon: undefined
+                                    }))
+                                },
+                                {
+                                    key: 'situacao',
+                                    label: 'Situação',
+                                    options: STATUS_SITUACAO_OPTIONS.filter(o => o.value !== 'todos').map(opt => ({
+                                        ...opt,
+                                        icon: undefined
+                                    }))
+                                }
+                            ]}
+                        />
                     </div>
-                )}
-            </CardContent>
-        </Card>
+                </CardContent>
+            </Card>
+
+            {/* Tabela Compacta */}
+            <CompactTableWrapper
+                title={title}
+                subtitle={`${filteredData.length} ordens de serviço encontradas`}
+                totalItems={filteredData.length}
+                currentCount={paginatedData.length}
+                page={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                onItemsPerPageChange={(v) => { setItemsPerPage(v); setCurrentPage(1); }}
+            >
+                <Table>
+                    <TableHeader>
+                        <TableRow className="bg-muted/40 hover:bg-muted/40">
+                            <CompactTableHead
+                                className="w-[100px]"
+                                onSort={() => handleSort('codigo_os')}
+                                sortDirection={sortField === 'codigo_os' ? sortDirection : undefined}
+                            >
+                                ID
+                            </CompactTableHead>
+                            <CompactTableHead
+                                onSort={() => handleSort('cliente_nome')}
+                                sortDirection={sortField === 'cliente_nome' ? sortDirection : undefined}
+                            >
+                                Cliente
+                            </CompactTableHead>
+                            <CompactTableHead
+                                className="w-[140px]"
+                                onSort={() => handleSort('status_geral')}
+                                sortDirection={sortField === 'status_geral' ? sortDirection : undefined}
+                            >
+                                Status
+                            </CompactTableHead>
+                            <CompactTableHead className="w-[150px]">
+                                Tipo
+                            </CompactTableHead>
+                            <CompactTableHead
+                                className="min-w-[150px]"
+                                onSort={() => handleSort('prazoEtapa')}
+                                sortDirection={sortField === 'prazoEtapa' ? sortDirection : undefined}
+                            >
+                                Etapa
+                            </CompactTableHead>
+                            <CompactTableHead
+                                className="w-[100px]"
+                                onSort={() => handleSort('created_at')}
+                                sortDirection={sortField === 'created_at' ? sortDirection : undefined}
+                            >
+                                Início
+                            </CompactTableHead>
+                            <CompactTableHead
+                                className="w-[100px]"
+                                onSort={() => handleSort('prazoEtapa')} // Note: Using same sort key as 'Etapa' based on existing logic
+                                sortDirection={sortField === 'prazoEtapa' ? sortDirection : undefined} // But maybe we should check if this conflicts
+                            >
+                                Prazo
+                            </CompactTableHead>
+                            <CompactTableHead className="w-[120px]">
+                                Situação
+                            </CompactTableHead>
+                            <CompactTableHead className="w-[150px]">
+                                Resp. Atual
+                            </CompactTableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {paginatedData.length === 0 ? (
+                            <TableRow>
+                                <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                                    Nenhuma ordem de serviço encontrada.
+                                </TableCell>
+                            </TableRow>
+                        ) : (
+                            paginatedData.map((os) => (
+                                <CompactTableRow
+                                    key={os.id}
+                                    className={`cursor-pointer ${os.prazoVencido ? 'bg-destructive/5 hover:bg-destructive/10' : ''}`}
+                                    onClick={() => navigate({ to: '/os/$osId', params: { osId: os.id } })}
+                                >
+                                    {/* ID */}
+                                    <CompactTableCell className="font-mono font-medium text-primary">
+                                        {os.codigo_os}
+                                    </CompactTableCell>
+
+                                    {/* Cliente */}
+                                    <CompactTableCell className="max-w-[200px] truncate font-medium" title={os.cliente_nome}>
+                                        {os.cliente_nome || '-'}
+                                    </CompactTableCell>
+
+                                    {/* Status */}
+                                    <CompactTableCell>
+                                        {getStatusBadge(os.status_geral)}
+                                    </CompactTableCell>
+
+                                    {/* Tipo OS */}
+                                    <CompactTableCell className="max-w-[150px] truncate text-muted-foreground" title={os.tipo_os_nome}>
+                                        {os.tipo_os_nome || '-'}
+                                    </CompactTableCell>
+
+                                    {/* Etapa Atual */}
+                                    <CompactTableCell>
+                                        {os.etapaAtual ? (
+                                            <div className="flex items-center gap-1.5" title={os.etapaAtual.titulo}>
+                                                <span className="truncate max-w-[140px]">
+                                                    {os.etapaAtual.numero}. {os.etapaAtual.titulo}
+                                                </span>
+                                                {os.prazoVencido && (
+                                                    <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />
+                                                )}
+                                            </div>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )}
+                                    </CompactTableCell>
+
+                                    {/* Data Início */}
+                                    <CompactTableCell>
+                                        {formatDate(os.created_at || os.data_entrada)}
+                                    </CompactTableCell>
+
+                                    {/* Prazo da Etapa */}
+                                    <CompactTableCell className={os.prazoVencido ? "text-destructive font-medium" : ""}>
+                                        {os.prazoEtapa ? formatDate(os.prazoEtapa) : '-'}
+                                    </CompactTableCell>
+
+                                    {/* Situação */}
+                                    <CompactTableCell>
+                                        {os.status_situacao ? (
+                                            <Badge variant="outline" className={STATUS_SITUACAO_CONFIG[os.status_situacao]?.className || 'bg-muted/10 text-muted-foreground'}>
+                                                {STATUS_SITUACAO_CONFIG[os.status_situacao]?.label || os.status_situacao}
+                                            </Badge>
+                                        ) : (
+                                            <span className="text-muted-foreground">-</span>
+                                        )}
+                                    </CompactTableCell>
+
+                                    {/* Responsável Atual */}
+                                    <CompactTableCell>
+                                        <div className="flex items-center gap-2">
+                                            <Avatar className="h-6 w-6">
+                                                <AvatarImage
+                                                    src={os.responsavel_avatar_url || undefined}
+                                                    alt={os.responsavel_nome || 'Responsável'}
+                                                />
+                                                <AvatarFallback className="text-[9px] bg-primary/10 text-primary">
+                                                    {getInitials(os.responsavel_nome || '')}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="truncate max-w-[100px]" title={os.responsavel_nome}>
+                                                {os.responsavel_nome || 'Não atribuído'}
+                                            </span>
+                                        </div>
+                                    </CompactTableCell>
+                                </CompactTableRow>
+                            ))
+                        )}
+                    </TableBody>
+                </Table>
+            </CompactTableWrapper>
+        </div>
     );
 }

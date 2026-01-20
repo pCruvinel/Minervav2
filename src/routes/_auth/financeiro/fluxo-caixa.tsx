@@ -6,5 +6,9 @@ export const Route = createFileRoute('/_auth/financeiro/fluxo-caixa')({
 })
 
 function FluxoCaixaRoute() {
-    return <FluxoCaixaPage />
+    return (
+        <div className="content-wrapper">
+            <FluxoCaixaPage />
+        </div>
+    )
 }

@@ -16,20 +16,19 @@ import {
     Clock,
     Download,
     Search,
-    ArrowLeft,
     FileSpreadsheet,
     TrendingUp,
     TrendingDown,
     AlertTriangle,
     RefreshCw
 } from 'lucide-react';
+import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
 import { format, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
-import { Link } from '@tanstack/react-router';
 
 interface RegistroPresencaHistorico {
     id: string;
@@ -258,159 +257,147 @@ export function PresencaHistoricoPage() {
     };
 
     return (
-        <div className="flex flex-col h-full bg-background">
-            {/* Header */}
-            <div className="bg-white border-b px-6 py-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link to="/colaboradores/presenca-tabela">
-                            <Button variant="ghost" size="icon">
-                                <ArrowLeft className="h-5 w-5" />
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-2xl font-bold text-foreground">Histórico de Presenças</h1>
-                            <p className="text-sm text-muted-foreground">
-                                Consulte o histórico de presenças por período, setor e colaborador
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={fetchRegistros}
-                            disabled={loading}
-                        >
-                            <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
-                            Atualizar
-                        </Button>
-                        <Button
-                            variant="default"
-                            onClick={handleExportExcel}
-                            disabled={exporting || resumoFiltrado.length === 0}
-                        >
-                            <FileSpreadsheet className="mr-2 h-4 w-4" />
-                            Exportar Excel
-                        </Button>
-                    </div>
+        <div className="container mx-auto p-6 space-y-6">
+            <PageHeader
+                title="Histórico de Presenças"
+                subtitle="Consulte o histórico de presenças por período, setor e colaborador"
+                showBackButton={true}
+            >
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        onClick={fetchRegistros}
+                        disabled={loading}
+                    >
+                        <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
+                        Atualizar
+                    </Button>
+                    <Button
+                        variant="default"
+                        onClick={handleExportExcel}
+                        disabled={exporting || resumoFiltrado.length === 0}
+                    >
+                        <FileSpreadsheet className="mr-2 h-4 w-4" />
+                        Exportar Excel
+                    </Button>
                 </div>
-            </div>
-
+            </PageHeader>
             {/* Filtros */}
-            <div className="px-6 py-4 bg-muted/30 border-b">
-                <div className="flex flex-wrap items-end gap-4">
-                    {/* Período */}
-                    <div className="space-y-1">
-                        <Label className="text-xs">Data Início</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-40">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {format(dataInicio, 'dd/MM/yyyy')}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={dataInicio}
-                                    onSelect={(date) => date && setDataInicio(date)}
-                                    locale={ptBR}
+            <Card>
+                <CardContent className="p-4">
+                    <div className="flex flex-wrap items-end gap-4">
+                        {/* Período */}
+                        <div className="space-y-1">
+                            <Label className="text-xs">Data Início</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-40">
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {format(dataInicio, 'dd/MM/yyyy')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataInicio}
+                                        onSelect={(date) => date && setDataInicio(date)}
+                                        locale={ptBR}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        <div className="space-y-1">
+                            <Label className="text-xs">Data Fim</Label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-40">
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {format(dataFim, 'dd/MM/yyyy')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar
+                                        mode="single"
+                                        selected={dataFim}
+                                        onSelect={(date) => date && setDataFim(date)}
+                                        locale={ptBR}
+                                    />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+
+                        {/* Setor */}
+                        <div className="space-y-1">
+                            <Label className="text-xs">Setor</Label>
+                            <Select value={setorFiltro} onValueChange={setSetorFiltro}>
+                                <SelectTrigger className="w-44">
+                                    <SelectValue placeholder="Todos os setores" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos os setores</SelectItem>
+                                    {setoresUnicos.map(setor => (
+                                        <SelectItem key={setor} value={setor || 'sem_setor'} className="capitalize">
+                                            {setor || 'Sem setor'}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Colaborador */}
+                        <div className="space-y-1">
+                            <Label className="text-xs">Colaborador</Label>
+                            <Select value={colaboradorFiltro} onValueChange={setColaboradorFiltro}>
+                                <SelectTrigger className="w-52">
+                                    <SelectValue placeholder="Todos os colaboradores" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos os colaboradores</SelectItem>
+                                    {colaboradores.map(col => (
+                                        <SelectItem key={col.id} value={col.id}>
+                                            {col.nome_completo || col.nome}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Status */}
+                        <div className="space-y-1">
+                            <Label className="text-xs">Status</Label>
+                            <Select value={statusFiltro} onValueChange={setStatusFiltro}>
+                                <SelectTrigger className="w-40">
+                                    <SelectValue placeholder="Todos" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="todos">Todos</SelectItem>
+                                    <SelectItem value="perfeito">100% de presença</SelectItem>
+                                    <SelectItem value="com_faltas">Com faltas</SelectItem>
+                                    <SelectItem value="com_atrasos">Com atrasos</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        {/* Busca */}
+                        <div className="space-y-1 flex-1 min-w-[200px]">
+                            <Label className="text-xs">Buscar</Label>
+                            <div className="relative">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Buscar por nome..."
+                                    value={busca}
+                                    onChange={(e) => setBusca(e.target.value)}
+                                    className="pl-10"
                                 />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    <div className="space-y-1">
-                        <Label className="text-xs">Data Fim</Label>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button variant="outline" className="w-40">
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {format(dataFim, 'dd/MM/yyyy')}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={dataFim}
-                                    onSelect={(date) => date && setDataFim(date)}
-                                    locale={ptBR}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </div>
-
-                    {/* Setor */}
-                    <div className="space-y-1">
-                        <Label className="text-xs">Setor</Label>
-                        <Select value={setorFiltro} onValueChange={setSetorFiltro}>
-                            <SelectTrigger className="w-44">
-                                <SelectValue placeholder="Todos os setores" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="todos">Todos os setores</SelectItem>
-                                {setoresUnicos.map(setor => (
-                                    <SelectItem key={setor} value={setor || 'sem_setor'} className="capitalize">
-                                        {setor || 'Sem setor'}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Colaborador */}
-                    <div className="space-y-1">
-                        <Label className="text-xs">Colaborador</Label>
-                        <Select value={colaboradorFiltro} onValueChange={setColaboradorFiltro}>
-                            <SelectTrigger className="w-52">
-                                <SelectValue placeholder="Todos os colaboradores" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="todos">Todos os colaboradores</SelectItem>
-                                {colaboradores.map(col => (
-                                    <SelectItem key={col.id} value={col.id}>
-                                        {col.nome_completo || col.nome}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Status */}
-                    <div className="space-y-1">
-                        <Label className="text-xs">Status</Label>
-                        <Select value={statusFiltro} onValueChange={setStatusFiltro}>
-                            <SelectTrigger className="w-40">
-                                <SelectValue placeholder="Todos" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="todos">Todos</SelectItem>
-                                <SelectItem value="perfeito">100% de presença</SelectItem>
-                                <SelectItem value="com_faltas">Com faltas</SelectItem>
-                                <SelectItem value="com_atrasos">Com atrasos</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    {/* Busca */}
-                    <div className="space-y-1 flex-1 min-w-[200px]">
-                        <Label className="text-xs">Buscar</Label>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Buscar por nome..."
-                                value={busca}
-                                onChange={(e) => setBusca(e.target.value)}
-                                className="pl-10"
-                            />
+                            </div>
                         </div>
                     </div>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
             {/* KPIs */}
-            <div className="px-6 py-4">
+            <div className="">
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
                     <Card>
                         <CardContent className="p-4">
@@ -505,7 +492,8 @@ export function PresencaHistoricoPage() {
             </div>
 
             {/* Tabela */}
-            <div className="flex-1 overflow-auto px-6 pb-6">
+            {/* Tabela */}
+            <div className="">
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-lg flex items-center justify-between">

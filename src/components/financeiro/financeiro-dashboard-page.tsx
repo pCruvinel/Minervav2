@@ -36,6 +36,11 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
+import {
+  useFinanceiroDashboard,
+  useReceitasComparacao,
+  useDespesasComparacao
+} from '@/lib/hooks/use-financeiro-dashboard';
 
 // ============================================================
 // MOCK DATA - Em produção virá do Supabase
@@ -44,15 +49,15 @@ import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 
 const mockKPIs = {
   previsaoReceitaMes: 248000,
+  receitaRealizadaMes: 241000,
   previsaoFaturasMes: 114000,
+  faturasPagasMes: 107000,
   aReceberHoje: 22987,
   aPagarHoje: 6785,
   lucroMes: 134000,
-  totalClientesMes: 47,
-  variacaoReceita: 8.5,
-  variacaoFaturas: 3.2,
-  variacaoLucro: 12.8,
-  novosClientes: 5,
+  margemMes: 55.5,
+  totalClientesAtivos: 47,
+  totalOSAtivas: 12,
 };
 
 const mockReceitasComparacao = [
@@ -105,7 +110,18 @@ const periodoLabels: Record<PeriodoFiltro, string> = {
  */
 export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageProps) {
   const [periodo, setPeriodo] = useState<PeriodoFiltro>('thisMonth');
-  const [isLoading] = useState(false);
+
+  // ========== HOOKS DE DADOS REAIS ==========
+  const { data: dashboardKPIs, isLoading: kpisLoading } = useFinanceiroDashboard();
+  const { data: receitasComparacao, isLoading: receitasLoading } = useReceitasComparacao();
+  const { data: despesasComparacao, isLoading: despesasLoading } = useDespesasComparacao();
+
+  const isLoading = kpisLoading || receitasLoading || despesasLoading;
+
+  // Dados com fallback para mock
+  const kpis = dashboardKPIs ?? mockKPIs;
+  const dadosReceitas = receitasComparacao ?? mockReceitasComparacao;
+  const dadosDespesas = despesasComparacao ?? mockDespesasComparacao;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -151,30 +167,30 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
       <KPIFinanceiroGrid columns={3}>
         <KPICardFinanceiro
           title="Previsão de Receita"
-          value={mockKPIs.previsaoReceitaMes}
+          value={kpis.previsaoReceitaMes}
           icon={<TrendingUp className="w-6 h-6" />}
           variant="success"
-          trend={{ value: `+${mockKPIs.variacaoReceita}% vs mês anterior`, isPositive: true }}
+          trend={{ value: `${periodoLabels[periodo]}`, isPositive: true }}
           onClick={() => handleNavigate('receitas-recorrentes')}
           loading={isLoading}
         />
 
         <KPICardFinanceiro
           title="Previsão de Faturas"
-          value={mockKPIs.previsaoFaturasMes}
+          value={kpis.previsaoFaturasMes}
           icon={<Receipt className="w-6 h-6" />}
           variant="warning"
-          trend={{ value: `+${mockKPIs.variacaoFaturas}% vs mês anterior`, isPositive: true }}
+          trend={{ value: `${periodoLabels[periodo]}`, isPositive: true }}
           onClick={() => handleNavigate('faturas-recorrentes')}
           loading={isLoading}
         />
 
         <KPICardFinanceiro
           title="Lucro Projetado"
-          value={mockKPIs.lucroMes}
+          value={kpis.lucroMes}
           icon={<Banknote className="w-6 h-6" />}
           variant="primary"
-          trend={{ value: `+${mockKPIs.variacaoLucro}% vs mês anterior`, isPositive: true }}
+          trend={{ value: `Margem: ${kpis.margemMes ?? 0}%`, isPositive: (kpis.margemMes ?? 0) > 0 }}
           onClick={() => handleNavigate('fluxo-caixa')}
           loading={isLoading}
         />
@@ -184,7 +200,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
       <KPIFinanceiroGrid columns={3}>
         <KPICardFinanceiro
           title="A Receber Hoje"
-          value={mockKPIs.aReceberHoje}
+          value={kpis.aReceberHoje}
           icon={<DollarSign className="w-6 h-6" />}
           variant="success"
           subtitle="Vencimento hoje"
@@ -194,7 +210,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
 
         <KPICardFinanceiro
           title="A Pagar Hoje"
-          value={mockKPIs.aPagarHoje}
+          value={kpis.aPagarHoje}
           icon={<Calendar className="w-6 h-6" />}
           variant="destructive"
           subtitle="Vencimento hoje"
@@ -204,10 +220,10 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
 
         <KPICardFinanceiro
           title="Clientes Ativos"
-          value={mockKPIs.totalClientesMes.toString()}
+          value={(kpis.totalClientesAtivos ?? 0).toString()}
           icon={<Users className="w-6 h-6" />}
           variant="info"
-          trend={{ value: `+${mockKPIs.novosClientes} novos`, isPositive: true }}
+          subtitle={`${kpis.totalOSAtivas ?? 0} OS ativas`}
           loading={isLoading}
         />
       </KPIFinanceiroGrid>
@@ -273,7 +289,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={mockReceitasComparacao}>
+                <BarChart data={dadosReceitas}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="mes"
@@ -322,7 +338,7 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
               </div>
             ) : (
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={mockDespesasComparacao}>
+                <BarChart data={dadosDespesas}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="mes"

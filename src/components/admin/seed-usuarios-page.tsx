@@ -84,14 +84,14 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       toast.success('Seed simulado: 3 usuários criados!');
 
       // Código original comentado para evitar erro 403
-      /*
+
       const response = await fetch(
-        `${SUPABASE_URL}/functions/v1/server/seed-usuarios`,
+        `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/server/seed-usuarios`,
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+            'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`,
           },
         }
       );
@@ -107,7 +107,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       if (data.summary.criados > 0) {
         toast.success(`${data.summary.criados} usuário(s) criado(s) com sucesso!`);
       }
-      
+
       if (data.summary.existentes > 0) {
         toast.info(`${data.summary.existentes} usuário(s) já existiam no sistema`);
       }
@@ -115,7 +115,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
       if (data.summary.erros > 0) {
         toast.error(`${data.summary.erros} erro(s) durante o seed`);
       }
-      */
+
 
     } catch (error) {
       logger.error('❌ Erro ao executar seed:', error);
@@ -151,7 +151,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               Usuários a serem criados
             </CardTitle>
             <CardDescription>
-              Este seed criará 5 usuários de teste com diferentes cargos, setores e permissões
+              Este seed criará os seguintes usuários para teste:
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -160,79 +160,64 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-secondary" />
-                  <Badge className={roleColors.DIRETORIA}>
+                  <Badge className={roleColors.diretoria}>
                     Diretoria
                   </Badge>
                 </div>
                 <div className="text-sm space-y-1">
-                  <p><strong>Nome:</strong> Carlos Diretor</p>
-                  <p><strong>Email:</strong> diretoria@minerva.com</p>
-                  <p><strong>Senha:</strong> diretoria123</p>
-                  <p className="text-xs text-muted-foreground">Setor: ADM</p>
+                  <p><strong>Carlos Diretor</strong> (diretoria@minerva.com)</p>
                 </div>
               </div>
 
-              {/* Gestor ADM */}
+              {/* Gestores */}
               <div className="border rounded-lg p-4 space-y-2">
                 <div className="flex items-center gap-2">
                   <UserCog className="h-5 w-5 text-primary" />
-                  <Badge className={roleColors.GESTOR_ADM}>
-                    Gestor ADM
+                  <Badge className={roleColors.gestor_administrativo}>
+                    Gestores
                   </Badge>
                 </div>
                 <div className="text-sm space-y-1">
-                  <p><strong>Nome:</strong> Maria Gestora ADM</p>
-                  <p><strong>Email:</strong> gestor.adm@minerva.com</p>
-                  <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-muted-foreground">Setor: ADM</p>
+                  <p><strong>Gestora ADM</strong> (gestor.adm@minerva.com)</p>
+                  <p><strong>Gestor Obras</strong> (gestor.obras@minerva.com)</p>
+                  <p><strong>Gestora Assessoria</strong> (gestor.assessoria@minerva.com)</p>
+                  <p><strong>Coord. Assessoria</strong> (coord.assessoria@minerva.com)</p>
                 </div>
               </div>
 
-              {/* Gestor de Obras */}
-              <div className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-success" />
-                  <Badge className={roleColors.GESTOR_SETOR}>
-                    Gestor de Setor
-                  </Badge>
-                </div>
-                <div className="text-sm space-y-1">
-                  <p><strong>Nome:</strong> João Gestor de Obras</p>
-                  <p><strong>Email:</strong> gestor.obras@minerva.com</p>
-                  <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-muted-foreground">Setor: Obras</p>
-                </div>
-              </div>
-
-              {/* Gestor de Assessoria */}
-              <div className="border rounded-lg p-4 space-y-2">
-                <div className="flex items-center gap-2">
-                  <UserCog className="h-5 w-5 text-success" />
-                  <Badge className={roleColors.GESTOR_SETOR}>
-                    Gestor de Setor
-                  </Badge>
-                </div>
-                <div className="text-sm space-y-1">
-                  <p><strong>Nome:</strong> Paula Gestora de Assessoria</p>
-                  <p><strong>Email:</strong> gestor.assessoria@minerva.com</p>
-                  <p><strong>Senha:</strong> gestor123</p>
-                  <p className="text-xs text-muted-foreground">Setor: Assessoria</p>
-                </div>
-              </div>
-
-              {/* Colaborador */}
-              <div className="border rounded-lg p-4 space-y-2">
+              {/* Colaboradores */}
+              <div className="border rounded-lg p-4 space-y-2 col-span-1 md:col-span-2">
                 <div className="flex items-center gap-2">
                   <User className="h-5 w-5 text-muted-foreground" />
-                  <Badge className={roleColors.COLABORADOR}>
-                    Colaborador
+                  <Badge className={roleColors.colaborador}>
+                    Colaboradores
                   </Badge>
                 </div>
-                <div className="text-sm space-y-1">
-                  <p><strong>Nome:</strong> Ana Colaboradora</p>
-                  <p><strong>Email:</strong> colaborador@minerva.com</p>
-                  <p><strong>Senha:</strong> colaborador123</p>
-                  <p className="text-xs text-muted-foreground">Setor: Obras</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm mt-2">
+                  <div>
+                    <p className="font-semibold text-muted-foreground mb-1">Assessoria (3)</p>
+                    <ul className="list-disc list-inside">
+                      <li>colab.assessoria1@minerva.com</li>
+                      <li>colab.assessoria2@minerva.com</li>
+                      <li>colab.assessoria3@minerva.com</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground mb-1">Administrativo (3)</p>
+                    <ul className="list-disc list-inside">
+                      <li>colab.adm1@minerva.com</li>
+                      <li>colab.adm2@minerva.com</li>
+                      <li>colab.adm3@minerva.com</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-muted-foreground mb-1">Obra (3)</p>
+                    <ul className="list-disc list-inside">
+                      <li>colab.obra1@minerva.com</li>
+                      <li>colab.obra2@minerva.com</li>
+                      <li>colab.obra3@minerva.com</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -241,7 +226,7 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <strong>Atenção:</strong> Se algum usuário já existir no banco, ele será pulado automaticamente.
-                Não há risco de duplicação.
+                Não há risco de duplicação. A senha padrão é <code>minerva123@change</code> (ou a original se já existir).
               </AlertDescription>
             </Alert>
 
@@ -312,7 +297,10 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
               <div className="space-y-2">
                 <h4 className="text-sm font-medium text-success">Detalhes:</h4>
                 {resultado.resultados.map((res, index) => {
-                  const Icon = res.role ? roleIcons[res.role] : User;
+                  const Icon = res.role && roleIcons[res.role] ? roleIcons[res.role] : User;
+                  const roleLabel = res.role ? (roleLabels[res.role] || res.role) : 'N/A';
+                  const badgeColor = res.role && roleColors[res.role] ? roleColors[res.role] : 'bg-gray-100 text-gray-800';
+
                   return (
                     <div
                       key={index}
@@ -327,11 +315,11 @@ export function SeedUsuariosPage({ onBack }: { onBack?: () => void }) {
                       </div>
                       <div className="flex items-center gap-2">
                         {res.role && (
-                          <Badge className={roleColors[res.role]} variant="outline">
-                            {roleLabels[res.role]}
+                          <Badge className={badgeColor} variant="outline">
+                            {roleLabel} ({res.setor})
                           </Badge>
                         )}
-                        {res.status === 'created' ? (
+                        {res.status === 'created' || res.status === 'created_colaborador_only' as any ? (
                           <Badge className="bg-success/10 text-success border-success/20">
                             Criado
                           </Badge>

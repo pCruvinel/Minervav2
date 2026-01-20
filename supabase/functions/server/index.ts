@@ -1338,6 +1338,81 @@ app.post("/server/seed-usuarios", async (c) => {
         nome_completo: 'Ana Colaboradora',
         role_nivel: 'COLABORADOR',
         setor: 'OBRAS'
+      },
+      // === NOVOS USUÁRIOS ===
+      // COORDENADOR ASSESSORIA
+      {
+        email: 'coord.assessoria@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Roberto Coordenador Ass.',
+        role_nivel: 'GESTOR_SETOR',
+        setor: 'ASSESSORIA'
+      },
+      // COLABORADORES ASSESSORIA
+      {
+        email: 'colab.assessoria1@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Amanda Assessoria 1',
+        role_nivel: 'COLABORADOR',
+        setor: 'ASSESSORIA'
+      },
+      {
+        email: 'colab.assessoria2@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Bruno Assessoria 2',
+        role_nivel: 'COLABORADOR',
+        setor: 'ASSESSORIA'
+      },
+      {
+        email: 'colab.assessoria3@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Carla Assessoria 3',
+        role_nivel: 'COLABORADOR',
+        setor: 'ASSESSORIA'
+      },
+      // COLABORADORES ADMINISTRATIVO
+      {
+        email: 'colab.adm1@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Daniel Adm 1',
+        role_nivel: 'COLABORADOR',
+        setor: 'ADM'
+      },
+      {
+        email: 'colab.adm2@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Eduardo Adm 2',
+        role_nivel: 'COLABORADOR',
+        setor: 'ADM'
+      },
+      {
+        email: 'colab.adm3@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Fernanda Adm 3',
+        role_nivel: 'COLABORADOR',
+        setor: 'ADM'
+      },
+      // COLABORADORES OBRA
+      {
+        email: 'colab.obra1@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Gabriel Obra 1',
+        role_nivel: 'COLABORADOR',
+        setor: 'OBRAS'
+      },
+      {
+        email: 'colab.obra2@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Hugo Obra 2',
+        role_nivel: 'COLABORADOR',
+        setor: 'OBRAS'
+      },
+      {
+        email: 'colab.obra3@minerva.com',
+        password: 'minerva123@change',
+        nome_completo: 'Igor Obra 3',
+        role_nivel: 'COLABORADOR',
+        setor: 'OBRAS'
       }
     ];
     

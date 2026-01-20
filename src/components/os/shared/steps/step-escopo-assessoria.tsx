@@ -76,11 +76,11 @@ export interface StepEscopoAssessoriaHandle {
 // TEXTOS PADRÃO (podem ser editados pelo usuário)
 // ============================================================================
 
-export const METODOLOGIA_PADRAO = `• Acompanhamento semanal in loco
-• Relatório mensal de acompanhamento de plano de manutenção
-• Mais de 35 equipamentos de diagnóstico`;
+export const METODOLOGIA_PADRAO = `• Monitoramento semanal *in loco*;
+• Relatórios mensais de controle do plano de manutenção;
+• Acervo com mais de 35 equipamentos de diagnóstico especializado.`;
 
-export const GARANTIA_PADRAO = `A qualidade do serviço prestado é garantida integralmente na responsabilidade técnica de empresa habilitada para exercício da função, com corpo técnico formado por engenheiros especialistas na área, devidamente registrados no órgão da classe CREA-MA.`;
+export const GARANTIA_PADRAO = `A excelência dos serviços é assegurada pela responsabilidade técnica de nossa empresa, devidamente habilitada para a função. Contamos com um corpo técnico composto por engenheiros especialistas, registrados e regulares junto ao CREA-MA.`;
 
 // ============================================================================
 // COMPONENTE
@@ -110,8 +110,8 @@ export const StepEscopoAssessoria = forwardRef<StepEscopoAssessoriaHandle, StepE
                 // Campos para OS-05 (Anual)
                 horarioInicio: data.prazo?.horarioInicio || '08:00',
                 horarioFim: data.prazo?.horarioFim || '18:00',
-                diasSemana: data.prazo?.diasSemana || 'Segunda a sexta',
-                suporteEmergencial: data.prazo?.suporteEmergencial || 'Suporte técnico emergencial - atuação máxima de 2h',
+                diasSemana: data.prazo?.diasSemana || 'Segunda a sexta-feira',
+                suporteEmergencial: data.prazo?.suporteEmergencial || 'Tempo de resposta (SLA) de até 2 horas',
             },
             garantia: data.garantia || GARANTIA_PADRAO,
         };

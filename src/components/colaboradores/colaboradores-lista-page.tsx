@@ -3,21 +3,17 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from '@tanstack/react-router';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
-import { Input } from '../ui/input';
 import { Badge } from '../ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Loader2 } from 'lucide-react';
 import {
   Mail,
-  Search,
   Send,
   Building2,
   Briefcase,
   Clock,
   CheckCircle2,
-  Filter,
   Users,
   DollarSign,
 } from 'lucide-react';
@@ -26,6 +22,7 @@ import { CardDescription } from '../ui/card';
 import { ModalConviteColaborador } from './modal-convite-colaborador';
 import { colaboradoresAPI } from '../../lib/api-client';
 import { toast } from 'sonner';
+import { FilterBar, SearchInput, FilterSelect } from '@/components/shared/filters';
 
 interface Colaborador {
   id: string;
@@ -217,49 +214,36 @@ export function ColaboradoresListaPage() {
       </div>
 
       {/* Filtros */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl">Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-              <Input
-                placeholder="Buscar por nome, CPF ou e-mail..."
-                value={filtro}
-                onChange={(e) => setFiltro(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={setorFilter} onValueChange={setSetorFilter}>
-              <SelectTrigger className="w-full md:w-[200px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Setor" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos os Setores</SelectItem>
-                <SelectItem value="obras">Obras</SelectItem>
-                <SelectItem value="administrativo">Administrativo</SelectItem>
-                <SelectItem value="assessoria">Assessoria</SelectItem>
-                <SelectItem value="diretoria">Diretoria</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <Filter className="w-4 h-4 mr-2" />
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos Status</SelectItem>
-                <SelectItem value="ativo">Ativos</SelectItem>
-                <SelectItem value="inativo">Inativos</SelectItem>
-                <SelectItem value="pendente">Pendentes</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar>
+        <SearchInput
+          value={filtro}
+          onChange={setFiltro}
+          placeholder="Buscar por nome, CPF ou e-mail..."
+        />
+        <FilterSelect
+          value={setorFilter}
+          onChange={setSetorFilter}
+          options={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'obras', label: 'Obras' },
+            { value: 'administrativo', label: 'Administrativo' },
+            { value: 'assessoria', label: 'Assessoria' },
+            { value: 'diretoria', label: 'Diretoria' },
+          ]}
+          placeholder="Setor"
+        />
+        <FilterSelect
+          value={statusFilter}
+          onChange={setStatusFilter}
+          options={[
+            { value: 'todos', label: 'Todos' },
+            { value: 'ativo', label: 'Ativos' },
+            { value: 'inativo', label: 'Inativos' },
+            { value: 'pendente', label: 'Pendentes' },
+          ]}
+          placeholder="Status"
+        />
+      </FilterBar>
 
       {/* Tabela */}
       <Card>

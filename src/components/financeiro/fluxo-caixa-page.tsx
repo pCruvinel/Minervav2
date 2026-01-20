@@ -3,6 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Table, TableBody, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
+import { CompactTableHead, CompactTableCell, CompactTableRow } from '@/components/shared/compact-table';
+import {
     TrendingUp,
     TrendingDown,
     DollarSign,
@@ -11,7 +20,8 @@ import {
     ArrowDown,
     AlertTriangle,
     Download,
-    Loader2
+    Loader2,
+    Building2
 } from 'lucide-react';
 import {
     BarChart,
@@ -27,6 +37,8 @@ import {
 } from 'recharts';
 import { PageHeader } from '@/components/shared/page-header';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
+import { useFluxoCaixa, useFluxoCaixaKPIs, useCalendarioFinanceiro, useDetalhesDia } from '@/lib/hooks/use-fluxo-caixa';
+import { useNavigate } from '@tanstack/react-router';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -80,8 +92,47 @@ type VisualizacaoTipo = 'semanal' | 'mensal' | 'trimestral';
  * - Alertas automáticos de caixa
  */
 export function FluxoCaixaPage() {
+    const navigate = useNavigate();
     const [visualizacao, setVisualizacao] = useState<VisualizacaoTipo>('mensal');
-    const [isLoading] = useState(false);
+    const [selectedDate, setSelectedDate] = useState<string | null>(null);
+    const [dialogOpen, setDialogOpen] = useState(false);
+
+    // ========== HOOKS DE DADOS REAIS ==========
+    const { isLoading: fluxoLoading } = useFluxoCaixa(30);
+    const { data: kpisData, isLoading: kpisLoading } = useFluxoCaixaKPIs();
+    const { data: calendarioData, isLoading: calendarioLoading } = useCalendarioFinanceiro(7);
+    const { data: detalhesDia, isLoading: detalhesLoading } = useDetalhesDia(selectedDate);
+
+    const isLoading = fluxoLoading || kpisLoading || calendarioLoading;
+
+    // Dados com fallback para mock
+    const kpis = kpisData ?? mockKPIs;
+
+    // Transformar calendário para formato esperado
+    const proximos7Dias = calendarioData && calendarioData.length > 0
+        ? (() => {
+            const diasMap: Record<string, { data: string; dia: string; entradas: { desc: string; valor: number }[]; saidas: { desc: string; valor: number }[] }> = {};
+
+            calendarioData.forEach(evento => {
+                if (!diasMap[evento.data]) {
+                    const dataObj = new Date(evento.data + 'T00:00:00');
+                    diasMap[evento.data] = {
+                        data: evento.data,
+                        dia: dataObj.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+                        entradas: [],
+                        saidas: [],
+                    };
+                }
+                if (evento.tipo === 'receita') {
+                    diasMap[evento.data].entradas.push({ desc: evento.descricao, valor: evento.valor });
+                } else {
+                    diasMap[evento.data].saidas.push({ desc: evento.descricao, valor: evento.valor });
+                }
+            });
+
+            return Object.values(diasMap).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 7);
+        })()
+        : mockProximos7Dias;
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -96,10 +147,10 @@ export function FluxoCaixaPage() {
         return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     };
 
-    const totalEntradas7Dias = mockProximos7Dias.reduce(
+    const totalEntradas7Dias = proximos7Dias.reduce(
         (acc, dia) => acc + dia.entradas.reduce((sum, e) => sum + e.valor, 0), 0
     );
-    const totalSaidas7Dias = mockProximos7Dias.reduce(
+    const totalSaidas7Dias = proximos7Dias.reduce(
         (acc, dia) => acc + dia.saidas.reduce((sum, s) => sum + s.valor, 0), 0
     );
 
@@ -150,36 +201,36 @@ export function FluxoCaixaPage() {
             <KPIFinanceiroGrid columns={4}>
                 <KPICardFinanceiro
                     title="Saldo Atual"
-                    value={mockKPIs.saldoAtual}
+                    value={kpis.saldoAtual}
                     icon={<DollarSign className="w-6 h-6" />}
                     variant="primary"
                     loading={isLoading}
                 />
                 <KPICardFinanceiro
-                    title="Entradas (Mês)"
-                    value={mockKPIs.entradasMes}
+                    title="Entradas Prox. 30 dias"
+                    value={'entradasProximos30Dias' in kpis ? kpis.entradasProximos30Dias : kpis.entradasMes}
                     icon={<TrendingUp className="w-6 h-6" />}
                     variant="success"
-                    trend={{ value: '+8.5%', isPositive: true }}
                     loading={isLoading}
                 />
                 <KPICardFinanceiro
-                    title="Saídas (Mês)"
-                    value={mockKPIs.saidasMes}
+                    title="Saídas Prox. 30 dias"
+                    value={'saidasProximos30Dias' in kpis ? kpis.saidasProximos30Dias : kpis.saidasMes}
                     icon={<TrendingDown className="w-6 h-6" />}
                     variant="destructive"
                     loading={isLoading}
                 />
                 <KPICardFinanceiro
                     title="Projeção 30 dias"
-                    value={mockKPIs.saldoProjetado30Dias}
+                    value={kpis.saldoProjetado30Dias}
                     icon={<CalendarDays className="w-6 h-6" />}
-                    variant={mockKPIs.saldoProjetado30Dias > mockKPIs.saldoAtual ? 'success' : 'warning'}
+                    variant={kpis.saldoProjetado30Dias > kpis.saldoAtual ? 'success' : 'warning'}
                     trend={{
-                        value: `${mockKPIs.saldoProjetado30Dias > mockKPIs.saldoAtual ? '+' : ''}${formatCurrency(mockKPIs.saldoProjetado30Dias - mockKPIs.saldoAtual)}`,
-                        isPositive: mockKPIs.saldoProjetado30Dias > mockKPIs.saldoAtual
+                        value: `${kpis.saldoProjetado30Dias > kpis.saldoAtual ? '+' : ''}${formatCurrency(kpis.saldoProjetado30Dias - kpis.saldoAtual)}`,
+                        isPositive: kpis.saldoProjetado30Dias > kpis.saldoAtual
                     }}
                     loading={isLoading}
+                    subtitle={'diasCriticos' in kpis && kpis.diasCriticos > 0 ? `${kpis.diasCriticos} dia(s) crítico(s)` : undefined}
                 />
             </KPIFinanceiroGrid>
 
@@ -253,9 +304,9 @@ export function FluxoCaixaPage() {
                                 Calendário Financeiro - Próximos 7 dias
                             </CardTitle>
                             <CardDescription className="mt-1">
-                                Entradas: <span className="text-green-600 font-medium">{formatCurrency(totalEntradas7Dias)}</span> |
-                                Saídas: <span className="text-red-600 font-medium">{formatCurrency(totalSaidas7Dias)}</span> |
-                                Saldo: <span className={`font-medium ${totalEntradas7Dias - totalSaidas7Dias >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                Entradas: <span className="text-success font-medium">{formatCurrency(totalEntradas7Dias)}</span> |
+                                Saídas: <span className="text-destructive font-medium">{formatCurrency(totalSaidas7Dias)}</span> |
+                                Saldo: <span className={`font-medium ${totalEntradas7Dias - totalSaidas7Dias >= 0 ? 'text-success' : 'text-destructive'}`}>
                                     {formatCurrency(totalEntradas7Dias - totalSaidas7Dias)}
                                 </span>
                             </CardDescription>
@@ -269,7 +320,7 @@ export function FluxoCaixaPage() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-7 gap-2">
-                            {mockProximos7Dias.map((dia) => {
+                            {proximos7Dias.map((dia) => {
                                 const totalEntradas = dia.entradas.reduce((sum, e) => sum + e.valor, 0);
                                 const totalSaidas = dia.saidas.reduce((sum, s) => sum + s.valor, 0);
                                 const saldoDia = totalEntradas - totalSaidas;
@@ -282,6 +333,12 @@ export function FluxoCaixaPage() {
                                             ? 'bg-white hover:shadow-card-hover cursor-pointer border-border'
                                             : 'bg-muted/30 border-transparent'
                                             }`}
+                                        onClick={() => {
+                                            if (temMovimentacao) {
+                                                setSelectedDate(dia.data);
+                                                setDialogOpen(true);
+                                            }
+                                        }}
                                     >
                                         <div className="text-center mb-2">
                                             <p className="text-xs text-neutral-500">{dia.dia}</p>
@@ -292,22 +349,22 @@ export function FluxoCaixaPage() {
                                             <div className="space-y-2">
                                                 {dia.entradas.map((e, i) => (
                                                     <div key={i} className="flex items-center gap-1 text-xs">
-                                                        <ArrowUp className="w-3 h-3 text-green-600 flex-shrink-0" />
-                                                        <span className="truncate text-green-600 font-medium">
+                                                        <ArrowUp className="w-3 h-3 text-success flex-shrink-0" />
+                                                        <span className="truncate text-success font-medium">
                                                             {formatCurrency(e.valor)}
                                                         </span>
                                                     </div>
                                                 ))}
                                                 {dia.saidas.map((s, i) => (
                                                     <div key={i} className="flex items-center gap-1 text-xs">
-                                                        <ArrowDown className="w-3 h-3 text-red-600 flex-shrink-0" />
-                                                        <span className="truncate text-red-600 font-medium">
+                                                        <ArrowDown className="w-3 h-3 text-destructive flex-shrink-0" />
+                                                        <span className="truncate text-destructive font-medium">
                                                             {formatCurrency(s.valor)}
                                                         </span>
                                                     </div>
                                                 ))}
                                                 {(dia.entradas.length > 0 || dia.saidas.length > 0) && (
-                                                    <div className={`text-xs font-bold text-center pt-1 border-t ${saldoDia >= 0 ? 'text-green-600' : 'text-red-600'
+                                                    <div className={`text-xs font-bold text-center pt-1 border-t ${saldoDia >= 0 ? 'text-success' : 'text-destructive'
                                                         }`}>
                                                         {saldoDia >= 0 ? '+' : ''}{formatCurrency(saldoDia)}
                                                     </div>
@@ -327,12 +384,12 @@ export function FluxoCaixaPage() {
             </Card>
 
             {/* ========== Alertas ========== */}
-            {mockKPIs.saldoProjetado30Dias < mockKPIs.saldoAtual && (
+            {kpis.saldoProjetado30Dias < kpis.saldoAtual && (
                 <Card className="border-yellow-300 bg-yellow-50/50 shadow-card">
                     <CardContent className="pt-6">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                                <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                                <AlertTriangle className="w-6 h-6 text-warning" />
                             </div>
                             <div>
                                 <h4 className="font-semibold text-neutral-900">Atenção: Projeção de Caixa Reduzida</h4>
@@ -345,6 +402,121 @@ export function FluxoCaixaPage() {
                     </CardContent>
                 </Card>
             )}
+            {/* ========== Dialog de Detalhes do Dia ========== */}
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogContent className="max-w-2xl shadow-modal">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <CalendarDays className="w-5 h-5 text-primary" />
+                            Movimentações do Dia
+                        </DialogTitle>
+                        <DialogDescription>
+                            {selectedDate && new Date(selectedDate + 'T00:00:00').toLocaleDateString('pt-BR', {
+                                weekday: 'long',
+                                day: '2-digit',
+                                month: 'long',
+                                year: 'numeric'
+                            })}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {detalhesLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    ) : (detalhesDia && detalhesDia.length > 0) ? (
+                        <div className="max-h-[400px] overflow-auto">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow className="bg-muted/40">
+                                        <CompactTableHead>Tipo</CompactTableHead>
+                                        <CompactTableHead>Descrição</CompactTableHead>
+                                        <CompactTableHead>Cliente/Fornecedor</CompactTableHead>
+                                        <CompactTableHead className="text-right">Valor</CompactTableHead>
+                                        <CompactTableHead className="text-center">Status</CompactTableHead>
+                                        <CompactTableHead></CompactTableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {detalhesDia.map((transacao) => (
+                                        <CompactTableRow key={transacao.id}>
+                                            <CompactTableCell>
+                                                <Badge className={
+                                                    transacao.tipo === 'receita'
+                                                        ? 'bg-success/10 text-success'
+                                                        : 'bg-destructive/10 text-destructive'
+                                                }>
+                                                    {transacao.tipo === 'receita' ? (
+                                                        <><ArrowUp className="w-3 h-3 mr-1" />Entrada</>
+                                                    ) : (
+                                                        <><ArrowDown className="w-3 h-3 mr-1" />Saída</>
+                                                    )}
+                                                </Badge>
+                                            </CompactTableCell>
+                                            <CompactTableCell>
+                                                <div>
+                                                    <span className="font-medium">{transacao.descricao}</span>
+                                                    {transacao.parcela && (
+                                                        <span className="text-muted-foreground ml-1">
+                                                            ({transacao.parcela})
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </CompactTableCell>
+                                            <CompactTableCell>{transacao.cliente_ou_fornecedor}</CompactTableCell>
+                                            <CompactTableCell className={`text-right font-bold ${transacao.tipo === 'receita' ? 'text-success' : 'text-destructive'
+                                                }`}>
+                                                {transacao.tipo === 'receita' ? '+' : '-'}{formatCurrency(transacao.valor)}
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-center">
+                                                <Badge variant="outline">
+                                                    {transacao.status}
+                                                </Badge>
+                                            </CompactTableCell>
+                                            <CompactTableCell>
+                                                {transacao.cc_codigo && (
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="h-7 w-7 p-0"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setDialogOpen(false);
+                                                            navigate({ to: '/financeiro/centro-custo/$ccId', params: { ccId: transacao.cc_codigo! } });
+                                                        }}
+                                                    >
+                                                        <Building2 className="w-4 h-4" />
+                                                    </Button>
+                                                )}
+                                            </CompactTableCell>
+                                        </CompactTableRow>
+                                    ))}
+                                </TableBody>
+                                <TableFooter>
+                                    <TableRow className="bg-muted/60 font-semibold">
+                                        <CompactTableCell colSpan={3} className="text-right">
+                                            Saldo do Dia
+                                        </CompactTableCell>
+                                        <CompactTableCell className={`text-right font-bold ${(detalhesDia.reduce((acc, t) => acc + (t.tipo === 'receita' ? t.valor : -t.valor), 0)) >= 0
+                                                ? 'text-success'
+                                                : 'text-destructive'
+                                            }`}>
+                                            {(
+                                                (saldo) => (saldo >= 0 ? '+' : '') + formatCurrency(saldo)
+                                            )(detalhesDia.reduce((acc, t) => acc + (t.tipo === 'receita' ? t.valor : -t.valor), 0))}
+                                        </CompactTableCell>
+                                        <CompactTableCell colSpan={2} />
+                                    </TableRow>
+                                </TableFooter>
+                            </Table>
+                        </div>
+                    ) : (
+                        <p className="text-center text-muted-foreground py-8">
+                            Nenhuma movimentação encontrada para este dia.
+                        </p>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

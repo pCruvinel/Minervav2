@@ -1,5 +1,5 @@
 import { createFileRoute, useRouter } from '@tanstack/react-router'
-import { OSDetailsWorkflowPage } from '@/components/os/shared/pages/os-details-workflow-page'
+import { OS14WorkflowPage } from '@/components/os/obras/os-1-4/pages/os-1-4-workflow-page'
 
 export const Route = createFileRoute('/_auth/os/criar/obras-lead')({
   component: ObrasLeadRoute,
@@ -9,7 +9,7 @@ function ObrasLeadRoute() {
   const router = useRouter()
 
   return (
-    <OSDetailsWorkflowPage
+    <OS14WorkflowPage
       onBack={() => router.history.back()}
     />
   )
