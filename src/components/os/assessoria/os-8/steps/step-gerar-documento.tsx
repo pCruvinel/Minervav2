@@ -20,8 +20,8 @@ import {
   gerarTituloDocumento,
   isFinalidadeRecebimento,
   type FinalidadeInspecao
-} from '../types/os08-types';
-import { CHECKLIST_BLOCOS } from '../components/checklist-recebimento';
+} from '../../shared/types/visita-tecnica-types';
+import { CHECKLIST_BLOCOS } from '../../shared/components/checklist-recebimento-table';
 import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
 
 // =====================================================

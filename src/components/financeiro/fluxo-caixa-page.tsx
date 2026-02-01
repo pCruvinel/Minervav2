@@ -24,7 +24,6 @@ import {
     Building2
 } from 'lucide-react';
 import {
-    BarChart,
     Bar,
     XAxis,
     YAxis,
@@ -37,7 +36,7 @@ import {
 } from 'recharts';
 import { PageHeader } from '@/components/shared/page-header';
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
-import { useFluxoCaixa, useFluxoCaixaKPIs, useCalendarioFinanceiro, useDetalhesDia } from '@/lib/hooks/use-fluxo-caixa';
+import { useFluxoCaixa, useFluxoCaixaKPIs, useCalendarioFinanceiro, useDetalhesDia, useFluxoMensal } from '@/lib/hooks/use-fluxo-caixa';
 import { useNavigate } from '@tanstack/react-router';
 
 // ============================================================
@@ -51,30 +50,7 @@ const mockKPIs = {
     saldoProjetado30Dias: 98900,
 };
 
-const mockFluxoMensal = [
-    { mes: 'Jan', entradas: 48000, saidas: 35000, saldo: 13000, acumulado: 72000 },
-    { mes: 'Fev', entradas: 52000, saidas: 42000, saldo: 10000, acumulado: 82000 },
-    { mes: 'Mar', entradas: 45000, saidas: 38000, saldo: 7000, acumulado: 89000 },
-    { mes: 'Abr', entradas: 55000, saidas: 45000, saldo: 10000, acumulado: 99000 },
-    { mes: 'Mai', entradas: 48000, saidas: 52000, saldo: -4000, acumulado: 95000 },
-    { mes: 'Jun', entradas: 62000, saidas: 48000, saldo: 14000, acumulado: 109000 },
-    { mes: 'Jul', entradas: 58000, saidas: 42000, saldo: 16000, acumulado: 125000 },
-    { mes: 'Ago', entradas: 52000, saidas: 45000, saldo: 7000, acumulado: 132000 },
-    { mes: 'Set', entradas: 48000, saidas: 50000, saldo: -2000, acumulado: 130000 },
-    { mes: 'Out', entradas: 55000, saidas: 42000, saldo: 13000, acumulado: 143000 },
-    { mes: 'Nov', entradas: 50000, saidas: 38000, saldo: 12000, acumulado: 155000 },
-    { mes: 'Dez', entradas: 52400, saidas: 38500, saldo: 13900, acumulado: 168900 },
-];
-
-const mockProximos7Dias = [
-    { data: '2024-12-19', dia: 'Qui', entradas: [{ desc: 'Parcela Assessoria ABC', valor: 4200 }], saidas: [] },
-    { data: '2024-12-20', dia: 'Sex', entradas: [{ desc: 'Parcela Obra Solar I', valor: 10666 }], saidas: [{ desc: 'Salários (Adiantamento)', valor: 15000 }] },
-    { data: '2024-12-21', dia: 'Sáb', entradas: [], saidas: [] },
-    { data: '2024-12-22', dia: 'Dom', entradas: [], saidas: [] },
-    { data: '2024-12-23', dia: 'Seg', entradas: [], saidas: [{ desc: 'Aluguel Escritório', valor: 5500 }] },
-    { data: '2024-12-24', dia: 'Ter', entradas: [], saidas: [{ desc: 'Fornecedor - Material', valor: 2800 }] },
-    { data: '2024-12-25', dia: 'Qua', entradas: [], saidas: [] },
-];
+// FRONTEND-ONLY MODE: mockFluxoMensal e mockProximos7Dias removidos - agora usando hooks reais
 
 type VisualizacaoTipo = 'semanal' | 'mensal' | 'trimestral';
 
@@ -102,37 +78,47 @@ export function FluxoCaixaPage() {
     const { data: kpisData, isLoading: kpisLoading } = useFluxoCaixaKPIs();
     const { data: calendarioData, isLoading: calendarioLoading } = useCalendarioFinanceiro(7);
     const { data: detalhesDia, isLoading: detalhesLoading } = useDetalhesDia(selectedDate);
+    const { data: fluxoMensalData, isLoading: fluxoMensalLoading } = useFluxoMensal(12);
 
-    const isLoading = fluxoLoading || kpisLoading || calendarioLoading;
+    const isLoading = fluxoLoading || kpisLoading || calendarioLoading || fluxoMensalLoading;
 
     // Dados com fallback para mock
     const kpis = kpisData ?? mockKPIs;
 
-    // Transformar calendário para formato esperado
-    const proximos7Dias = calendarioData && calendarioData.length > 0
-        ? (() => {
-            const diasMap: Record<string, { data: string; dia: string; entradas: { desc: string; valor: number }[]; saidas: { desc: string; valor: number }[] }> = {};
+    // Gerar estrutura dinâmica dos próximos 7 dias (sem fallback para mock)
+    const proximos7Dias = (() => {
+        // Criar estrutura base dos próximos 7 dias
+        const hoje = new Date();
+        const diasBase: { data: string; dia: string; entradas: { desc: string; valor: number }[]; saidas: { desc: string; valor: number }[] }[] = [];
 
+        for (let i = 0; i < 7; i++) {
+            const data = new Date(hoje);
+            data.setDate(data.getDate() + i);
+            const dataStr = data.toISOString().split('T')[0];
+            diasBase.push({
+                data: dataStr,
+                dia: data.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
+                entradas: [],
+                saidas: [],
+            });
+        }
+
+        // Se há dados do calendário, preencher os dias correspondentes
+        if (calendarioData && calendarioData.length > 0) {
             calendarioData.forEach(evento => {
-                if (!diasMap[evento.data]) {
-                    const dataObj = new Date(evento.data + 'T00:00:00');
-                    diasMap[evento.data] = {
-                        data: evento.data,
-                        dia: dataObj.toLocaleDateString('pt-BR', { weekday: 'short' }).replace('.', ''),
-                        entradas: [],
-                        saidas: [],
-                    };
-                }
-                if (evento.tipo === 'receita') {
-                    diasMap[evento.data].entradas.push({ desc: evento.descricao, valor: evento.valor });
-                } else {
-                    diasMap[evento.data].saidas.push({ desc: evento.descricao, valor: evento.valor });
+                const diaExistente = diasBase.find(d => d.data === evento.data);
+                if (diaExistente) {
+                    if (evento.tipo === 'receita') {
+                        diaExistente.entradas.push({ desc: evento.descricao, valor: evento.valor });
+                    } else {
+                        diaExistente.saidas.push({ desc: evento.descricao, valor: evento.valor });
+                    }
                 }
             });
+        }
 
-            return Object.values(diasMap).sort((a, b) => a.data.localeCompare(b.data)).slice(0, 7);
-        })()
-        : mockProximos7Dias;
+        return diasBase;
+    })();
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -248,9 +234,9 @@ export function FluxoCaixaPage() {
                         </div>
                     ) : (
                         <ResponsiveContainer width="100%" height={380}>
-                            <ComposedChart data={mockFluxoMensal}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                <XAxis dataKey="mes" stroke="#71717a" />
+                            <ComposedChart data={fluxoMensalData || []}>
+                                <CartesianGrid strokeDasharray="3 3" className="stroke-muted-foreground/20" />
+                                <XAxis dataKey="mesLabel" className="text-muted-foreground" />
                                 <YAxis
                                     yAxisId="left"
                                     stroke="#71717a"

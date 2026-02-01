@@ -134,43 +134,59 @@ export function useSalariosPrevistos() {
   return useQuery({
     queryKey: ['salarios-previstos'],
     queryFn: async (): Promise<SalarioPrevisto[]> => {
-      // Query simplificada sem joins problemáticos
+// Query simplificada sem joins problemáticos
       const { data: colaboradores, error } = await supabase
         .from('colaboradores')
         .select(`
           id,
           nome_completo,
           salario_base,
+          remuneracao_contratual,
+          tipo_contratacao,
           setor,
           funcao
         `)
-        .eq('ativo', true)
-        .not('salario_base', 'is', null);
+        .eq('ativo', true);
 
       if (error) {
         logger.error('Erro ao buscar colaboradores:', error);
         throw error;
       }
 
-      // Filtrar manualmente os que tem salário > 0
+      // Filtrar manualmente os que tem algum tipo de remuneração > 0
       const colaboradoresComSalario = (colaboradores || []).filter(
-        col => col.salario_base && Number(col.salario_base) > 0
+        col => {
+          const salario = Number(col.salario_base || 0);
+          const contrato = Number(col.remuneracao_contratual || 0);
+          return salario > 0 || contrato > 0;
+        }
       );
 
       return colaboradoresComSalario.map((col) => {
-        const salarioBase = Number(col.salario_base);
-        const encargos = Math.round(salarioBase * 0.46); // 46% encargos
-        const beneficios = 450; // valor fixo default
+        // Determinar valor base (prioriza salário base se existir, senão usa remuneração contratual)
+        const salarioBase = Number(col.salario_base || 0);
+        const remuneracaoContratual = Number(col.remuneracao_contratual || 0);
+        
+        // Se for CLT, usa salário base. Se for PJ/Contrato, usa remuneração contratual.
+        // Se ambos existirem (raro), prioriza lógica baseada no tipo ou o que for maior > 0
+        const valorBase = salarioBase > 0 ? salarioBase : remuneracaoContratual;
+        
+        // Encargos apenas para CLT (aprox 46%)
+        // Se tipo_contratacao for nulo, assume CLT se tiver salario_base, senão sem encargos
+        const isCLT = col.tipo_contratacao === 'CLT' || (salarioBase > 0 && !col.tipo_contratacao);
+        const encargos = isCLT ? Math.round(valorBase * 0.46) : 0;
+        
+        const beneficios = isCLT ? 450 : 0; // Benefícios padrão apenas para CLT
 
         return {
           colaborador_id: col.id,
           colaborador_nome: col.nome_completo || 'Colaborador',
           cargo: col.funcao || '-',
           setor: col.setor || '-',
-          salario_base: salarioBase,
+          salario_base: valorBase,
           encargos_estimados: encargos,
           beneficios,
-          custo_total: salarioBase + encargos + beneficios,
+          custo_total: valorBase + encargos + beneficios,
           data_pagamento: '', // 5º dia útil típico
           status: 'pendente' as const,
         };
@@ -327,8 +343,7 @@ export function useCreateDespesa() {
       valor: number;
       categoria: string;
       recorrencia: 'MENSAL' | 'SEMANAL' | 'ANUAL' | 'UNICA';
-      vencimentoData?: Date;
-      diaVencimento?: number;
+      vencimentoData: Date; // Agora obrigatório
       centroCustoId?: string;
       parcelar?: boolean;
       numeroParcelas?: number;
@@ -340,7 +355,6 @@ export function useCreateDespesa() {
         categoria,
         recorrencia,
         vencimentoData,
-        diaVencimento,
         centroCustoId,
         parcelar,
         numeroParcelas
@@ -348,10 +362,12 @@ export function useCreateDespesa() {
 
       // Tratamento de CC ID
       const ccId = centroCustoId && centroCustoId.length > 0 ? centroCustoId : null;
+      
+      // Data base é sempre a escolhida pelo usuário
+      const dataBase = vencimentoData;
 
       // CASO 1: Recorrência Única
       if (recorrencia === 'UNICA') {
-        const dataBase = vencimentoData || new Date();
         
         // Parcelamento
         if (parcelar && numeroParcelas && numeroParcelas > 1) {
@@ -403,18 +419,9 @@ export function useCreateDespesa() {
 
       } else {
         // CASO 2: Recorrência Periódica (Mensal, Semanal, Anual)
-        // Calcular próximo vencimento baseado no dia
-        const hoje = new Date();
-        let proximoVencimento = new Date();
-        const diaTarget = diaVencimento || 5;
-
-        proximoVencimento.setDate(diaTarget);
+        // Usa a data fornecida como a PRIMEIRA instância.
+        // A trigger ou job de recorrência do banco usará o dia desta data para criar as próximas.
         
-        // Se o dia já passou neste mês, joga para o próximo
-        if (proximoVencimento < hoje) {
-           proximoVencimento.setMonth(proximoVencimento.getMonth() + 1);
-        }
-
         // Map recorrencia to valid DB values
         const frequenciaMap: Record<string, string> = {
           'mensal': 'mensal',
@@ -423,16 +430,20 @@ export function useCreateDespesa() {
         };
         const frequenciaDB = frequenciaMap[recorrencia.toLowerCase()] || 'mensal';
 
+        // Dia fixo para recorrência
+        const diaVencimento = dataBase.getDate();
+
         const { error } = await supabase.from('contas_pagar').insert({
           descricao,
           favorecido_fornecedor: fornecedor,
           valor,
           categoria,
-          vencimento: proximoVencimento.toISOString().split('T')[0],
+          vencimento: dataBase.toISOString().split('T')[0], // Primeira data explícita
           status: 'em_aberto',
           cc_id: ccId,
           recorrente: true,
           recorrencia_frequencia: frequenciaDB,
+          dia_vencimento: diaVencimento, // Salva o dia para referência futura
           forma_pagamento: 'boleto',
           tipo: 'fixa', // Mensal/Semanal/Anual = fixa
         });

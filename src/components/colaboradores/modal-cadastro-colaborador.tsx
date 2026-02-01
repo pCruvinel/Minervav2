@@ -157,6 +157,7 @@ export function ModalCadastroColaborador({
   const [tipoContratacao, setTipoContratacao] = useState('');
   const [salarioBruto, setSalarioBruto] = useState('');
   const [remuneracaoContratual, setRemuneracaoContratual] = useState('');
+  const [diaVencimento, setDiaVencimento] = useState<string>('5');
 
   // Dados Bancários
   const [banco, setBanco] = useState('');
@@ -185,7 +186,9 @@ export function ModalCadastroColaborador({
       setQualificacao(colaborador.qualificacao || '');
       setTipoContratacao(colaborador.tipo_contratacao || '');
       setSalarioBruto(colaborador.salario_base?.toString() || '');
+      setSalarioBruto(colaborador.salario_base?.toString() || '');
       setRemuneracaoContratual(colaborador.remuneracao_contratual?.toString() || '');
+      setDiaVencimento(colaborador.dia_vencimento?.toString() || '5');
 
       // Campos de endereço separados
       setCep(colaborador.cep || '');
@@ -377,10 +380,9 @@ export function ModalCadastroColaborador({
       // Campos com FK - preenchidos automaticamente para compatibilidade com hooks
       cargo_id: getCargoIdByFuncao(funcao),
       setor_id: getSetorIdBySlug(funcaoData?.setor),
-      tipo_contratacao: tipoContratacao || null,
-      salario_base: isCLT ? parseFloat(salarioBruto) : null,
       remuneracao_contratual: isContrato ? parseFloat(remuneracaoContratual) : null,
       custo_dia: calcularCustoDia() || null,
+      dia_vencimento: parseInt(diaVencimento) || 5,
       rateio_fixo: getRateioFixo() || null,
       bloqueado_sistema: isColaboradorObra,
       // Documentos obrigatórios
@@ -420,7 +422,9 @@ export function ModalCadastroColaborador({
     setDocumentosObrigatorios([]);
     setTipoContratacao('');
     setSalarioBruto('');
+    setSalarioBruto('');
     setRemuneracaoContratual('');
+    setDiaVencimento('5');
     setBanco('');
     setAgencia('');
     setConta('');
@@ -863,23 +867,47 @@ export function ModalCadastroColaborador({
 
           {/* ABA 3: DADOS FINANCEIROS */}
           <TabsContent value="financeiro" className="space-y-4">
-            <div className="space-y-2">
-              <Label>Tipo de Contratação *</Label>
-              <Select value={tipoContratacao} onValueChange={setTipoContratacao}>
-                <SelectTrigger className={errors.tipoContratacao ? 'border-destructive' : ''}>
-                  <SelectValue placeholder="Selecione o tipo..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_CONTRATACAO.map(tipo => (
-                    <SelectItem key={tipo.value} value={tipo.value}>
-                      {tipo.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {errors.tipoContratacao && (
-                <p className="text-xs text-destructive">{errors.tipoContratacao}</p>
-              )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo de Contratação *</Label>
+                <Select value={tipoContratacao} onValueChange={setTipoContratacao}>
+                  <SelectTrigger className={errors.tipoContratacao ? 'border-destructive' : ''}>
+                    <SelectValue placeholder="Selecione o tipo..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TIPOS_CONTRATACAO.map(tipo => (
+                      <SelectItem key={tipo.value} value={tipo.value}>
+                        {tipo.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.tipoContratacao && (
+                  <p className="text-xs text-destructive">{errors.tipoContratacao}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dia de Vencimento (Folha)</Label>
+                <Select value={diaVencimento} onValueChange={setDiaVencimento}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione o dia..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">Dia 05 (Padrão)</SelectItem>
+                    <SelectItem value="10">Dia 10</SelectItem>
+                    <SelectItem value="15">Dia 15</SelectItem>
+                    <SelectItem value="20">Dia 20</SelectItem>
+                    <SelectItem value="25">Dia 25</SelectItem>
+                    <SelectItem value="30">Dia 30</SelectItem>
+                    {/* Outros dias se necessário, ou usar mapeamento completo */}
+                  </SelectContent>
+                </Select>
+                <p className="text-[0.65rem] text-muted-foreground">
+                  Dia referência para o painel de pagamentos
+                </p>
+              </div>
             </div>
 
             {/* Lógica CLT */}

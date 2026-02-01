@@ -10,10 +10,10 @@
  * - GET /health - Health check
  */
 
-import { Hono } from 'npm:hono';
-import { cors } from 'npm:hono/cors';
-import { logger } from 'npm:hono/logger';
-import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { logger } from 'hono/logger';
+import { createClient } from '@supabase/supabase-js';
 
 import {
   emitirBoleto,
@@ -21,11 +21,14 @@ import {
   cancelarBoleto,
   consultarExtrato,
   processarWebhook,
+  consultarBankStatement,
+  consultarSaldo,
+  consultarDadosConta,
 } from './handlers.ts';
-import { getAuthToken } from './auth.ts';
-import type { BoletoPayload, ExtratoParams } from './types.ts';
+import { getAuthToken, debugLogs, clearDebugLogs } from './auth.ts';
+import type { BoletoPayload, ExtratoParams, BankStatementParams } from './types.ts';
 
-const app = new Hono();
+const app = new Hono().basePath('/cora-integration');
 
 // ==================== MIDDLEWARE ====================
 
@@ -70,6 +73,8 @@ app.get('/health', (c) => {
  * Útil para validar credenciais
  */
 app.get('/auth/test', async (c) => {
+  clearDebugLogs();
+  
   try {
     console.log('🔐 Testando autenticação com Banco Cora...');
     const token = await getAuthToken();
@@ -78,6 +83,7 @@ app.get('/auth/test', async (c) => {
       success: true,
       message: 'Autenticação bem-sucedida',
       tokenPrefix: token.substring(0, 20) + '...',
+      logs: debugLogs // Retornar logs mesmo em sucesso
     });
   } catch (error) {
     console.error('❌ Erro no teste de autenticação:', error);
@@ -85,9 +91,42 @@ app.get('/auth/test', async (c) => {
       {
         success: false,
         error: error instanceof Error ? error.message : 'Erro desconhecido',
+        logs: debugLogs // Retornar logs para debug
       },
       500
     );
+  }
+});
+
+/**
+ * Limpa o cache de configuração
+ */
+app.post('/auth/clear-cache', (c) => {
+  clearConfigCache();
+  clearTokenCache();
+  return c.json({ success: true, message: 'Cache limpo com sucesso' });
+});
+
+/**
+ * Debug de configuração (retorna config mascarada)
+ */
+app.get('/auth/debug', async (c) => {
+  try {
+    const config = await loadAuthConfig();
+    return c.json({
+      success: true,
+      config: {
+        clientId: config.clientId,
+        tokenUrl: config.tokenUrl,
+        apiBaseUrl: config.apiBaseUrl,
+        ambiente: config.ambiente,
+        hasCert: !!config.cert,
+        hasKey: !!config.privateKey,
+        certPreview: config.cert ? config.cert.substring(0, 50) : null
+      }
+    });
+  } catch (error) {
+    return c.json({ success: false, error: String(error) }, 500);
   }
 });
 
@@ -293,6 +332,139 @@ app.get('/extrato', async (c) => {
   }
 });
 
+// ==================== BANK STATEMENT (V2) ====================
+
+/**
+ * GET /bank-statement
+ * Consulta extrato bancário (formato oficial Cora)
+ *
+ * Query params:
+ * - start (required): YYYY-MM-DD
+ * - end (required): YYYY-MM-DD
+ * - type (optional): CREDIT | DEBIT
+ * - page (optional): número da página
+ * - perPage (optional): itens por página
+ * - aggr (optional): true para incluir totais
+ */
+app.get('/bank-statement', async (c) => {
+  try {
+    const query = c.req.query();
+
+    if (!query.start || !query.end) {
+      return c.json(
+        {
+          success: false,
+          error: {
+            codigo: 'VALIDATION_ERROR',
+            mensagem: 'Parâmetros obrigatórios: start e end',
+            timestamp: new Date().toISOString(),
+          },
+        },
+        400
+      );
+    }
+
+    const params: BankStatementParams = {
+      start: query.start,
+      end: query.end,
+      type: query.type as 'CREDIT' | 'DEBIT' | undefined,
+      transaction_type: query.transaction_type as 'TRANSFER' | 'BOLETO' | 'PIX' | undefined,
+      page: query.page ? parseInt(query.page) : undefined,
+      perPage: query.perPage ? parseInt(query.perPage) : undefined,
+      aggr: query.aggr === 'true',
+    };
+
+    console.log('📊 Consulta de bank statement:', params);
+
+    const result = await consultarBankStatement(params);
+
+    if (!result.success) {
+      return c.json(result, 400);
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('❌ Erro ao consultar bank statement:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          codigo: 'INTERNAL_ERROR',
+          mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      500
+    );
+  }
+});
+
+// ==================== BANK BALANCE ====================
+
+/**
+ * GET /bank-balance
+ * Consulta saldo bancário
+ */
+app.get('/bank-balance', async (c) => {
+  try {
+    console.log('💰 Consulta de saldo');
+
+    const result = await consultarSaldo();
+
+    if (!result.success) {
+      return c.json(result, 400);
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('❌ Erro ao consultar saldo:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          codigo: 'INTERNAL_ERROR',
+          mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      500
+    );
+  }
+});
+
+// ==================== ACCOUNT DETAILS ====================
+
+/**
+ * GET /account-details
+ * Consulta dados da conta
+ */
+app.get('/account-details', async (c) => {
+  try {
+    console.log('🏦 Consulta de dados da conta');
+
+    const result = await consultarDadosConta();
+
+    if (!result.success) {
+      return c.json(result, 400);
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('❌ Erro ao consultar dados da conta:', error);
+    return c.json(
+      {
+        success: false,
+        error: {
+          codigo: 'INTERNAL_ERROR',
+          mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+          timestamp: new Date().toISOString(),
+        },
+      },
+      500
+    );
+  }
+});
+
 // ==================== WEBHOOKS ====================
 
 /**
@@ -388,6 +560,205 @@ app.post('/webhook', async (c) => {
       },
       500
     );
+  }
+});
+
+// ==================== SYNC EXTRATO ====================
+
+/**
+ * POST /sync
+ * Sincroniza extrato bancário do Cora para lancamentos_bancarios
+ * 
+ * Query params:
+ * - start: Data inicial (YYYY-MM-DD), default: 30 dias atrás
+ * - end: Data final (YYYY-MM-DD), default: hoje
+ */
+app.post('/sync', async (c) => {
+  clearDebugLogs();
+  
+  try {
+    const url = new URL(c.req.url);
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    const start = url.searchParams.get('start') || thirtyDaysAgo.toISOString().split('T')[0];
+    const end = url.searchParams.get('end') || today.toISOString().split('T')[0];
+    
+    console.log(`🔄 Sincronizando extrato: ${start} a ${end}`);
+    
+    // 1. Buscar extrato do proxy
+    const PROXY_URL = 'https://pxminerva.onrender.com';
+    const PROXY_API_KEY = 'minerva-cora-proxy-secret-2026';
+    
+    const proxyResponse = await fetch(`${PROXY_URL}/extrato?start=${start}&end=${end}`, {
+      headers: { 'X-Api-Key': PROXY_API_KEY },
+    });
+    
+    if (!proxyResponse.ok) {
+      const errorText = await proxyResponse.text();
+      console.error('❌ Erro do proxy:', errorText);
+      return c.json({ 
+        success: false, 
+        error: `Proxy error: ${proxyResponse.status}`,
+        logs: debugLogs 
+      }, 500);
+    }
+    
+    const extratoData = await proxyResponse.json();
+    const entries = extratoData.entries || [];
+    
+    console.log(`📊 Recebidos ${entries.length} lançamentos do Cora`);
+    
+    if (entries.length === 0) {
+      return c.json({
+        success: true,
+        message: 'Nenhum lançamento novo encontrado',
+        imported: 0,
+        total: 0,
+        logs: debugLogs
+      });
+    }
+    
+    // 2. Transformar para schema lancamentos_bancarios
+    // DEBUG: Log first entry structure to validate Cora response
+    if (entries.length > 0) {
+      console.log('📋 First entry sample:', JSON.stringify(entries[0], null, 2));
+    }
+
+    // Calcular saldo_apos e ordenar cronologicamente
+    let runningBalance = extratoData.start?.balance || 0;
+    
+    // Check if entries need sorting (Cora usually returns desc)
+    // We sort ASC to calculate balance correctly from start
+    const sortedEntries = [...entries].sort((a: any, b: any) => 
+      new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+    );
+
+    const lancamentos = sortedEntries.map((entry: any) => {
+      const isCredit = entry.type === 'CREDIT';
+      const valor = entry.amount / 100; // Cora envia em centavos (ex: 10000 -> 100.00)
+      const amountCents = entry.amount;
+
+      // Update running balance (in cents to avoid float issues)
+      if (isCredit) {
+        runningBalance += amountCents;
+      } else {
+        runningBalance -= amountCents;
+      }
+      
+      const saldoApos = runningBalance / 100;
+      
+      // Extrair dados da transação
+      const transaction = entry.transaction || {};
+      
+      // ACTUAL CORA STRUCTURE: counterParty is camelCase with capital P
+      // And document is in 'identity' field, not 'document'
+      const counterParty = transaction.counterParty || 
+                           transaction.counterpart || 
+                           transaction.counterparty ||
+                           {};
+      
+      // Extract name - Cora uses 'name' field
+      const contraparte_nome = counterParty.name || 
+                               counterParty.accountName ||
+                               counterParty.holderName ||
+                               transaction.name ||
+                               null;
+      
+      // Extract document - Cora uses 'identity' field, not 'document'
+      const contraparte_documento = counterParty.identity ||
+                                     counterParty.document ||
+                                     counterParty.documentNumber ||
+                                     counterParty.taxId ||
+                                     counterParty.cpf ||
+                                     counterParty.cnpj ||
+                                     transaction.identity ||
+                                     transaction.document ||
+                                     null;
+      
+      // Mapear tipo de transação
+      const transactionType = (transaction.type || entry.transactionType || '').toUpperCase();
+      let metodoTransacao: 'PIX' | 'BOLETO' | 'TRANSFER' | 'OTHER' = 'OTHER';
+      if (transactionType === 'PIX') metodoTransacao = 'PIX';
+      else if (transactionType === 'BOLETO' || transactionType === 'BANK_SLIP' || transactionType === 'INVOICE') metodoTransacao = 'BOLETO';
+      else if (transactionType === 'TRANSFER' || transactionType === 'TED' || transactionType === 'DOC') metodoTransacao = 'TRANSFER';
+      
+      // Extract description - Cora returns empty string "", so check for non-empty
+      // Use counterParty name as fallback when description is empty
+      const rawDescription = transaction.description || entry.description || '';
+      const descricao = rawDescription.trim() || 
+        contraparte_nome ||
+        (isCredit ? `Crédito - ${contraparte_nome || 'N/A'}` : `Débito - ${contraparte_nome || 'N/A'}`);
+      
+      return {
+        data: entry.createdAt?.split('T')[0] || entry.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+        descricao,
+        entrada: isCredit ? valor : null,
+        saida: !isCredit ? valor : null,
+        saldo_apos: saldoApos,
+        banco: 'Cora',
+        conta_bancaria: extratoData.header?.businessDocument || null,
+        arquivo_origem: 'api-sync',
+        linha_origem: null,
+        hash_linha: `cora-${entry.id}`,
+        status: 'pendente',
+        // Novos campos
+        tipo_lancamento: entry.type, // 'CREDIT' ou 'DEBIT'
+        metodo_transacao: metodoTransacao,
+        // Use extracted counterpart data
+        contraparte_nome,
+        contraparte_documento,
+        cora_entry_id: entry.id,
+        // observacoes should be NULL - user fills in "Classificar" modal
+        observacoes: null,
+      };
+    });
+    
+    // 3. Upsert no Supabase (evita duplicatas por hash_linha)
+    const supabase = getSupabaseClient();
+    
+    const { data: inserted, error: dbError } = await supabase
+      .from('lancamentos_bancarios')
+      .upsert(lancamentos, {
+        onConflict: 'hash_linha',
+        ignoreDuplicates: true,
+      })
+      .select('id');
+    
+    if (dbError) {
+      console.error('❌ Erro ao inserir no banco:', dbError);
+      return c.json({
+        success: false,
+        error: dbError.message,
+        logs: debugLogs
+      }, 500);
+    }
+    
+    const importedCount = inserted?.length || 0;
+    console.log(`✅ Sincronização concluída: ${importedCount} novos lançamentos`);
+    
+    // 4. Atualizar última sincronização na integração
+    await supabase
+      .from('integracoes_bancarias')
+      .update({ ultima_sincronizacao: new Date().toISOString() })
+      .eq('banco', 'cora');
+    
+    return c.json({
+      success: true,
+      message: `Sincronização concluída`,
+      imported: importedCount,
+      total: entries.length,
+      period: { start, end },
+      logs: debugLogs
+    });
+    
+  } catch (error) {
+    console.error('❌ Erro na sincronização:', error);
+    return c.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido',
+      logs: debugLogs
+    }, 500);
   }
 });
 

@@ -6,6 +6,8 @@ export const Route = createFileRoute('/_auth/os/criar/laudo-pontual')({
     return {
       parentOSId: search.parentOSId as string | undefined,
       clienteId: search.clienteId as string | undefined,
+      step: search.step ? Number(search.step) : undefined,
+      osId: search.osId as string | undefined,
     }
   },
   component: LaudoPontualRoute,
@@ -13,13 +15,15 @@ export const Route = createFileRoute('/_auth/os/criar/laudo-pontual')({
 
 function LaudoPontualRoute() {
   const router = useRouter()
-  const { parentOSId, clienteId } = Route.useSearch()
+  const { parentOSId, clienteId, step, osId } = Route.useSearch()
 
   return (
     <OS11WorkflowPage
       onBack={() => router.history.back()}
       parentOSId={parentOSId}
       clienteId={clienteId}
+      initialStep={step}
+      osId={osId || parentOSId}
     />
   )
 }

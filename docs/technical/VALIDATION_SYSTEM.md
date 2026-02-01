@@ -165,7 +165,10 @@ Todos os componentes abaixo suportam as props `error` e `success`:
 | `FormTextarea` | Textos longos, observações | `@/components/ui/form-textarea` |
 | `FormSelect` | Seleção simples (Dropdown) | `@/components/ui/form-select` |
 | `FormMaskedInput` | CPF, CNPJ, Telefone, Moeda | `@/components/ui/form-masked-input` |
-| `FormDatePicker` | Datas | `@/components/ui/form-date-picker` |
+| `FormDatePicker` | Seleção de Datas | `@/components/ui/form-date-picker` |
+| `FormCheckbox` | Booleanos (ex: Aceite de termos) | `@/components/ui/form-checkbox` |
+| `FormRadioGroup` | Seleção única (lista visível) | `@/components/ui/form-radio-group` |
+| `FormSwitch` | Toggles (Ativar/Desativar) | `@/components/ui/form-switch` |
 
 ---
 

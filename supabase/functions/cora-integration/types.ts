@@ -12,6 +12,8 @@ export interface CoraAuthConfig {
   privateKey: string;
   cert: string;
   tokenUrl: string;
+  apiBaseUrl?: string; // Base URL para chamadas de API
+  ambiente?: 'stage' | 'production'; // Ambiente atual
 }
 
 export interface CoraTokenResponse {
@@ -117,6 +119,77 @@ export interface ExtratoResponse {
     totalPaginas: number;
     totalRegistros: number;
   };
+}
+
+// ==================== BANK STATEMENT (V2 API) ====================
+
+/** Params for GET /bank-statement/statement */
+export interface BankStatementParams {
+  start: string; // YYYY-MM-DD
+  end: string; // YYYY-MM-DD
+  type?: 'CREDIT' | 'DEBIT';
+  transaction_type?: 'TRANSFER' | 'BOLETO' | 'PIX';
+  page?: number;
+  perPage?: number;
+  aggr?: boolean;
+}
+
+/** Entry in the bank statement */
+export interface BankStatementEntry {
+  id: string;
+  type: 'CREDIT' | 'DEBIT';
+  amount: number; // Em centavos
+  createdAt: string;
+  transaction: {
+    description: string;
+    counterpart?: {
+      name: string;
+      document: string;
+    };
+  };
+}
+
+/** Response from GET /bank-statement/statement */
+export interface BankStatementResponse {
+  start: {
+    date: string;
+    balance: number; // Em centavos
+  };
+  end: {
+    date: string;
+    balance: number; // Em centavos
+  };
+  entries: BankStatementEntry[];
+  aggregations?: {
+    creditTotal: number;
+    debitTotal: number;
+  };
+  header?: {
+    businessName: string;
+    businessDocument: string;
+  };
+}
+
+// ==================== BANK BALANCE ====================
+
+/** Response from GET /bank-balance */
+export interface BankBalanceResponse {
+  total: number; // Em centavos
+  available: number; // Em centavos
+  blocked: number; // Em centavos
+}
+
+// ==================== ACCOUNT DETAILS ====================
+
+/** Response from GET /account-details */
+export interface AccountDetailsResponse {
+  bankNumber: string;
+  bankName: string;
+  branchNumber: string;
+  accountNumber: string;
+  accountType: string;
+  businessName: string;
+  businessDocument: string;
 }
 
 // ==================== WEBHOOK ====================

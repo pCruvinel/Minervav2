@@ -36,62 +36,31 @@ import {
     useReceitasRecorrentes,
     useParcelasPendentes,
     useReceitasKPIs,
-    type ReceitaRecorrente
 } from '@/lib/hooks/use-receitas-recorrentes';
 
 // ============================================================
-// MOCK DATA - FRONTEND-ONLY MODE
+// TYPES LOCAIS
 // ============================================================
 
-const mockKPIs = {
-    totalMensal: 52400,
-    projecao12Meses: 628800,
-    reajusteMedio: 2.0,
-    contratosAtivos: 8,
-    inadimplente: 21333.33,
-    parcelasPendentes: 12,
-};
+/** Tipo local para receita mapeada dos hooks */
+interface ReceitaMapeada {
+    id: string;
+    ccId: string;
+    ccCodigo: string;
+    cliente: string;
+    tipo: string;
+    valorMensal: number;
+    frequencia: string;
+    dataInicio: string;
+    dataFim: string | null;
+    parcelasPagas: number;
+    parcelasTotal: number;
+    proximoVencimento: string;
+    reajusteAnual: number;
+    status: string;
+}
 
-const mockReceitasRecorrentes = [
-    {
-        id: 'rec-001', ccId: 'cc-13001', ccCodigo: 'CC13001-SOLAR_I',
-        cliente: 'Construtora Silva Ltda', tipo: 'Obra', valorMensal: 10666.67,
-        frequencia: 'Mensal', dataInicio: '2024-01-15', dataFim: '2024-12-15',
-        parcelasPagas: 11, parcelasTotal: 12, proximoVencimento: '2025-01-15',
-        reajusteAnual: 0, status: 'ativo',
-    },
-    {
-        id: 'rec-002', ccId: 'cc-12005', ccCodigo: 'CC12005-EDIFICIO_CENTRAL',
-        cliente: 'Administradora Central', tipo: 'Assessoria Anual', valorMensal: 4200,
-        frequencia: 'Mensal', dataInicio: '2024-03-01', dataFim: '2025-02-28',
-        parcelasPagas: 10, parcelasTotal: 12, proximoVencimento: '2025-01-05',
-        reajusteAnual: 2.0, status: 'ativo',
-    },
-    {
-        id: 'rec-003', ccId: 'cc-11008', ccCodigo: 'CC11008-ASSESSORIA_ABC',
-        cliente: 'Condomínio ABC', tipo: 'Assessoria Anual', valorMensal: 3500,
-        frequencia: 'Mensal', dataInicio: '2024-06-01', dataFim: '2025-05-31',
-        parcelasPagas: 7, parcelasTotal: 12, proximoVencimento: '2025-01-10',
-        reajusteAnual: 2.0, status: 'ativo',
-    },
-    {
-        id: 'rec-004', ccId: 'cc-11009', ccCodigo: 'CC11009-RESIDENCIAL_FLORES',
-        cliente: 'Residencial das Flores', tipo: 'Laudo Pontual', valorMensal: 8500,
-        frequencia: 'Único', dataInicio: '2024-11-01', dataFim: null,
-        parcelasPagas: 0, parcelasTotal: 1, proximoVencimento: '2025-01-20',
-        reajusteAnual: 0, status: 'ativo',
-    },
-];
-
-const mockParcelasPendentes = [
-    { id: 'par-1', cliente: 'Construtora Silva Ltda', ccCodigo: 'CC13001-SOLAR_I', ccId: 'cc-13001', contrato: 'CNT-2024-003', parcela: '5/6', vencimento: '2024-11-01', valor: 21333.33, status: 'inadimplente' },
-    { id: 'par-2', cliente: 'Construtora Silva Ltda', ccCodigo: 'CC13001-SOLAR_I', ccId: 'cc-13001', contrato: 'CNT-2024-003', parcela: '6/6', vencimento: '2024-11-30', valor: 21333.34, status: 'em_aberto' },
-    { id: 'par-3', cliente: 'Administradora Central', ccCodigo: 'CC12005-EDIFICIO_CENTRAL', ccId: 'cc-12005', contrato: 'CNT-2024-001', parcela: '11/12', vencimento: '2024-12-05', valor: 4200, status: 'em_aberto' },
-    { id: 'par-4', cliente: 'Administradora Central', ccCodigo: 'CC12005-EDIFICIO_CENTRAL', ccId: 'cc-12005', contrato: 'CNT-2024-001', parcela: '12/12', vencimento: '2025-01-05', valor: 4284, status: 'futuro' },
-    { id: 'par-5', cliente: 'Condomínio ABC', ccCodigo: 'CC11008-ASSESSORIA_ABC', ccId: 'cc-11008', contrato: 'CNT-2024-005', parcela: '8/12', vencimento: '2025-01-10', valor: 3500, status: 'em_aberto' },
-    { id: 'par-6', cliente: 'Residencial das Flores', ccCodigo: 'CC11009-RESIDENCIAL_FLORES', ccId: 'cc-11009', contrato: 'CNT-2024-008', parcela: '1/1', vencimento: '2025-01-20', valor: 8500, status: 'futuro' },
-];
-
+// Mock para parcelas do contrato (usado no Dialog de detalhes)
 const mockParcelasContrato = [
     { parcela: 1, vencimento: '2024-02-05', valor: 4200, status: 'Pago', dataPagamento: '2024-02-03' },
     { parcela: 2, vencimento: '2024-03-05', valor: 4200, status: 'Pago', dataPagamento: '2024-03-05' },
@@ -125,7 +94,7 @@ export function ReceitasRecorrentesPage() {
     const [tipoFiltro, setTipoFiltro] = useState<string>('todos');
     const [statusParcela, setStatusParcela] = useState<string>('todos');
     const [parcelasDialogOpen, setParcelasDialogOpen] = useState(false);
-    const [selectedReceita, setSelectedReceita] = useState<ReceitaRecorrente | typeof mockReceitasRecorrentes[0] | null>(null);
+    const [selectedReceita, setSelectedReceita] = useState<ReceitaMapeada | null>(null);
 
     // Paginação
     const [pageContratos, setPageContratos] = useState(1);
@@ -149,41 +118,45 @@ export function ReceitasRecorrentesPage() {
 
     const isLoading = receitasLoading || parcelasLoading || kpisLoading;
 
-    // Dados com fallback para mock
-    const receitas = receitasData && receitasData.length > 0
-        ? receitasData.map(r => ({
-            id: r.id,
-            ccId: r.contrato_id,
-            ccCodigo: r.contrato_numero,
-            cliente: r.cliente_nome,
-            tipo: 'Contrato',
-            valorMensal: r.valor_mensal,
-            frequencia: 'Mensal',
-            dataInicio: '',
-            dataFim: null,
-            parcelasPagas: r.parcelas_pagas,
-            parcelasTotal: r.parcelas_total,
-            proximoVencimento: r.proxima_cobranca,
-            reajusteAnual: 0,
-            status: r.status,
-        }))
-        : mockReceitasRecorrentes;
+    // Dados reais mapeados (sem fallback para mock)
+    const receitas = (receitasData || []).map(r => ({
+        id: r.id,
+        ccId: r.contrato_id,
+        ccCodigo: r.contrato_numero,
+        cliente: r.cliente_nome,
+        tipo: 'Contrato',
+        valorMensal: r.valor_mensal,
+        frequencia: 'Mensal',
+        dataInicio: '',
+        dataFim: null,
+        parcelasPagas: r.parcelas_pagas,
+        parcelasTotal: r.parcelas_total,
+        proximoVencimento: r.proxima_cobranca,
+        reajusteAnual: 0,
+        status: r.status,
+    }));
 
-    const parcelas = parcelasData && parcelasData.length > 0
-        ? parcelasData.map(p => ({
-            id: p.id,
-            cliente: p.cliente_nome,
-            ccCodigo: p.descricao,
-            ccId: p.cc_id ?? p.contrato_id,
-            contrato: `Parcela ${p.parcela_num}/${p.total_parcelas}`,
-            parcela: `${p.parcela_num}/${p.total_parcelas}`,
-            vencimento: p.vencimento,
-            valor: p.valor_previsto,
-            status: p.dias_atraso > 0 ? 'inadimplente' : p.status === 'pendente' ? 'em_aberto' : p.status,
-        }))
-        : mockParcelasPendentes;
+    const parcelas = (parcelasData || []).map(p => ({
+        id: p.id,
+        cliente: p.cliente_nome,
+        ccCodigo: p.descricao,
+        ccId: p.cc_id ?? p.contrato_id,
+        contrato: `Parcela ${p.parcela_num}/${p.total_parcelas}`,
+        parcela: `${p.parcela_num}/${p.total_parcelas}`,
+        vencimento: p.vencimento,
+        valor: p.valor_previsto,
+        status: p.dias_atraso > 0 ? 'inadimplente' : p.status === 'pendente' ? 'em_aberto' : p.status,
+    }));
 
-    const kpis = kpisData ?? mockKPIs;
+    // KPIs com valores default quando não há dados
+    const kpis = kpisData ?? {
+        totalReceitasMes: 0,
+        recebidoMes: 0,
+        pendenteMes: 0,
+        atrasadoMes: 0,
+        contratosAtivos: 0,
+        ticketMedio: 0,
+    };
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -283,7 +256,7 @@ export function ReceitasRecorrentesPage() {
     const paginatedReceitas = receitasOrdenadas.slice((pageContratos - 1) * itemsPerPage, pageContratos * itemsPerPage);
     const paginatedParcelas = parcelasOrdenadas.slice((pageParcelas - 1) * itemsPerPage, pageParcelas * itemsPerPage);
 
-    const handleVerParcelas = (receita: typeof mockReceitasRecorrentes[0]) => {
+    const handleVerParcelas = (receita: ReceitaMapeada) => {
         setSelectedReceita(receita);
         setParcelasDialogOpen(true);
     };
@@ -352,7 +325,7 @@ export function ReceitasRecorrentesPage() {
             <KPIFinanceiroGrid columns={4}>
                 <KPICardFinanceiro
                     title="Total Mensal"
-                    value={'totalReceitasMes' in kpis ? kpis.totalReceitasMes : kpis.totalMensal}
+                    value={kpis.totalReceitasMes}
                     icon={<DollarSign className="w-6 h-6" />}
                     variant="success"
                     subtitle="Previsto"
@@ -360,7 +333,7 @@ export function ReceitasRecorrentesPage() {
                 />
                 <KPICardFinanceiro
                     title="Recebido"
-                    value={'recebidoMes' in kpis ? kpis.recebidoMes : 0}
+                    value={kpis.recebidoMes}
                     icon={<TrendingUp className="w-6 h-6" />}
                     variant="primary"
                     subtitle="Este mês"
@@ -467,53 +440,68 @@ export function ReceitasRecorrentesPage() {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {paginatedReceitas.map((receita) => (
-                                        <CompactTableRow key={receita.id}>
-                                            <CompactTableCell className="font-medium">
-                                                <Button
-                                                    variant="link"
-                                                    className="p-0 h-auto text-primary hover:underline font-semibold"
-                                                    onClick={() => handleVerCC(receita.ccId)}
-                                                >
-                                                    {receita.ccCodigo}
-                                                </Button>
-                                            </CompactTableCell>
-                                            <CompactTableCell>{receita.cliente}</CompactTableCell>
-                                            <CompactTableCell>{getTipoBadge(receita.tipo)}</CompactTableCell>
-                                            <CompactTableCell>
-                                                <span className="flex items-center gap-1">
-                                                    <Calendar className="w-3 h-3 text-neutral-400" />
-                                                    {formatDate(receita.proximoVencimento)}
-                                                </span>
-                                            </CompactTableCell>
-                                            <CompactTableCell>
-                                                <span className="flex items-center gap-1">
-                                                    {receita.parcelasPagas}/{receita.parcelasTotal}
-                                                    {receita.reajusteAnual > 0 && (
-                                                        <span className="text-primary text-xs ml-1">
-                                                            <RefreshCw className="w-3 h-3 inline" />
-                                                            +{receita.reajusteAnual}%
-                                                        </span>
-                                                    )}
-                                                </span>
-                                            </CompactTableCell>
-                                            <CompactTableCell className="text-right font-bold text-success">
-                                                {formatCurrency(receita.valorMensal)}
-                                            </CompactTableCell>
-                                            <CompactTableCell className="text-center">
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerParcelas(receita)}>
-                                                        <Eye className="w-4 h-4" />
-                                                    </Button>
-                                                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(receita.ccId)}>
-                                                        <Building2 className="w-4 h-4" />
-                                                    </Button>
+                                    {paginatedReceitas.length === 0 ? (
+                                        <TableRow>
+                                            <CompactTableCell colSpan={7} className="text-center py-12">
+                                                <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                                                    <FileText className="w-12 h-12 opacity-50" />
+                                                    <div>
+                                                        <p className="font-medium">Nenhum contrato encontrado</p>
+                                                        <p className="text-sm">Cadastre contratos com receitas recorrentes para visualizá-los aqui.</p>
+                                                    </div>
                                                 </div>
                                             </CompactTableCell>
-                                        </CompactTableRow>
-                                    ))}
+                                        </TableRow>
+                                    ) : (
+                                        paginatedReceitas.map((receita) => (
+                                            <CompactTableRow key={receita.id}>
+                                                <CompactTableCell className="font-medium">
+                                                    <Button
+                                                        variant="link"
+                                                        className="p-0 h-auto text-primary hover:underline font-semibold"
+                                                        onClick={() => handleVerCC(receita.ccId)}
+                                                    >
+                                                        {receita.ccCodigo}
+                                                    </Button>
+                                                </CompactTableCell>
+                                                <CompactTableCell>{receita.cliente}</CompactTableCell>
+                                                <CompactTableCell>{getTipoBadge(receita.tipo)}</CompactTableCell>
+                                                <CompactTableCell>
+                                                    <span className="flex items-center gap-1">
+                                                        <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                        {formatDate(receita.proximoVencimento)}
+                                                    </span>
+                                                </CompactTableCell>
+                                                <CompactTableCell>
+                                                    <span className="flex items-center gap-1">
+                                                        {receita.parcelasPagas}/{receita.parcelasTotal}
+                                                        {receita.reajusteAnual > 0 && (
+                                                            <span className="text-primary text-xs ml-1">
+                                                                <RefreshCw className="w-3 h-3 inline" />
+                                                                +{receita.reajusteAnual}%
+                                                            </span>
+                                                        )}
+                                                    </span>
+                                                </CompactTableCell>
+                                                <CompactTableCell className="text-right font-bold text-success">
+                                                    {formatCurrency(receita.valorMensal)}
+                                                </CompactTableCell>
+                                                <CompactTableCell className="text-center">
+                                                    <div className="flex items-center justify-center gap-1">
+                                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerParcelas(receita)}>
+                                                            <Eye className="w-4 h-4" />
+                                                        </Button>
+                                                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(receita.ccId)}>
+                                                            <Building2 className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                </CompactTableCell>
+                                            </CompactTableRow>
+                                        ))
+                                    )}
                                 </TableBody>
                                 {/* Linha de Total */}
+                                {paginatedReceitas.length > 0 && (
                                 <TableFooter>
                                     <TableRow className="bg-muted/60 font-semibold">
                                         <CompactTableCell colSpan={5} className="text-right">
@@ -525,6 +513,7 @@ export function ReceitasRecorrentesPage() {
                                         <CompactTableCell />
                                     </TableRow>
                                 </TableFooter>
+                                )}
                             </Table>
                         )}
                     </CompactTableWrapper>
@@ -597,43 +586,58 @@ export function ReceitasRecorrentesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {paginatedParcelas.map((parcela) => (
-                                    <CompactTableRow
-                                        key={parcela.id}
-                                        className={parcela.status === 'inadimplente' ? 'bg-destructive/5 border-l-2 border-l-destructive' : ''}
-                                    >
-                                        <CompactTableCell className="font-medium">{parcela.cliente}</CompactTableCell>
-                                        <CompactTableCell>
-                                            <Button
-                                                variant="link"
-                                                className="p-0 h-auto text-primary hover:underline"
-                                                onClick={() => handleVerCC(parcela.ccId)}
-                                            >
-                                                {parcela.ccCodigo}
-                                            </Button>
+                                {paginatedParcelas.length === 0 ? (
+                                    <TableRow>
+                                        <CompactTableCell colSpan={7} className="text-center py-12">
+                                            <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                                                <Calendar className="w-12 h-12 opacity-50" />
+                                                <div>
+                                                    <p className="font-medium">Nenhuma parcela pendente</p>
+                                                    <p className="text-sm">Todas as parcelas estão quitadas ou não há parcelas cadastradas.</p>
+                                                </div>
+                                            </div>
                                         </CompactTableCell>
-                                        <CompactTableCell>{parcela.parcela}</CompactTableCell>
-                                        <CompactTableCell>
-                                            <span className="flex items-center gap-1">
-                                                <Calendar className="w-3 h-3 text-neutral-400" />
-                                                {formatDate(parcela.vencimento)}
-                                            </span>
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-right font-bold text-success">
-                                            {formatCurrency(parcela.valor)}
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-center">
-                                            {getStatusBadge(parcela.status, parcela.vencimento)}
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-center">
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(parcela.ccId)}>
-                                                <Building2 className="w-4 h-4" />
-                                            </Button>
-                                        </CompactTableCell>
-                                    </CompactTableRow>
-                                ))}
+                                    </TableRow>
+                                ) : (
+                                    paginatedParcelas.map((parcela) => (
+                                        <CompactTableRow
+                                            key={parcela.id}
+                                            className={parcela.status === 'inadimplente' ? 'bg-destructive/5 border-l-2 border-l-destructive' : ''}
+                                        >
+                                            <CompactTableCell className="font-medium">{parcela.cliente}</CompactTableCell>
+                                            <CompactTableCell>
+                                                <Button
+                                                    variant="link"
+                                                    className="p-0 h-auto text-primary hover:underline"
+                                                    onClick={() => handleVerCC(parcela.ccId)}
+                                                >
+                                                    {parcela.ccCodigo}
+                                                </Button>
+                                            </CompactTableCell>
+                                            <CompactTableCell>{parcela.parcela}</CompactTableCell>
+                                            <CompactTableCell>
+                                                <span className="flex items-center gap-1">
+                                                    <Calendar className="w-3 h-3 text-muted-foreground" />
+                                                    {formatDate(parcela.vencimento)}
+                                                </span>
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-right font-bold text-success">
+                                                {formatCurrency(parcela.valor)}
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-center">
+                                                {getStatusBadge(parcela.status, parcela.vencimento)}
+                                            </CompactTableCell>
+                                            <CompactTableCell className="text-center">
+                                                <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => handleVerCC(parcela.ccId)}>
+                                                    <Building2 className="w-4 h-4" />
+                                                </Button>
+                                            </CompactTableCell>
+                                        </CompactTableRow>
+                                    ))
+                                )}
                             </TableBody>
                             {/* Linha de Total */}
+                            {paginatedParcelas.length > 0 && (
                             <TableFooter>
                                 <TableRow className="bg-muted/60 font-semibold">
                                     <CompactTableCell colSpan={4} className="text-right">
@@ -645,6 +649,7 @@ export function ReceitasRecorrentesPage() {
                                     <CompactTableCell colSpan={2} />
                                 </TableRow>
                             </TableFooter>
+                            )}
                         </Table>
                     </CompactTableWrapper>
                 </TabsContent>

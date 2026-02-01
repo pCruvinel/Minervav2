@@ -35,3 +35,10 @@ supabase/.branches/
 # Generated files
 src/routeTree.gen.ts
 *.tsbuildinfo
+
+# Security / Secrets
+*.key
+*.pem
+*.crt
+*.pfx
+*.cer

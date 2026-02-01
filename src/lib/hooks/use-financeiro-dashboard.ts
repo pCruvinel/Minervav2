@@ -108,7 +108,7 @@ export function useFinanceiroDashboard() {
       const { count: totalClientes, error: errClientes } = await supabase
         .from('clientes')
         .select('*', { count: 'exact', head: true })
-        .eq('cliente_ativo', true);
+        .eq('status', 'ativo');
 
       if (errClientes) throw errClientes;
 
@@ -116,7 +116,7 @@ export function useFinanceiroDashboard() {
       const { count: totalOS, error: errOS } = await supabase
         .from('ordens_servico')
         .select('*', { count: 'exact', head: true })
-        .in('status_geral', ['em_andamento', 'pausada']);
+        .in('status_geral', ['em_andamento', 'em_triagem', 'aguardando_info', 'aguardando_aprovacao']);
 
       if (errOS) throw errOS;
 
@@ -214,5 +214,191 @@ export function useDespesasComparacao() {
       return meses;
     },
     staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+}
+
+// ============================================================
+// ANÁLISE DE VARIAÇÃO (PREVISTO VS REALIZADO)
+// ============================================================
+
+export interface AnaliseVariacao {
+  receitas: {
+    previsto: number;
+    realizado: number;
+    variacao: number;
+    percentual: number;
+  };
+  despesas: {
+    previsto: number;
+    realizado: number;
+    variacao: number;
+    percentual: number;
+  };
+  periodo: string;
+}
+
+/**
+ * Hook para análise de variação mensal (previsto vs realizado)
+ * Usado no card "Análise de Variação - Este Mês"
+ */
+export function useAnaliseVariacao() {
+  return useQuery({
+    queryKey: ['analise-variacao'],
+    queryFn: async (): Promise<AnaliseVariacao> => {
+      const { firstDayOfMonth, lastDayOfMonth } = getMonthBounds();
+      const hoje = new Date();
+      const periodo = hoje.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
+
+      // Receitas do mês
+      const { data: receitas } = await supabase
+        .from('contas_receber')
+        .select('valor_previsto, valor_recebido, status')
+        .gte('vencimento', firstDayOfMonth)
+        .lte('vencimento', lastDayOfMonth);
+
+      // Despesas do mês
+      const { data: despesas } = await supabase
+        .from('contas_pagar')
+        .select('valor, status')
+        .gte('vencimento', firstDayOfMonth)
+        .lte('vencimento', lastDayOfMonth);
+
+      // Calcular receitas
+      const receitaPrevisto = receitas?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0;
+      const receitaRealizado = receitas?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0;
+      const receitaVariacao = receitaRealizado - receitaPrevisto;
+      const receitaPercentual = receitaPrevisto > 0 ? (receitaVariacao / receitaPrevisto) * 100 : 0;
+
+      // Calcular despesas
+      const despesaPrevisto = despesas?.reduce((acc, d) => acc + Number(d.valor || 0), 0) ?? 0;
+      const despesaRealizado = despesas
+        ?.filter(d => d.status === 'pago')
+        .reduce((acc, d) => acc + Number(d.valor || 0), 0) ?? 0;
+      const despesaVariacao = despesaRealizado - despesaPrevisto;
+      const despesaPercentual = despesaPrevisto > 0 ? (despesaVariacao / despesaPrevisto) * 100 : 0;
+
+      return {
+        receitas: {
+          previsto: receitaPrevisto,
+          realizado: receitaRealizado,
+          variacao: receitaVariacao,
+          percentual: Math.round(receitaPercentual * 10) / 10,
+        },
+        despesas: {
+          previsto: despesaPrevisto,
+          realizado: despesaRealizado,
+          variacao: despesaVariacao,
+          percentual: Math.round(despesaPercentual * 10) / 10,
+        },
+        periodo,
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============================================================
+// PRESTAÇÃO DE CONTAS (LUCRATIVIDADE POR TIPO)
+// ============================================================
+
+export interface PrestacaoContasTipo {
+  tipo: string;
+  lucroTotal: number;
+  projetosCount: number;
+  projetosEmAndamento: number;
+}
+
+/**
+ * Hook para prestação de contas por tipo de projeto
+ * Usado no card "Prestação de Contas"
+ */
+export function usePrestacaoContas() {
+  return useQuery({
+    queryKey: ['prestacao-contas'],
+    queryFn: async (): Promise<PrestacaoContasTipo[]> => {
+      // Buscar contratos ativos com tipo e centro de custo
+      const { data: contratos } = await supabase
+        .from('contratos')
+        .select(`
+          id,
+          tipo,
+          status,
+          valor_total,
+          cc_id
+        `)
+        .in('status', ['ativo', 'concluido']);
+
+      // Buscar receitas realizadas
+      const { data: receitas } = await supabase
+        .from('contas_receber')
+        .select('contrato_id, valor_recebido')
+        .in('status', ['pago', 'recebido', 'conciliado']);
+
+      // Buscar despesas realizadas - usando cc_id (contas_pagar não tem contrato_id)
+      const { data: despesas } = await supabase
+        .from('contas_pagar')
+        .select('cc_id, valor')
+        .eq('status', 'pago');
+
+      // Agregar por tipo
+      const tiposMap: Record<string, {
+        lucro: number;
+        count: number;
+        emAndamento: number;
+      }> = {
+        'Obra': { lucro: 0, count: 0, emAndamento: 0 },
+        'Assessoria Anual': { lucro: 0, count: 0, emAndamento: 0 },
+        'Laudo Pontual': { lucro: 0, count: 0, emAndamento: 0 },
+      };
+
+      // Mapear receitas por contrato
+      const receitasPorContrato: Record<string, number> = {};
+      receitas?.forEach(r => {
+        if (r.contrato_id) {
+          receitasPorContrato[r.contrato_id] = (receitasPorContrato[r.contrato_id] || 0) + Number(r.valor_recebido || 0);
+        }
+      });
+
+      // Mapear despesas por centro de custo (cc_id)
+      const despesasPorCC: Record<string, number> = {};
+      despesas?.forEach(d => {
+        if (d.cc_id) {
+          despesasPorCC[d.cc_id] = (despesasPorCC[d.cc_id] || 0) + Number(d.valor || 0);
+        }
+      });
+
+      // Calcular lucro por tipo
+      contratos?.forEach(contrato => {
+        const tipo = contrato.tipo || 'Outros';
+        const tipoNormalizado = tipo.includes('Obra') ? 'Obra' :
+          tipo.includes('Assessoria') ? 'Assessoria Anual' :
+            tipo.includes('Laudo') ? 'Laudo Pontual' : tipo;
+
+        if (!tiposMap[tipoNormalizado]) {
+          tiposMap[tipoNormalizado] = { lucro: 0, count: 0, emAndamento: 0 };
+        }
+
+        const receita = receitasPorContrato[contrato.id] || 0;
+        // Despesas são vinculadas via cc_id do contrato
+        const despesa = contrato.cc_id ? (despesasPorCC[contrato.cc_id] || 0) : 0;
+        const lucro = receita - despesa;
+
+        tiposMap[tipoNormalizado].lucro += lucro;
+        tiposMap[tipoNormalizado].count += 1;
+        if (contrato.status === 'ativo') {
+          tiposMap[tipoNormalizado].emAndamento += 1;
+        }
+      });
+
+      return Object.entries(tiposMap)
+        .map(([tipo, data]) => ({
+          tipo,
+          lucroTotal: data.lucro,
+          projetosCount: data.count,
+          projetosEmAndamento: data.emAndamento,
+        }))
+        .filter(t => t.projetosCount > 0 || ['Obra', 'Assessoria Anual', 'Laudo Pontual'].includes(t.tipo));
+    },
+    staleTime: 10 * 60 * 1000,
   });
 }

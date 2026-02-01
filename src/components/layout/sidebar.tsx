@@ -22,6 +22,8 @@ import {
   ShoppingCart,
   UserPlus,
   Briefcase,
+  Link2,
+  ExternalLink,
 } from 'lucide-react';
 import { MinervaLogo } from './minerva-logo';
 import { useAuth } from '@/lib/contexts/auth-context';
@@ -57,6 +59,7 @@ const visibilityByRole: Record<RoleLevel, string[]> = {
 
   // Nível 0: Colaborador Obra - Sem acesso ao sistema
   'colaborador_obra': [],
+  'cliente': [],
 };
 
 const menuItems = [
@@ -125,8 +128,12 @@ const menuItems = [
     submenu: [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield, to: '/configuracoes' },
       { id: 'sistema', label: 'WhatsApp e Email', icon: Settings, to: '/configuracoes/sistema' },
+      { id: 'integracoes', label: 'Integrações', icon: Link2, to: '/configuracoes/integracoes' }, // NOVA ROTA
       { id: 'teste-pdf', label: 'Teste de PDFs', icon: FileText, to: '/configuracoes/teste-pdf' },
       { id: 'seed-usuarios', label: 'Seed de Usuários', icon: UserPlus, to: '/configuracoes/seed-usuarios' },
+      // Formulários Externos (temporário para testes)
+      { id: 'form-externo-reforma', label: '🏠 Reforma (Ext)', icon: ExternalLink, to: '/solicitacao-reforma' },
+      { id: 'form-externo-visita', label: '🔧 Visita Téc. (Ext)', icon: ExternalLink, to: '/solicitacao-visita-tecnica' },
     ]
   },
 ];

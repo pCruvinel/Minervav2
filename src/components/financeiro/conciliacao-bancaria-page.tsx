@@ -1,6 +1,4 @@
-import { logger } from '@/lib/utils/logger';
 import { useState, useMemo } from 'react';
-import { Card, CardContent } from '../ui/card';
 import { Button } from '../ui/button';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '../ui/table';
 import { Badge } from '../ui/badge';
@@ -8,17 +6,19 @@ import { MultiSelect, MultiSelectOption } from '../ui/multi-select';
 import {
   FileText,
   FileSpreadsheet,
-  Edit,
   TrendingUp,
   TrendingDown,
-  DollarSign
+  DollarSign,
+  AlertTriangle,
+  Paperclip,
+  Link2,
+  RefreshCw
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { ModalClassificarLancamento } from './modal-classificar-lancamento';
-import { ModalCustoFlutuante } from './modal-custo-flutuante';
+import { ModalConciliacao } from './modal-conciliacao';
 import { toast } from 'sonner';
 import {
   CompactTableWrapper,
@@ -26,125 +26,68 @@ import {
   CompactTableRow,
   CompactTableCell
 } from '@/components/shared/compact-table';
-import { SearchInput, FilterSelect, DateRangePicker, type DateRange } from '@/components/shared/filters';
+import { FilterSelect, DateRangePicker, type DateRange } from '@/components/shared/filters';
 
-import { FinanceiroCategoria } from '../../lib/types';
+import {
+  useLancamentosBancarios,
+  useLancamentosBancariosStats,
+  useSyncExtrato,
+  MOCK_LANCAMENTOS,
+  type LancamentoBancario,
+  type LancamentoBancarioStatus
+} from '@/lib/hooks/use-lancamentos-bancarios';
 
-const TIPOS_CUSTO: FinanceiroCategoria[] = [
-  'mao_de_obra',
-  'material',
-  'equipamento',
-  'aplicacao',
-  'escritorio',
-  'impostos',
-  'outros'
-];
+import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
+import { useQuery } from '@tanstack/react-query';
 
 const SETORES_OPTIONS: MultiSelectOption[] = [
-  { label: 'Administrativo', value: 'ADM' },
-  { label: 'Obras', value: 'OBRAS' },
-  { label: 'Assessoria Técnica', value: 'ASSESSORIA_TECNICA' }
+  { label: 'Administrativo', value: 'Administrativo' },
+  { label: 'Obras', value: 'Obras' },
+  { label: 'Assessoria', value: 'Assessoria' },
+  { label: 'Diretoria', value: 'Diretoria' },
+  { label: 'TI', value: 'TI' }
 ];
 
-const CENTROS_CUSTO_OPTIONS: MultiSelectOption[] = [
-  { label: 'Condomínio Jardim das Flores', value: 'cc-1' },
-  { label: 'Obra Residencial Silva', value: 'cc-2' },
-  { label: 'Despesas Administrativas', value: 'cc-3' },
-  { label: 'Múltiplos CCs', value: 'cc-4' },
-];
-
-// Mock data - Lançamentos bancários importados
-interface LancamentoBancario {
-  id: string;
-  data: string;
-  descricao: string;
-  entrada: number | null;
-  saida: number | null;
-  status: 'PENDENTE' | 'CLASSIFICADO' | 'RATEADO';
-  tipo?: FinanceiroCategoria;
-  setor?: string;
-  centroCusto?: string;
-  anexoNF?: string;
-}
-
-const mockLancamentos: LancamentoBancario[] = [
-  {
-    id: 'lanc-1',
-    data: '2024-12-10',
-    descricao: 'PIX RECEBIDO - CONDOMINIO JARDIM DAS FLORES',
-    entrada: 5800.00,
-    saida: null,
-    status: 'CLASSIFICADO',
-    tipo: 'mao_de_obra',
-    setor: 'OBRAS',
-    centroCusto: 'Condomínio Jardim das Flores',
-  },
-  {
-    id: 'lanc-2',
-    data: '2024-12-11',
-    descricao: 'TED RECEBIDO - SILVA CONSTRUCOES LTDA',
-    entrada: 12500.00,
-    saida: null,
-    status: 'CLASSIFICADO',
-    tipo: 'material',
-    setor: 'OBRAS',
-    centroCusto: 'Obra Residencial Silva',
-  },
-  {
-    id: 'lanc-3',
-    data: '2024-12-12',
-    descricao: 'DEBITO AUTOMATICO - ENERGIA ELETRICA CEMIG',
-    entrada: null,
-    saida: 1250.80,
-    status: 'CLASSIFICADO',
-    tipo: 'escritorio',
-    setor: 'ADM',
-    centroCusto: 'Despesas Administrativas',
-  },
-  {
-    id: 'lanc-4',
-    data: '2024-12-13',
-    descricao: 'PIX ENVIADO - FORNECEDOR XYZ MATERIAIS',
-    entrada: null,
-    saida: 3400.00,
-    status: 'PENDENTE',
-  },
-  {
-    id: 'lanc-5',
-    data: '2024-12-13',
-    descricao: 'TED RECEBIDO - ASSESSORIA MENSAL - EMPREEND ABC',
-    entrada: 4200.00,
-    saida: null,
-    status: 'PENDENTE',
-  },
-  {
-    id: 'lanc-6',
-    data: '2024-12-14',
-    descricao: 'DEBITO - FOLHA PAGAMENTO FUNCIONARIOS',
-    entrada: null,
-    saida: 18500.00,
-    status: 'RATEADO',
-    tipo: 'mao_de_obra',
-    setor: 'OBRAS',
-    centroCusto: 'Múltiplos CCs (ver rateio)',
-  },
-  {
-    id: 'lanc-7',
-    data: '2024-12-14',
-    descricao: 'PIX RECEBIDO - VISTORIA ESTRUTURAL - EDIFICIO CENTRAL',
-    entrada: 2800.00,
-    saida: null,
-    status: 'PENDENTE',
-  },
+const STATUS_OPTIONS: { value: LancamentoBancarioStatus | 'all'; label: string }[] = [
+  { value: 'all', label: 'Todos' },
+  { value: 'pendente', label: 'Pendente' },
+  { value: 'conciliado', label: 'Conciliado' },
+  { value: 'ignorado', label: 'Ignorado' },
 ];
 
 export function ConciliacaoBancariaPage() {
-  const [lancamentos, setLancamentos] = useState(mockLancamentos);
+  // Filtros
   const [dateRange, setDateRange] = useState<DateRange | null>(null);
-  const [filtroTipo, setFiltroTipo] = useState<string>('');
+  const [filtroStatus, setFiltroStatus] = useState<LancamentoBancarioStatus | 'all'>('all');
   const [filtroSetores, setFiltroSetores] = useState<string[]>([]);
-  const [filtroCentrosCusto, setFiltroCentrosCusto] = useState<string[]>([]);
-  const [buscaCC, setBuscaCC] = useState<string>('');
+  const [filtroCCs, setFiltroCCs] = useState<string[]>([]);
+
+  // Data fetching com hooks reais
+  const statusFilter = filtroStatus === 'all' ? undefined : filtroStatus;
+  const { data: lancamentosReais = [], isLoading } = useLancamentosBancarios({
+    status: statusFilter,
+    dataInicio: dateRange?.start ? new Date(dateRange.start).toISOString().split('T')[0] : undefined,
+    dataFim: dateRange?.end ? new Date(dateRange.end).toISOString().split('T')[0] : undefined,
+  });
+  const { data: stats } = useLancamentosBancariosStats();
+  const syncMutation = useSyncExtrato();
+
+  // Buscar Centros de Custo para o filtro
+  const { listCentrosCusto } = useCentroCusto();
+  const { data: centrosCusto } = useQuery({
+    queryKey: ['centros-custo-filter'],
+    queryFn: listCentrosCusto,
+    staleTime: 1000 * 60 * 5, // 5 minutos
+  });
+
+  const ccOptions: MultiSelectOption[] = (centrosCusto || []).map(cc => ({
+    label: cc.nome,
+    value: cc.id
+  }));
+
+  // Fallback para mock data quando não houver dados reais
+  const isUsingMock = lancamentosReais.length === 0 && !isLoading;
+  const lancamentos = isUsingMock ? MOCK_LANCAMENTOS : lancamentosReais;
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -166,15 +109,9 @@ export function ConciliacaoBancariaPage() {
     });
   };
 
-  // Estados dos modais
-  const [modalClassificarOpen, setModalClassificarOpen] = useState(false);
-  const [modalCustoFlutuanteOpen, setModalCustoFlutuanteOpen] = useState(false);
-  const [lancamentoSelecionado, setLancamentoSelecionado] = useState<{
-    id: string;
-    descricao: string;
-    valor: number;
-    tipo: 'ENTRADA' | 'SAIDA';
-  } | null>(null);
+  // Estados dos modais - Simplificado para novo modal
+  const [modalConciliacaoOpen, setModalConciliacaoOpen] = useState(false);
+  const [lancamentoSelecionado, setLancamentoSelecionado] = useState<LancamentoBancario | null>(null);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -183,81 +120,15 @@ export function ConciliacaoBancariaPage() {
     }).format(value);
   };
 
-  const formatTipo = (tipo: FinanceiroCategoria | string) => {
-    const map: Record<string, string> = {
-      'mao_de_obra': 'Mão de Obra',
-      'material': 'Material',
-      'equipamento': 'Equipamento',
-      'aplicacao': 'Aplicação',
-      'escritorio': 'Escritório',
-      'impostos': 'Impostos',
-      'outros': 'Outros'
-    };
-    return map[tipo] || tipo;
+  // Handler para abrir modal ao clicar na linha
+  const handleRowClick = (lancamento: LancamentoBancario) => {
+    setLancamentoSelecionado(lancamento);
+    setModalConciliacaoOpen(true);
   };
 
-  const formatSetor = (setor: string) => {
-    const map: Record<string, string> = {
-      'ADM': 'ADM',
-      'OBRAS': 'Obras',
-      'ASSESSORIA_TECNICA': 'Assessoria'
-    };
-    return map[setor] || setor;
-  };
-
-  const handleIniciarClassificacao = (lancamento: LancamentoBancario) => {
-    setLancamentoSelecionado({
-      id: lancamento.id,
-      descricao: lancamento.descricao,
-      valor: lancamento.entrada || lancamento.saida || 0,
-      tipo: lancamento.entrada ? 'ENTRADA' : 'SAIDA'
-    });
-    setModalClassificarOpen(true);
-  };
-
-  const handleSalvarClassificacaoModal = (dados: { tipo: FinanceiroCategoria; setor: string; rateios: { centroCusto: string }[] }) => {
-    if (!lancamentoSelecionado) return;
-
-    setLancamentos(prev =>
-      prev.map(lanc =>
-        lanc.id === lancamentoSelecionado.id
-          ? {
-            ...lanc,
-            tipo: dados.tipo,
-            setor: dados.setor,
-            centroCusto: dados.rateios.length > 1
-              ? `Rateado entre ${dados.rateios.length} CCs`
-              : dados.rateios[0]?.centroCusto,
-            status: dados.rateios.length > 1 ? 'RATEADO' : 'CLASSIFICADO' as const
-          }
-          : lanc
-      )
-    );
-
-    setModalClassificarOpen(false);
+  const handleCloseModal = () => {
+    setModalConciliacaoOpen(false);
     setLancamentoSelecionado(null);
-
-    toast.success('Lançamento classificado com sucesso!');
-  };
-
-  const handleAbrirCustoFlutuante = () => {
-    setModalClassificarOpen(false);
-    setModalCustoFlutuanteOpen(true);
-  };
-
-  const handleSalvarCustoFlutuante = (dados: { recalcularCustoDia?: boolean }) => {
-    if (!lancamentoSelecionado) return;
-
-    logger.log('Custo Flutuante salvo:', dados);
-
-    setModalCustoFlutuanteOpen(false);
-    setLancamentoSelecionado(null);
-
-    toast.success(
-      dados.recalcularCustoDia
-        ? 'Custo flutuante registrado! Custo-Dia recalculado.'
-        : 'Custo geral registrado com sucesso!'
-    );
   };
 
   const handleExportarPDF = () => {
@@ -269,25 +140,33 @@ export function ConciliacaoBancariaPage() {
   };
 
   // Aplicar filtros
+  // Filters are applied in the hook (server-side mostly), but for client-side sorting/filtering of the current page:
+  // (In a real scenario with pagination on server, we pass Sort/Filter params to the hook)
+  
   const lancamentosFiltrados = useMemo(() => {
+    // Client-side additional filtering if needed
     return lancamentos.filter(lanc => {
-      const lancDate = new Date(lanc.data);
-      if (dateRange?.start && lancDate < dateRange.start) return false;
-      if (dateRange?.end && lancDate > dateRange.end) return false;
-      if (filtroTipo && lanc.tipo !== filtroTipo) return false;
-      if (filtroSetores.length > 0 && lanc.setor && !filtroSetores.includes(lanc.setor)) return false;
-      if (buscaCC && !lanc.centroCusto?.toLowerCase().includes(buscaCC.toLowerCase())) return false;
-      return true;
+        if (filtroSetores.length > 0 && lanc.setor?.nome && !filtroSetores.includes(lanc.setor.nome)) return false;
+        
+        // Filtro de Centro de Custo (MultiSelect)
+        if (filtroCCs.length > 0) {
+          // Se não tem CC ou o CC não está na lista de selecionados, remove
+          if (!lanc.centro_custo?.id || !filtroCCs.includes(lanc.centro_custo.id)) {
+            return false;
+          }
+        }
+        
+        return true;
     }).sort((a, b) => {
       if (!sortConfig) return 0;
 
       const { key, direction } = sortConfig;
+      
+      // Handle nested properties if key matches (needs adjustment for real object structure)
+      // For now simple top-level keys
+      let aValue: string | number | null | undefined = a[key as keyof LancamentoBancario] as string | number | null | undefined;
+      let bValue: string | number | null | undefined = b[key as keyof LancamentoBancario] as string | number | null | undefined;
 
-      let aValue = a[key];
-      let bValue = b[key];
-
-      // Handle specifics like dates or nulls if needed, 
-      // but for string/number simpler comparison works for now
       if (aValue == null) aValue = '';
       if (bValue == null) bValue = '';
 
@@ -295,7 +174,7 @@ export function ConciliacaoBancariaPage() {
       if (aValue > bValue) return direction === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [lancamentos, dateRange, filtroTipo, filtroSetores, buscaCC, sortConfig]);
+  }, [lancamentos, filtroSetores, filtroCCs, sortConfig]);
 
   // Pagination logic
   const totalPages = Math.ceil(lancamentosFiltrados.length / itemsPerPage);
@@ -307,16 +186,13 @@ export function ConciliacaoBancariaPage() {
   // Reset page when filters change
   useMemo(() => {
     setCurrentPage(1);
-  }, [dateRange, filtroTipo, filtroSetores, buscaCC]);
+  }, [dateRange, filtroStatus, filtroSetores, filtroCCs]);
 
   // Calcular totais
-  const totais = lancamentosFiltrados.reduce(
-    (acc, lanc) => ({
-      entradas: acc.entradas + (lanc.entrada || 0),
-      saidas: acc.saidas + (lanc.saida || 0),
-    }),
-    { entradas: 0, saidas: 0 }
-  );
+  const totais = useMemo(() => ({
+    entradas: stats?.totalEntradas ?? 0,
+    saidas: stats?.totalSaidas ?? 0,
+  }), [stats]);
 
   const saldo = totais.entradas - totais.saidas;
 
@@ -330,9 +206,10 @@ export function ConciliacaoBancariaPage() {
       />
 
       {/* Filtros Compactos + KPIs */}
-      <Card className="shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-wrap items-end gap-3">
+      {/* Filtros Compactos + KPIs */}
+      <div className="rounded-xl border bg-card text-card-foreground shadow-none">
+        <div className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
             {/* DateRangePicker unificado */}
             <DateRangePicker
               startDate={dateRange?.start}
@@ -341,19 +218,16 @@ export function ConciliacaoBancariaPage() {
               placeholder="Período"
             />
 
-            {/* Tipo */}
+            {/* Status */}
             <FilterSelect
-              value={filtroTipo || 'all'}
-              onChange={(v) => setFiltroTipo(v === 'all' ? '' : v)}
-              options={[
-                { value: 'all', label: 'Todos' },
-                ...TIPOS_CUSTO.map(tipo => ({ value: tipo, label: formatTipo(tipo) }))
-              ]}
-              placeholder="Tipo"
+              value={filtroStatus}
+              onChange={(v) => setFiltroStatus(v as LancamentoBancarioStatus | 'all')}
+              options={STATUS_OPTIONS}
+              placeholder="Status"
               width="w-[140px]"
             />
 
-            {/* Setores - MultiSelect */}
+            {/* Setores */}
             <MultiSelect
               options={SETORES_OPTIONS}
               selected={filtroSetores}
@@ -362,64 +236,92 @@ export function ConciliacaoBancariaPage() {
               className="w-40 h-9"
             />
 
-            {/* Busca CC */}
-            <SearchInput
-              value={buscaCC}
-              onChange={setBuscaCC}
-              placeholder="Buscar CC..."
-              className="min-w-[150px]"
+            {/* Busca CC (Agora MultiSelect) */}
+            <MultiSelect
+              options={ccOptions}
+              selected={filtroCCs}
+              onChange={setFiltroCCs}
+              placeholder="Centros de Custo"
+              className="min-w-[180px] h-9" 
             />
 
             {/* Spacer */}
             <div className="flex-1" />
 
             {/* KPIs Inline */}
-            <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-4 text-sm px-4 py-1.5 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-center gap-2">
                 <div className="p-1 rounded bg-success/10">
                   <TrendingUp className="h-3.5 w-3.5 text-success" />
                 </div>
-                <span className="text-muted-foreground">Entradas:</span>
-                <span className="font-semibold text-success">{formatCurrency(totais.entradas)}</span>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Entradas</span>
+                  <span className="font-semibold text-success">{formatCurrency(totais.entradas)}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="h-6 w-px bg-border/50" />
+              <div className="flex items-center gap-2">
                 <div className="p-1 rounded bg-destructive/10">
                   <TrendingDown className="h-3.5 w-3.5 text-destructive" />
                 </div>
-                <span className="text-muted-foreground">Saídas:</span>
-                <span className="font-semibold text-destructive">{formatCurrency(totais.saidas)}</span>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Saídas</span>
+                  <span className="font-semibold text-destructive">{formatCurrency(totais.saidas)}</span>
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="h-6 w-px bg-border/50" />
+              <div className="flex items-center gap-2">
                 <div className={cn("p-1 rounded", saldo >= 0 ? "bg-success/10" : "bg-destructive/10")}>
                   <DollarSign className={cn("h-3.5 w-3.5", saldo >= 0 ? "text-success" : "text-destructive")} />
                 </div>
-                <span className="text-muted-foreground">Saldo:</span>
-                <span className={cn("font-semibold", saldo >= 0 ? "text-success" : "text-destructive")}>
-                  {formatCurrency(saldo)}
-                </span>
+                <div className="flex flex-col leading-none">
+                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Saldo</span>
+                  <span className={cn("font-semibold", saldo >= 0 ? "text-success" : "text-destructive")}>
+                    {formatCurrency(saldo)}
+                  </span>
+                </div>
               </div>
             </div>
 
-            {/* Export Buttons */}
+            {/* Sync + Export Buttons */}
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-9">
-                <FileText className="mr-1.5 h-3.5 w-3.5" />
-                PDF
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => syncMutation.mutate()} 
+                disabled={syncMutation.isPending}
+                className="h-9 gap-2"
+                title="Sincronizar com Banco Cora"
+              >
+                <RefreshCw className={cn("h-4 w-4", syncMutation.isPending && "animate-spin")} />
+                {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar'}
               </Button>
-              <Button variant="outline" size="sm" onClick={handleExportarExcel} className="h-9">
-                <FileSpreadsheet className="mr-1.5 h-3.5 w-3.5" />
-                Excel
+              <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-9 w-9 p-0" title="Exportar PDF">
+                <FileText className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExportarExcel} className="h-9 w-9 p-0" title="Exportar Excel">
+                <FileSpreadsheet className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Tabela de Lançamentos - Compacta */}
+      {/* Banner de Aviso Mock Data */}
+      {isUsingMock && (
+        <div className="flex items-center gap-2 p-3 rounded-lg border border-warning/50 bg-warning/10">
+          <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
+          <p className="text-sm text-warning-foreground">
+            <span className="font-semibold">Modo demonstração:</span>{' '}
+            Exibindo dados de exemplo. Configure a integração bancária para ver lançamentos reais.
+          </p>
+        </div>
+      )}
+
       {/* Tabela de Lançamentos - Compacta */}
       <CompactTableWrapper
         title="Lançamentos Bancários"
-        subtitle="Exibindo dados importados"
+        subtitle={isUsingMock ? "Exibindo dados de demonstração" : "Exibindo dados importados"}
         totalItems={lancamentosFiltrados.length}
         currentCount={paginatedLancamentos.length}
         page={currentPage}
@@ -439,107 +341,131 @@ export function ConciliacaoBancariaPage() {
                 Data
               </CompactTableHead>
               <CompactTableHead
-                className="min-w-[200px]"
+                className="min-w-[180px]"
                 onSort={() => handleSort('descricao')}
                 sortDirection={sortConfig?.key === 'descricao' ? sortConfig.direction : null}
               >
-                Descrição
+                Identificação
               </CompactTableHead>
+              <CompactTableHead className="min-w-[120px]">Detalhamento</CompactTableHead>
+              <CompactTableHead className="w-24">Tipo</CompactTableHead>
+              <CompactTableHead className="w-24">Status</CompactTableHead>
+              <CompactTableHead className="w-24">Setor</CompactTableHead>
+              <CompactTableHead className="min-w-[100px]">CC</CompactTableHead>
               <CompactTableHead
-                className="w-24 text-right"
+                className="w-28 text-right"
                 align="right"
-                onSort={() => handleSort('entrada')}
-                sortDirection={sortConfig?.key === 'entrada' ? sortConfig.direction : null}
               >
-                Entrada
+                Valor
               </CompactTableHead>
-              <CompactTableHead
-                className="w-24 text-right"
-                align="right"
-                onSort={() => handleSort('saida')}
-                sortDirection={sortConfig?.key === 'saida' ? sortConfig.direction : null}
-              >
-                Saída
-              </CompactTableHead>
-              <CompactTableHead
-                className="w-20"
-                onSort={() => handleSort('status')}
-                sortDirection={sortConfig?.key === 'status' ? sortConfig.direction : null}
-              >
-                Status
-              </CompactTableHead>
-              <CompactTableHead className="w-20">Tipo</CompactTableHead>
-              <CompactTableHead className="w-20">Setor</CompactTableHead>
-              <CompactTableHead className="min-w-[120px]">CC</CompactTableHead>
-              <CompactTableHead className="w-16 text-center" align="center">Ações</CompactTableHead>
+              <CompactTableHead className="w-14 text-center" align="center">Anexo</CompactTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedLancamentos.map((lancamento) => (
-              <CompactTableRow key={lancamento.id}>
+              <CompactTableRow 
+                key={lancamento.id}
+                className="cursor-pointer hover:bg-muted/60 transition-colors"
+                onClick={() => handleRowClick(lancamento)}
+              >
+                {/* DATA + HORA */}
                 <CompactTableCell>
-                  {format(new Date(lancamento.data), 'dd/MM', { locale: ptBR })}
+                  <div className="flex flex-col">
+                    <span>{format(new Date(lancamento.data), 'dd/MM', { locale: ptBR })}</span>
+                    <span className="text-[10px] text-muted-foreground">{format(new Date(lancamento.data), 'HH:mm')}</span>
+                  </div>
                 </CompactTableCell>
-                <CompactTableCell className="truncate max-w-[250px]" title={lancamento.descricao}>
-                  {lancamento.descricao}
+                
+                {/* IDENTIFICAÇÃO - Nome do Remetente/Destinatário */}
+                <CompactTableCell className="truncate max-w-[180px]" title={lancamento.contraparte_nome || lancamento.descricao}>
+                  {lancamento.contraparte_nome || lancamento.descricao}
                 </CompactTableCell>
+                
+                {/* DETALHAMENTO (categoria + observações) */}
+                <CompactTableCell className="truncate max-w-[120px]" title={lancamento.categoria?.nome || lancamento.observacoes || '-'}>
+                  {lancamento.categoria?.nome || lancamento.observacoes || '-'}
+                </CompactTableCell>
+                
+                {/* TIPO (entrada/saída + status) */}
+                <CompactTableCell>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] py-0 px-1.5 w-fit ${
+                      lancamento.entrada 
+                        ? 'border-success/30 text-success bg-success/10 hover:bg-success/20' 
+                        : 'border-destructive/30 text-destructive bg-destructive/10 hover:bg-destructive/20'
+                    }`}
+                  >
+                    {lancamento.entrada ? 'Entrada' : 'Saída'}
+                  </Badge>
+                </CompactTableCell>
+                
+                {/* STATUS */}
+                <CompactTableCell>
+                <Badge
+                    variant="outline"
+                    className={`text-[10px] py-0 px-1.5 w-fit ${
+                      lancamento.status === 'conciliado' ? 'border-primary/30 text-primary bg-primary/10 hover:bg-primary/20' :
+                      lancamento.status === 'pendente' ? 'border-warning/50 text-warning bg-warning/10 hover:bg-warning/20' :
+                      'text-muted-foreground border-border bg-muted/50 hover:bg-muted/70'
+                    }`}
+                  >
+                    {lancamento.status === 'pendente' ? 'Pendente' 
+                      : lancamento.status === 'conciliado' ? 'Conciliado'
+                      : 'Ignorado'}
+                  </Badge>
+                </CompactTableCell>
+                
+                {/* SETOR */}
+                <CompactTableCell>
+                  {lancamento.setor?.nome || '-'}
+                </CompactTableCell>
+                
+                {/* CENTRO DE CUSTO */}
+                <CompactTableCell className="truncate max-w-[100px]" title={lancamento.centro_custo?.nome}>
+                  {lancamento.centro_custo?.nome || '-'}
+                </CompactTableCell>
+                
+                {/* VALOR (consolidado) */}
                 <CompactTableCell className="text-right">
                   {lancamento.entrada ? (
                     <span className="text-success font-medium">
-                      {formatCurrency(lancamento.entrada)}
+                      +{formatCurrency(lancamento.entrada)}
                     </span>
-                  ) : '-'}
-                </CompactTableCell>
-                <CompactTableCell className="text-right">
-                  {lancamento.saida ? (
+                  ) : lancamento.saida ? (
                     <span className="text-destructive font-medium">
-                      {formatCurrency(lancamento.saida)}
+                      -{formatCurrency(lancamento.saida)}
                     </span>
                   ) : '-'}
                 </CompactTableCell>
-                <CompactTableCell>
-                  <Badge
-                    variant={
-                      lancamento.status === 'CLASSIFICADO'
-                        ? 'default'
-                        : lancamento.status === 'RATEADO'
-                          ? 'secondary'
-                          : 'outline'
-                    }
-                    className="text-[10px] py-0 px-1.5"
-                  >
-                    {lancamento.status === 'CLASSIFICADO'
-                      ? 'Classif.'
-                      : lancamento.status === 'RATEADO'
-                        ? 'Rateado'
-                        : 'Pend.'}
-                  </Badge>
-                </CompactTableCell>
-                <CompactTableCell>
-                  {lancamento.tipo ? formatTipo(lancamento.tipo).slice(0, 8) : '-'}
-                </CompactTableCell>
-                <CompactTableCell>
-                  {lancamento.setor ? formatSetor(lancamento.setor) : '-'}
-                </CompactTableCell>
-                <CompactTableCell className="truncate max-w-[120px]" title={lancamento.centroCusto}>
-                  {lancamento.centroCusto || '-'}
-                </CompactTableCell>
+                
+                {/* ANEXO */}
                 <CompactTableCell className="text-center">
-                  <Button
-                    size="sm"
-                    variant={lancamento.status === 'PENDENTE' ? 'outline' : 'ghost'}
-                    className="h-6 w-6 p-0"
-                    onClick={() => handleIniciarClassificacao(lancamento)}
-                  >
-                    <Edit className="h-3 w-3" />
-                  </Button>
+                {(lancamento.nota_fiscal_url || lancamento.comprovante_url) ? (
+                    <a 
+                      href={lancamento.nota_fiscal_url || lancamento.comprovante_url || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary hover:text-primary/80"
+                      title={lancamento.nota_fiscal_url ? "Nota Fiscal" : "Comprovante"}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Paperclip className="h-3.5 w-3.5 inline" />
+                    </a>
+                  ) : lancamento.conta_pagar_id || lancamento.conta_receber_id ? (
+                    <span title="Vinculado a conta do sistema">
+                      <Link2 className="h-3.5 w-3.5 inline text-muted-foreground" />
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </CompactTableCell>
               </CompactTableRow>
             ))}
 
             {paginatedLancamentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-24 text-center">
+                <TableCell colSpan={8} className="h-24 text-center">
                   Nenhum lançamento encontrado.
                 </TableCell>
               </TableRow>
@@ -548,26 +474,11 @@ export function ConciliacaoBancariaPage() {
         </Table>
       </CompactTableWrapper>
 
-      {/* Modais */}
-      <ModalClassificarLancamento
-        open={modalClassificarOpen}
-        onClose={() => {
-          setModalClassificarOpen(false);
-          setLancamentoSelecionado(null);
-        }}
+      {/* Modal de Conciliação */}
+      <ModalConciliacao
+        open={modalConciliacaoOpen}
+        onClose={handleCloseModal}
         lancamento={lancamentoSelecionado}
-        onSalvar={handleSalvarClassificacaoModal}
-        onAbrirCustoFlutuante={handleAbrirCustoFlutuante}
-      />
-
-      <ModalCustoFlutuante
-        open={modalCustoFlutuanteOpen}
-        onClose={() => {
-          setModalCustoFlutuanteOpen(false);
-          setLancamentoSelecionado(null);
-        }}
-        lancamento={lancamentoSelecionado}
-        onSalvar={handleSalvarCustoFlutuante}
       />
     </div>
   );

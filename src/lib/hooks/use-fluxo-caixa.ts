@@ -215,6 +215,100 @@ export function useFluxoCaixaKPIs() {
   });
 }
 
+// ============================================================
+// FLUXO MENSAL (GRÁFICO DE EVOLUÇÃO - ÚLTIMOS 12 MESES)
+// ============================================================
+
+export interface FluxoMensal {
+  mes: string;
+  mesLabel: string;
+  entradas: number;
+  saidas: number;
+  saldo: number;
+  acumulado: number;
+}
+
+/**
+ * Hook para evolução mensal do fluxo de caixa (últimos 12 meses)
+ * Usado no gráfico "Evolução do Fluxo de Caixa"
+ */
+export function useFluxoMensal(meses: number = 12) {
+  return useQuery({
+    queryKey: ['fluxo-mensal', meses],
+    queryFn: async (): Promise<FluxoMensal[]> => {
+      const hoje = new Date();
+      const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1);
+      const dataInicioStr = dataInicio.toISOString().split('T')[0];
+
+      // Buscar receitas realizadas (status pago/recebido)
+      const { data: receitas } = await supabase
+        .from('contas_receber')
+        .select('vencimento, valor_recebido, valor_previsto, status')
+        .gte('vencimento', dataInicioStr)
+        .in('status', ['pago', 'recebido', 'conciliado']);
+
+      // Buscar despesas realizadas (status pago)
+      const { data: despesas } = await supabase
+        .from('contas_pagar')
+        .select('vencimento, valor, status')
+        .gte('vencimento', dataInicioStr)
+        .eq('status', 'pago');
+
+      // Agregar por mês
+      const fluxoPorMes: Record<string, { entradas: number; saidas: number }> = {};
+      const mesesPT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+
+      // Inicializar últimos N meses
+      for (let i = meses - 1; i >= 0; i--) {
+        const data = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+        const key = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        fluxoPorMes[key] = { entradas: 0, saidas: 0 };
+      }
+
+      // Agregar receitas
+      receitas?.forEach((r) => {
+        if (!r.vencimento) return;
+        const data = new Date(r.vencimento);
+        const key = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        if (fluxoPorMes[key]) {
+          fluxoPorMes[key].entradas += Number(r.valor_recebido ?? r.valor_previsto ?? 0);
+        }
+      });
+
+      // Agregar despesas
+      despesas?.forEach((d) => {
+        if (!d.vencimento) return;
+        const data = new Date(d.vencimento);
+        const key = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
+        if (fluxoPorMes[key]) {
+          fluxoPorMes[key].saidas += Number(d.valor ?? 0);
+        }
+      });
+
+      // Converter para array com saldo acumulado
+      let acumulado = 0;
+      return Object.entries(fluxoPorMes)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, values]) => {
+          const [, month] = key.split('-');
+          const monthIndex = parseInt(month, 10) - 1;
+          const saldo = values.entradas - values.saidas;
+          acumulado += saldo;
+
+          return {
+            mes: key,
+            mesLabel: mesesPT[monthIndex],
+            entradas: values.entradas,
+            saidas: values.saidas,
+            saldo,
+            acumulado,
+          };
+        });
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutos
+  });
+}
+
 /**
  * Hook para calendário financeiro (próximos 7 dias)
  */
@@ -235,7 +329,7 @@ export function useCalendarioFinanceiro(dias: number = 7) {
         .select(`
           id,
           vencimento,
-          descricao,
+          parcela,
           valor_previsto,
           status,
           clientes (nome_razao_social)
@@ -247,7 +341,7 @@ export function useCalendarioFinanceiro(dias: number = 7) {
       // Despesas
       const { data: despesas } = await supabase
         .from('contas_pagar')
-        .select('id, vencimento, descricao, valor, status, fornecedor')
+        .select('id, vencimento, descricao, valor, status, favorecido_fornecedor')
         .gte('vencimento', hojeStr)
         .lte('vencimento', fimStr)
         .in('status', ['em_aberto', 'pendente']);
@@ -260,7 +354,7 @@ export function useCalendarioFinanceiro(dias: number = 7) {
           id: r.id,
           data: r.vencimento,
           tipo: 'receita',
-          descricao: r.descricao || 'Receita',
+          descricao: r.parcela || 'Receita',
           valor: Number(r.valor_previsto),
           cliente_ou_fornecedor: clienteData?.nome_razao_social ?? 'Cliente',
           status: r.status,
@@ -274,7 +368,7 @@ export function useCalendarioFinanceiro(dias: number = 7) {
           tipo: 'despesa',
           descricao: d.descricao || 'Despesa',
           valor: Number(d.valor),
-          cliente_ou_fornecedor: d.fornecedor ?? 'Fornecedor',
+          cliente_ou_fornecedor: d.favorecido_fornecedor ?? 'Fornecedor',
           status: d.status,
         });
       });

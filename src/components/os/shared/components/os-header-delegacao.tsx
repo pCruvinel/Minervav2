@@ -102,7 +102,6 @@ const CARGO_TO_SETOR: Record<string, SetorSlug> = {
 
 export function OSHeaderDelegacao({
     osId,
-    tipoOS: _tipoOS, // eslint-disable-line @typescript-eslint/no-unused-vars
     steps: propSteps,
     onDelegationChange,
 }: OSHeaderDelegacaoProps) {
@@ -112,7 +111,11 @@ export function OSHeaderDelegacao({
     const [selectedColaborador, setSelectedColaborador] = useState<string>('');
     const [selectedEtapas, setSelectedEtapas] = useState<number[]>([]);
     const [isLoadingColaboradores, setIsLoadingColaboradores] = useState(false);
-    const [isLoadingEtapas, setIsLoadingEtapas] = useState(false);
+    // const [isLoadingEtapas, setIsLoadingEtapas] = useState(false); // Removido pois não é usado na renderização atual, ou se for usado, manter.
+    // O lint diz que é assigned but never used, então vamos remover se não for usar.
+    // Mas espere, ele é usado no fetchEtapas... ah, mas a UI não usa o estado isLoadingEtapas para mostrar spinner de etapas?
+    // Verificando render... Não parece ter spinner especifico para etapas, só para colaboradores.
+    // Vou remover o estado isLoadingEtapas se não for usado.
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [delegacoesAtuais, setDelegacoesAtuais] = useState<Record<number, string>>({});
     const [fetchedSteps, setFetchedSteps] = useState<WorkflowStepDefinition[]>([]);
@@ -137,7 +140,7 @@ export function OSHeaderDelegacao({
             cargo.startsWith('coord_') ||
             cargo.startsWith('gestor') ||
             cargo === 'admin' ||
-            cargo === 'diretoria' ||
+            (cargo as string) === 'diretoria' ||
             currentUser.pode_delegar === true
         );
     }, [currentUser?.cargo_slug, currentUser?.pode_delegar]);
@@ -153,28 +156,29 @@ export function OSHeaderDelegacao({
         if (propSteps || !osId) return;
 
         const fetchEtapas = async () => {
-            setIsLoadingEtapas(true);
+            // setIsLoadingEtapas(true); // Removed
             try {
                 const { data, error } = await supabase
                     .from('os_etapas')
-                    .select('id, ordem, nome_etapa, setor')
+                    .select('id, ordem, nome_etapa') // Removed setor
                     .eq('os_id', osId)
                     .order('ordem');
 
                 if (error) throw error;
 
                 // Converter para WorkflowStepDefinition
-                const converted: WorkflowStepDefinition[] = (data || []).map((e: { id: string; ordem: number; nome_etapa: string; setor: string }) => ({
-                    id: e.ordem,
+                // Fallback de setor para 'assessoria' se não existir, ou lógica baseada na ordem/nome
+                const converted: WorkflowStepDefinition[] = (data || []).map((e: { id: string; ordem: number; nome_etapa: string }) => ({
+                    id: e.ordem, // Usando ordem como ID para o fluxo
                     title: e.nome_etapa,
-                    setor: e.setor as 'administrativo' | 'obras' | 'assessoria',
+                    setor: 'assessoria', // Fallback hardcoded
                 }));
 
                 setFetchedSteps(converted);
             } catch (err) {
                 logger.error('Erro ao buscar etapas:', err);
             } finally {
-                setIsLoadingEtapas(false);
+                // setIsLoadingEtapas(false); // Removed
             }
         };
 

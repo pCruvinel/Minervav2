@@ -45,6 +45,7 @@ export interface Usuario {
   qualificacao?: string;
   gestor?: string;
   remuneracao_contratual?: number;
+  dia_vencimento?: number;
   rateio_fixo?: string;
   bloqueado_sistema?: boolean;
 
@@ -56,6 +57,9 @@ export interface Usuario {
   bairro?: string;
   cidade?: string;
   uf?: string;
+
+  rateio_fixo_id?: string;
+  role_id?: string;
 
   // Dados bancários
   banco?: string;

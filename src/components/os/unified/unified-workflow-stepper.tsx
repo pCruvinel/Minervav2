@@ -332,16 +332,22 @@ export function UnifiedWorkflowStepper({
 
             case 'CREATE_PAGE': {
                 // Navegação para página de criação (OS-11, 12, 13)
-                // Buscar clienteId da fase Lead para pré-seleção
+                // Buscar clienteId da fase Lead OU da primeira etapa disponível
                 const leadPhase = phases.find(p => p.id === 'LEAD');
-                const leadStep = leadPhase?.etapas[0];
-                const clienteId = (leadStep?.dadosEtapa as Record<string, string> | undefined)?.leadId || '';
+                const firstPhase = phases[0];
+                const targetPhase = leadPhase || firstPhase;
+                const firstStep = targetPhase?.etapas[0];
+                
+                // Extrair clienteId de múltiplos campos possíveis
+                const dadosEtapa = firstStep?.dadosEtapa as Record<string, string> | undefined;
+                const clienteId = dadosEtapa?.leadId || dadosEtapa?.clienteId || dadosEtapa?.cliente_id || '';
 
                 navigate({
                     to: routeConfig.route,
                     search: {
-                        parentOSId: leadPhase?.osId || step.osId,
-                        clienteId
+                        parentOSId: step.osId, // Usar a OS clicada como parent
+                        clienteId,
+                        step: step.ordemOriginal // Passar a etapa clicada para navegação
                     }
                 });
                 break;

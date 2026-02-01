@@ -1,5 +1,11 @@
 /**
  * Handlers para os endpoints da API do Banco Cora
+ * 
+ * IMPORTANTE: Integração Direta (mTLS)
+ * Todas as chamadas usam coraAuthenticatedFetch() que automaticamente:
+ * - Usa a URL correta (matls-clients.api.*.cora.com.br)
+ * - Inclui certificados mTLS no handshake
+ * - Adiciona Bearer token
  */
 
 import { coraAuthenticatedFetch } from './auth.ts';
@@ -11,10 +17,11 @@ import type {
   ExtratoResponse,
   WebhookEvent,
   WebhookValidationResult,
+  BankStatementParams,
+  BankStatementResponse,
+  BankBalanceResponse,
+  AccountDetailsResponse,
 } from './types.ts';
-
-// URL base da API do Cora (pode variar entre sandbox e produção)
-const CORA_API_BASE_URL = Deno.env.get('CORA_API_URL') || 'https://api.cora.com.br/v1';
 
 // ==================== BOLETOS ====================
 
@@ -57,7 +64,7 @@ export async function emitirBoleto(
       };
     }
 
-    const response = await coraAuthenticatedFetch(`${CORA_API_BASE_URL}/boletos`, {
+    const response = await coraAuthenticatedFetch(`/v2/invoices`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -109,7 +116,7 @@ export async function consultarBoleto(
     console.log(`🔍 Consultando boleto: ${boletoId}`);
 
     const response = await coraAuthenticatedFetch(
-      `${CORA_API_BASE_URL}/boletos/${boletoId}`
+      `/v2/invoices/${boletoId}`
     );
 
     if (!response.ok) {
@@ -156,7 +163,7 @@ export async function cancelarBoleto(
     console.log(`🚫 Cancelando boleto: ${boletoId}`);
 
     const response = await coraAuthenticatedFetch(
-      `${CORA_API_BASE_URL}/boletos/${boletoId}/cancelar`,
+      `/v2/invoices/${boletoId}/cancel`,
       { method: 'POST' }
     );
 
@@ -221,18 +228,21 @@ export async function consultarExtrato(
       };
     }
 
-    // Construir query string
-    const queryParams = new URLSearchParams({
-      dataInicio: params.dataInicio,
-      dataFim: params.dataFim,
+    // Mapear parâmetros para o formato do novo endpoint /bank-statement/statement
+    const bankStatementQuery = new URLSearchParams({
+      start: params.dataInicio,
+      end: params.dataFim,
     });
-
-    if (params.tipo) queryParams.append('tipo', params.tipo);
-    if (params.page) queryParams.append('page', String(params.page));
-    if (params.pageSize) queryParams.append('pageSize', String(params.pageSize));
+    
+    // Mapear tipo ENTRADA/SAIDA se necessário, ou usar 'TODOS' (sem filtro)
+    if (params.tipo === 'ENTRADA') bankStatementQuery.append('type', 'CREDIT');
+    if (params.tipo === 'SAIDA') bankStatementQuery.append('type', 'DEBIT');
+    
+    if (params.page) bankStatementQuery.append('page', String(params.page));
+    if (params.pageSize) bankStatementQuery.append('perPage', String(params.pageSize));
 
     const response = await coraAuthenticatedFetch(
-      `${CORA_API_BASE_URL}/extrato?${queryParams.toString()}`
+      `/bank-statement/statement?${bankStatementQuery.toString()}`
     );
 
     if (!response.ok) {
@@ -258,6 +268,172 @@ export async function consultarExtrato(
     };
   } catch (error) {
     console.error('❌ Erro ao consultar extrato:', error);
+    return {
+      success: false,
+      error: {
+        codigo: 'INTERNAL_ERROR',
+        mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+}
+
+// ==================== BANK STATEMENT (V2 - conforme doc do usuário) ====================
+
+/**
+ * Consulta extrato bancário (endpoint oficial Cora)
+ * GET /bank-statement/statement?start=YYYY-MM-DD&end=YYYY-MM-DD
+ */
+export async function consultarBankStatement(
+  params: BankStatementParams
+): Promise<CoraApiResponse<BankStatementResponse>> {
+  try {
+    console.log('📊 Consultando bank statement:', {
+      periodo: `${params.start} a ${params.end}`,
+      tipo: params.type || 'TODOS',
+    });
+
+    // Validação de datas
+    const inicio = new Date(params.start);
+    const fim = new Date(params.end);
+
+    if (inicio > fim) {
+      return {
+        success: false,
+        error: {
+          codigo: 'VALIDATION_ERROR',
+          mensagem: 'Data de início não pode ser posterior à data de fim',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    // Construir query string conforme API Cora
+    const queryParams = new URLSearchParams({
+      start: params.start,
+      end: params.end,
+    });
+
+    if (params.type) queryParams.append('type', params.type);
+    if (params.transaction_type) queryParams.append('transaction_type', params.transaction_type);
+    if (params.page) queryParams.append('page', String(params.page));
+    if (params.perPage) queryParams.append('perPage', String(params.perPage));
+    if (params.aggr !== undefined) queryParams.append('aggr', String(params.aggr));
+
+    const response = await coraAuthenticatedFetch(
+      `/bank-statement/statement?${queryParams.toString()}`
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: {
+          codigo: errorData.code || 'CORA_API_ERROR',
+          mensagem: errorData.message || `Erro HTTP ${response.status}`,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    const data: BankStatementResponse = await response.json();
+    console.log(`✅ Bank statement consultado: ${data.entries?.length || 0} lançamentos`);
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    console.error('❌ Erro ao consultar bank statement:', error);
+    return {
+      success: false,
+      error: {
+        codigo: 'INTERNAL_ERROR',
+        mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+}
+
+// ==================== BANK BALANCE ====================
+
+/**
+ * Consulta saldo bancário
+ * GET /bank-balance
+ */
+export async function consultarSaldo(): Promise<CoraApiResponse<BankBalanceResponse>> {
+  try {
+    console.log('💰 Consultando saldo bancário...');
+
+    const response = await coraAuthenticatedFetch(`/bank-balance`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: {
+          codigo: errorData.code || 'CORA_API_ERROR',
+          mensagem: errorData.message || `Erro HTTP ${response.status}`,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    const data: BankBalanceResponse = await response.json();
+    console.log(`✅ Saldo consultado: R$ ${(data.available / 100).toFixed(2)}`);
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    console.error('❌ Erro ao consultar saldo:', error);
+    return {
+      success: false,
+      error: {
+        codigo: 'INTERNAL_ERROR',
+        mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+        timestamp: new Date().toISOString(),
+      },
+    };
+  }
+}
+
+// ==================== ACCOUNT DETAILS ====================
+
+/**
+ * Consulta dados da conta
+ * GET /account-details
+ */
+export async function consultarDadosConta(): Promise<CoraApiResponse<AccountDetailsResponse>> {
+  try {
+    console.log('🏦 Consultando dados da conta...');
+
+    const response = await coraAuthenticatedFetch(`/account-details`);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        error: {
+          codigo: errorData.code || 'CORA_API_ERROR',
+          mensagem: errorData.message || `Erro HTTP ${response.status}`,
+          timestamp: new Date().toISOString(),
+        },
+      };
+    }
+
+    const data: AccountDetailsResponse = await response.json();
+    console.log(`✅ Dados da conta: ${data.accountNumber}`);
+
+    return {
+      success: true,
+      data,
+    };
+  } catch (error) {
+    console.error('❌ Erro ao consultar dados da conta:', error);
     return {
       success: false,
       error: {

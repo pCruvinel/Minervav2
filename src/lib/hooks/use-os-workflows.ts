@@ -241,7 +241,7 @@ const workflowAPI = {
     responsavelId: string | null,
     descricao: string,
     metadata: Record<string, unknown>,
-    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown> }>,
+    etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown>; status?: string }>,
     parentOSId?: string | null
   ): Promise<{ os: Record<string, unknown>; etapas: Record<string, unknown>[] }> {
     // 1. Buscar tipo de OS
@@ -282,7 +282,7 @@ const workflowAPI = {
       os_id: osData.id,
       nome_etapa: etapa.nome_etapa,
       ordem: etapa.ordem || index + 1,
-      status: index === 0 ? 'em_andamento' : 'pendente',
+      status: etapa.status || (index === 0 ? 'em_andamento' : 'pendente'),
       dados_etapa: etapa.dados_etapa || {}
     }));
 
@@ -499,7 +499,7 @@ export function useCreateOSWorkflow() {
       responsavelId: string | null;
       descricao: string;
       metadata: Record<string, unknown>;
-      etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown> }>;
+      etapas: Array<{ nome_etapa: string; ordem: number; dados_etapa?: Record<string, unknown>; status?: string }>;
       parentOSId?: string | null;
     }) => workflowAPI.createOSComEtapas(
       params.tipoOSCodigo,

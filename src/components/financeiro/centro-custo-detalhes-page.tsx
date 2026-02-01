@@ -38,6 +38,8 @@ import {
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 import { useLucratividadeCC } from '@/lib/hooks/use-lucratividade-cc';
 import { useCustoMODetalhado } from '@/lib/hooks/use-custo-mo';
+import { useCCDetalhes } from '@/lib/hooks/use-cc-detalhes';
+
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -102,7 +104,13 @@ const mockDocumentos = [
     { id: 5, nome: 'Relatório Fotográfico', tipo: 'ZIP', uploadedAt: '2024-11-10', obrigatorio: false, status: 'ok' },
 ];
 
-const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#8b5cf6', '#71717a'];
+const COLORS = [
+    'hsl(var(--success))',
+    'hsl(var(--primary))',
+    'hsl(var(--warning))',
+    'hsl(var(--chart-4))',
+    'hsl(var(--muted-foreground))'
+];
 
 // ============================================================
 // COMPONENT
@@ -129,12 +137,11 @@ export function CentroCustoDetalhesPage() {
     const [sortDocs, setSortDocs] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
 
     // ========== HOOKS DE DADOS REAIS ==========
-    // TODO: Integrar quando API de useCentroCusto for atualizada
-    // const { data: centroCusto, isLoading: ccLoading } = useCentroCusto(ccId);
     const { data: lucratividade, isLoading: lucroLoading } = useLucratividadeCC(ccId);
     const { data: custosMO, isLoading: moLoading } = useCustoMODetalhado({ ccId: ccId ?? undefined });
+    const { receitas, despesas, custosPorCategoria, evolucaoMensal } = useCCDetalhes(ccId);
 
-    const isLoading = lucroLoading || moLoading;
+    const isLoading = lucroLoading || moLoading || receitas.isLoading || despesas.isLoading;
 
     // Usar mock data enquanto não há integração completa
     const cc = {
@@ -151,7 +158,7 @@ export function CentroCustoDetalhesPage() {
     };
 
     // Agrupar custos MO por colaborador quando dados reais disponíveis
-    const presencasReais = custosMO && custosMO.length > 0
+    const presencasList = custosMO && custosMO.length > 0
         ? Object.values(
             custosMO.reduce((acc, item) => {
                 const key = item.colaborador_id;
@@ -171,6 +178,50 @@ export function CentroCustoDetalhesPage() {
             }, {} as Record<string, { id: string; colaborador: string; cargo: string; diasTrabalhados: number; custoDia: number; custoTotal: number }>)
         )
         : mockPresencas;
+
+    // Usar dados reais de receitas ou fallback para mock
+    const receitasList = (receitas.data && receitas.data.length > 0)
+        ? receitas.data.map(r => ({
+            id: r.id,
+            data: r.data,
+            descricao: r.descricao,
+            tipo: 'Receita' as const,
+            valor: r.valor,
+            status: r.status === 'pago' || r.status === 'recebido' ? 'Conciliado' : 'Pendente',
+        }))
+        : mockLancamentos.filter(l => l.tipo === 'Receita');
+
+    // Usar dados reais de despesas ou fallback para mock
+    const despesasList = (despesas.data && despesas.data.length > 0)
+        ? despesas.data.map(d => ({
+            id: d.id,
+            data: d.data,
+            descricao: d.descricao,
+            tipo: 'Despesa' as const,
+            valor: d.valor,
+            status: d.status === 'pago' ? 'Conciliado' : 'Pendente',
+        }))
+        : mockLancamentos.filter(l => l.tipo === 'Despesa');
+
+    // Usar dados reais de custos por categoria ou fallback para mock
+    const custosCategoriaList = (custosPorCategoria.data && custosPorCategoria.data.length > 0)
+        ? custosPorCategoria.data.map(c => ({
+            categoria: c.categoria_nome,
+            previsto: c.valor_previsto,
+            realizado: c.valor_realizado,
+            percentual: c.percentual_total,
+        }))
+        : cc.custosPorCategoria;
+
+    // Usar dados reais de evolução mensal ou fallback para mock
+    const evolucaoList = (evolucaoMensal.data && evolucaoMensal.data.length > 0)
+        ? evolucaoMensal.data.map(e => ({
+            mes: e.mes_label,
+            receita: e.receita,
+            despesa: e.despesa,
+        }))
+        : cc.evolucaoMensal;
+
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', {
@@ -194,31 +245,25 @@ export function CentroCustoDetalhesPage() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => navigate({ to: '/financeiro/prestacao-contas' })}
+                        onClick={() => navigate({ to: '/financeiro' })}
                         className="hover:bg-primary/10"
                     >
                         <ArrowLeft className="w-5 h-5" />
                     </Button>
                     <div>
                         <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-neutral-900">{cc.codigo}</h1>
+                            <h1 className="text-2xl font-bold text-foreground">{cc.codigo}</h1>
                             <Badge
                                 className={cc.status === 'ativo'
-                                    ? 'bg-green-100 text-green-600'
-                                    : 'bg-neutral-100 text-neutral-600'
+                                    ? 'bg-success/10 text-success'
+                                    : 'bg-muted text-muted-foreground'
                                 }
                             >
                                 {cc.status === 'ativo' ? '🟢 Ativo' : '⚪ Encerrado'}
                             </Badge>
                         </div>
-                        <p className="text-neutral-600 mt-1">
-                            <Button
-                                variant="link"
-                                className="p-0 h-auto text-neutral-600 hover:text-primary font-medium"
-                                onClick={() => navigate({ to: '/contatos/$id', params: { id: cc.clienteId } })}
-                            >
-                                {cc.cliente}
-                            </Button>
+                        <p className="text-muted-foreground mt-1">
+                            <span className="font-medium">{cc.cliente}</span>
                             <span className="ml-1">•</span>
                             <span className="ml-2">OS: {cc.osOrigem}</span> •
                             <span className="ml-2">Tipo: {cc.tipo}</span>
@@ -320,11 +365,11 @@ export function CentroCustoDetalhesPage() {
                                     </div>
                                 ) : (
                                     <ResponsiveContainer width="100%" height={280}>
-                                        <BarChart data={cc.evolucaoMensal}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                                            <XAxis dataKey="mes" stroke="#71717a" />
+                                        <BarChart data={evolucaoList}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                            <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" />
                                             <YAxis
-                                                stroke="#71717a"
+                                                stroke="hsl(var(--muted-foreground))"
                                                 tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
                                             />
                                             <Tooltip
@@ -332,8 +377,8 @@ export function CentroCustoDetalhesPage() {
                                                 contentStyle={{ borderRadius: '8px', boxShadow: '0 4px 12px 0 rgb(0 0 0 / 0.1)' }}
                                             />
                                             <Legend />
-                                            <Bar dataKey="receita" name="Receita" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                                            <Bar dataKey="despesa" name="Despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="receita" name="Receita" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                                            <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 )}
@@ -355,7 +400,7 @@ export function CentroCustoDetalhesPage() {
                                     <ResponsiveContainer width="100%" height={280}>
                                         <PieChart>
                                             <Pie
-                                                data={cc.custosPorCategoria}
+                                                data={custosCategoriaList}
                                                 dataKey="realizado"
                                                 nameKey="categoria"
                                                 cx="50%"
@@ -364,7 +409,7 @@ export function CentroCustoDetalhesPage() {
                                                 label={({ categoria, percentual }) => `${categoria}: ${percentual}%`}
                                                 labelLine={false}
                                             >
-                                                {cc.custosPorCategoria.map((entry, index) => (
+                                                {custosCategoriaList.map((entry, index) => (
                                                     <Cell key={entry.categoria} fill={COLORS[index % COLORS.length]} />
                                                 ))}
                                             </Pie>
@@ -379,7 +424,7 @@ export function CentroCustoDetalhesPage() {
                     {/* Tabela de Detalhamento */}
                     <CompactTableWrapper
                         title="Detalhamento por Categoria"
-                        totalItems={cc.custosPorCategoria.length}
+                        totalItems={custosCategoriaList.length}
                     >
                         <Table>
                             <TableHeader>
@@ -411,9 +456,9 @@ export function CentroCustoDetalhesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {cc.custosPorCategoria.map((cat) => {
+                                {custosCategoriaList.map((cat) => {
                                     const variacao = cat.realizado - cat.previsto;
-                                    const variacaoPercent = ((variacao / cat.previsto) * 100).toFixed(1);
+                                    const variacaoPercent = cat.previsto > 0 ? ((variacao / cat.previsto) * 100).toFixed(1) : '0.0';
                                     return (
                                         <CompactTableRow key={cat.categoria}>
                                             <CompactTableCell className="font-medium">{cat.categoria}</CompactTableCell>
@@ -436,7 +481,7 @@ export function CentroCustoDetalhesPage() {
                     <CompactTableWrapper
                         title="Lançamentos de Receita"
                         subtitle="Parcelas e entradas vinculadas"
-                        totalItems={mockLancamentos.filter(l => l.tipo === 'Receita').length}
+                        totalItems={receitasList.length}
                     >
                         <Table>
                             <TableHeader>
@@ -478,7 +523,7 @@ export function CentroCustoDetalhesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockLancamentos.filter(l => l.tipo === 'Receita').map((lanc) => (
+                                {receitasList.map((lanc) => (
                                     <CompactTableRow key={lanc.id}>
                                         <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
                                         <CompactTableCell>{lanc.descricao}</CompactTableCell>
@@ -519,7 +564,7 @@ export function CentroCustoDetalhesPage() {
                     <CompactTableWrapper
                         title="Lançamentos de Despesa"
                         subtitle="Custos operacionais"
-                        totalItems={mockLancamentos.filter(l => l.tipo === 'Despesa').length}
+                        totalItems={despesasList.length}
                     >
                         <Table>
                             <TableHeader>
@@ -561,7 +606,7 @@ export function CentroCustoDetalhesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockLancamentos.filter(l => l.tipo === 'Despesa').map((lanc) => (
+                                {despesasList.map((lanc) => (
                                     <CompactTableRow key={lanc.id}>
                                         <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
                                         <CompactTableCell>{lanc.descricao}</CompactTableCell>
@@ -588,7 +633,7 @@ export function CentroCustoDetalhesPage() {
                                 <TableRow className="bg-muted/60 font-semibold">
                                     <CompactTableCell colSpan={2} className="text-right">Total Despesas</CompactTableCell>
                                     <CompactTableCell className="text-right text-destructive font-bold">
-                                        {formatCurrency(mockLancamentos.filter(l => l.tipo === 'Despesa').reduce((acc, l) => acc + l.valor, 0))}
+                                        {formatCurrency(despesasList.reduce((acc, l) => acc + l.valor, 0))}
                                     </CompactTableCell>
                                     <CompactTableCell colSpan={3} />
                                 </TableRow>
@@ -602,7 +647,7 @@ export function CentroCustoDetalhesPage() {
                     <CompactTableWrapper
                         title="Custo de Mão de Obra"
                         subtitle="Baseado no registro de presença"
-                        totalItems={mockPresencas.length}
+                        totalItems={presencasList.length}
                     >
                         <Table>
                             <TableHeader>
@@ -644,7 +689,7 @@ export function CentroCustoDetalhesPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockPresencas.map((p) => (
+                                {presencasList.map((p) => (
                                     <CompactTableRow key={p.id}>
                                         <CompactTableCell className="font-medium">{p.colaborador}</CompactTableCell>
                                         <CompactTableCell>{p.cargo}</CompactTableCell>
@@ -658,7 +703,7 @@ export function CentroCustoDetalhesPage() {
                                 <TableRow className="bg-muted/60 font-semibold">
                                     <CompactTableCell colSpan={4} className="text-right font-bold">Total Mão de Obra</CompactTableCell>
                                     <CompactTableCell className="text-right font-bold">
-                                        {formatCurrency(mockPresencas.reduce((acc, p) => acc + p.custoTotal, 0))}
+                                        {formatCurrency(presencasList.reduce((acc, p) => acc + p.custoTotal, 0))}
                                     </CompactTableCell>
                                 </TableRow>
                             </TableFooter>

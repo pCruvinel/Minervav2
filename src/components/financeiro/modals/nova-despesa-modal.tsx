@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCreateDespesa } from '@/lib/hooks/use-faturas-recorrentes';
+import { useCategoriasFinanceiras } from '@/lib/hooks/use-categorias-financeiras';
 
 // Schema com lógica condicional para vencimento e parcelamento
 const novaDespesaSchema = z.object({
@@ -51,23 +52,15 @@ const novaDespesaSchema = z.object({
     recorrencia: z.enum(['MENSAL', 'SEMANAL', 'ANUAL', 'UNICA'], {
         required_error: 'Selecione a recorrência',
     }),
-    // Para recorrência única: data completa
-    vencimentoData: z.date().optional(),
-    // Para recorrência periódica: dia do mês (1-31)
-    diaVencimento: z.number().min(1).max(31).optional(),
+    // Data completa obrigatória para todos
+    vencimentoData: z.date({
+        required_error: 'Selecione a data de vencimento',
+    }),
     categoria: z.string().min(1, 'Selecione uma categoria'),
     centroCustoId: z.string().optional(), // Opcional
     // Parcelamento (apenas para UNICA)
     parcelar: z.boolean().default(false),
     numeroParcelas: z.number().min(2).max(48).optional(),
-}).refine((data) => {
-    if (data.recorrencia === 'UNICA') {
-        return !!data.vencimentoData;
-    }
-    return !!data.diaVencimento;
-}, {
-    message: 'Informe a data ou dia de vencimento',
-    path: ['vencimentoData'],
 }).refine((data) => {
     if (data.parcelar && !data.numeroParcelas) {
         return false;
@@ -90,8 +83,11 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
     const [arquivos, setArquivos] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const createDespesa = useCreateDespesa();
+    
+    // Buscar categorias de despesa do Supabase
+    const { data: categorias = [], isLoading: isLoadingCategorias } = useCategoriasFinanceiras('pagar');
 
-    const form = useForm<z.input<typeof novaDespesaSchema>>({
+    const form = useForm<z.input<typeof novaDespesaSchema>, any, z.output<typeof novaDespesaSchema>>({
         resolver: zodResolver(novaDespesaSchema),
         defaultValues: {
             descricao: '',
@@ -100,7 +96,7 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
             categoria: '',
             centroCustoId: '',
             recorrencia: 'MENSAL',
-            diaVencimento: 5,
+            vencimentoData: new Date(), // Default to today
             parcelar: false,
             numeroParcelas: 2,
         },
@@ -128,7 +124,6 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                 categoria: data.categoria,
                 recorrencia: data.recorrencia,
                 vencimentoData: data.vencimentoData,
-                diaVencimento: data.diaVencimento,
                 centroCustoId: data.centroCustoId,
                 parcelar: data.parcelar,
                 numeroParcelas: data.numeroParcelas
@@ -155,9 +150,6 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
         onChange(value);
     };
 
-    // Gerar dias do mês (1-31)
-    const diasDoMes = Array.from({ length: 31 }, (_, i) => i + 1);
-
     // Gerar opções de parcelas (2-48)
     const opcoesParcelas = Array.from({ length: 47 }, (_, i) => i + 2);
 
@@ -176,16 +168,18 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <div className="p-2 bg-primary/10 rounded-full">
+                <DialogHeader className="pb-4 border-b">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl">
                             <Plus className="h-5 w-5 text-primary" />
                         </div>
-                        Nova Despesa
-                    </DialogTitle>
-                    <DialogDescription>
-                        Preencha os dados abaixo para cadastrar uma nova previsão de despesa.
-                    </DialogDescription>
+                        <div>
+                            <DialogTitle className="text-lg">Nova Despesa</DialogTitle>
+                            <DialogDescription className="text-xs">
+                                Cadastre uma nova previsão de despesa fixa ou variável
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
                 <Form {...form}>
@@ -252,20 +246,19 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                         <FormLabel>Categoria</FormLabel>
                                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                                             <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Selecione a categoria" />
+                                                <SelectTrigger disabled={isLoadingCategorias}>
+                                                    <SelectValue placeholder={isLoadingCategorias ? "Carregando..." : "Selecione a categoria"} />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="ALUGUEL">Aluguel</SelectItem>
-                                                <SelectItem value="ENERGIA">Energia</SelectItem>
-                                                <SelectItem value="AGUA">Água</SelectItem>
-                                                <SelectItem value="INTERNET">Internet</SelectItem>
-                                                <SelectItem value="SALARIO">Salário</SelectItem>
-                                                <SelectItem value="ENCARGO">Encargos</SelectItem>
-                                                <SelectItem value="MANUTENCAO">Manutenção</SelectItem>
-                                                <SelectItem value="MATERIAL">Material</SelectItem>
-                                                <SelectItem value="OUTROS">Outros</SelectItem>
+                                            <SelectContent className="max-h-[280px]">
+                                                {categorias.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                        <span className="flex items-center gap-2">
+                                                            <span className="text-muted-foreground text-xs">{cat.codigo}</span>
+                                                            <span>{cat.nome}</span>
+                                                        </span>
+                                                    </SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
@@ -274,7 +267,7 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                             />
                         </div>
 
-                        {/* Linha 3: Recorrência e Vencimento (condicional) */}
+                        {/* Linha 3: Recorrência e Vencimento */}
                         <div className="grid grid-cols-2 gap-4">
                             <FormField
                                 control={form.control}
@@ -300,75 +293,48 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                 )}
                             />
 
-                            {isRecorrenciaUnica ? (
-                                // Recorrência Única: Datepicker completo
-                                <FormField
-                                    control={form.control}
-                                    name="vencimentoData"
-                                    render={({ field }) => (
-                                        <FormItem className="flex flex-col">
-                                            <FormLabel>Data de Vencimento</FormLabel>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        type="button"
-                                                        variant={"outline"}
-                                                        className={cn(
-                                                            "w-full pl-3 text-left font-normal",
-                                                            !field.value && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        {field.value ? (
-                                                            format(field.value, "PPP", { locale: ptBR })
-                                                        ) : (
-                                                            <span>Selecione uma data</span>
-                                                        )}
-                                                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={field.value}
-                                                        onSelect={field.onChange}
-                                                        initialFocus
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            ) : (
-                                // Recorrência Periódica: Seletor de dia do mês
-                                <FormField
-                                    control={form.control}
-                                    name="diaVencimento"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Dia do Vencimento</FormLabel>
-                                            <Select
-                                                onValueChange={(val) => field.onChange(Number(val))}
-                                                defaultValue={field.value?.toString()}
-                                            >
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Dia do mês" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent className="max-h-60">
-                                                    {diasDoMes.map((dia) => (
-                                                        <SelectItem key={dia} value={dia.toString()}>
-                                                            Dia {dia}
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                            )}
+                            <FormField
+                                control={form.control}
+                                name="vencimentoData"
+                                render={({ field }) => (
+                                    <FormItem className="flex flex-col">
+                                        <FormLabel>{recorrencia === 'UNICA' ? 'Data de Vencimento' : 'Primeiro Vencimento'}</FormLabel>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant={"outline"}
+                                                    className={cn(
+                                                        "w-full pl-3 text-left font-normal",
+                                                        !field.value && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {field.value ? (
+                                                        format(field.value, "PPP", { locale: ptBR })
+                                                    ) : (
+                                                        <span>Selecione uma data</span>
+                                                    )}
+                                                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={field.value}
+                                                    onSelect={field.onChange}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                        {recorrencia !== 'UNICA' && (
+                                            <p className="text-[0.7rem] text-muted-foreground">
+                                                A partir desta data, serão geradas as próximas automaticamente.
+                                            </p>
+                                        )}
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
                         </div>
 
                         {/* Parcelamento (apenas para UNICA) */}

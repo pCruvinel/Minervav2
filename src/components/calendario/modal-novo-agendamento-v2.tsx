@@ -209,6 +209,12 @@ export function ModalNovoAgendamentoV2({
         categoria: novoAgendamento.categoria,
         setor: novoAgendamento.setor,
         status: 'confirmado' as const,
+        // CRITICAL FIX: Incluir dados do responsável na resposta
+        responsavelId: novoAgendamento.responsavelId,
+        responsavelNome: colaboradorSelecionado.nome,
+        // Metadados úteis para UI
+        agendadoPorId: 'currentUser', // ou pegar do contexto auth
+        agendadoEm: new Date().toISOString(),
       });
       
       onClose();

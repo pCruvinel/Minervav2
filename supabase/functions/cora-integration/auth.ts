@@ -1,231 +1,153 @@
 /**
- * Módulo de Autenticação mTLS para Banco Cora
- *
- * Implementa autenticação usando:
- * - Client Certificates (mTLS)
- * - JWT assinado com private key
- * - Troca do JWT por Access Token OAuth2
+ * Módulo de Autenticação via Proxy para Banco Cora
+ * 
+ * O proxy Node.js (pxminerva.onrender.com) faz a conexão mTLS
+ * Esta Edge Function apenas encaminha as requisições
  */
 
-import type { CoraAuthConfig, CoraTokenResponse } from './types.ts';
+// =============================================================================
+// CONFIGURAÇÃO DO PROXY
+// =============================================================================
 
-// Cache do token em memória (válido por 1 hora tipicamente)
+const PROXY_URL = 'https://pxminerva.onrender.com';
+const PROXY_API_KEY = 'minerva-cora-proxy-secret-2026';
+
+// =============================================================================
+// DEBUG LOGS
+// =============================================================================
+
+export const debugLogs: string[] = [];
+
+export function logDebug(msg: string) {
+  console.log(msg);
+  debugLogs.push(`[${new Date().toISOString().split('T')[1].slice(0, -1)}] ${msg}`);
+}
+
+export function clearDebugLogs() {
+  debugLogs.length = 0;
+}
+
+// =============================================================================
+// TOKEN (VIA PROXY)
+// =============================================================================
+
 let cachedToken: string | null = null;
 let tokenExpiresAt: number | null = null;
 
 /**
- * Carrega configuração de autenticação das variáveis de ambiente
- */
-export function loadAuthConfig(): CoraAuthConfig {
-  const clientId = Deno.env.get('CORA_CLIENT_ID');
-  const privateKey = Deno.env.get('CORA_PRIVATE_KEY');
-  const cert = Deno.env.get('CORA_CERT');
-  const tokenUrl = Deno.env.get('CORA_TOKEN_URL') || 'https://auth.cora.com.br/oauth2/token';
-
-  if (!clientId || !privateKey || !cert) {
-    throw new Error(
-      'Configuração incompleta. Variáveis necessárias: CORA_CLIENT_ID, CORA_PRIVATE_KEY, CORA_CERT'
-    );
-  }
-
-  return {
-    clientId,
-    privateKey,
-    cert,
-    tokenUrl,
-  };
-}
-
-/**
- * Gera um JWT assinado com a private key do cliente
- *
- * O JWT contém:
- * - iss: Client ID
- * - sub: Client ID
- * - aud: Token URL
- * - exp: Timestamp de expiração (5 minutos)
- * - iat: Timestamp de criação
- */
-async function generateClientAssertion(config: CoraAuthConfig): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-
-  const header = {
-    alg: 'RS256',
-    typ: 'JWT',
-  };
-
-  const payload = {
-    iss: config.clientId,
-    sub: config.clientId,
-    aud: config.tokenUrl,
-    exp: now + 300, // Expira em 5 minutos
-    iat: now,
-    jti: crypto.randomUUID(), // ID único do JWT
-  };
-
-  try {
-    // Importar a private key
-    const pemKey = config.privateKey
-      .replace(/\\n/g, '\n')
-      .replace('-----BEGIN PRIVATE KEY-----', '')
-      .replace('-----END PRIVATE KEY-----', '')
-      .trim();
-
-    const binaryKey = Uint8Array.from(atob(pemKey), c => c.charCodeAt(0));
-
-    const cryptoKey = await crypto.subtle.importKey(
-      'pkcs8',
-      binaryKey,
-      {
-        name: 'RSASSA-PKCS1-v1_5',
-        hash: 'SHA-256',
-      },
-      false,
-      ['sign']
-    );
-
-    // Criar JWT
-    const encoder = new TextEncoder();
-    const headerB64 = btoa(JSON.stringify(header))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-    const payloadB64 = btoa(JSON.stringify(payload))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    const message = `${headerB64}.${payloadB64}`;
-    const messageBytes = encoder.encode(message);
-
-    // Assinar
-    const signature = await crypto.subtle.sign(
-      'RSASSA-PKCS1-v1_5',
-      cryptoKey,
-      messageBytes
-    );
-
-    const signatureB64 = btoa(String.fromCharCode(...new Uint8Array(signature)))
-      .replace(/\+/g, '-')
-      .replace(/\//g, '_')
-      .replace(/=/g, '');
-
-    return `${message}.${signatureB64}`;
-  } catch (error) {
-    console.error('❌ Erro ao gerar client assertion JWT:', error);
-    throw new Error(`Falha ao gerar JWT: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
-/**
- * Obtém Access Token do Banco Cora
- *
- * Usa o fluxo OAuth2 client_credentials com client assertion JWT
- */
-async function fetchAccessToken(config: CoraAuthConfig): Promise<CoraTokenResponse> {
-  try {
-    const clientAssertion = await generateClientAssertion(config);
-
-    const body = new URLSearchParams({
-      grant_type: 'client_credentials',
-      client_assertion_type: 'urn:ietf:params:oauth:client-assertion-type:jwt-bearer',
-      client_assertion: clientAssertion,
-      scope: 'boletos:read boletos:write extrato:read webhooks:write',
-    });
-
-    console.log('🔐 Solicitando token ao Banco Cora...');
-
-    const response = await fetch(config.tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      body: body.toString(),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('❌ Erro na autenticação Cora:', errorText);
-      throw new Error(`Erro HTTP ${response.status}: ${errorText}`);
-    }
-
-    const tokenData: CoraTokenResponse = await response.json();
-    console.log('✅ Token obtido com sucesso');
-
-    return tokenData;
-  } catch (error) {
-    console.error('❌ Erro ao buscar access token:', error);
-    throw error;
-  }
-}
-
-/**
- * Obtém um token válido (do cache ou renovando)
+ * Obtém access token via proxy
  */
 export async function getAuthToken(): Promise<string> {
   const now = Date.now();
 
-  // Verifica se há token em cache válido (com margem de 5 minutos)
+  // Verifica cache (5 min de margem)
   if (cachedToken && tokenExpiresAt && tokenExpiresAt > now + 5 * 60 * 1000) {
-    console.log('✓ Usando token em cache');
+    logDebug('✓ Usando token em cache');
     return cachedToken;
   }
 
-  console.log('🔄 Renovando token...');
-  const config = loadAuthConfig();
-  const tokenResponse = await fetchAccessToken(config);
+  logDebug('🔄 Obtendo token via proxy...');
+  logDebug(`📍 Proxy URL: ${PROXY_URL}/token`);
 
-  cachedToken = tokenResponse.access_token;
-  tokenExpiresAt = now + (tokenResponse.expires_in * 1000);
+  try {
+    const response = await fetch(`${PROXY_URL}/token`, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': PROXY_API_KEY,
+        'Accept': 'application/json',
+      },
+    });
 
-  return cachedToken;
+    if (!response.ok) {
+      const errorText = await response.text();
+      logDebug(`❌ Erro do proxy: ${errorText}`);
+      throw new Error(`Proxy error ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+    
+    if (!data.access_token) {
+      throw new Error('Proxy não retornou access_token');
+    }
+
+    cachedToken = data.access_token;
+    tokenExpiresAt = now + 55 * 60 * 1000; // 55 minutos (típico Cora)
+    
+    logDebug('✅ Token obtido com sucesso via proxy');
+    return cachedToken;
+  } catch (error) {
+    logDebug(`❌ Falha ao obter token: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
+  }
 }
 
-/**
- * Limpa o cache do token (útil em caso de erro 401)
- */
 export function clearTokenCache(): void {
-  console.log('🗑️ Cache de token limpo');
+  logDebug('🗑️ Cache de token limpo');
   cachedToken = null;
   tokenExpiresAt = null;
 }
 
+// =============================================================================
+// REQUISIÇÕES AUTENTICADAS (VIA PROXY)
+// =============================================================================
+
 /**
- * Faz uma requisição autenticada para a API do Cora
- *
- * Automaticamente:
- * - Adiciona o token de autenticação
- * - Retry em caso de 401 (token expirado)
- * - Tratamento de erros
+ * Faz requisição para a API Cora via proxy
  */
 export async function coraAuthenticatedFetch(
-  url: string,
+  endpoint: string,
   options: RequestInit = {}
 ): Promise<Response> {
-  let token = await getAuthToken();
+  logDebug(`🔐 Chamando proxy: ${endpoint}`);
 
-  const makeRequest = async (authToken: string): Promise<Response> => {
-    return fetch(url, {
+  // Mapear endpoints para rotas do proxy
+  let proxyEndpoint = endpoint;
+  
+  if (endpoint.includes('/bank-statement')) {
+    proxyEndpoint = '/extrato';
+  } else if (endpoint.includes('/bank-balance')) {
+    proxyEndpoint = '/saldo';
+  } else if (endpoint.includes('/invoice')) {
+    proxyEndpoint = '/boletos';
+  }
+
+  const url = `${PROXY_URL}${proxyEndpoint}`;
+  
+  try {
+    const response = await fetch(url, {
       ...options,
       headers: {
         ...options.headers,
-        'Authorization': `Bearer ${authToken}`,
+        'X-Api-Key': PROXY_API_KEY,
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
     });
-  };
 
-  let response = await makeRequest(token);
-
-  // Se 401, tentar renovar token e fazer nova requisição
-  if (response.status === 401) {
-    console.log('⚠️ Token expirado, renovando...');
-    clearTokenCache();
-    token = await getAuthToken();
-    response = await makeRequest(token);
+    return response;
+  } catch (error) {
+    logDebug(`❌ Erro na requisição: ${error instanceof Error ? error.message : String(error)}`);
+    throw error;
   }
+}
 
-  return response;
+// =============================================================================
+// FUNÇÕES LEGADAS (MANTIDAS PARA COMPATIBILIDADE)
+// =============================================================================
+
+export async function loadAuthConfig() {
+  // Não precisa mais carregar config - proxy faz tudo
+  logDebug('ℹ️ Usando proxy - config local não necessária');
+  return {
+    clientId: 'via-proxy',
+    privateKey: '',
+    cert: '',
+    tokenUrl: `${PROXY_URL}/token`,
+    apiBaseUrl: PROXY_URL,
+    ambiente: 'production' as const,
+  };
+}
+
+export function clearConfigCache(): void {
+  logDebug('🗑️ Cache de config limpo (noop - usando proxy)');
 }

@@ -4,7 +4,6 @@ import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
 import { OSHeaderDelegacao } from '@/components/os/shared/components/os-header-delegacao';
 import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
-import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import {
   StepDetalhesSolicitacao,
   StepAgendarVisita,
@@ -27,13 +26,13 @@ import { ordensServicoAPI } from '@/lib/api-client';
 import { logger } from '@/lib/utils/logger';
 
 /**
- * Definição das etapas da OS-08 com campos de responsabilidade v3.1
- * Os campos setor/setorNome são usados para exibição do novo header
- * O campo responsible é mantido para compatibilidade (deprecated)
+ * Definição das etapas da OS-08 com campos de responsabilidade v3.2
+ * INVERTIDO: Etapa 1 = Detalhes da Solicitação, Etapa 2 = Identificação do Cliente
+ * Isso permite que clientes iniciem OS via formulário externo público.
  */
 const steps = [
-  { id: 1, title: 'Identificação do Cliente', short: 'Cliente', setor: 'administrativo' as const, setorNome: 'Administrativo', responsible: 'ADM' },
-  { id: 2, title: 'Detalhes da Solicitação', short: 'Solicitação', setor: 'administrativo' as const, setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 1, title: 'Detalhes da Solicitação', short: 'Solicitação', setor: 'administrativo' as const, setorNome: 'Administrativo', responsible: 'ADM' },
+  { id: 2, title: 'Identificação do Cliente', short: 'Cliente', setor: 'administrativo' as const, setorNome: 'Administrativo', responsible: 'ADM' },
   { id: 3, title: 'Agendar Visita', short: 'Agendar', setor: 'administrativo' as const, setorNome: 'Administrativo', responsible: 'ADM' },
   { id: 4, title: 'Realizar Visita', short: 'Visita', setor: 'assessoria' as const, setorNome: 'Assessoria', responsible: 'Obras' },
   { id: 5, title: 'Formulário Pós-Visita', short: 'Formulário', setor: 'assessoria' as const, setorNome: 'Assessoria', responsible: 'Obras' },
@@ -67,6 +66,7 @@ export function OS08WorkflowPage({
   const isReadOnly = readonly ?? false;
 
   // Refs para validação imperativa de steps
+  const stepDetalhesRef = useRef<{ validate: () => boolean }>(null);
   const stepAgendarVisitaRef = useRef<any>(null);
   const leadCadastroRef = useRef<LeadCadastroHandle>(null);
 
@@ -80,45 +80,6 @@ export function OS08WorkflowPage({
   useEffect(() => {
     if (propOsId) setInternalOsId(propOsId);
   }, [propOsId]);
-
-  // Função para criar OS quando o cliente for atribuído na Etapa 2
-  const createOSWithClient = async (clienteId: string): Promise<string | null> => {
-    if (finalOsId) return finalOsId; // Já existe uma OS
-
-    try {
-      setIsCreatingOS(true);
-      logger.log('[OS08WorkflowPage] 🔧 Criando OS com cliente:', clienteId);
-
-      // Buscar tipo de OS
-      const tiposOS = await ordensServicoAPI.getTiposOS();
-      const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-08');
-
-      if (!tipo) {
-        throw new Error('Tipo de OS OS-08 não encontrado no sistema');
-      }
-
-      // Criar OS com o cliente real
-      const osData = {
-        tipo_os_id: tipo.id,
-        status_geral: 'em_triagem' as const,
-        descricao: 'OS-08: Visita Técnica / Parecer Técnico',
-        criado_por_id: currentUser?.id,
-        cliente_id: clienteId,
-        data_entrada: new Date().toISOString()
-      };
-
-      const newOS = await createOS(osData);
-      logger.log(`[OS08WorkflowPage] ✅ OS criada: ${newOS.codigo_os} (ID: ${newOS.id})`);
-      setInternalOsId(newOS.id);
-      return newOS.id;
-    } catch (err) {
-      logger.error('[OS08WorkflowPage] ❌ Erro ao criar OS:', err);
-      toast.error('Erro ao criar ordem de serviço');
-      return null;
-    } finally {
-      setIsCreatingOS(false);
-    }
-  };
 
   // Hook de Estado do Workflow
   const {
@@ -138,9 +99,9 @@ export function OS08WorkflowPage({
     initialStep: initialStep
   });
 
-  // Mapeamento de dados para compatibilidade
-  const etapa1Data = formDataByStep[1] || null;
-  const etapa2Data = formDataByStep[2] || {
+  // Mapeamento de dados para compatibilidade (INVERTIDO: Etapa 1 = Detalhes, Etapa 2 = Cliente)
+  // Etapa 1: Detalhes da Solicitação (pode vir do formulário público)
+  const etapa1Data = formDataByStep[1] || {
     finalidadeInspecao: '',
     tipoArea: '',
     unidadesVistoriar: '',
@@ -151,7 +112,11 @@ export function OS08WorkflowPage({
     tempoSituacao: '',
     primeiraVisita: '',
     arquivos: [],
+    // Campos de solicitante do formulário público
+    solicitante: null,
   };
+  // Etapa 2: Identificação do Cliente (colaborador vincula o cliente)
+  const etapa2Data = formDataByStep[2] || null;
 
   const etapa3Data = formDataByStep[3] || { dataAgendamento: '', agendamentoId: '' };
   const etapa4Data = formDataByStep[4] || { visitaRealizada: false, dataRealizacao: '' };
@@ -181,10 +146,10 @@ export function OS08WorkflowPage({
   const setEtapa6Data = (data: any) => setStepData(6, data);
   const setEtapa7Data = (data: any) => setStepData(7, data);
 
-  // Regras de completude
+  // Regras de completude (INVERTIDO: Etapa 1 = Detalhes, Etapa 2 = Cliente)
   const completionRules = useMemo(() => ({
-    1: (data: any) => !!(data?.identificacao?.nome && data?.identificacao?.cpfCnpj),
-    2: (data: any) => !!(data.finalidadeInspecao && data.detalhesSolicitacao && data.areaVistoriada),
+    1: (data: any) => !!(data?.finalidadeInspecao && data?.detalhesSolicitacao && data?.areaVistoriada),
+    2: (data: any) => !!(data?.identificacao?.nome && data?.identificacao?.cpfCnpj),
     3: (data: any) => !!(data.agendamentoId || data.dataAgendamento),
     4: (data: any) => !!(data.visitaRealizada && data.dataRealizacao),
     5: (data: any) => !!(data.resultadoVisita && data.tipoDocumento),
@@ -219,33 +184,56 @@ export function OS08WorkflowPage({
   const handleSaveAndAdvance = async (): Promise<boolean> => {
     const step = currentStep;
 
-    // Etapa 1: Salvar Lead e Criar OS se não existir
+    // Etapa 1: Detalhes da Solicitação - Criar OS se não existir
     if (step === 1) {
-      if (!leadCadastroRef.current) return false;
-
-      const savedId = await leadCadastroRef.current.save();
-      if (!savedId) return false;
+      // Validar campos obrigatórios usando Zod (via ref)
+      const isValid = stepDetalhesRef.current?.validate();
+      
+      if (!isValid) {
+        toast.error('Verifique os campos obrigatórios');
+        return false;
+      }
 
       if (!finalOsId) {
-        const newOsId = await createOSWithClient(savedId);
-        if (!newOsId) return false;
-
+        // Criar OS sem cliente (será vinculado na Etapa 2)
         try {
+          setIsCreatingOS(true);
+          logger.log('[OS08WorkflowPage] 🔧 Criando OS sem cliente...');
+
+          const tiposOS = await ordensServicoAPI.getTiposOS();
+          const tipo = tiposOS.find((t: { codigo: string }) => t.codigo === 'OS-08');
+          if (!tipo) throw new Error('Tipo OS-08 não encontrado');
+
+          const osData = {
+            tipo_os_id: tipo.id,
+            status_geral: 'em_triagem' as const,
+            descricao: 'OS-08: Visita Técnica / Parecer Técnico',
+            criado_por_id: currentUser?.id,
+            data_entrada: new Date().toISOString(),
+            dados_publicos: { detalhes: etapa1Data },
+          };
+
+          const newOS = await createOS(osData);
+          logger.log(`[OS08WorkflowPage] ✅ OS criada: ${newOS.codigo_os}`);
+          setInternalOsId(newOS.id);
+
           const stepsData = steps.map(s => ({
             ordem: s.id,
             nome_etapa: s.title,
             status: s.id === 1 ? 'concluida' : 'pendente',
-            dados_etapa: s.id === 1 ? { ...etapa1Data, leadId: savedId } : {}
+            dados_etapa: s.id === 1 ? etapa1Data : {},
           }));
 
-          await createEtapasBatch(newOsId, stepsData as any);
-          logger.log('[OS08WorkflowPage] ✅ Etapas criadas com sucesso!');
+          await createEtapasBatch(newOS.id, stepsData as any);
+          toast.success('OS criada com sucesso!');
           setCurrentStep(2);
           return true;
         } catch (error) {
-          logger.error('[OS08WorkflowPage] ❌ Erro ao criar etapas:', error);
-          toast.error('Erro ao inicializar etapas da OS');
+          logger.error('[OS08WorkflowPage] ❌ Erro ao criar OS:', error);
+          toast.error('Erro ao criar ordem de serviço');
           return false;
+        } finally {
+          setIsCreatingOS(false);
         }
       } else {
         await saveStep(1, false);
@@ -254,13 +242,37 @@ export function OS08WorkflowPage({
       }
     }
 
-    // Etapa 2 em diante: Comportamento padrão
-    if (step > 1) {
+    // Etapa 2: Identificação do Cliente - Salvar lead e vincular à OS
+    if (step === 2) {
+      if (!leadCadastroRef.current) return false;
+
+      const savedId = await leadCadastroRef.current.save();
+      if (!savedId) return false;
+
+      // Vincular cliente à OS existente
+      if (finalOsId) {
+        try {
+          await ordensServicoAPI.update(finalOsId, { cliente_id: savedId });
+          await saveStep(2, false);
+          await refreshEtapas();
+          toast.success('Cliente vinculado com sucesso!');
+          setCurrentStep(3);
+          return true;
+        } catch (error) {
+          logger.error('[OS08WorkflowPage] ❌ Erro ao vincular cliente:', error);
+          toast.error('Erro ao vincular cliente');
+          return false;
+        }
+      }
+      return false;
+    }
+
+    // Etapa 3 em diante: Comportamento padrão
+    if (step > 2) {
       try {
         await saveStep(step, false);
         await refreshEtapas();
 
-        // Avançar para próxima etapa
         if (step < steps.length) {
           setCurrentStep(step + 1);
         }
@@ -291,23 +303,26 @@ export function OS08WorkflowPage({
     const formContent = (() => {
       switch (currentStep) {
         case 1:
+          // INVERTIDO: Etapa 1 = Detalhes da Solicitação
           return (
-            <LeadCadastro
-              ref={leadCadastroRef}
-              initialData={etapa1Data}
-              selectedLeadId={etapa1Data?.identificacao?.id}
-              onLeadChange={(_id: string, data: LeadCompleto) => setEtapa1Data(data)}
-              statusFilter="cliente"
+            <StepDetalhesSolicitacao
+              ref={stepDetalhesRef}
+              data={etapa1Data}
+              onDataChange={setEtapa1Data}
               readOnly={viewingCompletedStep && isHistoricalView}
+              osId={finalOsId}
             />
           );
         case 2:
+          // INVERTIDO: Etapa 2 = Identificação do Cliente
           return (
-            <StepDetalhesSolicitacao
-              data={etapa2Data}
-              onDataChange={setEtapa2Data}
+            <LeadCadastro
+              ref={leadCadastroRef}
+              initialData={etapa2Data}
+              selectedLeadId={etapa2Data?.identificacao?.id}
+              onLeadChange={(_id: string, data?: LeadCompleto) => data && setEtapa2Data(data)}
+              statusFilter="cliente"
               readOnly={viewingCompletedStep && isHistoricalView}
-              osId={finalOsId}
             />
           );
         case 3:
@@ -328,8 +343,8 @@ export function OS08WorkflowPage({
               readOnly={viewingCompletedStep && isHistoricalView}
               agendamentoData={etapa3Data}
               clienteInfo={{
-                nome: etapa1Data?.identificacao?.nome,
-                edificacao: etapa1Data?.edificacao?.nome,
+                nome: etapa2Data?.identificacao?.nome,
+                edificacao: etapa2Data?.edificacao?.nome,
               }}
             />
           );
@@ -339,7 +354,7 @@ export function OS08WorkflowPage({
               data={etapa5Data}
               onDataChange={setEtapa5Data}
               readOnly={viewingCompletedStep && isHistoricalView}
-              finalidadeInspecao={etapa2Data.finalidadeInspecao}
+              finalidadeInspecao={etapa1Data.finalidadeInspecao}
               osId={finalOsId}
             />
           );
@@ -351,8 +366,8 @@ export function OS08WorkflowPage({
               data={etapa6Data}
               onDataChange={setEtapa6Data}
               readOnly={viewingCompletedStep && isHistoricalView}
-              etapa1Data={etapa1Data}
-              etapa2Data={etapa2Data}
+              etapa1Data={etapa1Data}  // Detalhes da Solicitação
+              etapa2Data={etapa2Data}  // Identificação do Cliente
               etapa4Data={etapa4Data}
               etapa5Data={etapa5Data}
             />

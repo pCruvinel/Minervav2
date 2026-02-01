@@ -11,8 +11,8 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Upload, X, ClipboardCheck } from 'lucide-react';
 import { FileWithComment } from '@/components/ui/file-upload-unificado';
 import { toast } from '@/lib/utils/safe-toast';
-import { FinalidadeInspecao, isFinalidadeRecebimento, AREAS_VISTORIA } from '../types/os08-types';
-import { ChecklistRecebimentoTable, ChecklistRecebimentoData } from '../components/checklist-recebimento-table';
+import { FinalidadeInspecao, isFinalidadeRecebimento, AREAS_VISTORIA } from '../../shared/types/visita-tecnica-types';
+import { ChecklistRecebimentoTable, ChecklistRecebimentoData } from '../../shared/components/checklist-recebimento-table';
 
 // =====================================================
 // TYPES

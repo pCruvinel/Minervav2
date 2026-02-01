@@ -22,7 +22,8 @@ import {
   Banknote,
   Building2,
   ClipboardList,
-  Loader2
+  Loader2,
+  BarChart3
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import {
@@ -39,7 +40,9 @@ import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 import {
   useFinanceiroDashboard,
   useReceitasComparacao,
-  useDespesasComparacao
+  useDespesasComparacao,
+  useAnaliseVariacao,
+  usePrestacaoContas
 } from '@/lib/hooks/use-financeiro-dashboard';
 
 // ============================================================
@@ -115,8 +118,10 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
   const { data: dashboardKPIs, isLoading: kpisLoading } = useFinanceiroDashboard();
   const { data: receitasComparacao, isLoading: receitasLoading } = useReceitasComparacao();
   const { data: despesasComparacao, isLoading: despesasLoading } = useDespesasComparacao();
+  const { data: analiseVariacao, isLoading: variacaoLoading } = useAnaliseVariacao();
+  const { data: prestacaoContas, isLoading: prestacaoLoading } = usePrestacaoContas();
 
-  const isLoading = kpisLoading || receitasLoading || despesasLoading;
+  const isLoading = kpisLoading || receitasLoading || despesasLoading || variacaoLoading || prestacaoLoading;
 
   // Dados com fallback para mock
   const kpis = dashboardKPIs ?? mockKPIs;
@@ -234,7 +239,15 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
           <CardTitle className="text-base font-semibold">Acesso Rápido</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Button
+              variant="default"
+              className="h-auto py-4 flex flex-col items-center gap-2 bg-primary/10 border border-primary/20 text-primary hover:bg-primary hover:text-primary-foreground transition-all"
+              onClick={() => handleNavigate('dashboard-analitico')}
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-sm font-medium">Analítico</span>
+            </Button>
             <Button
               variant="outline"
               className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
@@ -376,55 +389,67 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
       <Card className="shadow-card">
         <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
           <CardTitle className="text-base font-semibold">
-            Análise de Variação - {periodoLabels[periodo]}
+            Análise de Variação - {analiseVariacao?.periodo ?? periodoLabels[periodo]}
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Variação de Receitas */}
-            <div className="space-y-3 p-4 rounded-lg bg-green-50/50 border border-green-100">
-              <div className="flex items-center justify-between pb-2 border-b border-green-200">
-                <span className="text-sm font-semibold text-green-800">Receitas</span>
-                <span className="text-sm text-green-600">Dez/2024</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-neutral-600">Previsto:</span>
-                  <span className="font-medium">{formatCurrency(248000)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-neutral-600">Realizado:</span>
-                  <span className="font-medium">{formatCurrency(241000)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-green-200">
-                  <span className="text-sm font-medium">Variação:</span>
-                  <span className="font-bold text-red-600">-{formatCurrency(7000)} (-2.8%)</span>
-                </div>
-              </div>
+          {variacaoLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Variação de Receitas */}
+              <div className="space-y-3 p-4 rounded-lg bg-success/5 border border-success/20">
+                <div className="flex items-center justify-between pb-2 border-b border-success/20">
+                  <span className="text-sm font-semibold text-success">Receitas</span>
+                  <span className="text-sm text-success/80">{analiseVariacao?.periodo ?? 'Este mês'}</span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Previsto:</span>
+                    <span className="font-medium">{formatCurrency(analiseVariacao?.receitas.previsto ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Realizado:</span>
+                    <span className="font-medium">{formatCurrency(analiseVariacao?.receitas.realizado ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-success/20">
+                    <span className="text-sm font-medium">Variação:</span>
+                    <span className={`font-bold ${(analiseVariacao?.receitas.variacao ?? 0) >= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {(analiseVariacao?.receitas.variacao ?? 0) >= 0 ? '+' : ''}
+                      {formatCurrency(analiseVariacao?.receitas.variacao ?? 0)} ({analiseVariacao?.receitas.percentual ?? 0}%)
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Variação de Despesas */}
-            <div className="space-y-3 p-4 rounded-lg bg-red-50/50 border border-red-100">
-              <div className="flex items-center justify-between pb-2 border-b border-red-200">
-                <span className="text-sm font-semibold text-red-800">Despesas</span>
-                <span className="text-sm text-red-600">Dez/2024</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-neutral-600">Previsto:</span>
-                  <span className="font-medium">{formatCurrency(114000)}</span>
+              {/* Variação de Despesas */}
+              <div className="space-y-3 p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+                <div className="flex items-center justify-between pb-2 border-b border-destructive/20">
+                  <span className="text-sm font-semibold text-destructive">Despesas</span>
+                  <span className="text-sm text-destructive/80">{analiseVariacao?.periodo ?? 'Este mês'}</span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-neutral-600">Realizado:</span>
-                  <span className="font-medium">{formatCurrency(107000)}</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 border-t border-red-200">
-                  <span className="text-sm font-medium">Variação:</span>
-                  <span className="font-bold text-green-600">-{formatCurrency(7000)} (-6.1%)</span>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Previsto:</span>
+                    <span className="font-medium">{formatCurrency(analiseVariacao?.despesas.previsto ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Realizado:</span>
+                    <span className="font-medium">{formatCurrency(analiseVariacao?.despesas.realizado ?? 0)}</span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-destructive/20">
+                    <span className="text-sm font-medium">Variação:</span>
+                    <span className={`font-bold ${(analiseVariacao?.despesas.variacao ?? 0) <= 0 ? 'text-success' : 'text-destructive'}`}>
+                      {(analiseVariacao?.despesas.variacao ?? 0) >= 0 ? '+' : ''}
+                      {formatCurrency(analiseVariacao?.despesas.variacao ?? 0)} ({analiseVariacao?.despesas.percentual ?? 0}%)
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
 
@@ -446,60 +471,53 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
           </div>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Card: Obras */}
-            <div
-              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
-              onClick={() => handleNavigate('prestacao-contas')}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-neutral-900">Obras</h4>
-                <ArrowRight className="w-4 h-4 text-neutral-400" />
-              </div>
-              <p className="text-sm text-neutral-500 mb-2">
-                Lucro após encerramento
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-green-600">R$ 45,5k</span>
-                <span className="text-xs text-neutral-500">(1 projeto)</span>
-              </div>
+          {prestacaoLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-
-            {/* Card: Assessoria Anual */}
-            <div
-              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
-              onClick={() => handleNavigate('prestacao-contas')}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-neutral-900">Assessoria Anual</h4>
-                <ArrowRight className="w-4 h-4 text-neutral-400" />
-              </div>
-              <p className="text-sm text-neutral-500 mb-2">
-                Lucro mensal
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-green-600">R$ 24,2k</span>
-                <span className="text-xs text-neutral-500">(mês atual)</span>
-              </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {(prestacaoContas ?? []).map((item) => (
+                <div
+                  key={item.tipo}
+                  className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
+                  onClick={() => handleNavigate('prestacao-contas')}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="font-semibold text-foreground">{item.tipo}</h4>
+                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {item.projetosEmAndamento > 0 ? 'Em andamento' : 'Lucro após encerramento'}
+                  </p>
+                  <div className="flex items-baseline gap-2">
+                    {item.lucroTotal > 0 ? (
+                      <>
+                        <span className="text-2xl font-bold text-success">
+                          {formatCurrency(item.lucroTotal)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          ({item.projetosCount} {item.projetosCount === 1 ? 'projeto' : 'projetos'})
+                        </span>
+                      </>
+                    ) : item.projetosEmAndamento > 0 ? (
+                      <span className="text-lg text-muted-foreground">
+                        {item.projetosEmAndamento} em andamento
+                      </span>
+                    ) : (
+                      <span className="text-lg text-muted-foreground">Sem dados</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {/* Fallback se não houver dados */}
+              {(!prestacaoContas || prestacaoContas.length === 0) && (
+                <div className="col-span-3 text-center py-8 text-muted-foreground">
+                  Nenhum dado de prestação de contas disponível
+                </div>
+              )}
             </div>
-
-            {/* Card: Laudo Pontual */}
-            <div
-              className="p-4 border rounded-lg hover:shadow-card-hover hover:border-primary/30 transition-all cursor-pointer"
-              onClick={() => handleNavigate('prestacao-contas')}
-            >
-              <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-neutral-900">Laudo Pontual</h4>
-                <ArrowRight className="w-4 h-4 text-neutral-400" />
-              </div>
-              <p className="text-sm text-neutral-500 mb-2">
-                Lucro após encerramento
-              </p>
-              <div className="flex items-baseline gap-2">
-                <span className="text-lg text-neutral-400">Em andamento</span>
-              </div>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
