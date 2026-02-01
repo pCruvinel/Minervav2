@@ -42,3 +42,15 @@ src/routeTree.gen.ts
 *.crt
 *.pfx
 *.cer
+
+# Editors & Local Settings
+.kilocode/
+.claude/
+.idea/
+.vscode/
+
+# Nested Services (Not for Vercel Frontend)
+cora-proxy/
+
+# Debug Scripts
+scripts/cora-debug.ts
