@@ -39,6 +39,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useCreateDespesa } from '@/lib/hooks/use-faturas-recorrentes';
 import { useCategoriasFinanceiras } from '@/lib/hooks/use-categorias-financeiras';
+import { useColaboradoresSelect } from '@/lib/hooks/use-colaboradores';
 
 // Schema com lógica condicional para vencimento e parcelamento
 const novaDespesaSchema = z.object({
@@ -58,6 +59,10 @@ const novaDespesaSchema = z.object({
     }),
     categoria: z.string().min(1, 'Selecione uma categoria'),
     centroCustoId: z.string().optional(), // Opcional
+    
+    // Novos campos para lógica híbrida
+    favorecidoColaboradorId: z.string().optional(),
+    
     // Parcelamento (apenas para UNICA)
     parcelar: z.boolean().default(false),
     numeroParcelas: z.number().min(2).max(48).optional(),
@@ -77,32 +82,67 @@ interface NovaDespesaModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onSuccess?: () => void;
+    /** Dados iniciais para preenchimento (ex: vindo de OS de Compra) */
+    initialData?: Partial<z.input<typeof novaDespesaSchema>>;
+    /** Campos que não podem ser editados (ex: valor definido na OS) */
+    lockedFields?: Array<keyof z.input<typeof novaDespesaSchema>>;
 }
 
-export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaModalProps) {
+export function NovaDespesaModal({ 
+    open, 
+    onOpenChange, 
+    onSuccess,
+    initialData,
+    lockedFields = []
+}: NovaDespesaModalProps) {
     const [arquivos, setArquivos] = useState<File[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const createDespesa = useCreateDespesa();
     
     // Buscar categorias de despesa do Supabase
     const { data: categorias = [], isLoading: isLoadingCategorias } = useCategoriasFinanceiras('pagar');
+    
+    // Buscar colaboradores
+    const { data: colaboradores = [], isLoading: isLoadingColaboradores } = useColaboradoresSelect();
 
     const form = useForm<z.input<typeof novaDespesaSchema>, any, z.output<typeof novaDespesaSchema>>({
         resolver: zodResolver(novaDespesaSchema),
         defaultValues: {
-            descricao: '',
-            fornecedor: '',
-            valor: '',
-            categoria: '',
-            centroCustoId: '',
-            recorrencia: 'MENSAL',
-            vencimentoData: new Date(), // Default to today
-            parcelar: false,
-            numeroParcelas: 2,
+            descricao: initialData?.descricao || '',
+            fornecedor: initialData?.fornecedor || '',
+            valor: initialData?.valor || '',
+            categoria: initialData?.categoria || '',
+            centroCustoId: initialData?.centroCustoId || '',
+            recorrencia: (initialData?.recorrencia as any) || 'MENSAL',
+            vencimentoData: initialData?.vencimentoData || new Date(),
+            parcelar: initialData?.parcelar || false,
+            numeroParcelas: initialData?.numeroParcelas || 2,
+            favorecidoColaboradorId: initialData?.favorecidoColaboradorId || '',
         },
     });
 
-    // Watch recorrência e parcelar para renderização condicional
+    // Reset form when initialData changes or modal opens
+    React.useEffect(() => {
+        if (open && initialData) {
+            form.reset({
+                descricao: initialData.descricao || '',
+                fornecedor: initialData.fornecedor || '',
+                valor: initialData.valor || '',
+                categoria: initialData.categoria || '',
+                centroCustoId: initialData.centroCustoId || '',
+                recorrencia: (initialData.recorrencia as any) || 'MENSAL',
+                vencimentoData: initialData.vencimentoData || new Date(),
+                parcelar: initialData.parcelar || false,
+                numeroParcelas: initialData.numeroParcelas || 2,
+                favorecidoColaboradorId: initialData.favorecidoColaboradorId || '',
+            });
+        }
+    }, [open, initialData, form]);
+
+    // Helper para verificar se campo está travado
+    const isLocked = (field: keyof z.input<typeof novaDespesaSchema>) => lockedFields.includes(field);
+
+    // Watch recorrência, parcelar e categoria para lógica condicional
     const recorrencia = useWatch({
         control: form.control,
         name: 'recorrencia',
@@ -112,8 +152,33 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
         control: form.control,
         name: 'parcelar',
     });
+    
+    const categoriaId = useWatch({
+        control: form.control,
+        name: 'categoria',
+    });
 
     const isRecorrenciaUnica = recorrencia === 'UNICA';
+    
+    // Verificar se categoria é Salários (ID fixo ou busca por nome)
+    // ID Salário: 843f5fef-fb6a-49bd-bec3-b0917c2d4204
+    const isSalario = categoriaId === '843f5fef-fb6a-49bd-bec3-b0917c2d4204';
+    
+    // Auto-fill ao selecionar colaborador
+    const handleColaboradorSelect = (colabId: string) => {
+        form.setValue('favorecidoColaboradorId', colabId);
+        
+        const selected = colaboradores.find(c => c.id === colabId);
+        if (selected) {
+            form.setValue('fornecedor', selected.nome_completo); // Compatibilidade
+            form.setValue('descricao', `Salário - ${selected.nome_completo}`); // Sugestão
+            
+            // Auto-select Cost Center
+            if (selected.rateio_fixo_id) {
+                 form.setValue('centroCustoId', selected.rateio_fixo_id);
+            }
+        }
+    };
 
     async function onSubmit(data: NovaDespesaFormValues) {
         try {
@@ -126,7 +191,8 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                 vencimentoData: data.vencimentoData,
                 centroCustoId: data.centroCustoId,
                 parcelar: data.parcelar,
-                numeroParcelas: data.numeroParcelas
+                numeroParcelas: data.numeroParcelas,
+                favorecidoColaboradorId: data.favorecidoColaboradorId // Passar ID se existir
             });
 
             toast.success('Despesa criada com sucesso!');
@@ -193,26 +259,62 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                     <FormItem>
                                         <FormLabel>Descrição</FormLabel>
                                         <FormControl>
-                                            <Input placeholder="Ex: Aluguel Escritório" {...field} />
+                                            <Input 
+                                                placeholder="Ex: Aquisição de Equipamentos" 
+                                                {...field} 
+                                                disabled={isLocked('descricao')}
+                                            />
                                         </FormControl>
                                         <FormMessage />
                                     </FormItem>
                                 )}
                             />
-                            <FormField
-                                control={form.control}
-                                name="fornecedor"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Fornecedor</FormLabel>
-                                        <FormControl>
-                                            <Input placeholder="Ex: Imobiliária X" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+                            {isSalario ? (
+                                <FormField
+                                    control={form.control}
+                                    name="favorecidoColaboradorId"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Colaborador</FormLabel>
+                                            <Select onValueChange={handleColaboradorSelect} value={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Selecione o colaborador" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    {colaboradores.map(c => (
+                                                        <SelectItem key={c.id} value={c.id}>
+                                                            {c.nome_completo}
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            ) : (
+                                <FormField
+                                    control={form.control}
+                                    name="fornecedor"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fornecedor</FormLabel>
+                                                <FormControl>
+                                                     <Input 
+                                                         placeholder="Nome do Fornecedor/Prestador" 
+                                                         {...field}
+                                                         disabled={isLocked('fornecedor')} 
+                                                     />
+                                                </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                         </div>
+
 
                         {/* Linha 2: Valor e Categoria */}
                         <div className="grid grid-cols-2 gap-4">
@@ -244,7 +346,11 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Categoria</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select 
+                                            onValueChange={field.onChange} 
+                                            defaultValue={field.value}
+                                            disabled={isLocked('recorrencia')}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger disabled={isLoadingCategorias}>
                                                     <SelectValue placeholder={isLoadingCategorias ? "Carregando..." : "Selecione a categoria"} />
@@ -275,7 +381,11 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                 render={({ field }) => (
                                     <FormItem>
                                         <FormLabel>Recorrência</FormLabel>
-                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <Select 
+                                            onValueChange={field.onChange} 
+                                            defaultValue={field.value}
+                                            disabled={isLocked('recorrencia')}
+                                        >
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <SelectValue placeholder="Selecione a frequência" />
@@ -300,15 +410,17 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                     <FormItem className="flex flex-col">
                                         <FormLabel>{recorrencia === 'UNICA' ? 'Data de Vencimento' : 'Primeiro Vencimento'}</FormLabel>
                                         <Popover>
-                                            <PopoverTrigger asChild>
-                                                <Button
-                                                    type="button"
-                                                    variant={"outline"}
-                                                    className={cn(
-                                                        "w-full pl-3 text-left font-normal",
-                                                        !field.value && "text-muted-foreground"
-                                                    )}
-                                                >
+                                            <FormControl>
+                                                <PopoverTrigger asChild>
+                                                    <Button
+                                                        type="button"
+                                                        variant={"outline"}
+                                                        className={cn(
+                                                            "w-full pl-3 text-left font-normal",
+                                                            !field.value && "text-muted-foreground"
+                                                        )}
+                                                        disabled={isLocked('vencimentoData')}
+                                                    >
                                                     {field.value ? (
                                                         format(field.value, "PPP", { locale: ptBR })
                                                     ) : (
@@ -316,13 +428,15 @@ export function NovaDespesaModal({ open, onOpenChange, onSuccess }: NovaDespesaM
                                                     )}
                                                     <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                 </Button>
-                                            </PopoverTrigger>
+                                                </PopoverTrigger>
+                                            </FormControl>
                                             <PopoverContent className="w-auto p-0" align="start">
                                                 <Calendar
                                                     mode="single"
                                                     selected={field.value}
                                                     onSelect={field.onChange}
                                                     initialFocus
+                                                    disabled={isLocked('vencimentoData')}
                                                 />
                                             </PopoverContent>
                                         </Popover>

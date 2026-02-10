@@ -6,11 +6,11 @@
  */
 
 // =============================================================================
-// CONFIGURAÇÃO DO PROXY
+// CONFIGURAÇÃO DO PROXY (via env vars — fallback para valores legados)
 // =============================================================================
 
-const PROXY_URL = 'https://pxminerva.onrender.com';
-const PROXY_API_KEY = 'minerva-cora-proxy-secret-2026';
+const PROXY_URL = Deno.env.get('PROXY_URL') || 'https://pxminerva.onrender.com';
+const PROXY_API_KEY = Deno.env.get('PROXY_API_KEY') || 'minerva-cora-proxy-secret-2026';
 
 // =============================================================================
 // DEBUG LOGS
@@ -100,15 +100,23 @@ export async function coraAuthenticatedFetch(
 ): Promise<Response> {
   logDebug(`🔐 Chamando proxy: ${endpoint}`);
 
-  // Mapear endpoints para rotas do proxy
-  let proxyEndpoint = endpoint;
-  
-  if (endpoint.includes('/bank-statement')) {
-    proxyEndpoint = '/extrato';
-  } else if (endpoint.includes('/bank-balance')) {
-    proxyEndpoint = '/saldo';
-  } else if (endpoint.includes('/invoice')) {
-    proxyEndpoint = '/boletos';
+  // Separar path e query string
+  const [path, query] = endpoint.split('?');
+  let proxyPath = path;
+
+  // Mapeamento de rotas
+  if (path.includes('/bank-statement')) {
+    proxyPath = '/extrato';
+  } else if (path.includes('/bank-balance')) {
+    proxyPath = '/saldo'; // Usar /saldo para compatibilidade com proxy atual (sem deploy necessário)
+  } else if (path.includes('/invoice')) {
+    proxyPath = '/boletos';
+  }
+
+  // Reconstruir URL com query string se existir
+  let proxyEndpoint = proxyPath;
+  if (query) {
+    proxyEndpoint += `?${query}`;
   }
 
   const url = `${PROXY_URL}${proxyEndpoint}`;

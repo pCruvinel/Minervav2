@@ -65,12 +65,18 @@ export function PagarDespesaModal({ open, onOpenChange, fatura, onSuccess }: Pag
             dataPagamento: new Date(),
             observacoes: '',
         },
-        values: {
-            valorPago: fatura?.valor || 0,
-            dataPagamento: new Date(),
-            observacoes: '',
-        }
     });
+
+    // Reset form when fatura changes (Fix for stale data and modal re-opening)
+    React.useEffect(() => {
+        if (fatura) {
+            form.reset({
+                valorPago: fatura.valor,
+                dataPagamento: new Date(),
+                observacoes: '',
+            });
+        }
+    }, [fatura, form]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -199,8 +205,8 @@ export function PagarDespesaModal({ open, onOpenChange, fatura, onSuccess }: Pag
                                     <FormItem className="flex flex-col mt-2">
                                         <FormLabel>Data do Pagamento</FormLabel>
                                         <Popover>
-                                            <PopoverTrigger asChild>
-                                                <FormControl>
+                                            <FormControl>
+                                                <PopoverTrigger asChild>
                                                     <Button
                                                         variant={"outline"}
                                                         className={cn(
@@ -215,8 +221,8 @@ export function PagarDespesaModal({ open, onOpenChange, fatura, onSuccess }: Pag
                                                         )}
                                                         <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                                                     </Button>
-                                                </FormControl>
-                                            </PopoverTrigger>
+                                                </PopoverTrigger>
+                                            </FormControl>
                                             <PopoverContent className="w-auto p-0" align="start">
                                                 <Calendar
                                                     mode="single"

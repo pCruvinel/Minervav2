@@ -31,6 +31,8 @@ export interface KPIFinanceiroProps {
     loading?: boolean;
     /** Classes CSS adicionais */
     className?: string;
+    /** Formatador customizado para o valor */
+    formatter?: (value: string | number) => string;
 }
 
 const variantStyles: Record<KPIVariant, { bg: string; icon: string }> = {
@@ -91,6 +93,7 @@ export function KPICardFinanceiro({
     subtitle,
     loading = false,
     className,
+    formatter,
 }: KPIFinanceiroProps) {
     const styles = variantStyles[variant];
 
@@ -112,7 +115,10 @@ export function KPICardFinanceiro({
                             <div className="h-8 w-24 bg-neutral-200 rounded animate-pulse mt-1" />
                         ) : (
                             <p className="text-2xl font-bold text-neutral-900 mt-1 truncate">
-                                {typeof value === 'number' ? formatCurrency(value) : value}
+                                {formatter 
+                                    ? formatter(value) 
+                                    : (typeof value === 'number' ? formatCurrency(value) : value)
+                                }
                             </p>
                         )}
 

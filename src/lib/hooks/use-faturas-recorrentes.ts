@@ -45,6 +45,7 @@ export interface SalarioPrevisto {
   beneficios: number;
   custo_total: number;
   data_pagamento: string;
+  dia_vencimento: number;
   status: 'pendente' | 'pago';
 }
 
@@ -57,9 +58,160 @@ export interface FaturasKPIs {
   contasFixas: number;
 }
 
+export interface DespesaMaster {
+  id: string
+  descricao: string
+  valor: number
+  vencimento: string // ISO Date
+  status: 'em_aberto' | 'pago' | 'atrasado' | 'cancelado'
+  tipo: 'fixa' | 'variavel' | 'salario' | 'imposto'
+  categoria_nome: string
+  categoria_cor?: string
+  favorecido_nome: string
+  favorecido_tipo: 'fornecedor' | 'colaborador'
+  favorecido_id?: string
+  cc_nome: string
+  cc_codigo?: never // Deprecated/Removed from DB
+  rateio?: any[] // JSONB
+  comprovante_url?: string
+  is_atrasado: boolean
+}
+
 // ============================================================
 // HOOKS
 // ============================================================
+
+/**
+ * Hook Principal do Master Ledger de Despesas
+ * Busca unificada com filtros e paginação (futura)
+ */
+export function useDespesasMasterLedger(filters?: {
+  status?: string[], // 'em_aberto', 'atrasado', 'pago'
+  categoria_tipo?: string, // 'salario', 'fixa', 'variavel'
+  month?: Date | string
+}) {
+  return useQuery({
+    queryKey: ['despesas-master', {
+        ...filters,
+        month: filters?.month instanceof Date ? filters.month.toISOString() : filters?.month
+    }],
+    retry: false, // Prevent freeze loops on error
+    staleTime: 30000, // 30s cache to prevent fetch loops
+    queryFn: async (): Promise<DespesaMaster[]> => {
+      console.log('[DEBUG] Fetching Despesas...', filters);
+      let query = supabase
+        .from('contas_pagar')
+        .select(`
+          *,
+          centros_custo ( nome ),
+          favorecido_colaborador:colaboradores!contas_pagar_favorecido_colaborador_id_fkey ( nome_completo ),
+          categoria_rel:categorias_financeiras ( nome )
+        `)
+        .order('vencimento', { ascending: true });
+
+      // Filtro de Status
+      if (filters?.status && filters.status.length > 0) {
+        if (filters.status.includes('pendente')) {
+           query = query.neq('status', 'pago');
+        } else {
+           // Caso genérico (ex: 'pago', 'cancelado')
+           query = query.in('status', filters.status);
+        }
+      }
+
+      // Filtro de Mês
+      if (filters?.month) {
+        const date = typeof filters.month === 'string' ? new Date(filters.month) : filters.month;
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1).toISOString().split('T')[0];
+        const lastDay = new Date(year, month + 1, 0).toISOString().split('T')[0];
+        
+        // Se filtro status inclui 'pendente', NÃO filtra por mês (busca global)
+        if (!filters.status?.includes('pendente')) {
+             query = query.gte('vencimento', firstDay).lte('vencimento', lastDay);
+        }
+      }
+
+      // Filtro de Tipo (Salário, Fixa, Variável)
+      // Filtro de Tipo (Salário, Fixa, Variável)
+      if (filters?.categoria_tipo) {
+         if (filters.categoria_tipo === 'salario') {
+             // TODO: Buscar ID da categoria 'Salários' ou filtrar por join
+             // Por enquanto, vamos ignorar para não quebrar a query com coluna inexistente
+             console.warn('Filtro de Salário temporariamente desabilitado aguardando ID fixo');
+         } else if (filters.categoria_tipo === 'fixa') {
+             query = query.eq('tipo', 'fixa');
+         } else if (filters.categoria_tipo === 'variavel') {
+             query = query.eq('tipo', 'variavel');
+         }
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        logger.error('Erro ao buscar despesas master:', error);
+        throw error;
+      }
+
+      const hoje = new Date();
+      hoje.setHours(0,0,0,0);
+
+      return (data || []).map((item: any) => {
+        // Ajuste de fuso horário simples para comparação de data (vencimento é yyyy-mm-dd)
+        const vencimentoStr = item.vencimento; 
+        // Comparação de string yyyy-mm-dd funciona bem
+        const hojeStr = hoje.toISOString().split('T')[0];
+        
+        const isAtrasado = item.status !== 'pago' && vencimentoStr < hojeStr;
+        
+        // Resolver Favorecido
+        let favorecidoNome = item.favorecido_fornecedor || 'Desconhecido';
+        let favorecidoTipo: 'fornecedor' | 'colaborador' = 'fornecedor';
+        let favorecidoId = undefined;
+
+        if (item.favorecido_colaborador) {
+            favorecidoNome = item.favorecido_colaborador.nome_completo;
+            favorecidoTipo = 'colaborador';
+            favorecidoId = item.favorecido_colaborador_id;
+        }
+
+        // Resolver Categoria
+        const categoriaNome = item.categoria_rel?.nome || item.categoria || 'Sem Categoria';
+
+        // Resolver CC
+        const ccNome = item.centros_custo?.nome || 'Sem Centro de Custo';
+        const ccCodigo = undefined; // Campo codigo não existe mais no banco
+
+        // Status visual
+        let statusVisual: DespesaMaster['status'] = item.status as any;
+        if (isAtrasado) statusVisual = 'atrasado';
+        if (item.status === 'cancelado') statusVisual = 'cancelado'; 
+        // Se status vier do banco diferente, default para o que veio ou em_aberto
+
+        return {
+            id: item.id,
+            descricao: item.descricao,
+            valor: item.valor,
+            vencimento: item.vencimento,
+            status: statusVisual,
+            tipo: item.tipo,
+            categoria_nome: categoriaNome,
+            categoria_cor: 'gray', // Placeholder, mapear depois
+            favorecido_nome: favorecidoNome,
+            favorecido_tipo: favorecidoTipo,
+            favorecido_id: favorecidoId,
+            cc_nome: ccNome,
+            cc_codigo: ccCodigo,
+            rateio: item.rateio, // JSONB array
+            comprovante_url: item.comprovante_url,
+            is_atrasado: isAtrasado
+        };
+      });
+    },
+     // staleTime: 5 * 60 * 1000 // Removido em favor do 30s lá em cima
+  });
+}
 
 /**
  * Hook para listar faturas a pagar do mês (e atrasadas)
@@ -144,7 +296,10 @@ export function useSalariosPrevistos() {
           remuneracao_contratual,
           tipo_contratacao,
           setor,
-          funcao
+          tipo_contratacao,
+          setor,
+          funcao,
+          dia_vencimento
         `)
         .eq('ativo', true);
 
@@ -187,7 +342,11 @@ export function useSalariosPrevistos() {
           encargos_estimados: encargos,
           beneficios,
           custo_total: valorBase + encargos + beneficios,
-          data_pagamento: '', // 5º dia útil típico
+          // Calcula data de pagamento estimada baseado no dia de vencimento (mês atual)
+          // Se hoje é dia 20 e vencimento é 5, provavelmente é mês seguinte? 
+          // Por simplificação, vamos assumir o dia de vencimento no mês corrente ou próximo 5º dia útil
+          data_pagamento: col.dia_vencimento ? col.dia_vencimento.toString() : '5', 
+          dia_vencimento: col.dia_vencimento || 5,
           status: 'pendente' as const,
         };
       });
@@ -321,6 +480,7 @@ export function useMarcarPago() {
     onSuccess: () => {
       toast.success('Pagamento registrado!');
       queryClient.invalidateQueries({ queryKey: ['faturas-recorrentes'] });
+      queryClient.invalidateQueries({ queryKey: ['despesas-master'] });
       queryClient.invalidateQueries({ queryKey: ['faturas-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['financeiro-dashboard'] });
     },
@@ -387,7 +547,7 @@ export function useCreateDespesa() {
               descricao: `${descricao} (${i + 1}/${numeroParcelas})`,
               favorecido_fornecedor: fornecedor,
               valor: valorFinal,
-              categoria,
+              categoria_id: categoria,
               vencimento: vencimento.toISOString().split('T')[0],
               status: 'em_aberto',
               cc_id: ccId,
@@ -406,7 +566,7 @@ export function useCreateDespesa() {
             descricao,
             favorecido_fornecedor: fornecedor,
             valor,
-            categoria,
+            categoria_id: categoria,
             vencimento: dataBase.toISOString().split('T')[0],
             status: 'em_aberto',
             cc_id: ccId,
@@ -437,7 +597,7 @@ export function useCreateDespesa() {
           descricao,
           favorecido_fornecedor: fornecedor,
           valor,
-          categoria,
+          categoria_id: categoria,
           vencimento: dataBase.toISOString().split('T')[0], // Primeira data explícita
           status: 'em_aberto',
           cc_id: ccId,
@@ -453,6 +613,7 @@ export function useCreateDespesa() {
     onSuccess: () => {
       toast.success('Despesa salva com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['faturas-recorrentes'] });
+      queryClient.invalidateQueries({ queryKey: ['despesas-master'] });
       queryClient.invalidateQueries({ queryKey: ['faturas-kpis'] });
       queryClient.invalidateQueries({ queryKey: ['financeiro-dashboard'] });
     },

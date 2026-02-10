@@ -126,6 +126,7 @@ export async function consultarBoleto(
         error: {
           codigo: errorData.codigo || 'CORA_API_ERROR',
           mensagem: errorData.mensagem || `Erro HTTP ${response.status}`,
+          detalhes: errorData,
           timestamp: new Date().toISOString(),
         },
       };
@@ -174,6 +175,7 @@ export async function cancelarBoleto(
         error: {
           codigo: errorData.codigo || 'CORA_API_ERROR',
           mensagem: errorData.mensagem || `Erro HTTP ${response.status}`,
+          detalhes: errorData,
           timestamp: new Date().toISOString(),
         },
       };
@@ -252,6 +254,7 @@ export async function consultarExtrato(
         error: {
           codigo: errorData.codigo || 'CORA_API_ERROR',
           mensagem: errorData.mensagem || `Erro HTTP ${response.status}`,
+          detalhes: errorData,
           timestamp: new Date().toISOString(),
         },
       };
@@ -362,32 +365,93 @@ export async function consultarBankStatement(
 /**
  * Consulta saldo bancário
  * GET /bank-balance
+ * 
+ * Estratégia:
+ * 1. Tenta /bank-balance direto (se Cora suportar)
+ * 2. Fallback: extrai end.balance do extrato dos últimos 30 dias
  */
 export async function consultarSaldo(): Promise<CoraApiResponse<BankBalanceResponse>> {
   try {
     console.log('💰 Consultando saldo bancário...');
 
-    const response = await coraAuthenticatedFetch(`/bank-balance`);
+    // === TENTATIVA 1: /bank-balance direto ===
+    try {
+      const response = await coraAuthenticatedFetch('/bank-balance');
+      
+      if (response.ok) {
+        const rawData = await response.json();
+        console.log('📊 [DIRETO] Raw balance response:', JSON.stringify(rawData));
+        
+        const available = rawData.available ?? rawData.balance ?? rawData.amount ?? 0;
+        const blocked = rawData.blocked ?? rawData.blockedAmount ?? 0;
+        const total = rawData.total ?? (available + blocked);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+        if (available > 0 || total > 0) {
+          const data: BankBalanceResponse = {
+            available: typeof available === 'number' ? available : 0,
+            total: typeof total === 'number' ? total : 0,
+            blocked: typeof blocked === 'number' ? blocked : 0,
+          };
+          console.log(`✅ Saldo via /bank-balance: R$ ${(data.available / 100).toFixed(2)}`);
+          return { success: true, data };
+        }
+        console.log('⚠️ /bank-balance retornou 0, tentando via extrato...');
+      } else {
+        console.log(`⚠️ /bank-balance falhou (HTTP ${response.status}), tentando via extrato...`);
+      }
+    } catch (err) {
+      console.log('⚠️ /bank-balance indisponível, tentando via extrato...');
+    }
+
+    // === FALLBACK: Extrato dos últimos 30 dias ===
+    const today = new Date();
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    
+    const todayStr = today.toISOString().split('T')[0];
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    
+    console.log(`📊 [EXTRATO] Buscando período ${thirtyDaysAgoStr} → ${todayStr}`);
+
+    const result = await consultarBankStatement({
+      start: thirtyDaysAgoStr,
+      end: todayStr,
+      perPage: 1
+    });
+
+    if (!result.success || !result.data) {
       return {
         success: false,
-        error: {
-          codigo: errorData.code || 'CORA_API_ERROR',
-          mensagem: errorData.message || `Erro HTTP ${response.status}`,
-          timestamp: new Date().toISOString(),
-        },
+        error: result.error || {
+          codigo: 'BALANCE_FETCH_ERROR',
+          mensagem: 'Não foi possível recuperar o saldo',
+          timestamp: new Date().toISOString()
+        }
       };
     }
 
-    const data: BankBalanceResponse = await response.json();
-    console.log(`✅ Saldo consultado: R$ ${(data.available / 100).toFixed(2)}`);
+    // Debug: log a resposta COMPLETA do extrato para ver a estrutura real
+    console.log('📊 [EXTRATO] Keys do resultado:', Object.keys(result.data));
+    console.log('📊 [EXTRATO] start:', JSON.stringify(result.data.start));
+    console.log('📊 [EXTRATO] end:', JSON.stringify(result.data.end));
+    console.log('📊 [EXTRATO] entries count:', result.data.entries?.length || 0);
+    
+    // Verificar se aggregations tem informação útil
+    if (result.data.aggregations) {
+      console.log('📊 [EXTRATO] aggregations:', JSON.stringify(result.data.aggregations));
+    }
 
-    return {
-      success: true,
-      data,
+    // O saldo final do período = saldo atual
+    const saldoAtual = result.data.end?.balance || 0;
+
+    const data: BankBalanceResponse = {
+      available: saldoAtual,
+      total: saldoAtual,
+      blocked: 0
     };
+
+    console.log(`✅ Saldo via extrato: R$ ${(data.available / 100).toFixed(2)} (end.balance=${saldoAtual})`);
+
+    return { success: true, data };
   } catch (error) {
     console.error('❌ Erro ao consultar saldo:', error);
     return {
@@ -395,6 +459,7 @@ export async function consultarSaldo(): Promise<CoraApiResponse<BankBalanceRespo
       error: {
         codigo: 'INTERNAL_ERROR',
         mensagem: error instanceof Error ? error.message : 'Erro desconhecido',
+        detalhes: { error: String(error) },
         timestamp: new Date().toISOString(),
       },
     };

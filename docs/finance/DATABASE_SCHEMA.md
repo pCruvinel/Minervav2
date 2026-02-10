@@ -57,6 +57,7 @@ Despesas e faturas a pagar.
 | `favorecido_colaborador_id` | UUID | YES | - | FK → colaboradores (para salários) |
 | `favorecido_fornecedor` | TEXT | YES | - | Nome do fornecedor |
 | `cc_id` | UUID | YES | - | FK → centros_custo |
+| `origem` | TEXT | NO | `'manual'` | `manual`, `salario_auto`, `os_compra` |
 | `rateio` | JSONB | YES | - | Rateio entre múltiplos CCs |
 | `recorrente` | BOOLEAN | YES | `false` | Se é despesa recorrente |
 | `recorrencia_frequencia` | TEXT | YES | - | `mensal`, `trimestral`, `anual`, `unica` |

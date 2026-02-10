@@ -13,6 +13,7 @@
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arquitetura, fluxo de dados e diagrama ERD |
 | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Schema completo de tabelas, views e funções SQL |
 | [CORA_INTEGRATION.md](./CORA_INTEGRATION.md) | Guia de integração mTLS com Banco Cora |
+| [CONCILIACAO_BANCARIA.md](./CONCILIACAO_BANCARIA.md) | Documentação técnica do módulo de Conciliação |
 | [PAGES_AND_ROUTES.md](./PAGES_AND_ROUTES.md) | Mapeamento de rotas e componentes |
 | [HOOKS_AND_QUERIES.md](./HOOKS_AND_QUERIES.md) | Documentação dos custom hooks e queries |
 | [CENTRO_CUSTO.md](./CENTRO_CUSTO.md) | Sistema de Centro de Custo e integração com OS |
@@ -27,6 +28,7 @@ O **Módulo Financeiro** do MinervaV2 integra:
 - **Ordens de Serviço (OS)** → Centro de Custo → Lucratividade
 - **Contratos** → Parcelas → Receitas (contas_receber)
 - **Presença de Colaboradores** → Alocação de Horas → Custo de MO
+- **Automação de Salários** → Geração Mensal de Despesas (Edge Function)
 - **Despesas** → Centro de Custo → DRE
 
 ### Componentes Principais
@@ -64,13 +66,14 @@ O **Módulo Financeiro** do MinervaV2 integra:
 | Dashboard Financeiro | ✅ | ✅ | KPIs e gráficos comparativos |
 | **Dashboard Analítico** | ✅ | ✅ | **NOVO** - KPIs por setor ASS/OBRAS |
 | Receitas Recorrentes | ✅ | ✅ | Contratos → Parcelas |
-| Faturas Recorrentes | ✅ | ✅ | Despesas + Folha de Pagamento |
+| Gestão de Despesas (Master Ledger) | ✅ | ✅ | Unificação: Despesas + Salários + OS de Compra |
 | Fluxo de Caixa | ✅ | ✅ | Projeção 30 dias + Calendário |
 | Custo de Mão de Obra | ✅ | ✅ | View agregada por CC/Colaborador |
 | Centro de Custo Detalhes | ✅ | ✅ | Visão 360° do CC |
 | Geração Automática de CC | ✅ | ✅ | Trigger ao criar OS |
 | Validação de Fechamento CC | ✅ | ✅ | RPC `validar_fechamento_centro_custo` |
 | **Conciliação Bancária** | ✅ | ✅ | Sync via Cora API → `lancamentos_bancarios` |
+| **Automação de Salários** | ✅ | ✅ | Geração automática mensal (Edge Function) |
 
 ### ⏸️ Adiado
 

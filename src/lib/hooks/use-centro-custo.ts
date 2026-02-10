@@ -2,7 +2,7 @@
  * Hook para gerenciamento de Centros de Custo
  *
  * Naming convention: CC{NUMERO_TIPO_OS}{SEQUENCIAL_3_DIGITOS}-{APELIDO_OU_PRIMEIRO_NOME}
- * Exemplo: CC13001-SOLAR_I, CC09015-JOAO
+ * Exemplo: CC13001-SOLAR, CC09015-JOAO
  *
  * @example
  * ```tsx
@@ -27,6 +27,7 @@ export interface CentroCusto {
   nome: string;
   tipo?: 'fixo' | 'variavel';
   descricao?: string;
+  tipo_os_id?: string | null;
 }
 
 /**
@@ -66,7 +67,7 @@ export function useCentroCusto() {
 
   /**
    * Lista todos os Centros de Custo ativos
-   * Fixos primeiro, depois variáveis ordenados por nome
+   * Fixos primeiro (sem tipo_os_id), depois variáveis ordenados por nome
    */
   const listCentrosCusto = useCallback(async (): Promise<CentroCusto[]> => {
     try {
@@ -74,16 +75,26 @@ export function useCentroCusto() {
       
       const { data, error: queryError } = await supabase
         .from('centros_custo')
-        .select('id, nome, tipo, descricao')
+        .select('id, nome, tipo_os_id, descricao')
         .eq('ativo', true)
-        .order('tipo', { ascending: false }) // fixos primeiro
         .order('nome', { ascending: true });
 
       if (queryError) {
         throw queryError;
       }
 
-      return data || [];
+      // Mapear dados para incluir tipo inferido
+      const mappedData = (data || []).map(cc => ({
+        ...cc,
+        tipo: cc.tipo_os_id ? 'variavel' : 'fixo'
+      })) as CentroCusto[];
+
+      // Ordenar: Fixos primeiro
+      return mappedData.sort((a, b) => {
+        if (a.tipo === 'fixo' && b.tipo !== 'fixo') return -1;
+        if (a.tipo !== 'fixo' && b.tipo === 'fixo') return 1;
+        return a.nome.localeCompare(b.nome);
+      });
     } catch (err) {
       logger.error('❌ Erro ao listar Centros de Custo:', err);
       return [];
@@ -186,7 +197,6 @@ export function useCentroCusto() {
           cliente_id: clienteId,
           tipo_os_id: tipoOsId,
           descricao: descricao || null,
-          tipo: 'variavel',
           ativo: true,
           valor_global: 0
         })

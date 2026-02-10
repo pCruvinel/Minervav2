@@ -41,6 +41,7 @@ export interface LancamentoBancario {
   arquivo_origem: string | null;
   linha_origem: number | null;
   hash_linha: string | null;
+  is_aplicacao: boolean;
   status: LancamentoBancarioStatus;
   categoria_id: string | null;
   setor_id: string | null;
@@ -61,6 +62,10 @@ export interface LancamentoBancario {
   contraparte_nome: string | null;
   contraparte_documento: string | null;
   cora_entry_id: string | null;
+  // Novos campos para Mão de Obra
+  tipo_custo_mo: 'flutuante' | 'geral' | null;
+  colaborador_ids: string[] | null;
+  is_rateio_colaboradores: boolean | null;
   // Joins
   categoria?: { id: string; nome: string; codigo: string } | null;
   setor?: { id: string; nome: string } | null;
@@ -83,6 +88,11 @@ export interface ClassificarLancamentoParams {
   rateios?: RateioCentroCusto[];
   observacoes?: string;
   comprovante_url?: string;
+  nota_fiscal_url?: string;
+  // Novos parametros para Mão de Obra
+  tipo_custo_mo?: 'flutuante' | 'geral';
+  colaborador_ids?: string[];
+  is_rateio_colaboradores?: boolean;
 }
 
 export interface ImportarExtratoParams {
@@ -121,6 +131,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     arquivo_origem: null,
     linha_origem: null,
     hash_linha: null,
+    is_aplicacao: false,
     status: 'pendente',
     categoria_id: null,
     setor_id: null,
@@ -143,6 +154,9 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     contraparte_nome: 'CLIENTE SOLAR I',
     contraparte_documento: '12345678000100',
     cora_entry_id: null,
+    tipo_custo_mo: null,
+    colaborador_ids: null,
+    is_rateio_colaboradores: null,
   },
   {
     id: 'mock-2',
@@ -156,6 +170,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     arquivo_origem: null,
     linha_origem: null,
     hash_linha: null,
+    is_aplicacao: false,
     status: 'conciliado',
     categoria_id: null,
     setor_id: null,
@@ -178,6 +193,9 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     contraparte_nome: 'FORNECEDOR MATERIAIS LTDA',
     contraparte_documento: '98765432000199',
     cora_entry_id: null,
+    tipo_custo_mo: null,
+    colaborador_ids: null,
+    is_rateio_colaboradores: null,
   },
   {
     id: 'mock-3',
@@ -191,6 +209,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     arquivo_origem: null,
     linha_origem: null,
     hash_linha: null,
+    is_aplicacao: false,
     status: 'conciliado',
     categoria_id: null,
     setor_id: null,
@@ -213,6 +232,9 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     contraparte_nome: 'CEMIG ENERGIA',
     contraparte_documento: '11223344000155',
     cora_entry_id: null,
+    tipo_custo_mo: null,
+    colaborador_ids: null,
+    is_rateio_colaboradores: null,
   },
   {
     id: 'mock-4',
@@ -226,6 +248,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     arquivo_origem: null,
     linha_origem: null,
     hash_linha: null,
+    is_aplicacao: false,
     status: 'pendente',
     categoria_id: null,
     setor_id: null,
@@ -248,6 +271,9 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     contraparte_nome: 'COND PRIMAVERA',
     contraparte_documento: '55667788000122',
     cora_entry_id: null,
+    tipo_custo_mo: null,
+    colaborador_ids: null,
+    is_rateio_colaboradores: null,
   },
   {
     id: 'mock-5',
@@ -261,6 +287,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     arquivo_origem: null,
     linha_origem: null,
     hash_linha: null,
+    is_aplicacao: false,
     status: 'conciliado',
     categoria_id: null,
     setor_id: null,
@@ -286,6 +313,9 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     contraparte_nome: 'FOLHA PGTO COLABORADORES',
     contraparte_documento: null,
     cora_entry_id: null,
+    tipo_custo_mo: null,
+    colaborador_ids: null,
+    is_rateio_colaboradores: null,
   },
 ];
 
@@ -350,17 +380,63 @@ export function useLancamentosBancarios(options?: {
 /**
  * Busca estatísticas resumidas dos lançamentos
  */
-export function useLancamentosBancariosStats() {
+export interface LancamentosStatsFilters {
+  status?: LancamentoBancarioStatus | LancamentoBancarioStatus[];
+  dataInicio?: string;
+  dataFim?: string;
+  banco?: string;
+  setor_id?: string; // Aproximado, pois setor está via join
+  cc_id?: string;    // Aproximado, pois cc está via join
+}
+
+/**
+ * Busca estatísticas resumidas dos lançamentos (com suporte a filtros)
+ */
+export function useLancamentosBancariosStats(filters?: LancamentosStatsFilters) {
   return useQuery({
-    queryKey: ['lancamentos-bancarios-stats'],
+    queryKey: ['lancamentos-bancarios-stats', filters],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('lancamentos_bancarios')
-        .select('id, status, entrada, saida');
+        .select('id, status, entrada, saida, cc_id, setor_id');
+
+      // 1. Filtro de Status
+      if (filters?.status) {
+        if (Array.isArray(filters.status)) {
+          query = query.in('status', filters.status);
+        } else {
+          query = query.eq('status', filters.status);
+        }
+      }
+
+      // 2. Filtro de Data
+      if (filters?.dataInicio) {
+        query = query.gte('data', filters.dataInicio);
+      }
+      if (filters?.dataFim) {
+        // Ajuste para final do dia se for apenas data YYYY-MM-DD
+        const fim = filters.dataFim.includes('T') ? filters.dataFim : `${filters.dataFim}T23:59:59`;
+        query = query.lte('data', fim);
+      }
+
+      // 3. Filtro de Banco
+      if (filters?.banco) {
+        query = query.eq('banco', filters.banco);
+      }
+      
+      // 4. Filtro de CC
+       if (filters?.cc_id) {
+        query = query.eq('cc_id', filters.cc_id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
       const items = data ?? [];
+      
+      // Filtros em memória para relações complexas se necessário (ex: multi-select de setores/CCs que não está direto na query simples)
+      // Mas por enquanto vamos assumir que o filtro principal é data/status
       
       const pendentes = items.filter(i => i.status === 'pendente');
       const conciliados = items.filter(i => i.status === 'conciliado');
@@ -382,38 +458,179 @@ export function useLancamentosBancariosStats() {
 }
 
 /**
+ * Hook para buscar saldo real da conta (Cora via Proxy)
+ */
+export function useCoraBalance() {
+  return useQuery({
+    queryKey: ['cora-balance'],
+    queryFn: async () => {
+      // Usar a edge function como proxy para autenticar corretamente
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/cora-integration/bank-balance`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Erro no saldo (Cora):', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Falha ao buscar saldo: ${errorText}`);
+      }
+      
+      const result = await response.json(); 
+      // Edge Function returns: { success: true, data: { available, blocked, total } } (EM CENTAVOS)
+      // Unwrap nested data
+      const balanceData = result.data || result;
+      
+      return {
+        disponivel: (balanceData.available || 0) / 100,
+        bloqueado: (balanceData.blocked || 0) / 100,
+        total: (balanceData.total || 0) / 100
+      };
+    },
+    // Atualizar a cada 1 minuto ou quando focar a janela
+    refetchOnWindowFocus: true,
+    staleTime: 1000 * 60 
+  });
+}
+
+/**
  * Classifica um lançamento bancário (categoria, setor, CC ou rateio)
+ */
+/**
+ * Classifica um lançamento bancário (categoria, setor, CC ou rateio)
+ * USA RPC para garantir atomicidade: Cria a conta_pagar/receber e atualiza o extrato.
  */
 export function useClassificarLancamento() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (params: ClassificarLancamentoParams) => {
-      const { id, rateios, ...updateData } = params;
-      
-      // Determinar status (sempre conciliado ao salvar)
-      const status: LancamentoBancarioStatus = 'conciliado';
+      const { id, rateios } = params;
 
-      const { data, error } = await supabase
-        .from('lancamentos_bancarios')
-        .update({
-          ...updateData,
-          rateios: rateios ?? null,
-          status,
-          classificado_em: new Date().toISOString(),
-          comprovante_url: updateData.comprovante_url
-        })
-        .eq('id', id)
-        .select()
-        .single();
+      // Validate rateio sum matches transaction value (blocking)
+      if (rateios && rateios.length > 0) {
+        const totalPercentual = rateios.reduce((sum, r) => sum + (Number(r.percentual) || 0), 0);
+        if (Math.abs(totalPercentual - 100) > 0.01) {
+          throw new Error(`Rateio inválido: soma dos percentuais é ${totalPercentual.toFixed(2)}%, deve ser 100%`);
+        }
+      }
+
+      // Get current user
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
+      // Call RPC
+      const { data, error } = await supabase.rpc('classificar_transacao_bancaria', {
+        p_lancamento_id: id,
+        p_categoria_id: params.categoria_id || null,
+        p_setor_id: params.setor_id || null,
+        p_cc_id: params.cc_id || null,
+        p_rateios: rateios || null,
+        p_observacoes: params.observacoes || null,
+        p_nota_fiscal_url: params.nota_fiscal_url || null,
+        p_comprovante_url: params.comprovante_url || null,
+        p_user_id: userId
+      });
 
       if (error) throw error;
+
+      // ==========================================================
+      // Lógica Pós-RPC: Tratar Custos Variáveis de Colaborador
+      // ==========================================================
+      const { tipo_custo_mo, colaborador_ids, is_rateio_colaboradores, id: lancamentoId } = params;
+
+      if (tipo_custo_mo && colaborador_ids && colaborador_ids.length > 0) {
+        console.log('Classificando Mão de Obra:', { tipo_custo_mo, colaborador_ids, is_rateio_colaboradores });
+
+        // 1. Atualizar campos extras no lancamento_bancario (que a RPC não conhece)
+        const { error: updateError } = await supabase
+          .from('lancamentos_bancarios')
+          .update({
+             tipo_custo_mo,
+             colaborador_ids,
+             is_rateio_colaboradores: !!is_rateio_colaboradores
+          })
+          .eq('id', lancamentoId);
+
+        if (updateError) {
+          console.error('Erro ao atualizar campos de MO no lançamento:', updateError);
+          // Não lançar erro para não quebrar o fluxo principal, mas alertar?
+          // toast.error('Erro ao salvar detalhes de MO');
+        }
+
+        // 2. Se for FLUTUANTE, criar registros na tabela de custos variáveis
+        // OBS: "Geral/Tributo" só marca o lancamento, não cria custo extra (conforme regra de negocio)
+        // MAS a regra diz "O registro serve apenas para conciliar... e não deve ser somado".
+        // O user disse: "Você precisa criar uma lógica onde a Conciliação Bancária alimenta a tabela de custos extras".
+        // Se for Salário Base, não cria custo extra. Mas podemos querer o registro histórico?
+        // A regra diz: "não deve ser somado como um 'custo extra'".
+        // Vamos criar APENAS para 'flutuante'.
+
+        if (tipo_custo_mo === 'flutuante') {
+           // Calcular valor por colaborador
+           // Assumindo que o valor total é o do lançamento (entrada ou saida)
+           // Precisamos pegar o valor atualizado do lançamento.
+           // Mas params não tem o valor. Vamos pegar do retorno RPC ou assumir contexto?
+           // O RPC retorna success e ID. Não retorna valor.
+           // Vamos fazer um fetch rápido ou passar o valor no params?
+           // Melhor passar o valor no params para evitar roundtrip, mas o hook original n pede valor.
+           // Vamos buscar o lançamento atualizado.
+           const { data: lancData } = await supabase
+             .from('lancamentos_bancarios')
+             .select('entrada, saida, data')
+             .eq('id', lancamentoId)
+             .single();
+           
+           if (lancData) {
+             const valorTotal = (lancData.entrada || 0) + (lancData.saida || 0); // Um deles é null/0 normalmente.
+             const numColaboradores = colaborador_ids.length;
+             const valorPorColaborador = valorTotal / numColaboradores;
+             const mesReferencia = lancData.data; // Data da transação define o mês de competência
+
+             const inserts = colaborador_ids.map(colabId => ({
+               colaborador_id: colabId,
+               lancamento_bancario_id: lancamentoId,
+               mes_referencia: mesReferencia, // Pode precisar ajustar para 1º do mês? O banco aceita DATE.
+               tipo_custo: 'flutuante',
+               descricao: params.observacoes || 'Custo flutuante via conciliação',
+               valor: valorPorColaborador,
+               rateio_origem: !!is_rateio_colaboradores,
+               total_colaboradores: numColaboradores,
+               valor_original: valorTotal,
+               created_by: userId
+             }));
+
+             const { error: insertCustosError } = await supabase
+               .from('custos_variaveis_colaborador')
+               .insert(inserts);
+
+             if (insertCustosError) {
+               console.error('Erro ao inserir custos variáveis:', insertCustosError);
+               toast.error('Erro ao gerar custos dos colaboradores');
+             }
+           }
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lancamentos-bancarios'] });
       queryClient.invalidateQueries({ queryKey: ['lancamentos-bancarios-stats'] });
-      toast.success('Lançamento classificado com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['custos-variaveis'] }); // Invalidate new hook query
+      // Invalidar também queries de contas_pagar/receber pois novos registros foram criados
+      queryClient.invalidateQueries({ queryKey: ['cc-despesas'] }); 
+      queryClient.invalidateQueries({ queryKey: ['cc-receitas'] });
+      toast.success('Lançamento classificado e registro financeiro criado!');
     },
     onError: (error) => {
       toast.error(`Erro ao classificar: ${error.message}`);
@@ -431,6 +648,10 @@ export function useVincularConta() {
     mutationFn: async (params: VincularContaParams) => {
       const { lancamento_id, conta_pagar_id, conta_receber_id } = params;
 
+      // Obter usuário atual
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
       const { data, error } = await supabase
         .from('lancamentos_bancarios')
         .update({
@@ -438,6 +659,7 @@ export function useVincularConta() {
           conta_receber_id,
           status: 'conciliado' as LancamentoBancarioStatus,
           classificado_em: new Date().toISOString(),
+          classificado_por_id: userId,
         })
         .eq('id', lancamento_id)
         .select()

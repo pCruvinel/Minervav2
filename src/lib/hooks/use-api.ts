@@ -80,11 +80,17 @@ interface UseApiReturn<T> {
  * mutate({ ...data, nome: 'Novo Nome' }); // Atualiza sem refetch
  * ```
  */
+// Stable empty array constant to prevent infinite loops when deps is not provided
+const EMPTY_DEPS: any[] = [];
+
 export function useApi<T>(
   apiCall: () => Promise<T>,
   options: UseApiOptions<T> = {}
 ): UseApiReturn<T> {
-  const { initialData = null, onSuccess, onError, deps = [] } = options;
+  const { initialData = null, onSuccess, onError, deps } = options;
+  
+  // Use stable empty array if deps not provided
+  const stableDeps = deps ?? EMPTY_DEPS;
   
   const [data, setData] = useState<T | null>(initialData as T | null);
   const [loading, setLoading] = useState(true);
@@ -187,12 +193,11 @@ export function useApi<T>(
     }
   }, []); // fetchData agora é estável, não depende de nada
   
-  // Executar apenas uma vez quando o componente montar ou deps mudarem
+  // Executar apenas uma vez quando o componente montar ou stableDeps mudarem
   useEffect(() => {
     logger.log('🚀 useApi: Executando fetch inicial');
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, deps); // Apenas deps controlam quando re-executar
+  }, stableDeps); // stableDeps is a stable reference when empty
   
   const mutate = useCallback((newData: T) => {
     setData(newData);

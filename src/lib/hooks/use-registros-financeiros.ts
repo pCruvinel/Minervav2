@@ -62,12 +62,14 @@ export function useRegistrosFinanceirosPendentes(tipo: 'pagar' | 'receber') {
       // contas_pagar NÃO tem setor_id - apenas categoria_id e cc_id
       const selectFields = tipo === 'pagar'
         ? `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`
-        : `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome)`;
+        : `id, parcela, valor_previsto, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social)`;
 
       const { data, error } = await supabase
         .from(tabela)
         .select(selectFields)
-        .in('status', ['pendente', 'atrasado', 'parcial'])
+        .in('status', tipo === 'pagar' 
+          ? ['pendente', 'atrasado', 'parcial'] 
+          : ['em_aberto', 'inadimplente'])
         .order('vencimento', { ascending: true })
         .limit(100);
 
@@ -79,18 +81,18 @@ export function useRegistrosFinanceirosPendentes(tipo: 'pagar' | 'receber') {
       return (data || []).map((item: Record<string, unknown>) => ({
         id: item.id as string,
         tipo,
-        descricao: item.descricao as string,
-        valor: item.valor as number,
+        descricao: (tipo === 'pagar' ? item.descricao : item.parcela) as string,
+        valor: (tipo === 'pagar' ? item.valor : item.valor_previsto) as number,
         vencimento: item.vencimento as string,
-        status: item.status as 'pendente' | 'pago' | 'recebido' | 'atrasado' | 'parcial',
+        status: item.status as RegistroFinanceiro['status'],
         cc_id: item.cc_id as string | null,
         cc_nome: (item.centro_custo as { nome?: string } | null)?.nome || null,
         categoria_id: item.categoria_id as string | null,
         categoria_nome: (item.categoria as { nome?: string } | null)?.nome || null,
-        setor_id: null, // contas_pagar não tem setor_id
+        setor_id: null,
         setor_nome: null,
         fornecedor: (item.favorecido_fornecedor as string) || undefined,
-        cliente_nome: (item.cliente as { nome?: string } | null)?.nome,
+        cliente_nome: (item.cliente as { nome_razao_social?: string } | null)?.nome_razao_social,
       }));
     },
     staleTime: 1000 * 60 * 2, // 2 minutos
@@ -129,14 +131,16 @@ export function useSugestoesConciliacao(
       // contas_pagar NÃO tem setor_id
       const selectFields = tipo === 'pagar'
         ? `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`
-        : `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome)`;
+        : `id, parcela, valor_previsto, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social)`;
 
       const { data: registros, error } = await supabase
         .from(tabela)
         .select(selectFields)
-        .in('status', ['pendente', 'atrasado', 'parcial'])
-        .gte('valor', valorMin)
-        .lte('valor', valorMax)
+        .in('status', tipo === 'pagar' 
+          ? ['pendente', 'atrasado', 'parcial'] 
+          : ['em_aberto', 'inadimplente'])
+        .gte(tipo === 'pagar' ? 'valor' : 'valor_previsto', valorMin)
+        .lte(tipo === 'pagar' ? 'valor' : 'valor_previsto', valorMax)
         .gte('vencimento', dataMin.toISOString().split('T')[0])
         .lte('vencimento', dataMax.toISOString().split('T')[0])
         .order('vencimento', { ascending: true })
@@ -181,10 +185,10 @@ export function useSugestoesConciliacao(
         return {
           id: item.id as string,
           tipo,
-          descricao: item.descricao as string,
+          descricao: (tipo === 'pagar' ? item.descricao : item.parcela) as string,
           valor: itemValor,
           vencimento: item.vencimento as string,
-          status: item.status as 'pendente' | 'pago' | 'recebido' | 'atrasado' | 'parcial',
+          status: item.status as RegistroFinanceiro['status'],
           cc_id: item.cc_id as string | null,
           cc_nome: (item.centro_custo as { nome?: string } | null)?.nome || null,
           categoria_id: item.categoria_id as string | null,
@@ -192,7 +196,7 @@ export function useSugestoesConciliacao(
           setor_id: null, // contas_pagar não tem setor_id
           setor_nome: null,
           fornecedor: (item.favorecido_fornecedor as string) || undefined,
-          cliente_nome: (item.cliente as { nome?: string } | null)?.nome,
+          cliente_nome: (item.cliente as { nome_razao_social?: string } | null)?.nome_razao_social,
           matchScore,
           matchReason,
         };
@@ -222,9 +226,14 @@ export function useVincularLancamento() {
       valorParcial?: number;
     }) => {
       // Atualizar lançamento bancário
+      const { data: { session } } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+
       const updateData: Record<string, any> = {
         status: 'conciliado',
         conciliado_em: new Date().toISOString(),
+        classificado_em: new Date().toISOString(),
+        classificado_por_id: userId,
       };
 
       if (contaPagarId) {
@@ -262,7 +271,7 @@ export function useVincularLancamento() {
         // Marcar conta como paga/recebida
         const tabela = contaPagarId ? 'contas_pagar' : 'contas_receber';
         const contaId = contaPagarId || contaReceberId;
-        const statusFinal = contaPagarId ? 'pago' : 'recebido';
+        const statusFinal = contaPagarId ? 'pago' : 'conciliado';
 
         const { error: contaError } = await supabase
           .from(tabela)

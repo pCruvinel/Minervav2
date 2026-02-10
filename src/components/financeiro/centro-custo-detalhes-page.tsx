@@ -1,793 +1,374 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from '@tanstack/react-router';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableFooter, TableHeader, TableRow } from '@/components/ui/table';
-import { CompactTableWrapper, CompactTableHead, CompactTableCell, CompactTableRow } from '@/components/shared/compact-table';
+import { useState } from "react";
+import { useParams, useRouter } from "@tanstack/react-router";
+import { 
+  ArrowLeft, 
+  TrendingUp, 
+  TrendingDown, 
+  DollarSign, 
+  PieChart as PieChartIcon, 
+  FileText
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-    ArrowLeft,
-    Building2,
-    Receipt,
-    Users,
-    FileText,
-    TrendingUp,
-    TrendingDown,
-    DollarSign,
-    Percent,
-    ExternalLink,
-    Download,
-    AlertCircle,
-    Loader2,
-    Paperclip
-} from 'lucide-react';
-import {
-    BarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    Legend,
-    ResponsiveContainer,
-    PieChart,
-    Pie,
-    Cell
-} from 'recharts';
-import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
-import { useLucratividadeCC } from '@/lib/hooks/use-lucratividade-cc';
-import { useCustoMODetalhado } from '@/lib/hooks/use-custo-mo';
-import { useCCDetalhes } from '@/lib/hooks/use-cc-detalhes';
+  CompactTableWrapper,
+  CompactTableHead,
+  CompactTableRow,
+  CompactTableCell
+} from "@/components/shared/compact-table";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
 
+import { useLucratividadeCC } from "@/lib/hooks/use-lucratividade-cc";
+import { useCCDetalhes } from "@/lib/hooks/use-cc-detalhes";
+import { formatCurrency as formatarMoeda } from "@/lib/utils";
+import { useCentroCusto } from "@/lib/hooks/use-centro-custo";
 
-// ============================================================
-// MOCK DATA - FRONTEND-ONLY MODE
-// SCHEMA: Usar dados de centros_custo via hook useCC
-// ============================================================
+// Componentes internos (mantidos para estrutura)
+import { KPIFinanceiroGrid, KPICardFinanceiro } from "@/components/financeiro/kpi-financeiro-grid";
 
-const mockCentroCusto = {
-    id: 'cc-13001',
-    codigo: 'CC13001-SOLAR_I',
-    nome: 'Condomínio Solar I',
-    cliente: 'Construtora Silva Ltda',
-    clienteId: 'cli-001',
-    osOrigem: 'OS13-00142',
-    osOrigemId: 'os-142',
-    tipo: 'Obra',
-    status: 'ativo' as const,
-    dataInicio: '2024-06-15',
-    dataFim: null,
-    receitaPrevista: 128000,
-    receitaRealizada: 98500,
-    despesaPrevista: 82000,
-    despesaRealizada: 67800,
-    lucroRealizado: 30700,
-    margemRealizada: 31.2,
-    custosPorCategoria: [
-        { categoria: 'Mão de Obra', previsto: 35000, realizado: 32500, percentual: 47.9 },
-        { categoria: 'Material', previsto: 28000, realizado: 22300, percentual: 32.9 },
-        { categoria: 'Equipamento', previsto: 12000, realizado: 8000, percentual: 11.8 },
-        { categoria: 'Transporte', previsto: 5000, realizado: 3500, percentual: 5.2 },
-        { categoria: 'Outros', previsto: 2000, realizado: 1500, percentual: 2.2 },
-    ],
-    evolucaoMensal: [
-        { mes: 'Jun', receita: 15000, despesa: 8500 },
-        { mes: 'Jul', receita: 18000, despesa: 12000 },
-        { mes: 'Ago', receita: 22000, despesa: 14500 },
-        { mes: 'Set', receita: 20500, despesa: 13800 },
-        { mes: 'Out', receita: 12500, despesa: 10500 },
-        { mes: 'Nov', receita: 10500, despesa: 8500 },
-    ],
-};
-
-const mockLancamentos = [
-    { id: 1, data: '2024-11-15', descricao: 'Pagamento parcela 5/12', tipo: 'Receita', valor: 10500, status: 'Conciliado' },
-    { id: 2, data: '2024-11-10', descricao: 'Material - Cimento x 50 sacos', tipo: 'Despesa', valor: 2500, status: 'Conciliado' },
-    { id: 3, data: '2024-11-08', descricao: 'MO - Pedreiros (semana 45)', tipo: 'Despesa', valor: 4200, status: 'Conciliado' },
-    { id: 4, data: '2024-11-05', descricao: 'Aluguel betoneira', tipo: 'Despesa', valor: 800, status: 'Pendente' },
-    { id: 5, data: '2024-11-01', descricao: 'Transporte materiais', tipo: 'Despesa', valor: 650, status: 'Conciliado' },
-];
-
-const mockPresencas = [
-    { id: 1, colaborador: 'João Silva', cargo: 'Pedreiro', diasTrabalhados: 22, custoDia: 271.59, custoTotal: 5975 },
-    { id: 2, colaborador: 'Maria Santos', cargo: 'Servente', diasTrabalhados: 22, custoDia: 174.45, custoTotal: 3838 },
-    { id: 3, colaborador: 'Pedro Oliveira', cargo: 'Eletricista', diasTrabalhados: 15, custoDia: 320.00, custoTotal: 4800 },
-    { id: 4, colaborador: 'Ana Costa', cargo: 'Engenheira', diasTrabalhados: 8, custoDia: 450.00, custoTotal: 3600 },
-];
-
-const mockDocumentos = [
-    { id: 1, nome: 'Contrato Assinado', tipo: 'PDF', uploadedAt: '2024-06-15', obrigatorio: true, status: 'ok' },
-    { id: 2, nome: 'ART de Execução', tipo: 'PDF', uploadedAt: '2024-06-20', obrigatorio: true, status: 'ok' },
-    { id: 3, nome: 'Termo de Entrega', tipo: 'PDF', uploadedAt: null, obrigatorio: true, status: 'pendente' },
-    { id: 4, nome: 'Atestado Capacidade Técnica', tipo: 'PDF', uploadedAt: null, obrigatorio: true, status: 'pendente' },
-    { id: 5, nome: 'Relatório Fotográfico', tipo: 'ZIP', uploadedAt: '2024-11-10', obrigatorio: false, status: 'ok' },
-];
-
-const COLORS = [
-    'hsl(var(--success))',
-    'hsl(var(--primary))',
-    'hsl(var(--warning))',
-    'hsl(var(--chart-4))',
-    'hsl(var(--muted-foreground))'
-];
-
-// ============================================================
-// COMPONENT
-// ============================================================
-
-/**
- * CentroCustoDetalhesPage - Visão 360° do Centro de Custo
- * 
- * Exibe todos os dados financeiros de um CC específico:
- * - KPIs de receita, despesa, lucro e margem
- * - Gráficos de evolução e distribuição
- * - Tabs: Resumo, Receitas, Despesas, Mão de Obra, Documentos
- */
 export function CentroCustoDetalhesPage() {
-    const navigate = useNavigate();
-    const { ccId } = useParams({ strict: false });
-    const [activeTab, setActiveTab] = useState('resumo');
+  const { ccId } = useParams({ from: '/_auth/financeiro/centro-custo/$ccId' });
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState("resumo");
 
-    // ========== SORTING STATE ==========
-    const [sortCategoria, setSortCategoria] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
-    const [sortReceitas, setSortReceitas] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
-    const [sortDespesas, setSortDespesas] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
-    const [sortMO, setSortMO] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
-    const [sortDocs, setSortDocs] = useState<{ field: string, dir: 'asc' | 'desc' } | null>(null);
+  // Hooks de Dados Reais
+  const { data: ccResumo, isLoading: resumoLoading } = useLucratividadeCC(ccId);
+  const { 
+    receitas, 
+    despesas, 
+    custosPorCategoria, 
+    overhead, 
+    isLoading: detalhesLoading 
+  } = useCCDetalhes(ccId);
 
-    // ========== HOOKS DE DADOS REAIS ==========
-    const { data: lucratividade, isLoading: lucroLoading } = useLucratividadeCC(ccId);
-    const { data: custosMO, isLoading: moLoading } = useCustoMODetalhado({ ccId: ccId ?? undefined });
-    const { receitas, despesas, custosPorCategoria, evolucaoMensal } = useCCDetalhes(ccId);
+  // Hook para nome/detalhes básicos se lucratividade falhar ou demorar
+  const { data: listaCCs } = useCentroCusto();
+  const ccBasico = listaCCs?.find(c => c.id === ccId);
 
-    const isLoading = lucroLoading || moLoading || receitas.isLoading || despesas.isLoading;
+  const isLoading = resumoLoading || detalhesLoading;
+  const nomeCC = ccResumo?.nome || ccBasico?.nome || "Centro de Custo";
+  const statusCC = "Ativo"; // Pode vir do banco depois
 
-    // Usar mock data enquanto não há integração completa
-    const cc = {
-        ...mockCentroCusto,
-        // Sobrescrever com dados reais da view de lucratividade quando disponíveis
-        ...(lucratividade && {
-            receitaPrevista: Number(lucratividade.receita_prevista ?? 0),
-            receitaRealizada: Number(lucratividade.receita_realizada ?? 0),
-            despesaPrevista: Number(lucratividade.despesa_operacional_total ?? 0),
-            despesaRealizada: Number(lucratividade.despesa_operacional_paga ?? 0),
-            lucroRealizado: Number(lucratividade.lucro_bruto_realizado ?? 0),
-            margemRealizada: Number(lucratividade.margem_realizada_pct ?? 0),
-        }),
-    };
+  if (!ccId) return <div>ID não fornecido</div>;
 
-    // Agrupar custos MO por colaborador quando dados reais disponíveis
-    const presencasList = custosMO && custosMO.length > 0
-        ? Object.values(
-            custosMO.reduce((acc, item) => {
-                const key = item.colaborador_id;
-                if (!acc[key]) {
-                    acc[key] = {
-                        id: key,
-                        colaborador: item.colaborador_nome,
-                        cargo: '-',
-                        diasTrabalhados: 0,
-                        custoDia: Number(item.salario_base) / 22,
-                        custoTotal: 0,
-                    };
-                }
-                acc[key].diasTrabalhados++;
-                acc[key].custoTotal += Number(item.custo_alocado || 0);
-                return acc;
-            }, {} as Record<string, { id: string; colaborador: string; cargo: string; diasTrabalhados: number; custoDia: number; custoTotal: number }>)
-        )
-        : mockPresencas;
-
-    // Usar dados reais de receitas ou fallback para mock
-    const receitasList = (receitas.data && receitas.data.length > 0)
-        ? receitas.data.map(r => ({
-            id: r.id,
-            data: r.data,
-            descricao: r.descricao,
-            tipo: 'Receita' as const,
-            valor: r.valor,
-            status: r.status === 'pago' || r.status === 'recebido' ? 'Conciliado' : 'Pendente',
-        }))
-        : mockLancamentos.filter(l => l.tipo === 'Receita');
-
-    // Usar dados reais de despesas ou fallback para mock
-    const despesasList = (despesas.data && despesas.data.length > 0)
-        ? despesas.data.map(d => ({
-            id: d.id,
-            data: d.data,
-            descricao: d.descricao,
-            tipo: 'Despesa' as const,
-            valor: d.valor,
-            status: d.status === 'pago' ? 'Conciliado' : 'Pendente',
-        }))
-        : mockLancamentos.filter(l => l.tipo === 'Despesa');
-
-    // Usar dados reais de custos por categoria ou fallback para mock
-    const custosCategoriaList = (custosPorCategoria.data && custosPorCategoria.data.length > 0)
-        ? custosPorCategoria.data.map(c => ({
-            categoria: c.categoria_nome,
-            previsto: c.valor_previsto,
-            realizado: c.valor_realizado,
-            percentual: c.percentual_total,
-        }))
-        : cc.custosPorCategoria;
-
-    // Usar dados reais de evolução mensal ou fallback para mock
-    const evolucaoList = (evolucaoMensal.data && evolucaoMensal.data.length > 0)
-        ? evolucaoMensal.data.map(e => ({
-            mes: e.mes_label,
-            receita: e.receita,
-            despesa: e.despesa,
-        }))
-        : cc.evolucaoMensal;
-
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-        }).format(value);
-    };
-
-    const formatDate = (dateStr: string | null) => {
-        if (!dateStr) return '-';
-        return new Date(dateStr).toLocaleDateString('pt-BR');
-    };
-
-    return (
-        <div className="container mx-auto p-6 space-y-6">
-            {/* ========== Header ========== */}
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-                <div className="flex items-start gap-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate({ to: '/financeiro' })}
-                        className="hover:bg-primary/10"
-                    >
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div>
-                        <div className="flex items-center gap-3">
-                            <h1 className="text-2xl font-bold text-foreground">{cc.codigo}</h1>
-                            <Badge
-                                className={cc.status === 'ativo'
-                                    ? 'bg-success/10 text-success'
-                                    : 'bg-muted text-muted-foreground'
-                                }
-                            >
-                                {cc.status === 'ativo' ? '🟢 Ativo' : '⚪ Encerrado'}
-                            </Badge>
-                        </div>
-                        <p className="text-muted-foreground mt-1">
-                            <span className="font-medium">{cc.cliente}</span>
-                            <span className="ml-1">•</span>
-                            <span className="ml-2">OS: {cc.osOrigem}</span> •
-                            <span className="ml-2">Tipo: {cc.tipo}</span>
-                        </p>
-                        <p className="text-sm text-neutral-500 mt-1">
-                            Início: {formatDate(cc.dataInicio)}
-                            {cc.dataFim && ` • Término: ${formatDate(cc.dataFim)}`}
-                        </p>
-                    </div>
-                </div>
-                <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" />
-                        Exportar
-                    </Button>
-                    <Button variant="outline" size="sm">
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Ver OS
-                    </Button>
-                </div>
-            </div>
-
-            {/* ========== KPIs ========== */}
-            <KPIFinanceiroGrid columns={4}>
-                <KPICardFinanceiro
-                    title="Receita Realizada"
-                    value={cc.receitaRealizada}
-                    icon={<TrendingUp className="w-6 h-6" />}
-                    variant="success"
-                    subtitle={`Previsto: ${formatCurrency(cc.receitaPrevista)}`}
-                    loading={isLoading}
-                />
-                <KPICardFinanceiro
-                    title="Despesas Realizadas"
-                    value={cc.despesaRealizada}
-                    icon={<TrendingDown className="w-6 h-6" />}
-                    variant="destructive"
-                    subtitle={`Previsto: ${formatCurrency(cc.despesaPrevista)}`}
-                    loading={isLoading}
-                />
-                <KPICardFinanceiro
-                    title="Lucro Realizado"
-                    value={cc.lucroRealizado}
-                    icon={<DollarSign className="w-6 h-6" />}
-                    variant="primary"
-                    trend={{
-                        value: cc.lucroRealizado > 0 ? 'Positivo' : 'Negativo',
-                        isPositive: cc.lucroRealizado > 0
-                    }}
-                    loading={isLoading}
-                />
-                <KPICardFinanceiro
-                    title="Margem"
-                    value={`${cc.margemRealizada.toFixed(1)}%`}
-                    icon={<Percent className="w-6 h-6" />}
-                    variant={cc.margemRealizada >= 25 ? 'success' : cc.margemRealizada >= 15 ? 'warning' : 'destructive'}
-                    loading={isLoading}
-                />
-            </KPIFinanceiroGrid>
-
-            {/* ========== Tabs ========== */}
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-5 w-full max-w-2xl">
-                    <TabsTrigger value="resumo" className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4" />
-                        <span className="hidden sm:inline">Resumo</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="receitas" className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4" />
-                        <span className="hidden sm:inline">Receitas</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="despesas" className="flex items-center gap-2">
-                        <Receipt className="w-4 h-4" />
-                        <span className="hidden sm:inline">Despesas</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="mao-de-obra" className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        <span className="hidden sm:inline">MO</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="documentos" className="flex items-center gap-2">
-                        <FileText className="w-4 h-4" />
-                        <span className="hidden sm:inline">Docs</span>
-                    </TabsTrigger>
-                </TabsList>
-
-                {/* Tab: Resumo */}
-                <TabsContent value="resumo" className="space-y-6 mt-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Gráfico de Evolução */}
-                        <Card className="shadow-card">
-                            <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                                <CardTitle className="text-base font-semibold">Evolução Mensal</CardTitle>
-                                <CardDescription>Receitas vs Despesas</CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                {isLoading ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                    </div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height={280}>
-                                        <BarChart data={evolucaoList}>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                                            <XAxis dataKey="mes" stroke="hsl(var(--muted-foreground))" />
-                                            <YAxis
-                                                stroke="hsl(var(--muted-foreground))"
-                                                tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`}
-                                            />
-                                            <Tooltip
-                                                formatter={(value: number) => formatCurrency(value)}
-                                                contentStyle={{ borderRadius: '8px', boxShadow: '0 4px 12px 0 rgb(0 0 0 / 0.1)' }}
-                                            />
-                                            <Legend />
-                                            <Bar dataKey="receita" name="Receita" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                                            <Bar dataKey="despesa" name="Despesa" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Gráfico de Distribuição */}
-                        <Card className="shadow-card">
-                            <CardHeader className="pb-4 bg-muted/40 border-b border-border/50">
-                                <CardTitle className="text-base font-semibold">Distribuição de Custos</CardTitle>
-                                <CardDescription>Por categoria</CardDescription>
-                            </CardHeader>
-                            <CardContent className="pt-6">
-                                {isLoading ? (
-                                    <div className="flex items-center justify-center py-12">
-                                        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                                    </div>
-                                ) : (
-                                    <ResponsiveContainer width="100%" height={280}>
-                                        <PieChart>
-                                            <Pie
-                                                data={custosCategoriaList}
-                                                dataKey="realizado"
-                                                nameKey="categoria"
-                                                cx="50%"
-                                                cy="50%"
-                                                outerRadius={95}
-                                                label={({ categoria, percentual }) => `${categoria}: ${percentual}%`}
-                                                labelLine={false}
-                                            >
-                                                {custosCategoriaList.map((entry, index) => (
-                                                    <Cell key={entry.categoria} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
-                                            <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                                        </PieChart>
-                                    </ResponsiveContainer>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Tabela de Detalhamento */}
-                    <CompactTableWrapper
-                        title="Detalhamento por Categoria"
-                        totalItems={custosCategoriaList.length}
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/40">
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortCategoria(prev =>
-                                                prev?.field === 'categoria'
-                                                    ? { field: 'categoria', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'categoria', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortCategoria?.field === 'categoria' ? sortCategoria.dir : null}
-                                    >Categoria</CompactTableHead>
-                                    <CompactTableHead className="text-right">Previsto</CompactTableHead>
-                                    <CompactTableHead
-                                        className="text-right"
-                                        onSort={() => {
-                                            setSortCategoria(prev =>
-                                                prev?.field === 'realizado'
-                                                    ? { field: 'realizado', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'realizado', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortCategoria?.field === 'realizado' ? sortCategoria.dir : null}
-                                    >Realizado</CompactTableHead>
-                                    <CompactTableHead className="text-right">Variação</CompactTableHead>
-                                    <CompactTableHead className="text-right">% Total</CompactTableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {custosCategoriaList.map((cat) => {
-                                    const variacao = cat.realizado - cat.previsto;
-                                    const variacaoPercent = cat.previsto > 0 ? ((variacao / cat.previsto) * 100).toFixed(1) : '0.0';
-                                    return (
-                                        <CompactTableRow key={cat.categoria}>
-                                            <CompactTableCell className="font-medium">{cat.categoria}</CompactTableCell>
-                                            <CompactTableCell className="text-right">{formatCurrency(cat.previsto)}</CompactTableCell>
-                                            <CompactTableCell className="text-right">{formatCurrency(cat.realizado)}</CompactTableCell>
-                                            <CompactTableCell className={`text-right font-medium ${variacao > 0 ? 'text-destructive' : 'text-success'}`}>
-                                                {variacao > 0 ? '+' : ''}{formatCurrency(variacao)} ({variacaoPercent}%)
-                                            </CompactTableCell>
-                                            <CompactTableCell className="text-right">{cat.percentual}%</CompactTableCell>
-                                        </CompactTableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
-                    </CompactTableWrapper>
-                </TabsContent>
-
-                {/* Tab: Receitas */}
-                <TabsContent value="receitas" className="mt-6">
-                    <CompactTableWrapper
-                        title="Lançamentos de Receita"
-                        subtitle="Parcelas e entradas vinculadas"
-                        totalItems={receitasList.length}
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/40">
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortReceitas(prev =>
-                                                prev?.field === 'data'
-                                                    ? { field: 'data', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'data', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortReceitas?.field === 'data' ? sortReceitas.dir : null}
-                                    >Data</CompactTableHead>
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortReceitas(prev =>
-                                                prev?.field === 'descricao'
-                                                    ? { field: 'descricao', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'descricao', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortReceitas?.field === 'descricao' ? sortReceitas.dir : null}
-                                    >Descrição</CompactTableHead>
-                                    <CompactTableHead
-                                        className="text-right"
-                                        onSort={() => {
-                                            setSortReceitas(prev =>
-                                                prev?.field === 'valor'
-                                                    ? { field: 'valor', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'valor', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortReceitas?.field === 'valor' ? sortReceitas.dir : null}
-                                    >Valor</CompactTableHead>
-                                    <CompactTableHead>Status</CompactTableHead>
-                                    <CompactTableHead>Observação</CompactTableHead>
-                                    <CompactTableHead className="text-center w-[60px]">Anexo</CompactTableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {receitasList.map((lanc) => (
-                                    <CompactTableRow key={lanc.id}>
-                                        <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
-                                        <CompactTableCell>{lanc.descricao}</CompactTableCell>
-                                        <CompactTableCell className="text-right text-success font-medium">
-                                            {formatCurrency(lanc.valor)}
-                                        </CompactTableCell>
-                                        <CompactTableCell>
-                                            <Badge className={lanc.status === 'Conciliado' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
-                                                {lanc.status}
-                                            </Badge>
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
-                                            -
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-center">
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled>
-                                                <Paperclip className="w-4 h-4 text-muted-foreground" />
-                                            </Button>
-                                        </CompactTableCell>
-                                    </CompactTableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-muted/60 font-semibold">
-                                    <CompactTableCell colSpan={2} className="text-right">Total Receitas</CompactTableCell>
-                                    <CompactTableCell className="text-right text-success font-bold">
-                                        {formatCurrency(mockLancamentos.filter(l => l.tipo === 'Receita').reduce((acc, l) => acc + l.valor, 0))}
-                                    </CompactTableCell>
-                                    <CompactTableCell colSpan={3} />
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </CompactTableWrapper>
-                </TabsContent>
-
-                {/* Tab: Despesas */}
-                <TabsContent value="despesas" className="mt-6">
-                    <CompactTableWrapper
-                        title="Lançamentos de Despesa"
-                        subtitle="Custos operacionais"
-                        totalItems={despesasList.length}
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/40">
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortDespesas(prev =>
-                                                prev?.field === 'data'
-                                                    ? { field: 'data', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'data', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortDespesas?.field === 'data' ? sortDespesas.dir : null}
-                                    >Data</CompactTableHead>
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortDespesas(prev =>
-                                                prev?.field === 'descricao'
-                                                    ? { field: 'descricao', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'descricao', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortDespesas?.field === 'descricao' ? sortDespesas.dir : null}
-                                    >Descrição</CompactTableHead>
-                                    <CompactTableHead
-                                        className="text-right"
-                                        onSort={() => {
-                                            setSortDespesas(prev =>
-                                                prev?.field === 'valor'
-                                                    ? { field: 'valor', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'valor', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortDespesas?.field === 'valor' ? sortDespesas.dir : null}
-                                    >Valor</CompactTableHead>
-                                    <CompactTableHead>Status</CompactTableHead>
-                                    <CompactTableHead>Observação</CompactTableHead>
-                                    <CompactTableHead className="text-center w-[60px]">Anexo</CompactTableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {despesasList.map((lanc) => (
-                                    <CompactTableRow key={lanc.id}>
-                                        <CompactTableCell>{formatDate(lanc.data)}</CompactTableCell>
-                                        <CompactTableCell>{lanc.descricao}</CompactTableCell>
-                                        <CompactTableCell className="text-right text-destructive font-medium">
-                                            {formatCurrency(lanc.valor)}
-                                        </CompactTableCell>
-                                        <CompactTableCell>
-                                            <Badge className={lanc.status === 'Conciliado' ? 'bg-success/10 text-success' : 'bg-warning/10 text-warning'}>
-                                                {lanc.status}
-                                            </Badge>
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-muted-foreground text-xs max-w-[150px] truncate">
-                                            -
-                                        </CompactTableCell>
-                                        <CompactTableCell className="text-center">
-                                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled>
-                                                <Paperclip className="w-4 h-4 text-muted-foreground" />
-                                            </Button>
-                                        </CompactTableCell>
-                                    </CompactTableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-muted/60 font-semibold">
-                                    <CompactTableCell colSpan={2} className="text-right">Total Despesas</CompactTableCell>
-                                    <CompactTableCell className="text-right text-destructive font-bold">
-                                        {formatCurrency(despesasList.reduce((acc, l) => acc + l.valor, 0))}
-                                    </CompactTableCell>
-                                    <CompactTableCell colSpan={3} />
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </CompactTableWrapper>
-                </TabsContent>
-
-                {/* Tab: Mão de Obra */}
-                <TabsContent value="mao-de-obra" className="mt-6">
-                    <CompactTableWrapper
-                        title="Custo de Mão de Obra"
-                        subtitle="Baseado no registro de presença"
-                        totalItems={presencasList.length}
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/40">
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortMO(prev =>
-                                                prev?.field === 'colaborador'
-                                                    ? { field: 'colaborador', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'colaborador', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortMO?.field === 'colaborador' ? sortMO.dir : null}
-                                    >Colaborador</CompactTableHead>
-                                    <CompactTableHead>Cargo</CompactTableHead>
-                                    <CompactTableHead
-                                        className="text-right"
-                                        onSort={() => {
-                                            setSortMO(prev =>
-                                                prev?.field === 'dias'
-                                                    ? { field: 'dias', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'dias', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortMO?.field === 'dias' ? sortMO.dir : null}
-                                    >Dias</CompactTableHead>
-                                    <CompactTableHead className="text-right">Custo/Dia</CompactTableHead>
-                                    <CompactTableHead
-                                        className="text-right"
-                                        onSort={() => {
-                                            setSortMO(prev =>
-                                                prev?.field === 'total'
-                                                    ? { field: 'total', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'total', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortMO?.field === 'total' ? sortMO.dir : null}
-                                    >Total</CompactTableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {presencasList.map((p) => (
-                                    <CompactTableRow key={p.id}>
-                                        <CompactTableCell className="font-medium">{p.colaborador}</CompactTableCell>
-                                        <CompactTableCell>{p.cargo}</CompactTableCell>
-                                        <CompactTableCell className="text-right">{p.diasTrabalhados}</CompactTableCell>
-                                        <CompactTableCell className="text-right">{formatCurrency(p.custoDia)}</CompactTableCell>
-                                        <CompactTableCell className="text-right font-medium">{formatCurrency(p.custoTotal)}</CompactTableCell>
-                                    </CompactTableRow>
-                                ))}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow className="bg-muted/60 font-semibold">
-                                    <CompactTableCell colSpan={4} className="text-right font-bold">Total Mão de Obra</CompactTableCell>
-                                    <CompactTableCell className="text-right font-bold">
-                                        {formatCurrency(presencasList.reduce((acc, p) => acc + p.custoTotal, 0))}
-                                    </CompactTableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </CompactTableWrapper>
-                </TabsContent>
-
-                {/* Tab: Documentos */}
-                <TabsContent value="documentos" className="mt-6">
-                    <CompactTableWrapper
-                        title="Documentos do Projeto"
-                        subtitle="Documentos obrigatórios para encerramento"
-                        totalItems={mockDocumentos.length}
-                    >
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="bg-muted/40">
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortDocs(prev =>
-                                                prev?.field === 'nome'
-                                                    ? { field: 'nome', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'nome', dir: 'asc' }
-                                            );
-                                        }}
-                                        sortDirection={sortDocs?.field === 'nome' ? sortDocs.dir : null}
-                                    >Documento</CompactTableHead>
-                                    <CompactTableHead>Tipo</CompactTableHead>
-                                    <CompactTableHead
-                                        onSort={() => {
-                                            setSortDocs(prev =>
-                                                prev?.field === 'enviado'
-                                                    ? { field: 'enviado', dir: prev.dir === 'asc' ? 'desc' : 'asc' }
-                                                    : { field: 'enviado', dir: 'desc' }
-                                            );
-                                        }}
-                                        sortDirection={sortDocs?.field === 'enviado' ? sortDocs.dir : null}
-                                    >Enviado</CompactTableHead>
-                                    <CompactTableHead>Obrigatório</CompactTableHead>
-                                    <CompactTableHead>Status</CompactTableHead>
-                                    <CompactTableHead className="w-[80px]"></CompactTableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {mockDocumentos.map((doc) => (
-                                    <CompactTableRow key={doc.id}>
-                                        <CompactTableCell className="font-medium">{doc.nome}</CompactTableCell>
-                                        <CompactTableCell>{doc.tipo}</CompactTableCell>
-                                        <CompactTableCell>{doc.uploadedAt ? formatDate(doc.uploadedAt) : '-'}</CompactTableCell>
-                                        <CompactTableCell>
-                                            {doc.obrigatorio ? (
-                                                <Badge variant="secondary">Obrigatório</Badge>
-                                            ) : (
-                                                <span className="text-muted-foreground">Opcional</span>
-                                            )}
-                                        </CompactTableCell>
-                                        <CompactTableCell>
-                                            {doc.status === 'ok' ? (
-                                                <Badge className="bg-success/10 text-success">✓ Enviado</Badge>
-                                            ) : (
-                                                <Badge className="bg-warning/10 text-warning">
-                                                    <AlertCircle className="w-3 h-3 mr-1" />
-                                                    Pendente
-                                                </Badge>
-                                            )}
-                                        </CompactTableCell>
-                                        <CompactTableCell>
-                                            {doc.status === 'ok' ? (
-                                                <Button variant="ghost" size="sm">
-                                                    <Download className="w-4 h-4" />
-                                                </Button>
-                                            ) : (
-                                                <Button variant="outline" size="sm">
-                                                    Upload
-                                                </Button>
-                                            )}
-                                        </CompactTableCell>
-                                    </CompactTableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </CompactTableWrapper>
-                </TabsContent>
-            </Tabs>
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-2">
+           <Button variant="ghost" size="icon" onClick={() => router.history.back()}>
+             <ArrowLeft className="h-4 w-4" />
+           </Button>
+           <div>
+             <h1 className="text-2xl font-bold tracking-tight">{nomeCC}</h1>
+             <div className="flex items-center gap-2 text-sm text-muted-foreground">
+               <span>Contrato Global: {formatarMoeda(Number(ccResumo?.contrato_global || 0))}</span>
+               <Badge variant="outline" className="text-success border-success/20 bg-success/10">
+                 {statusCC}
+               </Badge>
+             </div>
+           </div>
         </div>
-    );
+        <div className="flex gap-2">
+          {/* Ações futuras: Exportar, Editar */}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-4">
+          {[1,2,3,4].map(i => <Skeleton key={i} className="h-32 w-full" />)}
+        </div>
+      ) : (
+        /* KPIs */
+        <KPIFinanceiroGrid columns={4}>
+          <KPICardFinanceiro
+            title="Receita Realizada"
+            value={ccResumo?.receita_realizada || 0}
+            previsto={ccResumo?.receita_prevista}
+            icon={DollarSign}
+            trend={ccResumo?.receita_realizada && ccResumo.receita_prevista ? 
+              (ccResumo.receita_realizada / ccResumo.receita_prevista - 1) * 100 : 0}
+            trendLabel="do previsto"
+            variant="success"
+          />
+          <KPICardFinanceiro
+            title="Custo Total"
+            value={ccResumo?.custo_total_realizado || 0}
+            previsto={ccResumo?.custo_total_previsto}
+            icon={TrendingDown}
+            variant="danger"
+            trendLabel="vs orçado"
+          />
+          <KPICardFinanceiro
+            title="Lucro Realizado"
+            value={ccResumo?.lucro_realizado || 0}
+            icon={TrendingUp}
+            variant={Number(ccResumo?.lucro_realizado) >= 0 ? "default" : "danger"}
+          />
+          <KPICardFinanceiro
+            title="Margem de Lucro"
+            value={`${ccResumo?.margem_realizada_pct || 0}%`}
+            icon={PieChartIcon}
+            variant="neutral"
+            formatter={(v) => v.toString()}
+          />
+        </KPIFinanceiroGrid>
+      )}
+
+      {/* Tabs de Detalhe */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="resumo">Resumo Financeiro</TabsTrigger>
+          <TabsTrigger value="receitas">Receitas</TabsTrigger>
+          <TabsTrigger value="despesas">Despesas Operacionais</TabsTrigger>
+          <TabsTrigger value="overhead">Overhead & Indiretos</TabsTrigger>
+          <TabsTrigger value="documentos">Documentos</TabsTrigger>
+        </TabsList>
+
+        {/* --- AB RESUMO --- */}
+        <TabsContent value="resumo" className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Breakdown de Custos */}
+              <div className="col-span-2">
+        <CompactTableWrapper
+          title="Composição de Custos"
+          subtitle="Distribuição dos gastos por categoria"
+          // Sem paginação neste widget pois deve mostrar tudo
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <CompactTableHead>Categoria</CompactTableHead>
+                <CompactTableHead align="right">Previsto</CompactTableHead>
+                <CompactTableHead align="right">Realizado</CompactTableHead>
+                <CompactTableHead align="right">%</CompactTableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {custosPorCategoria.data?.map((cat, idx) => (
+                <CompactTableRow key={idx}>
+                  <CompactTableCell className="font-medium">{cat.categoria_nome}</CompactTableCell>
+                  <CompactTableCell className="text-right">{formatarMoeda(cat.valor_previsto)}</CompactTableCell>
+                  <CompactTableCell className="text-right">{formatarMoeda(cat.valor_realizado)}</CompactTableCell>
+                  <CompactTableCell className="text-right">{cat.percentual_total}%</CompactTableCell>
+                </CompactTableRow>
+              ))}
+              {custosPorCategoria.data?.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                    Nenhum custo registrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow className="bg-muted/50 font-bold border-t-2">
+                  <CompactTableCell className="py-3">TOTAL</CompactTableCell>
+                  <CompactTableCell className="text-right py-3">
+                    {formatarMoeda(custosPorCategoria.data?.reduce((acc, curr) => acc + curr.valor_previsto, 0) || 0)}
+                  </CompactTableCell>
+                  <CompactTableCell className="text-right py-3">
+                    {formatarMoeda(custosPorCategoria.data?.reduce((acc, curr) => acc + curr.valor_realizado, 0) || 0)}
+                  </CompactTableCell>
+                  <CompactTableCell className="text-right py-3">100%</CompactTableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CompactTableWrapper>
+      </div>
+
+            {/* Card de Overhead Resumo */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Overhead & Indiretos</CardTitle>
+                <CardDescription>Custo administrativo alocado</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Alocado</span>
+                  <span className="font-bold text-lg">{formatarMoeda(ccResumo?.custo_overhead_total || 0)}</span>
+                </div>
+                <div className="border-t pt-4">
+                   <p className="text-xs text-muted-foreground mb-2">Última alocação:</p>
+                   {overhead.data?.[0] ? (
+                     <div className="text-sm">
+                       <p>Ref: {new Date(overhead.data[0].mes_referencia).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</p>
+                       <p className="font-medium">{formatarMoeda(overhead.data[0].valor_total_alocado)}</p>
+                     </div>
+                   ) : (
+                     <p className="text-sm text-muted-foreground">Nenhuma alocação recente</p>
+                   )}
+                </div>
+                <Button variant="outline" className="w-full" onClick={() => setActiveTab("overhead")}>
+                  Ver Detalhes
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* --- ABA RECEITAS --- */}
+        <TabsContent value="receitas">
+
+        <CompactTableWrapper
+           title="Receitas"
+           subtitle="Faturamento e entradas vinculadas"
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <CompactTableHead>Vencimento</CompactTableHead>
+                <CompactTableHead>Descrição</CompactTableHead>
+                <CompactTableHead>Cliente</CompactTableHead>
+                <CompactTableHead>Status</CompactTableHead>
+                <CompactTableHead align="right">Valor</CompactTableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {receitas.data?.map((item) => (
+                 <CompactTableRow key={item.id}>
+                  <CompactTableCell>{new Date(item.data).toLocaleDateString()}</CompactTableCell>
+                  <CompactTableCell>{item.descricao} {item.parcela_num ? `(${item.parcela_num}/${item.total_parcelas})` : ''}</CompactTableCell>
+                  <CompactTableCell>{item.cliente_nome || '-'}</CompactTableCell>
+                  <CompactTableCell>
+                    <Badge 
+                      variant="outline"
+                      className={
+                        item.status === 'recebido' ? 'bg-success/10 text-success border-success/20' : 'bg-warning/10 text-warning border-warning/20'
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </CompactTableCell>
+                  <CompactTableCell className="text-right">{formatarMoeda(item.valor)}</CompactTableCell>
+                </CompactTableRow>
+              ))}
+              {receitas.data?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                    Nenhuma receita registrada
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CompactTableWrapper>
+      </TabsContent>
+
+        {/* --- ABA DESPESAS --- */}
+        <TabsContent value="despesas">
+        <CompactTableWrapper
+          title="Contas a Pagar"
+          subtitle="Registro de despesas vinculadas"
+          // Paginação seria implementada aqui se houvesse no hook
+        >
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <CompactTableHead>Data</CompactTableHead>
+                <CompactTableHead>Descrição</CompactTableHead>
+                <CompactTableHead>Categoria</CompactTableHead>
+                <CompactTableHead>Status</CompactTableHead>
+                <CompactTableHead align="right">Valor</CompactTableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {despesas.data?.map((item) => (
+                 <CompactTableRow key={item.id}>
+                  <CompactTableCell>{new Date(item.data).toLocaleDateString()}</CompactTableCell>
+                  <CompactTableCell>{item.descricao}</CompactTableCell>
+                  <CompactTableCell>{item.categoria_nome || '-'}</CompactTableCell>
+                  <CompactTableCell>
+                     <Badge 
+                      variant="outline" 
+                      className={
+                        item.status === 'pago' ? 'bg-success/10 text-success border-success/20' : 
+                        item.status === 'atrasado' ? 'bg-destructive/10 text-destructive border-destructive/20' : 
+                        'bg-warning/10 text-warning border-warning/20'
+                      }
+                    >
+                      {item.status}
+                    </Badge>
+                  </CompactTableCell>
+                  <CompactTableCell className="text-right">{formatarMoeda(item.valor)}</CompactTableCell>
+                </CompactTableRow>
+              ))}
+              {despesas.data?.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
+                    Nenhuma despesa registrada
+                  </TableCell>
+                </TableRow>
+              )}  
+            </TableBody>
+          </Table>
+        </CompactTableWrapper>
+      </TabsContent>
+
+        {/* --- ABA OVERHEAD (NOVA) --- */}
+        <TabsContent value="overhead">
+          <Card>
+            <CardHeader>
+              <CardTitle>Detalhamento de Overhead</CardTitle>
+              <CardDescription>Rateio de custos administrativos e do setor</CardDescription>
+            </CardHeader>
+            <CardContent>
+               <Table>
+                 <TableHeader>
+                   <TableRow>
+                     <TableHead>Mês de Referência</TableHead>
+                     <TableHead className="text-right">Rateio Adm/Escritório</TableHead>
+                     <TableHead className="text-right">Rateio Setor</TableHead>
+                     <TableHead className="text-right font-bold">Total Alocado</TableHead>
+                   </TableRow>
+                 </TableHeader>
+                 <TableBody>
+                   {overhead.data?.map((item) => (
+                     <TableRow key={item.id}>
+                       <TableCell>{new Date(item.mes_referencia).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}</TableCell>
+                       <TableCell className="text-right">{formatarMoeda(item.custo_escritorio_rateado)}</TableCell>
+                       <TableCell className="text-right">{formatarMoeda(item.custo_setor_rateado)}</TableCell>
+                       <TableCell className="text-right font-bold">{formatarMoeda(item.valor_total_alocado)}</TableCell>
+                     </TableRow>
+                   ))}
+                   {overhead.data?.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center h-24">Nenhum rateio de overhead encontrado</TableCell>
+                      </TableRow>
+                   )}
+                 </TableBody>
+               </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* --- ABA DOCUMENTOS --- */}
+        <TabsContent value="documentos">
+           <Card>
+             <CardHeader>
+               <CardTitle>Documentos do Projeto</CardTitle>
+             </CardHeader>
+             <CardContent>
+               <div className="flex flex-col items-center justify-center h-48 text-muted-foreground border-2 border-dashed rounded-lg">
+                 <FileText className="h-10 w-10 mb-2" />
+                 <p>Nenhum documento anexado</p>
+                 <Button variant="link">Upload de Arquivo</Button>
+               </div>
+             </CardContent>
+           </Card>
+        </TabsContent>
+
+      </Tabs>
+    </div>
+  );
 }

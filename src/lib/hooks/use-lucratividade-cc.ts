@@ -69,6 +69,31 @@ export interface FinanceiroClienteResumo {
 // HOOKS
 // ============================================================
 
+export interface LucratividadeCC {
+  cc_id: string;
+  nome: string;
+  contrato_global: number;
+  
+  receita_prevista: number;
+  receita_realizada: number;
+  
+  custo_op_previsto: number;
+  custo_op_realizado: number;
+  
+  custo_mo_total: number;
+  custo_overhead_total: number;
+  
+  custo_total_previsto: number;
+  custo_total_realizado: number;
+  
+  lucro_previsto: number;
+  lucro_realizado: number;
+  
+  margem_realizada_pct: number;
+}
+
+// ... existing FinanceiroOSResumo or keep it if used by other hooks ...
+
 /**
  * Busca resumo financeiro de todas as OS
  */
@@ -99,21 +124,22 @@ export function useLucratividadeOS(options?: {
 
 /**
  * Busca resumo financeiro de um Centro de Custo específico
+ * Usa a nova view vw_lucratividade_cc
  */
 export function useLucratividadeCC(ccId: string | undefined | null) {
   return useQuery({
-    queryKey: ['lucratividade-cc', ccId],
-    queryFn: async (): Promise<FinanceiroOSResumo | null> => {
+    queryKey: ['lucratividade-cc-v2', ccId],
+    queryFn: async (): Promise<LucratividadeCC | null> => {
       if (!ccId) return null;
 
       const { data, error } = await supabase
-        .from('view_financeiro_os_resumo')
+        .from('vw_lucratividade_cc')
         .select('*')
         .eq('cc_id', ccId)
         .maybeSingle();
 
       if (error) throw error;
-      return data as FinanceiroOSResumo | null;
+      return data as LucratividadeCC | null;
     },
     enabled: !!ccId,
   });

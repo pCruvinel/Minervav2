@@ -24,6 +24,7 @@ O módulo de RH do MinervaV2 gerencia o ciclo de vida completo de colaboradores,
 |-----------|-----------|--------|
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Arquitetura técnica e fluxos de dados | ✅ |
 | [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) | Schema completo das 8 tabelas de RH | ✅ |
+| [PERMISSIONS.md](./PERMISSIONS.md) | **🆕 Sistema de Permissionamento RBAC** | ✅ |
 | [HOOKS_API.md](./HOOKS_API.md) | Referência de 15+ hooks com exemplos | ✅ |
 | [PAGES_ROUTES.md](./PAGES_ROUTES.md) | Rotas, páginas e navegação | ✅ |
 | [OS10_REQUISICAO_MAO_OBRA.md](./OS10_REQUISICAO_MAO_OBRA.md) | Workflow completo da OS-10 | ✅ |
@@ -63,6 +64,7 @@ O módulo de RH do MinervaV2 gerencia o ciclo de vida completo de colaboradores,
 | Recrutamento Kanban | ✅ 95% | 4 colunas, drag & drop |
 | Gestão de Turnos | ✅ 90% | CRUD, recorrência, setores |
 | Custo de Mão de Obra | ✅ 90% | Por CC, por colaborador |
+| **Automação de Salários** | ✅ 100% | Geração automática de despesas (Edge Function) |
 
 ### Integrações
 
@@ -77,6 +79,8 @@ O módulo de RH do MinervaV2 gerencia o ciclo de vida completo de colaboradores,
 ---
 
 ## 🔐 Controle de Acesso
+
+> 🆕 **Sistema RBAC Granular:** Consulte [PERMISSIONS.md](./PERMISSIONS.md) para a nova arquitetura de permissões.
 
 | Perfil | Nível | Acesso |
 |--------|-------|--------|

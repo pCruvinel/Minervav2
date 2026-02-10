@@ -108,24 +108,30 @@ useMarcarRecebido()
 
 ---
 
-## 📋 Faturas Recorrentes
+## 📋 Gestão de Despesas (Master Ledger)
 
-**Rota:** `/financeiro/faturas-recorrentes`  
-**Componente:** `FaturasRecorrentesPage`  
-**Arquivo:** `src/components/financeiro/faturas-recorrentes-page.tsx`
+**Rota:** `/financeiro/despesas`  
+**Componente:** `GestaoDespesasPage`  
+**Arquivo:** `src/components/financeiro/gestao-despesas-page.tsx`
 
 ### Funcionalidades
 
-- **KPIs:** Total do mês, pago, pendente, atrasado, folha de pagamento
-- **Tabela de despesas:** Lista de contas a pagar com status
-- **Tabela de salários:** Colaboradores com custo total (salário + encargos)
-- **Modal Nova Despesa:** Criar despesa recorrente ou parcelada
-- **Ação:** Marcar despesa como paga
+- **Master Ledger:** Visualização unificada de todas as despesas (Recorrentes, Pontuais, Salários)
+- **Filtros Inteligentes (Pills):** Todos, Pendentes, Salários/RH, Custos Fixos, Custos Variáveis
+- **KPIs:** Total do mês, pago, pendente, atrasado
+- **Formulário Inteligente:** 
+  - Criação de despesas com suporte a fornecedores e colaboradores
+  - Integração nativa com Folha de Pagamento (RH)
+  - Integração com OS de Compra (campos travados)
+- **Ações:** 
+  - Marcar como pago
+  - Visualizar rateio (Multiple Cost Centers)
+  - Anexar comprovante
 
 ### Hooks Utilizados
 
 ```typescript
-useFaturasRecorrentes(referenceDate)
+useDespesasMasterLedger(filters)
 useSalariosPrevistos()
 useFaturasKPIs(referenceDate)
 useMarcarPago()

@@ -246,7 +246,7 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                         data_entrada,
                         data_prazo,
                         data_conclusao,
-                        clientes!inner(nome_razao_social, email, telefone, endereco, numero, bairro, cidade, uf, cep),
+                        clientes!inner(nome_razao_social, email, telefone, endereco),
                         tipos_os!inner(nome),
                         responsavel:colaboradores!ordens_servico_responsavel_id_fkey(nome_completo, avatar_url),
                         criado_por:colaboradores!ordens_servico_criado_por_id_fkey(nome_completo)
@@ -271,12 +271,12 @@ const OSDetailsRedesignPage = ({ osId }: OSDetailsRedesignPageProps) => {
                     cliente_email: clienteData?.email,
                     cliente_telefone: clienteData?.telefone,
                     cliente_endereco: {
-                        logradouro: clienteData?.endereco,
-                        numero: clienteData?.numero,
-                        bairro: clienteData?.bairro,
-                        cidade: clienteData?.cidade,
-                        uf: clienteData?.uf,
-                        cep: clienteData?.cep
+                        logradouro: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.logradouro : clienteData?.endereco,
+                        numero: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.numero : undefined,
+                        bairro: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.bairro : undefined,
+                        cidade: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.cidade : undefined,
+                        uf: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.uf : undefined,
+                        cep: typeof clienteData?.endereco === 'object' ? clienteData?.endereco?.cep : undefined
                     },
                     tipo_os_nome: tipoOsData?.nome || 'Tipo não encontrado',
                     responsavel_nome: responsavelData?.nome_completo,

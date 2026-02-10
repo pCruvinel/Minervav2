@@ -482,6 +482,235 @@ O sistema já aplica automaticamente:
 
 ---
 
+## 💵 Inputs Numéricos (Golden Standard)
+
+> [!IMPORTANT]
+> **Padrão obrigatório** para todos os campos de entrada numéricos do sistema.  
+> Última atualização: 2026-02-04
+
+### Tipos de Inputs Numéricos
+
+| Tipo | Componente | Uso | Formato |
+|------|------------|-----|---------|
+| **Inteiro** | `IntegerInput` | Quantidade, Idade, Parcelas | `1.234` |
+| **Moeda** | `CurrencyInput` | Valores financeiros | `R$ 1.234,56` |
+| **Porcentagem** | `PercentageInput` | Taxas, Rateios | `12,50%` |
+
+---
+
+### 🔴 7 Regras Obrigatórias
+
+#### 1. Select All on Focus (Resolve o bug '01')
+
+Ao clicar ou navegar com Tab para o campo, **todo o conteúdo deve ser selecionado automaticamente**.
+
+```tsx
+// ✅ OBRIGATÓRIO em todos os inputs numéricos
+onFocus={(e) => e.target.select()}
+```
+
+**Por que?** Se o campo tem `0` e o usuário digita `1`:
+- ❌ **Sem Select All:** `0` + `1` = `01` (string concatenation)
+- ✅ **Com Select All:** `0` é substituído por `1` = `1`
+
+#### 2. Máscaras em Tempo Real
+
+Formatação automática de separadores de milhar e decimal **enquanto o usuário digita**.
+
+```tsx
+// Entrada do usuário → Exibição formatada
+1000 → "1.000"
+1000.5 → "1.000,50"
+1234567.89 → "1.234.567,89"
+```
+
+**Biblioteca recomendada:** `react-number-format`
+
+#### 3. Alinhamento à Direita (Right Aligned)
+
+Todos os valores numéricos financeiros devem ser alinhados à direita para facilitar comparação visual.
+
+```tsx
+<Input className="text-right tabular-nums" />
+```
+
+| Texto Alinhado Esquerda | Número Alinhado Direita |
+|-------------------------|-------------------------|
+| Nome do Item            |              R$ 1.234,56 |
+| Outro Item              |                R$ 567,89 |
+| Total                   |              R$ 1.802,45 |
+
+#### 4. Nunca Vazio (Fallback Value)
+
+O campo **nunca deve ficar vazio**. No `onBlur`, se o valor for inválido ou vazio, aplicar fallback:
+
+```tsx
+onBlur={() => {
+  if (!value || isNaN(value)) {
+    setValue(0); // Inteiro: 0
+    // ou setValue(0.00); // Moeda: 0,00
+  }
+}}
+```
+
+| Tipo | Fallback |
+|------|----------|
+| Inteiro | `0` |
+| Moeda | `0,00` |
+| Porcentagem | `0,00%` |
+
+#### 5. Teclado Numérico Mobile
+
+Forçar teclado numérico em dispositivos móveis:
+
+```tsx
+// Para inteiros
+<Input inputMode="numeric" pattern="[0-9]*" />
+
+// Para decimais (moeda, porcentagem)
+<Input inputMode="decimal" />
+```
+
+#### 6. Centavos Automáticos (Money Input)
+
+> [!TIP]
+> **Padrão para valores monetários.** Elimina a necessidade de digitar vírgula.
+
+O usuário digita apenas números, e o sistema posiciona automaticamente os centavos:
+
+```
+Usuário digita: 1     → Exibe: R$ 0,01
+Usuário digita: 2     → Exibe: R$ 0,12
+Usuário digita: 5     → Exibe: R$ 1,25
+Usuário digita: 0     → Exibe: R$ 12,50
+Usuário digita: 0     → Exibe: R$ 125,00
+```
+
+**Algoritmo:** Novo dígito entra à direita, desloca os anteriores para esquerda.
+
+```tsx
+// Implementação conceitual
+const handleChange = (digits: string) => {
+  const numericValue = parseInt(digits, 10);
+  const floatValue = numericValue / 100; // Converte para centavos
+  setValue(floatValue);
+};
+```
+
+#### 7. Feedback Visual (Integração VALIDATION_SYSTEM)
+
+Aplicar o padrão de **Green Ring / Red Ring** do [VALIDATION_SYSTEM.md](./VALIDATION_SYSTEM.md):
+
+```tsx
+<CurrencyInput
+  value={valor}
+  onValueChange={({ floatValue }) => {
+    setValor(floatValue);
+    if (touched.valor) validateField('valor', floatValue);
+  }}
+  onBlur={() => {
+    markFieldTouched('valor');
+    validateField('valor', valor);
+  }}
+  error={touched.valor ? errors.valor : undefined}
+  success={touched.valor && !errors.valor && valor > 0}
+/>
+```
+
+---
+
+### 📦 Implementação Recomendada
+
+**Biblioteca:** [`react-number-format`](https://github.com/s-yadav/react-number-format)
+
+#### Instalação
+```bash
+npm install react-number-format
+```
+
+#### Exemplo Completo: CurrencyInput
+
+```tsx
+import { NumericFormat } from 'react-number-format';
+import { Input } from '@/components/ui/input';
+import { forwardRef } from 'react';
+
+interface CurrencyInputProps {
+  value: number;
+  onValueChange: (value: number) => void;
+  error?: string;
+  success?: boolean;
+}
+
+export const CurrencyInput = forwardRef<HTMLInputElement, CurrencyInputProps>(
+  ({ value, onValueChange, error, success, ...props }, ref) => {
+    return (
+      <NumericFormat
+        getInputRef={ref}
+        customInput={Input}
+        value={value}
+        onValueChange={(values) => {
+          onValueChange(values.floatValue ?? 0);
+        }}
+        
+        // 🎯 Formatação brasileira
+        thousandSeparator="."
+        decimalSeparator=","
+        prefix="R$ "
+        decimalScale={2}
+        fixedDecimalScale
+        
+        // 🎯 Comportamento obrigatório
+        onFocus={(e) => e.target.select()}
+        inputMode="decimal"
+        
+        // 🎯 Estilo Right Aligned
+        className={cn(
+          "text-right tabular-nums",
+          error && "border-error focus:ring-error",
+          success && "border-success focus:ring-success"
+        )}
+        
+        {...props}
+      />
+    );
+  }
+);
+```
+
+#### Separação Valor/Display
+
+> [!IMPORTANT]
+> **Sempre salvar o valor numérico (`floatValue`), nunca a string formatada.**
+
+```tsx
+// ❌ ERRADO: Salvar string
+const valorDB = "R$ 1.234,56"; // String não pode ser somada
+
+// ✅ CORRETO: Salvar número
+const valorDB = 1234.56; // Float para cálculos e banco de dados
+```
+
+A biblioteca `react-number-format` fornece:
+- `floatValue`: Número para cálculos e banco (ex: `1234.56`)
+- `formattedValue`: String para exibição (ex: `"R$ 1.234,56"`)
+
+---
+
+### 🧪 Critérios de Aceitação
+
+| Critério | Teste |
+|----------|-------|
+| Select All | Ao clicar/tab no campo com valor, todo texto é selecionado |
+| Máscara | Digitar `1000` exibe `1.000` |
+| Alinhamento | Valores alinhados à direita visualmente |
+| Fallback | Apagar tudo e sair do campo → valor volta para `0` |
+| Teclado | Em mobile, abre teclado numérico |
+| Centavos | Digitar `125` em moeda → `R$ 1,25` |
+| Validação | Campo inválido mostra borda vermelha |
+
+---
+
 ## 🔧 CSS Custom Properties (tokens.css)
 
 O arquivo `tokens.css` fornece variáveis CSS para valores que podem ser acessados em JavaScript ou em cálculos dinâmicos.
@@ -798,22 +1027,75 @@ import { PageHeader } from '@/components/shared/page-header';
   <CardContent>
     <div className="flex flex-col md:flex-row gap-4">
       {/* Input de busca com ícone */}
-      <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-neutral-400" />
-        <Input placeholder="Buscar..." className="pl-10" />
+      <div className="relative flex-1">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input placeholder="Buscar..." className="pl-8" />
       </div>
-      {/* Select de filtro */}
+      
+      {/* Selects de filtro */}
       <Select>
-        <SelectTrigger className="w-full md:w-[200px]">
-          <Filter className="w-4 h-4 mr-2" />
-          <SelectValue placeholder="Filtro" />
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Status" />
         </SelectTrigger>
-        <SelectContent>...</SelectContent>
+        <SelectContent>
+          <SelectItem value="active">Ativo</SelectItem>
+        </SelectContent>
       </Select>
     </div>
   </CardContent>
 </Card>
 ```
+
+### Tabela Compacta (Padrão Financeiro)
+
+> **NOVO PADRÃO**: Para listagens com alta densidade de dados (ex: Financeiro, Extratos), use os componentes `CompactTable`.
+
+```tsx
+import { 
+  CompactTableWrapper, 
+  CompactTableHead, 
+  CompactTableRow, 
+  CompactTableCell 
+} from '@/components/shared/compact-table';
+
+<CompactTableWrapper
+  title="Lançamentos"
+  subtitle="Exibindo dados importados"
+  totalItems={100}
+  currentCount={10}
+  page={1}
+  totalPages={10}
+  onPageChange={setPage}
+  itemsPerPage={10}
+  onItemsPerPageChange={setItemsPerPage}
+>
+  <Table>
+    <TableHeader>
+      <TableRow className="bg-muted/40">
+        <CompactTableHead onSort={() => handleSort('data')}>Data</CompactTableHead>
+        <CompactTableHead>Descrição</CompactTableHead>
+        <CompactTableHead align="right">Valor</CompactTableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {data.map((item) => (
+        <CompactTableRow key={item.id} onClick={() => handleClick(item)}>
+          <CompactTableCell>{formatDate(item.data)}</CompactTableCell>
+          <CompactTableCell>{item.descricao}</CompactTableCell>
+          <CompactTableCell className="text-right">{formatCurrency(item.valor)}</CompactTableCell>
+        </CompactTableRow>
+      ))}
+    </TableBody>
+  </Table>
+</CompactTableWrapper>
+```
+
+**Regras de Estilo para Tabelas Financeiras:**
+1.  **CompactTableRow**: Adiciona hover suave e cursor pointer se clicável.
+2.  **CompactTableCell**: Padding reduzido e fonte levemente menor (`text-sm`).
+3.  **Badges**: Use estilo "outline" com fundo suave (`bg-success/10 border-success/30`).
+4.  **Valores**: Dinheiro sempre alinhado à direita (`text-right`) e com fonte tabular (`tabular-nums`).
+5.  **Data**: Formato horizontal e conciso: `dd/MM/yy - HH:mm`.
 
 ### Card da Tabela
 

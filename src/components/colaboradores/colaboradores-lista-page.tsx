@@ -20,9 +20,11 @@ import {
 import { PageHeader } from '@/components/shared/page-header';
 import { CardDescription } from '../ui/card';
 import { ModalConviteColaborador } from './modal-convite-colaborador';
+import { ModalVencimentoLote } from './modal-vencimento-lote';
 import { colaboradoresAPI } from '../../lib/api-client';
 import { toast } from 'sonner';
 import { FilterBar, SearchInput, FilterSelect } from '@/components/shared/filters';
+import { Calendar } from 'lucide-react';
 
 interface Colaborador {
   id: string;
@@ -54,6 +56,7 @@ export function ColaboradoresListaPage() {
   const [setorFilter, setSetorFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
   const [modalConviteOpen, setModalConviteOpen] = useState(false);
+  const [modalVencimentoOpen, setModalVencimentoOpen] = useState(false);
 
   // Buscar colaboradores da API
   useEffect(() => {
@@ -126,10 +129,16 @@ export function ColaboradoresListaPage() {
         subtitle="Gerencia os documentos e informações de todos os Colaboradores."
         showBackButton
       >
-        <Button onClick={handleConvidar}>
-          <Send className="w-4 h-4 mr-2" />
-          Convidar Colaborador
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setModalVencimentoOpen(true)}>
+            <Calendar className="w-4 h-4 mr-2" />
+            Vencimentos em Lote
+          </Button>
+          <Button onClick={handleConvidar}>
+            <Send className="w-4 h-4 mr-2" />
+            Convidar Colaborador
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Stats Cards */}
@@ -339,6 +348,21 @@ export function ColaboradoresListaPage() {
         open={modalConviteOpen}
         onClose={() => setModalConviteOpen(false)}
         onSuccess={handleConviteSuccess}
+      />
+
+      {/* Modal de Vencimento em Lote */}
+      <ModalVencimentoLote
+        open={modalVencimentoOpen}
+        onClose={() => setModalVencimentoOpen(false)}
+        colaboradores={colaboradores.filter(c => c.ativo).map(c => ({
+          id: c.id,
+          nome_completo: c.nome_completo,
+          funcao: c.cargos?.nome || undefined,
+        }))}
+        onSuccess={async () => {
+          const data = await colaboradoresAPI.list();
+          setColaboradores(data);
+        }}
       />
     </div>
   );

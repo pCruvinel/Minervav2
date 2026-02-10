@@ -97,7 +97,7 @@ const menuItems = [
       { id: 'financeiro-dashboard', label: 'Dashboard', icon: PieChart, to: '/financeiro' },
       { id: 'fluxo-caixa', label: 'Fluxo de Caixa', icon: TrendingUp, to: '/financeiro/fluxo-caixa' },
       { id: 'receitas', label: 'Receitas', icon: TrendingUp, to: '/financeiro/receitas-recorrentes' },
-      { id: 'despesas', label: 'Despesas', icon: TrendingDown, to: '/financeiro/faturas-recorrentes' },
+      { id: 'despesas', label: 'Despesas', icon: TrendingDown, to: '/financeiro/despesas' },
       { id: 'conciliacao-bancaria', label: 'Conciliação Bancária', icon: CreditCard, to: '/financeiro/conciliacao' },
       { id: 'aprovar-requisicoes', label: 'Gestão de Compras', icon: ShoppingCart, to: '/financeiro/requisicoes' },
     ]

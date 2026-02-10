@@ -111,13 +111,16 @@ export function MultiSelect({
                                         className={cn("text-xs py-0 px-1.5 h-5", badgeClassName)}
                                     >
                                         {label}
-                                        <button
-                                            className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
+                                            className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
                                             onMouseDown={(e) => e.preventDefault()}
                                             onClick={(e) => handleRemove(selected[idx], e)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') handleRemove(selected[idx], e as unknown as React.MouseEvent) }}
                                         >
                                             <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                        </button>
+                                        </span>
                                     </Badge>
                                 ))}
                             </div>
@@ -129,13 +132,16 @@ export function MultiSelect({
                     </div>
                     <div className="flex items-center gap-1 shrink-0">
                         {selected.length > 0 && (
-                            <button
-                                className="rounded-full p-0.5 hover:bg-muted"
+                            <span
+                                role="button"
+                                tabIndex={0}
+                                className="rounded-full p-0.5 hover:bg-muted cursor-pointer"
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={handleClearAll}
+                                onKeyDown={(e) => { if (e.key === 'Enter') handleClearAll(e as unknown as React.MouseEvent) }}
                             >
                                 <X className="h-3.5 w-3.5 text-muted-foreground" />
-                            </button>
+                            </span>
                         )}
                         <ChevronsUpDown className="h-4 w-4 shrink-0 opacity-50" />
                     </div>
@@ -143,7 +149,7 @@ export function MultiSelect({
             </PopoverTrigger>
             <PopoverContent className="w-[220px] p-0" align="start">
                 <Command>
-                    <CommandInput placeholder={searchPlaceholder} className="h-9" />
+                    <CommandInput placeholder={searchPlaceholder} className="h-9 focus-visible:ring-0 focus:ring-0" />
                     <CommandList>
                         <CommandEmpty>{emptyMessage}</CommandEmpty>
                         <CommandGroup>

@@ -44,6 +44,7 @@ import {
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
 import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCustoTotalMensal } from '@/lib/hooks/use-custos-variaveis';
 
 // Types
 interface Documento {
@@ -76,6 +77,9 @@ export function ColaboradorDetalhesPage() {
     const [isResendingInvite, setIsResendingInvite] = useState(false);
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
     const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<string>('');
+    
+    // Data hooks
+    const { data: historicoCustos = [] } = useCustoTotalMensal({ colaboradorId });
 
     // Fetch Data
     const fetchData = async () => {
@@ -186,11 +190,9 @@ export function ColaboradorDetalhesPage() {
     };
 
     const handleDeleteDocumento = async (id: string, url: string) => {
-        if (!confirm('Tem certeza que deseja excluir este documento?')) return;
+        if (!window.confirm('Tem certeza que deseja excluir este documento?')) return;
 
         try {
-            // Extract path from URL
-            const path = url.split('/').pop(); // Simple extraction, might need adjustment based on full URL structure
             // Actually, better to store path in DB or just try to delete by ID from DB first
 
             // 1. Delete DB
@@ -315,7 +317,7 @@ export function ColaboradorDetalhesPage() {
         const novoStatus = !colaborador.ativo;
         const acao = novoStatus ? 'ativar' : 'desativar';
 
-        if (!confirm(`Tem certeza que deseja ${acao} este colaborador?${!novoStatus ? '\n\nO colaborador não poderá mais acessar o sistema.' : ''}`)) {
+        if (!window.confirm(`Tem certeza que deseja ${acao} este colaborador?${!novoStatus ? '\n\nO colaborador não poderá mais acessar o sistema.' : ''}`)) {
             return;
         }
 
@@ -681,6 +683,13 @@ export function ColaboradorDetalhesPage() {
                                     {colaborador.bloqueado_sistema ? 'Bloqueado' : 'Liberado'}
                                 </Badge>
                             </div>
+                            <div className="space-y-1">
+                                <Label className="text-muted-foreground">Dia de Vencimento</Label>
+                                <div className="flex items-center gap-2">
+                                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                                    <p className="font-medium">Dia {colaborador.dia_vencimento || 5}</p>
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
@@ -745,6 +754,56 @@ export function ColaboradorDetalhesPage() {
                             </CardContent>
                         </Card>
                     </div>
+
+                    {/* Tabela de Custos Reais */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Detalhamento de Custos (Base + Variável)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="rounded-md border">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Mês</TableHead>
+                                        <TableHead>Custo Fixo</TableHead>
+                                        <TableHead>Custo Variável</TableHead>
+                                        <TableHead className="text-right font-bold">Total</TableHead>
+                                        <TableHead className="text-right">Custo/Dia (22d)</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {historicoCustos.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                                                Nenhum registro de custo variável encontrado. Mostrando apenas previsão fixa atual.
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        historicoCustos.map((item, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell className="capitalize">
+                                                    {format(parseISO(item.mes), 'MMMM/yyyy', { locale: ptBR })}
+                                                </TableCell>
+                                                <TableCell>{item.custo_fixo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</TableCell>
+                                                <TableCell className="text-warning">
+                                                    {item.custo_variavel > 0 && '+ '}
+                                                    {item.custo_variavel.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                </TableCell>
+                                                <TableCell className="text-right font-bold text-success">
+                                                    {item.custo_total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                </TableCell>
+                                                <TableCell className="text-right">
+                                                    {item.custo_dia_calculado.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Chart */}
@@ -946,12 +1005,12 @@ export function ColaboradorDetalhesPage() {
                                                     </TableCell>
                                                     <TableCell>
                                                         {item.enviado ? (
-                                                            <Badge className="bg-green-500/10 text-green-700 border-green-500/30">
+                                                            <Badge className="bg-success/10 text-success border-success/30">
                                                                 <CheckCircle className="h-3 w-3 mr-1" />
                                                                 Enviado
                                                             </Badge>
                                                         ) : (
-                                                            <Badge variant="destructive" className="bg-yellow-500/10 text-yellow-700 border-yellow-500/30">
+                                                            <Badge variant="destructive" className="bg-warning/10 text-warning border-warning/30">
                                                                 <Clock className="h-3 w-3 mr-1" />
                                                                 Pendente
                                                             </Badge>

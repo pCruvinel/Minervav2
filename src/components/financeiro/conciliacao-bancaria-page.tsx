@@ -10,8 +10,6 @@ import {
   TrendingDown,
   DollarSign,
   AlertTriangle,
-  Paperclip,
-  Link2,
   RefreshCw
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
@@ -33,6 +31,7 @@ import {
   useLancamentosBancariosStats,
   useSyncExtrato,
   MOCK_LANCAMENTOS,
+  useCoraBalance,
   type LancamentoBancario,
   type LancamentoBancarioStatus
 } from '@/lib/hooks/use-lancamentos-bancarios';
@@ -64,12 +63,29 @@ export function ConciliacaoBancariaPage() {
 
   // Data fetching com hooks reais
   const statusFilter = filtroStatus === 'all' ? undefined : filtroStatus;
+  
+  // 1. Hook de Lançamentos (Lista)
   const { data: lancamentosReais = [], isLoading } = useLancamentosBancarios({
     status: statusFilter,
     dataInicio: dateRange?.start ? new Date(dateRange.start).toISOString().split('T')[0] : undefined,
     dataFim: dateRange?.end ? new Date(dateRange.end).toISOString().split('T')[0] : undefined,
+    // TODO: Adicionar filtro de CC na lista principal se o hook suportar
   });
-  const { data: stats } = useLancamentosBancariosStats();
+
+  // 2. Hook de Stats (KPIs Filtrados)
+  const { data: stats } = useLancamentosBancariosStats({
+    status: statusFilter,
+    dataInicio: dateRange?.start ? new Date(dateRange.start).toISOString().split('T')[0] : undefined,
+    dataFim: dateRange?.end ? new Date(dateRange.end).toISOString().split('T')[0] : undefined,
+    // cc_id: filtroCCs.length === 1 ? filtroCCs[0] : undefined // Exemplo simples
+  });
+  
+  // 3. Hook de Saldo Real (Banco)
+  // Como useCoraBalance não foi exportado no import original, assumindo que foi adicionado ao arquivo
+  // Precisamos importar ele. Como é o mesmo arquivo, vou adicionar na lista de imports manuais se necessário
+  // mas aqui estamos editando o componente. Vou usar via import atualizado.
+  const { data: saldoBanco, isLoading: isLoadingSaldo } = useCoraBalance();
+
   const syncMutation = useSyncExtrato();
 
   // Buscar Centros de Custo para o filtro
@@ -188,7 +204,7 @@ export function ConciliacaoBancariaPage() {
     setCurrentPage(1);
   }, [dateRange, filtroStatus, filtroSetores, filtroCCs]);
 
-  // Calcular totais
+  // Calcular totais (agora vindo dos stats filtrados do backend ou fallback zero)
   const totais = useMemo(() => ({
     entradas: stats?.totalEntradas ?? 0,
     saidas: stats?.totalSaidas ?? 0,
@@ -205,8 +221,63 @@ export function ConciliacaoBancariaPage() {
         showBackButton
       />
 
-      {/* Filtros Compactos + KPIs */}
-      {/* Filtros Compactos + KPIs */}
+      {/* Cartão de Saldo Real (Banco Cora) */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+         <div className="md:col-span-1 rounded-xl border bg-card text-card-foreground shadow-sm p-4 flex flex-col justify-between relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-3 opacity-10">
+               <DollarSign className="w-16 h-16 text-primary" />
+            </div>
+            <div>
+               <p className="text-sm text-muted-foreground font-medium mb-1">Saldo Atual</p>
+               {isLoadingSaldo ? (
+                 <div className="h-8 w-32 bg-muted animate-pulse rounded" />
+               ) : (
+                 <h2 className="text-2xl font-bold text-primary">{formatCurrency(saldoBanco?.disponivel ?? 0)}</h2>
+               )}
+            </div>
+            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
+               <div className={`w-2 h-2 rounded-full ${saldoBanco ? 'bg-success' : 'bg-warning'}`} />
+               {saldoBanco ? 'Sincronizado' : 'Verificando...'}
+            </div>
+         </div>
+
+         {/* KPIs Filtrados */}
+         <div className="md:col-span-3 grid grid-cols-3 gap-4">
+             <div className="rounded-xl border bg-card/50 p-4 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                   <div className="p-1 rounded bg-success/10">
+                      <TrendingUp className="h-4 w-4 text-success" />
+                   </div>
+                   <span className="text-sm font-medium text-muted-foreground">Entradas (Período)</span>
+                </div>
+                <span className="text-xl font-semibold text-success">{formatCurrency(totais.entradas)}</span>
+             </div>
+
+             <div className="rounded-xl border bg-card/50 p-4 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                   <div className="p-1 rounded bg-destructive/10">
+                      <TrendingDown className="h-4 w-4 text-destructive" />
+                   </div>
+                   <span className="text-sm font-medium text-muted-foreground">Saídas (Período)</span>
+                </div>
+                <span className="text-xl font-semibold text-destructive">{formatCurrency(totais.saidas)}</span>
+             </div>
+
+             <div className="rounded-xl border bg-card/50 p-4 flex flex-col justify-center">
+                <div className="flex items-center gap-2 mb-1">
+                   <div className="p-1 rounded bg-primary/10">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                   </div>
+                   <span className="text-sm font-medium text-muted-foreground">Resultado (Período)</span>
+                </div>
+                <span className={cn("text-xl font-semibold", saldo >= 0 ? "text-primary" : "text-destructive")}>
+                   {formatCurrency(saldo)}
+                </span>
+             </div>
+         </div>
+      </div>
+
+      {/* Filtros Compactos */}
       <div className="rounded-xl border bg-card text-card-foreground shadow-none">
         <div className="p-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -236,7 +307,7 @@ export function ConciliacaoBancariaPage() {
               className="w-40 h-9"
             />
 
-            {/* Busca CC (Agora MultiSelect) */}
+            {/* Busca CC */}
             <MultiSelect
               options={ccOptions}
               selected={filtroCCs}
@@ -248,50 +319,18 @@ export function ConciliacaoBancariaPage() {
             {/* Spacer */}
             <div className="flex-1" />
 
-            {/* KPIs Inline */}
-            <div className="flex items-center gap-4 text-sm px-4 py-1.5 bg-muted/30 rounded-lg border border-border/50">
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded bg-success/10">
-                  <TrendingUp className="h-3.5 w-3.5 text-success" />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Entradas</span>
-                  <span className="font-semibold text-success">{formatCurrency(totais.entradas)}</span>
-                </div>
-              </div>
-              <div className="h-6 w-px bg-border/50" />
-              <div className="flex items-center gap-2">
-                <div className="p-1 rounded bg-destructive/10">
-                  <TrendingDown className="h-3.5 w-3.5 text-destructive" />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Saídas</span>
-                  <span className="font-semibold text-destructive">{formatCurrency(totais.saidas)}</span>
-                </div>
-              </div>
-              <div className="h-6 w-px bg-border/50" />
-              <div className="flex items-center gap-2">
-                <div className={cn("p-1 rounded", saldo >= 0 ? "bg-success/10" : "bg-destructive/10")}>
-                  <DollarSign className={cn("h-3.5 w-3.5", saldo >= 0 ? "text-success" : "text-destructive")} />
-                </div>
-                <div className="flex flex-col leading-none">
-                  <span className="text-[10px] text-muted-foreground uppercase font-medium">Saldo</span>
-                  <span className={cn("font-semibold", saldo >= 0 ? "text-success" : "text-destructive")}>
-                    {formatCurrency(saldo)}
-                  </span>
-                </div>
-              </div>
-            </div>
-
             {/* Sync + Export Buttons */}
             <div className="flex gap-2">
               <Button 
                 variant="default" 
                 size="sm" 
-                onClick={() => syncMutation.mutate()} 
+                onClick={() => syncMutation.mutate({
+                  start: dateRange?.start ? new Date(dateRange.start).toISOString().split('T')[0] : undefined,
+                  end: dateRange?.end ? new Date(dateRange.end).toISOString().split('T')[0] : undefined,
+                })} 
                 disabled={syncMutation.isPending}
                 className="h-9 gap-2"
-                title="Sincronizar com Banco Cora"
+                title="Sincronizar com Banco Cora (Período Selecionado)"
               >
                 <RefreshCw className={cn("h-4 w-4", syncMutation.isPending && "animate-spin")} />
                 {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar'}
@@ -358,27 +397,25 @@ export function ConciliacaoBancariaPage() {
               >
                 Valor
               </CompactTableHead>
-              <CompactTableHead className="w-14 text-center" align="center">Anexo</CompactTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedLancamentos.map((lancamento) => (
               <CompactTableRow 
                 key={lancamento.id}
-                className="cursor-pointer hover:bg-muted/60 transition-colors"
+                className={`cursor-pointer transition-colors ${
+                  lancamento.status === 'conciliado' ? 'bg-muted/50 hover:bg-muted/70 opacity-60' : 'hover:bg-muted/60'
+                }`}
                 onClick={() => handleRowClick(lancamento)}
               >
-                {/* DATA + HORA */}
+                {/* DATA + HORA - Formato horizontal */}
                 <CompactTableCell>
-                  <div className="flex flex-col">
-                    <span>{format(new Date(lancamento.data), 'dd/MM', { locale: ptBR })}</span>
-                    <span className="text-[10px] text-muted-foreground">{format(new Date(lancamento.data), 'HH:mm')}</span>
-                  </div>
+                  <span>{format(new Date(lancamento.data), 'dd/MM/yy - HH:mm:ss', { locale: ptBR })}</span>
                 </CompactTableCell>
                 
-                {/* IDENTIFICAÇÃO - Nome do Remetente/Destinatário */}
-                <CompactTableCell className="truncate max-w-[180px]" title={lancamento.contraparte_nome || lancamento.descricao}>
-                  {lancamento.contraparte_nome || lancamento.descricao}
+                {/* IDENTIFICAÇÃO - Nome do Remetente/Destinatário (SEMPRE MAIÚSCULO) */}
+                <CompactTableCell className="truncate max-w-[180px]" title={(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}>
+                  {(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}
                 </CompactTableCell>
                 
                 {/* DETALHAMENTO (categoria + observações) */}
@@ -404,8 +441,8 @@ export function ConciliacaoBancariaPage() {
                 <CompactTableCell>
                 <Badge
                     variant="outline"
-                    className={`text-[10px] py-0 px-1.5 w-fit ${
-                      lancamento.status === 'conciliado' ? 'border-primary/30 text-primary bg-primary/10 hover:bg-primary/20' :
+                    className={`text-[10px] py-0 px-1.5 w-fit rounded-full ${
+                      lancamento.status === 'conciliado' ? 'bg-blue-600 text-white hover:bg-blue-700 border-none' :
                       lancamento.status === 'pendente' ? 'border-warning/50 text-warning bg-warning/10 hover:bg-warning/20' :
                       'text-muted-foreground border-border bg-muted/50 hover:bg-muted/70'
                     }`}
@@ -421,9 +458,9 @@ export function ConciliacaoBancariaPage() {
                   {lancamento.setor?.nome || '-'}
                 </CompactTableCell>
                 
-                {/* CENTRO DE CUSTO */}
-                <CompactTableCell className="truncate max-w-[100px]" title={lancamento.centro_custo?.nome}>
-                  {lancamento.centro_custo?.nome || '-'}
+                {/* CENTRO DE CUSTO - Mostrar do rateio se não houver cc_id direto */}
+                <CompactTableCell className="truncate max-w-[100px]" title={lancamento.centro_custo?.nome || lancamento.rateios?.[0]?.cc_nome}>
+                  {lancamento.centro_custo?.nome || lancamento.rateios?.[0]?.cc_nome || '-'}
                 </CompactTableCell>
                 
                 {/* VALOR (consolidado) */}
@@ -439,33 +476,12 @@ export function ConciliacaoBancariaPage() {
                   ) : '-'}
                 </CompactTableCell>
                 
-                {/* ANEXO */}
-                <CompactTableCell className="text-center">
-                {(lancamento.nota_fiscal_url || lancamento.comprovante_url) ? (
-                    <a 
-                      href={lancamento.nota_fiscal_url || lancamento.comprovante_url || '#'}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-primary hover:text-primary/80"
-                      title={lancamento.nota_fiscal_url ? "Nota Fiscal" : "Comprovante"}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Paperclip className="h-3.5 w-3.5 inline" />
-                    </a>
-                  ) : lancamento.conta_pagar_id || lancamento.conta_receber_id ? (
-                    <span title="Vinculado a conta do sistema">
-                      <Link2 className="h-3.5 w-3.5 inline text-muted-foreground" />
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </CompactTableCell>
               </CompactTableRow>
             ))}
 
             {paginatedLancamentos.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={7} className="h-24 text-center">
                   Nenhum lançamento encontrado.
                 </TableCell>
               </TableRow>

@@ -61,6 +61,14 @@ export interface CCEvolucaoMensal {
   lucro: number;
 }
 
+export interface CCOverhead {
+  id: string;
+  mes_referencia: string;
+  custo_escritorio_rateado: number;
+  custo_setor_rateado: number;
+  valor_total_alocado: number;
+}
+
 export interface CCDocumento {
   id: string;
   nome: string;
@@ -169,29 +177,39 @@ export function useCCDespesas(ccId: string | undefined | null) {
 /**
  * Busca custos agrupados por categoria para um Centro de Custo
  */
+/**
+ * Busca custos agrupados por categoria para um Centro de Custo
+ * Exibe TODAS as categorias ativas, mesmo com valor zerado.
+ */
 export function useCCCustosPorCategoria(ccId: string | undefined | null) {
   return useQuery({
     queryKey: ['cc-custos-categoria', ccId],
     queryFn: async (): Promise<CCCustoPorCategoria[]> => {
       if (!ccId) return [];
 
-      // Buscar contas_pagar agrupadas por categoria
-      const { data, error } = await supabase
+      // 1. Buscar todas as categorias ativas de despesa
+      const { data: categorias, error: catError } = await supabase
+        .from('categorias_financeiras')
+        .select('id, nome, codigo')
+        .eq('ativo', true)
+        .in('tipo', ['pagar', 'ambos'])
+        .order('nome');
+
+      if (catError) throw catError;
+
+      // 2. Buscar contas_pagar do CC
+      const { data: despesas, error: despError } = await supabase
         .from('contas_pagar')
         .select(`
           valor,
           status,
-          categorias_financeiras:categoria_id (
-            id,
-            nome,
-            codigo
-          )
+          categoria_id
         `)
         .eq('cc_id', ccId);
 
-      if (error) throw error;
+      if (despError) throw despError;
 
-      // Agrupar por categoria
+      // 3. Inicializar mapa com todas as categorias zeradas
       const grouped: Record<string, {
         categoria_id: string | null;
         categoria_nome: string;
@@ -200,32 +218,54 @@ export function useCCCustosPorCategoria(ccId: string | undefined | null) {
         valor_realizado: number;
       }> = {};
 
+      // Preencher com todas as categorias
+      (categorias ?? []).forEach(cat => {
+        grouped[cat.id] = {
+          categoria_id: cat.id,
+          categoria_nome: cat.nome,
+          codigo: cat.codigo,
+          valor_previsto: 0,
+          valor_realizado: 0,
+        };
+      });
+
+      // Adicionar categoria para "Sem Categoria" se necessário
+      const SEM_CATEGORIA_KEY = 'sem_categoria';
+      let hasSemCategoria = false;
+
+      // 4. Somar valores das despesas
       let totalGeral = 0;
 
-      (data ?? []).forEach((item) => {
-        const cat = item.categorias_financeiras as { id?: string; nome?: string; codigo?: string } | null;
-        const key = cat?.id ?? 'sem_categoria';
+      (despesas ?? []).forEach((item) => {
+        const catId = item.categoria_id;
         const valor = Number(item.valor ?? 0);
         const isPago = item.status === 'pago';
 
-        if (!grouped[key]) {
-          grouped[key] = {
-            categoria_id: cat?.id ?? null,
-            categoria_nome: cat?.nome ?? 'Sem Categoria',
-            codigo: cat?.codigo ?? null,
-            valor_previsto: 0,
-            valor_realizado: 0,
-          };
+        // Se tem categoria conhecida, soma nela
+        if (catId && grouped[catId]) {
+          grouped[catId].valor_previsto += valor;
+          if (isPago) grouped[catId].valor_realizado += valor;
+        } else {
+          // Se não tem categoria ou categoria não encontrada (inativa?), soma em "Sem Categoria"
+          if (!hasSemCategoria) {
+            grouped[SEM_CATEGORIA_KEY] = {
+              categoria_id: null,
+              categoria_nome: 'Sem Categoria',
+              codigo: null,
+              valor_previsto: 0,
+              valor_realizado: 0,
+            };
+            hasSemCategoria = true;
+          }
+          grouped[SEM_CATEGORIA_KEY].valor_previsto += valor;
+          if (isPago) grouped[SEM_CATEGORIA_KEY].valor_realizado += valor;
         }
-
-        grouped[key].valor_previsto += valor;
-        if (isPago) {
-          grouped[key].valor_realizado += valor;
-        }
+        
         totalGeral += valor;
       });
 
-      // Calcular percentuais e retornar ordenado por valor
+      // 5. Calcular percentuais e retornar
+      // Ordenação: Maior valor previsto primeiro, depois alfabética
       return Object.values(grouped)
         .map((cat) => ({
           ...cat,
@@ -233,7 +273,14 @@ export function useCCCustosPorCategoria(ccId: string | undefined | null) {
             ? Math.round((cat.valor_previsto / totalGeral) * 1000) / 10 
             : 0,
         }))
-        .sort((a, b) => b.valor_previsto - a.valor_previsto);
+        .sort((a, b) => {
+          // Valores maiores primeiro
+          if (b.valor_previsto !== a.valor_previsto) {
+            return b.valor_previsto - a.valor_previsto;
+          }
+          // Desempate alfabético
+          return a.categoria_nome.localeCompare(b.categoria_nome);
+        });
     },
     enabled: !!ccId,
   });
@@ -319,6 +366,35 @@ export function useCCEvolucaoMensal(ccId: string | undefined | null, meses = 6) 
 }
 
 /**
+ * Busca histórico de Overhead alocado ao CC
+ */
+export function useCCOverhead(ccId: string | undefined | null) {
+  return useQuery({
+    queryKey: ['cc-overhead', ccId],
+    queryFn: async (): Promise<CCOverhead[]> => {
+      if (!ccId) return [];
+
+      const { data, error } = await supabase
+        .from('custos_overhead_mensal')
+        .select('*')
+        .eq('cc_id', ccId)
+        .order('mes_referencia', { ascending: false });
+
+      if (error) throw error;
+      
+      return (data ?? []).map((item) => ({
+        id: item.id,
+        mes_referencia: item.mes_referencia,
+        custo_escritorio_rateado: Number(item.custo_escritorio_rateado),
+        custo_setor_rateado: Number(item.custo_setor_rateado),
+        valor_total_alocado: Number(item.valor_total_alocado)
+      }));
+    },
+    enabled: !!ccId,
+  });
+}
+
+/**
  * Hook combinado com todos os dados necessários para a página CC Detalhes
  */
 export function useCCDetalhes(ccId: string | undefined | null) {
@@ -326,19 +402,22 @@ export function useCCDetalhes(ccId: string | undefined | null) {
   const despesas = useCCDespesas(ccId);
   const custosPorCategoria = useCCCustosPorCategoria(ccId);
   const evolucaoMensal = useCCEvolucaoMensal(ccId);
+  const overhead = useCCOverhead(ccId);
 
   return {
     receitas,
     despesas,
     custosPorCategoria,
     evolucaoMensal,
-    isLoading: receitas.isLoading || despesas.isLoading || custosPorCategoria.isLoading || evolucaoMensal.isLoading,
-    isError: receitas.isError || despesas.isError || custosPorCategoria.isError || evolucaoMensal.isError,
+    overhead,
+    isLoading: receitas.isLoading || despesas.isLoading || custosPorCategoria.isLoading || evolucaoMensal.isLoading || overhead.isLoading,
+    isError: receitas.isError || despesas.isError || custosPorCategoria.isError || evolucaoMensal.isError || overhead.isError,
     refetchAll: () => {
       receitas.refetch();
       despesas.refetch();
       custosPorCategoria.refetch();
       evolucaoMensal.refetch();
+      overhead.refetch();
     },
   };
 }

@@ -247,6 +247,7 @@ Veja [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) para:
 - **[docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md)** - Sistema de design
 - **[docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md)** - Schema do banco
 - **[docs/COMANDOS_SUPABASE.md](./docs/COMANDOS_SUPABASE.md)** - Comandos práticos
+- **[docs/finance/CONCILIACAO_BANCARIA.md](./docs/finance/CONCILIACAO_BANCARIA.md)** - Conciliação e Custos Variáveis
 
 ### 🔧 Troubleshooting
 - **[docs/SOLUCAO_ERRO_403.md](./docs/SOLUCAO_ERRO_403.md)** - Resolver erro de deploy

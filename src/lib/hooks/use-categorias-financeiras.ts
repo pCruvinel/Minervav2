@@ -7,11 +7,6 @@ export interface CategoriaFinanceira {
   codigo: string;
   tipo: 'pagar' | 'receber' | 'ambos';
   ativo: boolean;
-  setor_padrao?: {
-    id: string;
-    slug: string;
-    nome: string;
-  } | null;
 }
 
 export function useCategoriasFinanceiras(tipo?: 'pagar' | 'receber') {
@@ -21,8 +16,7 @@ export function useCategoriasFinanceiras(tipo?: 'pagar' | 'receber') {
       let query = supabase
         .from('categorias_financeiras')
         .select(`
-          id, nome, codigo, tipo, ativo,
-          setor_padrao:setores!setor_padrao_id (id, slug, nome)
+          id, nome, codigo, tipo, ativo
         `)
         .eq('ativo', true)
         .order('codigo');
@@ -37,12 +31,7 @@ export function useCategoriasFinanceiras(tipo?: 'pagar' | 'receber') {
       if (error) throw error;
       
       // Processar setor_padrao que pode vir como array para objeto único
-      return (data ?? []).map(item => ({
-        ...item,
-        setor_padrao: Array.isArray(item.setor_padrao) 
-          ? item.setor_padrao[0] ?? null 
-          : item.setor_padrao
-      })) as CategoriaFinanceira[];
+      return data as CategoriaFinanceira[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

@@ -280,6 +280,14 @@ export function FinanceiroDashboardPage({ onNavigate }: FinanceiroDashboardPageP
               <Building2 className="w-5 h-5 text-primary" />
               <span className="text-sm">Fluxo de Caixa</span>
             </Button>
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex flex-col items-center gap-2 hover:shadow-card-hover hover:border-primary/30 transition-all"
+              onClick={() => handleNavigate('centros-custo')}
+            >
+              <Building2 className="w-5 h-5 text-primary" />
+              <span className="text-sm">Centros de Custo</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
