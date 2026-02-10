@@ -1,2 +1,3 @@
 // Logo hospedada no Supabase Storage
-export const LOGO_BASE64 = 'https://zxfevlkssljndqqhxkjb.supabase.co/storage/v1/object/public/uploads/logo.png';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+export const LOGO_BASE64 = `${supabaseUrl}/storage/v1/object/public/uploads/logo.png`;

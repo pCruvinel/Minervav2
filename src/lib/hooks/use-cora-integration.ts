@@ -73,11 +73,13 @@ export function useCoraIntegration() {
   // 2. Salvar configuração (Upsert)
   const saveMutation = useMutation({
     mutationFn: async (params: SaveCoraConfigParams) => {
-      console.log('🔄 [Hook] saveMutation started with params:', {
-        ambiente: params.ambiente,
-        client_id: params.client_id,
-        ativo: params.ativo,
-      });
+      if (import.meta.env.DEV) {
+        console.log('🔄 [Hook] saveMutation started with params:', {
+          ambiente: params.ambiente,
+          client_id: params.client_id,
+          ativo: params.ativo,
+        });
+      }
       
       // Verificar se já existe
       const { data: existing } = await supabase
@@ -86,7 +88,7 @@ export function useCoraIntegration() {
         .eq('banco', 'cora')
         .maybeSingle();
 
-      console.log('🔍 [Hook] Existing config:', existing);
+      if (import.meta.env.DEV) console.log('🔍 [Hook] Existing config:', existing);
 
       const payload: Record<string, unknown> = {
         banco: 'cora',
@@ -102,14 +104,14 @@ export function useCoraIntegration() {
       let error;
       
       if (existing?.id) {
-        console.log('🔄 [Hook] Updating existing record:', existing.id);
+        if (import.meta.env.DEV) console.log('🔄 [Hook] Updating existing record:', existing.id);
         const { error: updateError } = await supabase
           .from('integracoes_bancarias')
           .update(payload)
           .eq('id', existing.id);
         error = updateError;
       } else {
-        console.log('➕ [Hook] Creating new record');
+        if (import.meta.env.DEV) console.log('➕ [Hook] Creating new record');
         const { error: insertError } = await supabase
           .from('integracoes_bancarias')
           .insert(payload);
@@ -121,10 +123,10 @@ export function useCoraIntegration() {
         throw error;
       }
       
-      console.log('✅ [Hook] Save completed successfully');
+      if (import.meta.env.DEV) console.log('✅ [Hook] Save completed successfully');
     },
     onSuccess: () => {
-      console.log('🎉 [Hook] onSuccess callback triggered');
+      if (import.meta.env.DEV) console.log('🎉 [Hook] onSuccess callback triggered');
       queryClient.invalidateQueries({ queryKey: ['cora-integration'] });
       toast.success('Configuração salva com sucesso');
     },
@@ -145,7 +147,8 @@ export function useCoraIntegration() {
       }
 
       // Call Edge Function directly with fetch for more control
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://zxfevlkssljndqqhxkjb.supabase.co';
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      if (!supabaseUrl) throw new Error('VITE_SUPABASE_URL não configurada');
       const response = await fetch(`${supabaseUrl}/functions/v1/cora-integration/auth/test`, {
         method: 'GET',
         headers: {
@@ -166,9 +169,8 @@ export function useCoraIntegration() {
             console.group('🚨 CORA SERVER DEBUG LOGS');
             errorData.logs.forEach((log: string) => console.log(log));
             console.groupEnd();
-            console.log('📋 COPIE OS LOGS ACIMA E ENVIE PARA O DEV');
           }
-        } catch (e) {
+        } catch {
           // Não é JSON, usar texto puro
           errorMsg = errorText || `Erro interno (${response.status})`;
           console.error('Edge Function Raw Error:', errorText);
