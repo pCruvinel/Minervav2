@@ -18,10 +18,14 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { logger } from '@/lib/utils/logger';
 import {
   gerarTituloDocumento,
-  isFinalidadeRecebimento,
+  isFinalidadeSPCI,
+  isFinalidadeSPDA,
+  isFinalidadeChecklist,
   type FinalidadeInspecao
 } from '../../shared/types/visita-tecnica-types';
 import { CHECKLIST_BLOCOS } from '../../shared/components/checklist-recebimento-table';
+import { CHECKLIST_SPCI_BLOCOS } from '../../shared/components/checklist-spci-table';
+import { CHECKLIST_SPDA_BLOCOS } from '../../shared/components/checklist-spda-table';
 import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
 
 // =====================================================
@@ -129,7 +133,7 @@ export function StepGerarDocumento({
 
   // Verificar se é recebimento de unidade
   const finalidadeInspecao = etapa2Data?.finalidadeInspecao as FinalidadeInspecao | undefined;
-  const isRecebimento = finalidadeInspecao ? isFinalidadeRecebimento(finalidadeInspecao) : false;
+  const isChecklist = finalidadeInspecao ? isFinalidadeChecklist(finalidadeInspecao) : false;
 
   // Gerar título dinâmico
   const tituloDocumento = finalidadeInspecao
@@ -147,8 +151,15 @@ export function StepGerarDocumento({
     let naoConformes = 0;
     let naoAplica = 0;
 
+    // Selecionar os blocos corretos baseado na finalidade
+    const blocos = finalidadeInspecao && isFinalidadeSPCI(finalidadeInspecao)
+      ? CHECKLIST_SPCI_BLOCOS
+      : finalidadeInspecao && isFinalidadeSPDA(finalidadeInspecao)
+        ? CHECKLIST_SPDA_BLOCOS
+        : CHECKLIST_BLOCOS;
+
     // Iterar pelos blocos e itens definidos
-    CHECKLIST_BLOCOS.forEach(bloco => {
+    blocos.forEach(bloco => {
       bloco.items.forEach(itemDef => {
         const itemData = etapa5Data.checklistRecebimento?.items[itemDef.id];
         if (itemData && itemData.status) {
@@ -230,7 +241,7 @@ export function StepGerarDocumento({
     }
 
     // 3. Fotos do checklist de recebimento (itens NC têm prioridade visual)
-    if (isRecebimento && etapa5Data?.checklistRecebimento?.items) {
+    if (isChecklist && etapa5Data?.checklistRecebimento?.items) {
       Object.values(etapa5Data.checklistRecebimento.items).forEach(item => {
         if (item.fotos && Array.isArray(item.fotos)) {
           item.fotos.forEach((foto, idx) => {
@@ -300,7 +311,7 @@ export function StepGerarDocumento({
     };
 
     // Adicionar dados específicos baseado na finalidade
-    if (isRecebimento) {
+    if (isChecklist) {
       payload.checklistRecebimento = transformChecklistData();
     } else {
       payload.parecerTecnico = {
@@ -371,8 +382,8 @@ export function StepGerarDocumento({
   };
 
   // Determinar descrição do documento baseado na finalidade
-  const tipoDocumentoLabel = isRecebimento
-    ? 'Relatório de Inspeção de Recebimento'
+  const tipoDocumentoLabel = isChecklist
+    ? 'Relatório de Inspeção'
     : 'Parecer Técnico';
 
   return (
@@ -401,7 +412,7 @@ export function StepGerarDocumento({
                 </p>
 
                 <div className="space-y-2 text-sm">
-                  {isRecebimento ? (
+                    {isChecklist ? (
                     <>
                       <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }}></div>
