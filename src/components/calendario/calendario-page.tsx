@@ -9,17 +9,17 @@ type ViewMode = 'semana' | 'mes';
 /**
  * CalendarioPage - Página principal do calendário
  *
- * Suporta visualização semanal e mensal.
- * Gestão de turnos em /calendario/painel (Admin/Diretoria).
+ * Usa h-full para preencher o espaço dado pelo layout (page-content).
+ * Sem padding próprio — o page-content já aplica 1.5rem.
  */
 export function CalendarioPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('semana');
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="max-w-[1600px] mx-auto space-y-4">
+    <div className="h-full flex flex-col overflow-hidden -m-6">
+      <div className="max-w-[1400px] mx-auto flex flex-col flex-1 min-h-0 w-full p-2 lg:p-4 gap-2 lg:gap-3">
         {/* Toggle de visualização */}
-        <div className="flex justify-end">
+        <div className="flex justify-end flex-shrink-0">
           <div className="inline-flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
             <button
               onClick={() => setViewMode('semana')}
@@ -48,8 +48,8 @@ export function CalendarioPage() {
           </div>
         </div>
 
-        {/* Calendário */}
-        <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
+        {/* Calendário — Card individual no background cinza */}
+        <div className="flex-1 min-h-0 flex flex-col rounded-xl border border-border bg-card shadow-sm overflow-hidden">
           {viewMode === 'semana' ? (
             <CalendarioSemanaCustom />
           ) : (

@@ -29,6 +29,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
 
 interface RegistroPresencaHistorico {
     id: string;
@@ -144,7 +145,7 @@ export function PresencaHistoricoPage() {
 
             // Calcular custo
             const custoDia = col.tipo_contratacao === 'CLT'
-                ? (col.salario_base || 0) * 1.46 / 22
+                ? (col.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisPeriodo
                 : col.custo_dia || 0;
             const custoTotal = presencas * custoDia;
 

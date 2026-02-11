@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState, useEffect } from 'react';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { toast } from '@/lib/utils/safe-toast';
 import { WorkflowStepper } from '@/components/os/shared/components/workflow-stepper';
 import { WorkflowFooter } from '@/components/os/shared/components/workflow-footer';
 import { FeedbackTransferencia } from '@/components/os/shared/components/feedback-transferencia';
+import { StepReadOnlyWithAdendos } from '@/components/os/shared/components/step-readonly-with-adendos';
 import { steps } from './constants';
 import {
   CadastrarClienteObra,
@@ -46,11 +48,12 @@ import { useAprovacaoEtapa } from '@/lib/hooks/use-aprovacao-etapa';
 interface OS13WorkflowPageProps {
   onBack?: () => void;
   osId?: string;
+  initialStep?: number;
   parentOSId?: string;
   clienteId?: string;
 }
 
-export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId }: OS13WorkflowPageProps) {
+export function OS13WorkflowPage({ onBack, osId: propOsId, initialStep, parentOSId, clienteId }: OS13WorkflowPageProps) {
   const stepLeadRef = useRef<CadastrarClienteObraHandle>(null);
   const stepAgendarVisitaInicialRef = useRef<StepAgendarVisitaInicialHandle>(null);
   const stepAgendarVisitaFinalRef = useRef<StepAgendarVisitaFinalHandle>(null);
@@ -90,7 +93,8 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     isLoading: isLoadingData
   } = useWorkflowState({
     osId: internalOsId,
-    totalSteps: steps.length
+    totalSteps: steps.length,
+    initialStep: initialStep || 1
   });
 
   // Hook de Navegação
@@ -327,7 +331,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     15: (data: Record<string, unknown>) => !!(data.arquivos && Array.isArray(data.arquivos) && data.arquivos.length > 0),
     16: (data: Record<string, unknown>) => !!(data.agendamentoId || data.dataVisitaFinal),
     17: (data: Record<string, unknown>) => !!data.visitaFinalRealizada,
-  }), [formDataByStep]);
+  }), []);
 
   const { completedSteps } = useWorkflowCompletion({
     currentStep,
@@ -344,17 +348,33 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
     // Não validar em modo histórico (read-only)
     if (isHistoricalNavigation) return false;
 
-    // Switch por etapa para validação específica
+    // Etapas com validação imperativa (via ref) — nunca bloquear o botão
+    // A validação real acontece dentro de handleNextStep
     switch (currentStep) {
-      case 6: // Agendar Visita Inicial - opcional
+      case 1: // Dados do Cliente - validação via stepLeadRef
         return false;
-      case 16: // Agendar Visita Final - opcional
+      case 6: // Agendar Visita Inicial - agendamento opcional
+        return false;
+      case 16: // Agendar Visita Final - agendamento opcional
         return false;
     }
 
-    // Para outras etapas, usar verificação de completedSteps
+    // Para etapas com completionRules, verificar se os dados satisfazem a regra
+    const rules = completionRules as Record<number, ((data: Record<string, unknown>) => boolean) | undefined>;
+    const checkRule = rules[currentStep];
+    if (checkRule) {
+      const stepData = formDataByStep[currentStep];
+      if (stepData && typeof checkRule === 'function') {
+        return !checkRule(stepData);
+      }
+    }
+
+    // Fallback: verificar se já está em completedSteps
     return !completedSteps.includes(currentStep);
-  }, [currentStep, isHistoricalNavigation, completedSteps]);
+  }, [currentStep, isHistoricalNavigation, completedSteps, formDataByStep, completionRules]);
+
+  const currentStepInfo = steps.find(s => s.id === currentStep);
+  const isReadOnly = isHistoricalNavigation;
 
   const handleSaveStep = async () => {
     try {
@@ -370,7 +390,7 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
   return (
     <div>
       {/* Header */}
-      <div className="bg-white border-b border-border -mx-6 -mt-6">
+      <div className="bg-background border-b border-border -mx-6 -mt-6">
         <div className="px-6 py-4">
           <div className="flex items-center gap-4">
             {onBack && (
@@ -382,74 +402,112 @@ export function OS13WorkflowPage({ onBack, osId: propOsId, parentOSId, clienteId
                 <span>Voltar</span>
               </button>
             )}
-            <div>
-              <h1 className="text-2xl">OS-13: Start de Contrato de Obra</h1>
-              {internalOsId && <p className="text-muted-foreground">OS #{internalOsId}</p>}
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold">OS-13: Start de Contrato de Obra</h1>
+              {internalOsId && <p className="text-sm text-muted-foreground">OS #{internalOsId}</p>}
             </div>
+            <Badge variant="outline">{completedSteps.length} / {steps.length}</Badge>
           </div>
         </div>
 
         {/* Stepper */}
-        <div className="relative">
-          <WorkflowStepper
-            steps={steps}
-            currentStep={currentStep}
-            onStepClick={handleStepClick}
-            completedSteps={completedSteps}
-            lastActiveStep={lastActiveStep || undefined}
-          />
-
+        <div className="bg-card border-b">
+          <div className="max-w-5xl mx-auto">
+            <WorkflowStepper
+              steps={steps}
+              currentStep={currentStep}
+              onStepClick={handleStepClick}
+              completedSteps={completedSteps}
+              lastActiveStep={lastActiveStep || undefined}
+            />
+          </div>
         </div>
       </div>
 
 
       {/* Conteúdo das Etapas */}
-      <div className="px-6 py-6">
-        <Card className={`mx-auto ${currentStep === 6 || currentStep === 16 ? 'max-w-6xl' : 'max-w-5xl'}`}>
-          <div className="p-6">
-            {currentStep === 1 && (
-              <CadastrarClienteObra
-                ref={stepLeadRef}
-                data={etapa1Data}
-                onDataChange={setEtapa1Data}
-                readOnly={isHistoricalNavigation}
-                osId={internalOsId || ''}
-                parentOSId={parentOSId}
-                clienteId={clienteId}
-              />
-            )}
-            {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 6 && internalOsId && <StepAgendarVisitaInicial ref={stepAgendarVisitaInicialRef} osId={internalOsId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
-            {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isHistoricalNavigation} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
-            {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isHistoricalNavigation} osId={internalOsId} />}
-            {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 16 && internalOsId && <StepAgendarVisitaFinal ref={stepAgendarVisitaFinalRef} osId={internalOsId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isHistoricalNavigation} />}
-            {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isHistoricalNavigation} />}
-          </div>
-        </Card>
-      </div>
+      <main className="flex-1 px-6 py-6">
+        <div className={`mx-auto ${currentStep === 6 || currentStep === 16 ? 'max-w-6xl' : 'max-w-5xl'}`}>
+          <Card>
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Etapa {currentStep}: {currentStepInfo?.title}</CardTitle>
+                  <CardDescription>Setor: {currentStepInfo?.setorNome || 'N/A'}</CardDescription>
+                </div>
+                <Badge variant="outline" className="border-primary text-primary">
+                  Etapa {currentStep} de {steps.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <StepReadOnlyWithAdendos etapaId={undefined} readonly={isReadOnly}>
+                {currentStep === 1 && (
+                  <CadastrarClienteObra
+                    ref={stepLeadRef}
+                    data={etapa1Data}
+                    onDataChange={setEtapa1Data}
+                    readOnly={isReadOnly}
+                    osId={internalOsId || ''}
+                    parentOSId={parentOSId}
+                    clienteId={clienteId}
+                  />
+                )}
+                {currentStep === 2 && <StepAnexarART data={etapa2Data} onDataChange={setEtapa2Data} readOnly={isReadOnly} />}
+                {currentStep === 3 && <StepRelatorioFotografico data={etapa3Data} onDataChange={setEtapa3Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 4 && <StepImagemAreas data={etapa4Data} onDataChange={setEtapa4Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 5 && <StepCronogramaObra data={etapa5Data} onDataChange={setEtapa5Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 6 && internalOsId && <StepAgendarVisitaInicial ref={stepAgendarVisitaInicialRef} osId={internalOsId} data={etapa6Data} onDataChange={setEtapa6Data} readOnly={isReadOnly} />}
+                {currentStep === 7 && <StepRealizarVisitaInicial data={etapa7Data} onDataChange={setEtapa7Data} readOnly={isReadOnly} />}
+                {currentStep === 8 && <StepHistograma data={etapa8Data} onDataChange={setEtapa8Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 9 && <StepPlacaObra data={etapa9Data} onDataChange={setEtapa9Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 10 && <StepRequisicaoCompras data={etapa10Data} onDataChange={setEtapa10Data} readOnly={isReadOnly} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
+                {currentStep === 11 && <StepRequisicaoMaoObra data={etapa11Data} onDataChange={setEtapa11Data} readOnly={isReadOnly} parentOSId={internalOsId} clienteId={etapa1Data?.clienteId} ccId={etapa1Data?.centroCusto?.id} />}
+                {currentStep === 12 && <StepEvidenciaMobilizacao data={etapa12Data} onDataChange={setEtapa12Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 13 && <StepDiarioObra data={etapa13Data} onDataChange={setEtapa13Data} readOnly={isReadOnly} osId={internalOsId} />}
+                {currentStep === 14 && <StepSeguroObras data={etapa14Data} onDataChange={setEtapa14Data} readOnly={isReadOnly} />}
+                {currentStep === 15 && <StepDocumentosSST data={etapa15Data} onDataChange={setEtapa15Data} readOnly={isReadOnly} />}
+                {currentStep === 16 && internalOsId && <StepAgendarVisitaFinal ref={stepAgendarVisitaFinalRef} osId={internalOsId} data={etapa16Data} onDataChange={setEtapa16Data} readOnly={isReadOnly} />}
+                {currentStep === 17 && <StepRealizarVisitaFinal data={etapa17Data} onDataChange={setEtapa17Data} readOnly={isReadOnly} />}
+              </StepReadOnlyWithAdendos>
+            </CardContent>
 
-      <WorkflowFooter
-        currentStep={currentStep}
-        totalSteps={steps.length}
-        onPrevStep={handlePrevStep}
-        onNextStep={handleNextStep}
-        onSaveDraft={handleSaveStep}
-        readOnlyMode={isHistoricalNavigation}
-        onReturnToActive={handleReturnToActive}
-        isLoading={isLoadingData}
-        isFormInvalid={isCurrentStepInvalid}
-        invalidFormMessage={currentStep === 6 || currentStep === 16 ? "Por favor, selecione um horário no calendário para continuar" : "Complete todos os campos obrigatórios desta etapa antes de continuar"}
-      />
+            {/* Footer de Ações - DENTRO do Card */}
+            {!isReadOnly && (
+              <div className="border-t bg-muted/30">
+                <WorkflowFooter
+                  currentStep={currentStep}
+                  totalSteps={steps.length}
+                  onPrevStep={handlePrevStep}
+                  onNextStep={handleNextStep}
+                  onSaveDraft={handleSaveStep}
+                  readOnlyMode={isReadOnly}
+                  onReturnToActive={handleReturnToActive}
+                  isLoading={isLoadingData}
+                  isFormInvalid={isCurrentStepInvalid}
+                  invalidFormMessage={currentStep === 6 || currentStep === 16 ? "Por favor, selecione um horário no calendário para continuar" : "Complete todos os campos obrigatórios desta etapa antes de continuar"}
+                />
+              </div>
+            )}
+          </Card>
+        </div>
+      </main>
+
+      {/* Footer movido para dentro do Card acima */}
+      {isReadOnly && (
+        <WorkflowFooter
+          currentStep={currentStep}
+          totalSteps={steps.length}
+          onPrevStep={handlePrevStep}
+          onNextStep={handleNextStep}
+          onSaveDraft={handleSaveStep}
+          readOnlyMode={isReadOnly}
+          onReturnToActive={handleReturnToActive}
+          isLoading={isLoadingData}
+          isFormInvalid={false}
+          invalidFormMessage=""
+        />
+      )}
 
       {/* Modal de Feedback de Transferência */}
       {transferenciaInfo && (

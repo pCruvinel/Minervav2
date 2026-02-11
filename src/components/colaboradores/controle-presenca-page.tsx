@@ -31,6 +31,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
 
 // Interfaces
 interface CentroCusto {
@@ -225,11 +226,20 @@ export function ControlePresencaPage() {
       const resumo: Record<string, ResumoMensal> = {};
 
       // Inicializar para todos colaboradores
+      // Calcular dias úteis reais do mês via RPC
+      const mesAtual = date.getMonth() + 1;
+      const anoAtual = date.getFullYear();
+      const { data: diasUteisReal } = await supabase.rpc('contar_dias_uteis_mes', {
+        p_ano: anoAtual,
+        p_mes: mesAtual,
+      });
+      const diasUteisMes = (diasUteisReal as number) || 22;
+
       colaboradores.forEach(col => {
         resumo[col.id] = {
           colaboradorId: col.id,
           nome: col.nome_completo,
-          diasUteis: 22, // Simplificado
+          diasUteis: diasUteisMes,
           presencas: 0,
           atrasos: 0,
           faltas: 0,
@@ -385,9 +395,10 @@ export function ControlePresencaPage() {
     }
   };
 
-  const calcularCustoDia = (colaborador: Colaborador) => {
+  const calcularCustoDia = (colaborador: Colaborador, diasUteis?: number) => {
     if (colaborador.tipo_contratacao === 'CLT') {
-      return (colaborador.salario_base * 1.46) / 22;
+      const dias = diasUteis || 22; // fallback se não tiver dados reais
+      return (colaborador.salario_base * FATOR_ENCARGOS_CLT) / dias;
     }
     return colaborador.custo_dia || 0;
   };

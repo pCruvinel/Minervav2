@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Alert, AlertDescription } from '../ui/alert';
 import { Info, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
+import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 
 interface ModalCustoFlutuanteProps {
   open: boolean;
@@ -56,6 +57,8 @@ export function ModalCustoFlutuante({
   onSalvar,
 }: ModalCustoFlutuanteProps) {
   const [colaboradorId, setColaboradorId] = useState('');
+  const now = new Date();
+  const { data: diasUteisMes = 22 } = useDiasUteisMes(now.getFullYear(), now.getMonth() + 1);
   const [tipoCusto, setTipoCusto] = useState<'CUSTO_FLUTUANTE' | 'CUSTO_GERAL' | ''>('');
   const [categoriaCusto, setCategoriaCusto] = useState<'EPI' | 'BONUS' | 'SALARIO' | 'OUTROS' | ''>('');
 
@@ -73,8 +76,8 @@ export function ModalCustoFlutuante({
   const calcularNovoCustoDia = () => {
     if (!colaboradorSelecionado || !lancamento) return 0;
 
-    // Fórmula simplificada: Custo Atual + (Valor Lançamento / 22 dias úteis)
-    const incrementoPorDia = lancamento.valor / 22;
+    // Fórmula simplificada: Custo Atual + (Valor Lançamento / dias_úteis_mes)
+    const incrementoPorDia = lancamento.valor / diasUteisMes;
     return colaboradorSelecionado.custoDiaAtual + incrementoPorDia;
   };
 

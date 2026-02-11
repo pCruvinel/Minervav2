@@ -4,6 +4,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+
+// Valor padrão de fallback para testes unitários (sem acesso à RPC)
+const DIAS_UTEIS_PADRAO = 22;
 
 describe('Módulo Colaborador - Validações Unitárias', () => {
   describe('Estrutura de Dados - Registro de Presença', () => {
@@ -68,9 +72,9 @@ describe('Módulo Colaborador - Validações Unitárias', () => {
         custo_dia: 0
       };
 
-      const custoDiaEsperado = (3000 * 1.46) / 22; // ~R$ 200,00
+      const custoDiaEsperado = (3000 * FATOR_ENCARGOS_CLT) / DIAS_UTEIS_PADRAO;
       const custoDiaCalculado = colaboradorCLT.tipo_contratacao === 'CLT'
-        ? (colaboradorCLT.salario_base || 0) * 1.46 / 22
+        ? (colaboradorCLT.salario_base || 0) * FATOR_ENCARGOS_CLT / DIAS_UTEIS_PADRAO
         : colaboradorCLT.custo_dia || 0;
 
       expect(custoDiaCalculado).toBeCloseTo(custoDiaEsperado, 2);
@@ -85,7 +89,7 @@ describe('Módulo Colaborador - Validações Unitárias', () => {
       };
 
       const custoDiaCalculado = colaboradorPJ.tipo_contratacao === 'CLT'
-        ? (colaboradorPJ.salario_base || 0) * 1.46 / 22
+        ? (colaboradorPJ.salario_base || 0) * FATOR_ENCARGOS_CLT / DIAS_UTEIS_PADRAO
         : colaboradorPJ.custo_dia || 0;
 
       expect(custoDiaCalculado).toBe(250);

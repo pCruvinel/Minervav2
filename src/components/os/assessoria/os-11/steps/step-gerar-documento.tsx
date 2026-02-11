@@ -19,10 +19,14 @@ import { useAuth } from '@/lib/contexts/auth-context';
 import { logger } from '@/lib/utils/logger';
 import {
   gerarTituloDocumento,
-  isFinalidadeRecebimento,
+  isFinalidadeSPCI,
+  isFinalidadeSPDA,
+  isFinalidadeChecklist,
   type FinalidadeInspecao
 } from '../../shared/types/visita-tecnica-types';
 import { CHECKLIST_BLOCOS } from '../../shared/components/checklist-recebimento-table';
+import { CHECKLIST_SPCI_BLOCOS } from '../../shared/components/checklist-spci-table';
+import { CHECKLIST_SPDA_BLOCOS } from '../../shared/components/checklist-spda-table';
 import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { gerarDocumentoSchema } from '@/lib/validations/os11-schemas';
@@ -130,8 +134,8 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
   const { currentUser } = useAuth();
 
   const finalidadeInspecao = etapa5Data?.finalidadeInspecao as FinalidadeInspecao | undefined;
-  const isRecebimento = finalidadeInspecao ? isFinalidadeRecebimento(finalidadeInspecao) : false;
-  const templateEsperado = isRecebimento ? 'checklist_recebimento' : 'visita_tecnica';
+  const isChecklist = finalidadeInspecao ? isFinalidadeChecklist(finalidadeInspecao) : false;
+  const templateEsperado = isChecklist ? 'checklist_recebimento' : 'visita_tecnica';
 
   const tituloDocumento = finalidadeInspecao
     ? gerarTituloDocumento(finalidadeInspecao, etapa5Data?.areaVistoriada)
@@ -151,7 +155,7 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
               templateUsado: templateEsperado
           });
       }
-  }, [finalidadeInspecao, isRecebimento, documentData, onDataChange, readOnly, templateEsperado]);
+  }, [finalidadeInspecao, isChecklist, documentData, onDataChange, readOnly, templateEsperado]);
 
   const validate = () => {
     markAllTouched();
@@ -179,12 +183,19 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
   const transformChecklistData = (): VisitaTecnicaData['checklistRecebimento'] | undefined => {
     if (!etapa5Data?.checklistRecebimento?.items) return undefined;
 
+    // Selecionar os blocos corretos baseado na finalidade
+    const blocos = finalidadeInspecao && isFinalidadeSPCI(finalidadeInspecao)
+      ? CHECKLIST_SPCI_BLOCOS
+      : finalidadeInspecao && isFinalidadeSPDA(finalidadeInspecao)
+        ? CHECKLIST_SPDA_BLOCOS
+        : CHECKLIST_BLOCOS;
+
     const items: ChecklistItem[] = [];
     let conformes = 0;
     let naoConformes = 0;
     let naoAplica = 0;
 
-    CHECKLIST_BLOCOS.forEach(bloco => {
+    blocos.forEach(bloco => {
       bloco.items.forEach(itemDef => {
         const itemData = etapa5Data.checklistRecebimento?.items[itemDef.id];
         if (itemData && itemData.status) {
@@ -252,7 +263,7 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
       });
     }
 
-    if (isRecebimento && etapa5Data?.checklistRecebimento?.items) {
+    if (isChecklist && etapa5Data?.checklistRecebimento?.items) {
       Object.values(etapa5Data.checklistRecebimento.items).forEach(item => {
         if (item.fotos && Array.isArray(item.fotos)) {
           item.fotos.forEach((foto, idx) => {
@@ -301,7 +312,7 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
       },
     };
 
-    if (isRecebimento) {
+    if (isChecklist) {
       payload.checklistRecebimento = transformChecklistData();
     } else {
       payload.parecerTecnico = {
@@ -362,7 +373,7 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
     }
   };
 
-  const tipoDocumentoLabel = isRecebimento ? 'Relatório de Inspeção' : 'Parecer Técnico';
+  const tipoDocumentoLabel = isChecklist ? 'Relatório de Inspeção' : 'Parecer Técnico';
 
   return (
     <div className="space-y-6">

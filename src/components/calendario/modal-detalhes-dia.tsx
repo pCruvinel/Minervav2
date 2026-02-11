@@ -1,8 +1,10 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Button } from '../ui/button';
 import { CelulaDia } from '@/lib/hooks/use-mes-calendario';
-import { turnoColors } from '@/lib/design-tokens';
-import { Clock, Users, Calendar, Plus, ClipboardList } from 'lucide-react';
+import { turnoColors, getBloqueioColor } from '@/lib/design-tokens';
+import { BLOQUEIO_MOTIVO_LABELS } from '@/lib/types';
+import type { BloqueioMotivo } from '@/lib/types';
+import { Clock, Users, Calendar, Plus, ClipboardList, AlertTriangle, Cake, User, FileText, CheckCircle2 } from 'lucide-react';
 import { useState, lazy, Suspense } from 'react';
 import { dateStringToSaoPaulo } from '@/lib/utils/timezone';
 
@@ -21,19 +23,16 @@ interface ModalDetalhesDiaProps {
 /**
  * ModalDetalhesDia - Modal com detalhes de um dia específico
  *
- * Mostra:
- * - Data formatada
- * - Lista de turnos disponíveis
- * - Lista de agendamentos confirmados
- * - Botão para criar novo agendamento
+ * v4.0: Seções de feriados/ponto_facultativo e aniversários
  */
 export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDetalhesDiaProps) {
   const [modalNovoAgendamento, setModalNovoAgendamento] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [turnoSelecionado, setTurnoSelecionado] = useState<any>(null);
 
   if (!celula) return null;
 
-  const { data, turnos, agendamentos } = celula;
+  const { data, turnos, agendamentos, aniversarios = [], bloqueios = [] } = celula;
 
   // Formatar data
   const dataFormatada = dateStringToSaoPaulo(data).toLocaleDateString('pt-BR', {
@@ -43,8 +42,15 @@ export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDeta
     year: 'numeric'
   });
 
-  const agendamentosConfirmados = agendamentos.filter(a => a.status === 'confirmado');
+  const agendamentosVisiveis = agendamentos.filter(a => a.status !== 'cancelado');
 
+  // Separate bloqueios
+  const feriados = bloqueios.filter(b => b.motivo === 'feriado');
+  const pontosFacultativos = bloqueios.filter(b => b.motivo === 'ponto_facultativo');
+  const outrosBloqueios = bloqueios.filter(b => b.motivo !== 'feriado' && b.motivo !== 'ponto_facultativo');
+  const todosEspeciais = [...feriados, ...pontosFacultativos, ...outrosBloqueios];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleNovoAgendamento = (turno?: any) => {
     setTurnoSelecionado(turno || null);
     setModalNovoAgendamento(true);
@@ -68,10 +74,79 @@ export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDeta
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6 mt-4">
+          <div className="space-y-5 mt-4">
+            {/* Bloqueios / Feriados / Ponto Facultativo */}
+            {todosEspeciais.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4" />
+                  Feriados e Bloqueios
+                </h3>
+                <div className="space-y-1.5">
+                  {todosEspeciais.map(bloq => {
+                    const cor = getBloqueioColor(bloq.motivo);
+                    const label = BLOQUEIO_MOTIVO_LABELS[bloq.motivo as BloqueioMotivo] || bloq.motivo;
+                    return (
+                      <div
+                        key={bloq.id}
+                        className="flex items-center gap-3 p-2.5 rounded-lg border"
+                        style={{ backgroundColor: cor.bg, borderColor: cor.border }}
+                      >
+                        <span className="text-lg">{cor.icon}</span>
+                        <div>
+                          <div className="text-sm font-medium" style={{ color: cor.text }}>
+                            {bloq.descricao || label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {label}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Aniversários */}
+            {aniversarios.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-sm text-muted-foreground mb-2 flex items-center gap-1.5">
+                  <Cake className="h-4 w-4 text-pink-500" />
+                  Aniversariantes ({aniversarios.length})
+                </h3>
+                <div className="space-y-1.5">
+                  {aniversarios.map(aniv => (
+                    <div
+                      key={aniv.id}
+                      className="flex items-center gap-3 p-2.5 rounded-lg bg-pink-50 dark:bg-pink-950/20 border border-pink-200/50 dark:border-pink-800/30"
+                    >
+                      {aniv.avatarUrl ? (
+                        <img
+                          src={aniv.avatarUrl}
+                          alt={aniv.nome}
+                          className="w-8 h-8 rounded-full object-cover ring-2 ring-pink-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-pink-200 dark:bg-pink-800 flex items-center justify-center text-sm">
+                          🎂
+                        </div>
+                      )}
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{aniv.nome}</div>
+                        {aniv.cargo && (
+                          <div className="text-xs text-muted-foreground">{aniv.cargo}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Turnos disponíveis */}
             <div>
-              <h3 className="font-semibold text-sm text-muted-foreground mb-3">
+              <h3 className="font-semibold text-sm text-muted-foreground mb-2">
                 Turnos Disponíveis ({turnos.length})
               </h3>
 
@@ -122,26 +197,33 @@ export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDeta
               )}
             </div>
 
-            {/* Agendamentos confirmados */}
+            {/* Agendamentos */}
             <div>
-              <h3 className="font-semibold text-sm text-muted-foreground mb-3">
-                Agendamentos Confirmados ({agendamentosConfirmados.length})
+              <h3 className="font-semibold text-sm text-muted-foreground mb-2">
+                Agendamentos ({agendamentosVisiveis.length})
               </h3>
 
-              {agendamentosConfirmados.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum agendamento confirmado.</p>
+              {agendamentosVisiveis.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Nenhum agendamento neste dia.</p>
               ) : (
                 <div className="space-y-2">
-                  {agendamentosConfirmados.map(agend => (
+                  {agendamentosVisiveis.map(agend => (
                     <div
                       key={agend.id}
                       className="p-4 rounded-lg bg-card border border-border/40 hover:border-primary/40 transition-colors"
                     >
-                      <div className="space-y-2">
-                        {/* Categoria e Status */}
+                      <div className="space-y-2.5">
+                        {/* Header: Categoria + Status Badge */}
                         <div className="flex items-center justify-between">
                           <div className="font-medium text-sm">{agend.categoria}</div>
-                          <div className="text-xs font-medium px-2 py-0.5 rounded-full bg-success/10 text-success">
+                          <div className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                            agend.status === 'realizado'
+                              ? 'bg-primary/10 text-primary'
+                              : agend.status === 'cancelado'
+                                ? 'bg-destructive/10 text-destructive'
+                                : 'bg-success/10 text-success'
+                          }`}>
+                            {agend.status === 'realizado' && '✅ '}
                             {agend.status}
                           </div>
                         </div>
@@ -152,28 +234,47 @@ export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDeta
                           {agend.horarioInicio} - {agend.horarioFim}
                         </div>
 
-                        {/* OS e Cliente */}
+                        {/* OS Info */}
                         {agend.osCodigo && (
-                          <div className="flex items-start gap-2 text-xs">
-                            <ClipboardList className="h-3 w-3 text-primary mt-0.5 flex-shrink-0" />
-                            <div>
+                          <div className="flex flex-col gap-1 p-2 rounded-md bg-primary/5 border border-primary/10">
+                            <div className="flex items-center gap-2 text-xs">
+                              <ClipboardList className="h-3 w-3 text-primary flex-shrink-0" />
                               <span className="font-medium text-primary">OS {agend.osCodigo}</span>
-                              {agend.clienteNome && (
-                                <span className="text-muted-foreground"> - {agend.clienteNome}</span>
-                              )}
-                              {agend.etapasAtivas !== undefined && agend.etapasAtivas > 0 && (
-                                <div className="text-muted-foreground mt-0.5">
-                                  {agend.etapasAtivas} etapa{agend.etapasAtivas > 1 ? 's' : ''} ativa{agend.etapasAtivas > 1 ? 's' : ''}
-                                </div>
-                              )}
                             </div>
+                            {agend.osNome && (
+                              <div className="text-xs text-muted-foreground pl-5 truncate" title={agend.osNome}>
+                                {agend.osNome}
+                              </div>
+                            )}
+                            {agend.etapaNome && (
+                              <div className="flex items-center gap-1.5 text-xs text-muted-foreground pl-5">
+                                <FileText className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate" title={agend.etapaNome}>Etapa: {agend.etapaNome}</span>
+                              </div>
+                            )}
                           </div>
                         )}
 
-                        {/* Usuário responsável */}
+                        {/* Responsável */}
+                        {agend.responsavelNome && (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <User className="h-3 w-3 flex-shrink-0" />
+                            <span>Responsável: {agend.responsavelNome}</span>
+                          </div>
+                        )}
+
+                        {/* Descrição */}
+                        {agend.descricao && (
+                          <div className="text-xs text-muted-foreground border-t border-border/40 pt-2 mt-1">
+                            {agend.descricao}
+                          </div>
+                        )}
+
+                        {/* Criado por */}
                         {agend.usuarioNome && (
-                          <div className="text-xs text-muted-foreground">
-                            Por: {agend.usuarioNome}
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+                            <span>Por: {agend.usuarioNome}</span>
                           </div>
                         )}
                       </div>

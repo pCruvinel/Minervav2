@@ -155,7 +155,7 @@ const CHECKLIST_BLOCOS: ChecklistBlocoDefinition[] = [
 // COMPONENTES AUXILIARES
 // =====================================================
 
-const STATUS_OPTIONS = [
+export const STATUS_OPTIONS = [
     { value: 'C', label: 'Conforme', shortLabel: 'C', icon: CheckCircle2, className: 'text-success' },
     { value: 'NC', label: 'Não Conforme', shortLabel: 'NC', icon: AlertTriangle, className: 'text-destructive' },
     { value: 'NA', label: 'Não se Aplica', shortLabel: 'N/A', icon: MinusCircle, className: 'text-muted-foreground' },
@@ -170,7 +170,7 @@ interface PhotoUploadDialogProps {
     osId?: string;
 }
 
-function PhotoUploadDialog({ itemId, itemLabel, fotos, onFotosChange, disabled, osId }: PhotoUploadDialogProps) {
+export function PhotoUploadDialog({ itemId, itemLabel, fotos, onFotosChange, disabled, osId }: PhotoUploadDialogProps) {
     const [open, setOpen] = useState(false);
 
     return (
@@ -221,7 +221,7 @@ interface ChecklistBlocoTableProps {
     osId?: string;
 }
 
-function ChecklistBlocoTable({ bloco, getItemData, onItemChange, readOnly, osId }: ChecklistBlocoTableProps) {
+export function ChecklistBlocoTable({ bloco, getItemData, onItemChange, readOnly, osId }: ChecklistBlocoTableProps) {
     const [expanded, setExpanded] = useState(true);
 
     // Calcular estatísticas
@@ -503,3 +503,4 @@ export function ChecklistRecebimentoTable({ data, onChange, readOnly, osId }: Ch
 
 // Re-export para compatibilidade
 export { CHECKLIST_BLOCOS };
+export type { ChecklistBlocoDefinition, ChecklistItemDefinition, ChecklistBlocoTableProps, PhotoUploadDialogProps };

@@ -27,6 +27,10 @@ interface StepAgendarApresentacaoData {
   responsavelAgendamentoId?: string;
   responsavelAgendamentoNome?: string;
   notificacaoEnviada?: boolean;
+  // EtapaCheck: marcação de realizado
+  realizadoConfirmado?: boolean;
+  dataRealizacao?: string;
+  confirmadoPor?: string;
 }
 
 interface StepAgendarApresentacaoProps {
@@ -127,6 +131,8 @@ export const StepAgendarApresentacao = forwardRef<
       });
     };
 
+
+
     // =====================================================
     // RENDER
     // =====================================================
@@ -158,7 +164,7 @@ export const StepAgendarApresentacao = forwardRef<
                 turnoId: data.turnoId || '',
                 categoria: 'Apresentação de Proposta',
                 setor: setorSlug,
-                status: 'confirmado',
+                status: data.realizadoConfirmado ? 'realizado' : 'confirmado',
                 // Passar os novos campos para exibição no card de confirmação
                 agendadoPorId: data.agendadoPorId,
                 agendadoPorNome: data.agendadoPorNome,

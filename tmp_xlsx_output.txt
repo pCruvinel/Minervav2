@@ -1,0 +1,163 @@
+﻿
+================================================================================
+FILE: MODELO gerado - inspe├º├úo de SPCI.xlsx
+================================================================================
+
+--- Sheet: Sheet1 (rows=90, cols=7) ---
+[C1] quantos blocos na edifica├º├úo? | [E1] quantos pavimentos?
+[C2] em vermelho replicar question├írio pela quantidade de blocos | [D2] em verde replicar question├írio pela quantidade de pavimentos | [G2] abrir espa├ºo para gerar checklist de outras ├íreas (academia, brinquedoteca, sal├úo de festas, guarita e etc) / adicionar itens e subitens
+[C3] ITEM A VERIFICAR | [D3] CONFORME (C) | [E3] N├âO CONFORME (NC) | [F3] N├âO SE APLICA (NA) | [G3] DETALHAMENTO DA N├âO CONFORMIDADE (Local, Observa├º├úo e Foto)
+[B4] item | [C4] DOCUMENTA├ç├âO PR├ëVIA GERAL
+[B5] subitem | [C5] Projeto T├®cnico de Seguran├ºa Contra Inc├¬ndio aprovado pelo Corpo de Bombeiros
+[C6] ART do respons├ível t├®cnico
+[C7] Certificados de conformidade dos sistemas instalados
+[C8] Plano de manuten├º├úo dos sistemas de combate a inc├¬ndio
+[C9] Auto de Vistoria anterior
+[C10] Extintores de inc├¬ndio (NBR 12693)
+[C11] Quantidade adequada conforme ├írea e risco
+[C12] Tipos corretos (├ügua, P├│ Qu├¡mico, COÔéé, etc.)
+[C13] Carga v├ílida (dentro do prazo)
+[C14] Selo do INMETRO
+[C15] Press├úo no man├┤metro (faixa verde)
+[C16] Lacre intacto
+[C17] Altura e sinaliza├º├úo corretas
+[C18] Acesso desobstru├¡do
+[C19] Sinaliza├º├úo de emerg├¬ncia (NBR 13434)
+[C20] Placas fotoluminescentes
+[C21] Indica├º├úo de Rotas de fuga, Sa├¡das de emerg├¬ncia, Extintores, Hidrantes, Alarmes) - no corredor
+[C22] Indica├º├úo de Rotas de fuga - na escada
+[C23] Indica├º├úo de Rotas de fuga - no elevador
+[C24] Indica├º├úo de Rotas de fuga - na saida principal
+[C25] Altura e posicionamento corretos / Em bom estado de conserva├º├úo
+[C26] Ilumina├º├úo de emerg├¬ncia (NBR 10898)
+[C27] Funcionamento autom├ítico na falta de energia - No corredor
+[C28] Funcionamento autom├ítico na falta de energia - Na escada
+[C29] Ilumina├º├úo suficiente nas rotas de fuga
+[C30] Autonomia m├¡nima exigida (geralmente 1 hora)
+[C31] Lumin├írias funcionando
+[C32] Baterias em bom estado
+[C33] Sa├¡das de emerg├¬ncia (NBR 9077)
+[C34] Quantidade compat├¡vel com ocupa├º├úo
+[C35] Largura m├¡nima das rotas
+[C36] Portas abrindo no sentido da fuga
+[C37] Barras antip├ónico
+[C38] Rotas livres de obst├ículos
+[C39] Corrim├úos continuos
+[C40] guarda corpo continuo
+[C41] Sistema de hidrantes e mangotinhos (NBR 13714)
+[C42] Hidrantes instalados conforme projeto
+[C43] Mangueiras em bom estado e dentro do prazo
+[C44] Esguichos adequados
+[C45] Registro funcionando
+[C46] Abrigo sinalizado e desobstru├¡do
+[C47] Teste de press├úo e vaz├úo (Teste Hidroest├ítico)
+[C48] Chave Storz
+[C49] Adaptador Storz
+[C50] Tampa Storz
+[C51] Tubula├º├úo em vermelho
+[C52] Sinaliza├º├úo de Piso
+[C53] detec├º├úo de fuma├ºa/calor
+[C54] Sistema de alarme de inc├¬ndio (NBR 17240)
+[C55] Acionadores manuais instalados
+[C56] Sinal sonoro aud├¡vel em toda a edifica├º├úo
+[C57] Central de alarme funcionando
+[C58] Detectores (fuma├ºa, t├®rmico, chama) conforme o caso
+[C59] Identifica├º├úo correta dos setores
+[C60] Acessos para viaturas do Corpo de Bombeiros
+[C61] Vias desobstru├¡das
+[C62] Identifica├º├úo do endere├ºo vis├¡vel
+[C63] Sistema de chuveiros autom├íticos ÔÇô Sprinklers (NBR 10897)
+[C64] Bicos desobstru├¡dos
+[C65] Cobertura adequada
+[C66] V├ílvulas de controle acess├¡veis
+[C67] Bomba de inc├¬ndio funcionando
+[C68] Testes peri├│dicos realizados
+[C69] G├ís combust├¡vel (GLP ou GN)
+[C70] Central de g├ís conforme normas
+[C71] Ventila├º├úo permanente
+[C72] Dist├óncias de seguran├ºa respeitadas
+[C73] Tubula├º├Áes identificadas
+[C74] V├ílvulas de bloqueio acess├¡veis
+[C75] Laudo de estanqueidade
+[C76] Controle de materiais de acabamento e revestimento
+[C77] Materiais com classifica├º├úo de rea├º├úo ao fogo
+[C78] Aus├¬ncia de materiais proibidos
+[C79] Brigada de inc├¬ndio (NBR 14276)
+[C80] Brigadistas treinados
+[C81] Certificados v├ílidos
+[C82] Quantidade compat├¡vel com o risco
+[C83] Simulados realizados
+[C84] ├üREA EXTERNA
+[C85] extintor na Casa de Bombas
+[C86] placa de sinaliza├º├úo na Casa de Bombas
+[C87] ilumina├º├úo de emergencia na Casa de Bombas
+[C88] sinaliza├º├úo de piso na Casa de Bombas
+[C89] hidrantes externos - de recalque
+[C90] hidrantes externos - de coluna
+
+================================================================================
+FILE: MODELO gerado - inspe├º├úo de SPDA.xlsx
+================================================================================
+
+--- Sheet: Sheet1 (rows=61, cols=7) ---
+[C1] quantos blocos na edifica├º├úo?
+[C2] em vermelho replicar question├írio pela quantidade de blocos
+[C3] ITEM A VERIFICAR | [D3] CONFORME (C) | [E3] N├âO CONFORME (NC) | [F3] N├âO SE APLICA (NA) | [G3] DETALHAMENTO DA N├âO CONFORMIDADE (Local, Observa├º├úo e Foto)
+[C4] DOCUMENTA├ç├âO PR├ëVIA GERAL
+[C5] Projeto de SPDA conforme NBR 5419:2015 aprovado pelo Corpo de Bombeiros
+[C6] ART do respons├ível t├®cnico
+[C7] Certificados de conformidade dos sistemas instalados
+[C8] Plano de manuten├º├úo do SPDA
+[C9] Memorial de c├ílculo do SPDA (an├ílise de risco ÔÇô NBR 5419-2)
+[C10] Planta de localiza├º├úo dos captores, descidas e aterramento
+[C11] Relat├│rio de inspe├º├úo e medi├º├úo ├┤hmica
+[C12] Auto de Vistoria anterior
+[C13] AN├üLISE DE RISCO (NBR 5419-2)
+[C14] Avalia├º├úo do n├¡vel de prote├º├úo exigido (NP I, II, III ou IV)
+[C15] Compatibilidade do n├¡vel de prote├º├úo com: Tipo de ocupa├º├úo, Altura da edifica├º├úo, ├ürea constru├¡da, Densidade de descargas atmosf├®ricas da regi├úo (MA)
+[C16] SISTEMA DE CAPTA├ç├âO (NBR 5419-3)
+[C17] Tipo de sistema conforme projeto: Franklin, Gaiola de Faraday, Mastro, Captores naturais
+[C18] Captores instalados corretamente
+[C19] Altura e espa├ºamento compat├¡veis com o n├¡vel de prote├º├úo
+[C20] Captores firmes e sem corros├úo
+[C21] Continuidade el├®trica garantida
+[C22] CONDUTORES DE DESCIDA
+[C23] Quantidade de descidas conforme c├ílculo
+[C24] Distribui├º├úo uniforme ao redor da edifica├º├úo
+[C25] Condutores cont├¡nuos (sem emendas indevidas)
+[C26] Fixa├º├úo adequada ├á estrutura
+[C27] Prote├º├úo mec├ónica nas ├íreas acess├¡veis
+[C28] Dist├óncia segura de instala├º├Áes el├®tricas e met├ílicas
+[C29] Identifica├º├úo vis├¡vel das descidas
+[C30] SISTEMA DE ATERRAMENTO
+[C31] Tipo de aterramento conforme projeto: anel, malha, haste
+[C32] Interliga├º├úo entre descidas e aterramento
+[C33] Barramento de equipotencializa├º├úo principal (BEP)
+[C34] Conex├Áes firmes e protegidas contra corros├úo
+[C35] Caixas de inspe├º├úo acess├¡veis
+[C36] Medi├º├úo de resist├¬ncia de aterramento: Valor compat├¡vel com projeto / Laudo com data, m├®todo e respons├ível t├®cnico
+[C37] EQUIPOTENCIALIZA├ç├âO
+[C38] Interliga├º├úo de: Estruturas met├ílicas, Fachadas met├ílicas, Coberturas, Escadas met├ílicas, Guarda-corpos
+[C39] Redu├º├úo de tens├Áes de passo e toque
+[C40] Conformidade com NBR 5419-3
+[C41] PROTE├ç├âO CONTRA SURTOS (DPS) NBR 5419-4
+[C42] DPS instalados nos quadros el├®tricos
+[C43] Classes corretas (I, II ou III)
+[C44] Compatibilidade com o n├¡vel de prote├º├úo do SPDA
+[C45] DPS aterrados corretamente
+[C46] Identifica├º├úo e acesso para manuten├º├úo
+[C47] CONTINUIDADE EL├ëTRICA DO SISTEMA
+[C48] Ensaios de continuidade realizados
+[C49] Registro dos ensaios no laudo t├®cnico
+[C50] Nenhuma interrup├º├úo no sistema
+[C51] Condutores e conex├Áes visivelmente ├¡ntegros
+[C52] CONSERVA├ç├âO E MANUTEN├ç├âO
+[C53] Sistema sem corros├úo excessiva
+[C54] Fixa├º├Áes ├¡ntegras
+[C55] Captores n├úo removidos ou danificados
+[C56] Aus├¬ncia de improvisa├º├Áes
+[C57] Plano de manuten├º├úo peri├│dica
+[C58] ├Ültima inspe├º├úo dentro do prazo recomendado
+[C59] COMPATIBILIDADE PROJETO ├ù EXECU├ç├âO
+[C60] Sistema executado exatamente conforme o projeto aprovado
+[C61] Nenhuma altera├º├úo sem atualiza├º├úo do projeto

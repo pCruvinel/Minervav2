@@ -28,6 +28,8 @@ export interface CentroCusto {
   tipo?: 'fixo' | 'variavel';
   descricao?: string;
   tipo_os_id?: string | null;
+  setor_id?: string | null;
+  is_sistema?: boolean;
 }
 
 /**
@@ -75,7 +77,7 @@ export function useCentroCusto() {
       
       const { data, error: queryError } = await supabase
         .from('centros_custo')
-        .select('id, nome, tipo_os_id, descricao')
+        .select('id, nome, tipo_os_id, descricao, tipo, setor_id, is_sistema')
         .eq('ativo', true)
         .order('nome', { ascending: true });
 
@@ -83,10 +85,11 @@ export function useCentroCusto() {
         throw queryError;
       }
 
-      // Mapear dados para incluir tipo inferido
+      // Mapear dados (tipo agora vem do banco)
       const mappedData = (data || []).map(cc => ({
         ...cc,
-        tipo: cc.tipo_os_id ? 'variavel' : 'fixo'
+        tipo: cc.tipo || (cc.tipo_os_id ? 'variavel' : 'fixo'),
+        is_sistema: cc.is_sistema || false
       })) as CentroCusto[];
 
       // Ordenar: Fixos primeiro

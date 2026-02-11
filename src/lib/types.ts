@@ -1004,6 +1004,7 @@ export const PRAZOS_NECESSIDADE: { value: PrazoNecessidade; label: string }[] = 
  */
 export type BloqueioMotivo =
   | 'feriado'
+  | 'ponto_facultativo'
   | 'manutencao'
   | 'evento'
   | 'ferias_coletivas'
@@ -1174,7 +1175,8 @@ export interface AniversarioCalendario {
  * Labels para motivos de bloqueio
  */
 export const BLOQUEIO_MOTIVO_LABELS: Record<BloqueioMotivo, string> = {
-  feriado: 'Feriado',
+  feriado: 'Feriado Nacional',
+  ponto_facultativo: 'Ponto Facultativo',
   manutencao: 'Manutenção',
   evento: 'Evento',
   ferias_coletivas: 'Férias Coletivas',
@@ -1185,7 +1187,8 @@ export const BLOQUEIO_MOTIVO_LABELS: Record<BloqueioMotivo, string> = {
  * Opções de motivos de bloqueio para selects
  */
 export const BLOQUEIO_MOTIVO_OPTIONS: { value: BloqueioMotivo; label: string }[] = [
-  { value: 'feriado', label: 'Feriado' },
+  { value: 'feriado', label: 'Feriado Nacional' },
+  { value: 'ponto_facultativo', label: 'Ponto Facultativo' },
   { value: 'manutencao', label: 'Manutenção' },
   { value: 'evento', label: 'Evento' },
   { value: 'ferias_coletivas', label: 'Férias Coletivas' },

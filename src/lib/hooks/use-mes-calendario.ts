@@ -19,13 +19,24 @@ import type { AniversarioCalendario } from '@/lib/types';
 // TYPES
 // =====================================================
 
+/** Lightweight bloqueio info for cell rendering */
+export interface BloqueioCell {
+  id: string;
+  motivo: string;      // 'feriado' | 'manutencao' | etc.
+  descricao?: string;
+  cor?: string;
+  diaInteiro: boolean;
+}
+
 export interface CelulaDia {
   data: string;             // "2025-12-15"
   turnos: TurnoProcessado[];
   agendamentos: AgendamentoProcessado[];
   aniversarios: AniversarioCalendario[];  // v2.0
+  bloqueios: BloqueioCell[];              // v3.0: feriados + bloqueios
   isOutsideMonth: boolean;  // Dia pertence ao mês anterior/próximo
   isToday: boolean;
+  isBloqueado: boolean;     // v3.0: true se dia inteiro bloqueado
 }
 
 export interface MesData {
@@ -34,6 +45,7 @@ export interface MesData {
   turnos: Map<string, TurnoProcessado[]>;
   agendamentos: Map<string, AgendamentoProcessado[]>;
   aniversarios: Map<string, AniversarioCalendario[]>;  // v2.0: key = "MM-DD"
+  bloqueios: Map<string, BloqueioCell[]>;               // v3.0: key = "YYYY-MM-DD"
 }
 
 // =====================================================
@@ -50,9 +62,7 @@ const mesAPI = {
 
     // Calcular primeiro e último dia do mês
     const primeiroDiaMes = dateStringToSaoPaulo(`${ano}-${String(mes).padStart(2, '0')}-01`);
-    const ultimoDiaMes = dateStringToSaoPaulo(
-      new Date(ano, mes, 0).toISOString().split('T')[0]
-    );
+
 
     // Calcular início da grade (domingo antes do primeiro dia)
     const inicioDomingo = new Date(primeiroDiaMes);
@@ -85,8 +95,11 @@ const mesAPI = {
         categoria,
         setor,
         status,
+        descricao,
+        responsavel:responsavel_id (nome_completo, avatar_url),
         colaborador:criado_por (nome_completo),
-        ordens_servico:os_id (codigo_os)
+        ordens_servico:os_id (codigo_os, descricao),
+        os_etapas:etapa_id (nome_etapa)
       `)
       .gte('data', dataInicioStr)
       .lte('data', dataFimStr)
@@ -102,6 +115,16 @@ const mesAPI = {
       .not('data_nascimento', 'is', null);
 
     if (errorColabs) throw errorColabs;
+
+    // 2.2 v3.0: Buscar bloqueios ativos do período (feriados, manutenção, etc.)
+    const { data: bloqueiosDB, error: errorBloqueios } = await supabase
+      .from('calendario_bloqueios')
+      .select('id, data_inicio, data_fim, motivo, descricao, cor, dia_inteiro')
+      .eq('ativo', true)
+      .lte('data_inicio', dataFimStr)
+      .gte('data_fim', dataInicioStr);
+
+    if (errorBloqueios) throw errorBloqueios;
 
     // 3. Gerar array de 42 datas
     const datas: string[] = [];
@@ -164,8 +187,12 @@ const mesAPI = {
         categoria: agend.categoria,
         setor: agend.setor,
         status: agend.status,
+        descricao: agend.descricao,
         usuarioNome: (agend.colaborador as any)?.nome_completo,
         osCodigo: (agend.ordens_servico as any)?.codigo_os,
+        osNome: (agend.ordens_servico as any)?.descricao,
+        responsavelNome: (agend.responsavel as any)?.nome_completo,
+        etapaNome: (agend.os_etapas as any)?.nome_etapa,
       };
 
       const lista = agendamentosPorDia.get(agend.data) || [];
@@ -214,6 +241,31 @@ const mesAPI = {
       aniversariosPorDia.set(chaveDia, lista);
     });
 
+    // 6.2 v3.0: Processar bloqueios por dia
+    const bloqueiosPorDia = new Map<string, BloqueioCell[]>();
+
+    (bloqueiosDB || []).forEach(bloq => {
+      const inicio = bloq.data_inicio;
+      const fim = bloq.data_fim || bloq.data_inicio;
+      // Expand date range into individual days
+      const d = new Date(inicio + 'T00:00:00');
+      const dFim = new Date(fim + 'T00:00:00');
+      while (d <= dFim) {
+        const key = d.toISOString().split('T')[0];
+        const cell: BloqueioCell = {
+          id: bloq.id,
+          motivo: bloq.motivo,
+          descricao: bloq.descricao,
+          cor: bloq.cor,
+          diaInteiro: bloq.dia_inteiro ?? true,
+        };
+        const lista = bloqueiosPorDia.get(key) || [];
+        lista.push(cell);
+        bloqueiosPorDia.set(key, lista);
+        d.setDate(d.getDate() + 1);
+      }
+    });
+
     // 7. Criar células do mês
     const hoje = todayInSaoPaulo();
     const mesAtual = primeiroDiaMes.getMonth();
@@ -229,13 +281,19 @@ const mesAPI = {
       const chaveDia = `${String(mesData + 1).padStart(2, '0')}-${String(diaMes).padStart(2, '0')}`;
       const aniversariosDoDia = aniversariosPorDia.get(chaveDia) || [];
 
+      // v3.0: Buscar bloqueios do dia
+      const bloqueiosDoDia = bloqueiosPorDia.get(dataStr) || [];
+      const isBloqueado = bloqueiosDoDia.some(b => b.diaInteiro && b.motivo !== 'ponto_facultativo');
+
       return {
         data: dataStr,
         turnos: turnosPorDia.get(dataStr) || [],
         agendamentos: agendamentosPorDia.get(dataStr) || [],
         aniversarios: aniversariosDoDia,
+        bloqueios: bloqueiosDoDia,
         isOutsideMonth,
         isToday,
+        isBloqueado,
       };
     });
 
@@ -245,6 +303,7 @@ const mesAPI = {
       turnos: turnosPorDia,
       agendamentos: agendamentosPorDia,
       aniversarios: aniversariosPorDia,
+      bloqueios: bloqueiosPorDia,
     };
   },
 };

@@ -21,10 +21,15 @@ import {
   AREAS_VISTORIA,
   FINALIDADE_AREA_MAP,
   isFinalidadeRecebimento,
+  isFinalidadeSPCI,
+  isFinalidadeSPDA,
+  isFinalidadeChecklist,
   deveAutoPreencherArea,
   gerarTituloDocumento,
 } from '../../shared/types/visita-tecnica-types';
 import { ChecklistRecebimentoTable, ChecklistRecebimentoData } from '../../shared/components/checklist-recebimento-table';
+import { ChecklistSPCITable } from '../../shared/components/checklist-spci-table';
+import { ChecklistSPDATable } from '../../shared/components/checklist-spda-table';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { posVisitaSchema } from '@/lib/validations/os11-schemas';
 import { FormSelect } from '@/components/ui/form-select';
@@ -76,8 +81,11 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
   function StepFormularioPosVisita({ osId, etapaId, data, onDataChange, readOnly }, ref) {
     const { currentUser } = useAuth();
 
-    // Verificar se é finalidade de recebimento
+    // Verificar tipo de finalidade
     const isRecebimento = data.finalidadeInspecao ? isFinalidadeRecebimento(data.finalidadeInspecao) : false;
+    const isSPCI = data.finalidadeInspecao ? isFinalidadeSPCI(data.finalidadeInspecao) : false;
+    const isSPDA = data.finalidadeInspecao ? isFinalidadeSPDA(data.finalidadeInspecao) : false;
+    const isChecklistMode = data.finalidadeInspecao ? isFinalidadeChecklist(data.finalidadeInspecao) : false;
 
     // Gerar título do documento em tempo real
     const tituloDocumento = data.finalidadeInspecao
@@ -110,12 +118,12 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         markAllTouched();
         const isValidSchema = validateAll(validationData);
         
-        // Validação específica para Recebimento
-        let isValidRecebimento = true;
-        if (isRecebimento) {
+        // Validação específica para checklists (Recebimento, SPCI, SPDA)
+        let isValidChecklist = true;
+        if (isChecklistMode) {
             if (!data.checklistRecebimento || Object.keys(data.checklistRecebimento.items || {}).length === 0) {
-                 toast.error('Preencha o checklist de recebimento');
-                 isValidRecebimento = false;
+                 toast.error('Preencha o checklist de inspeção');
+                 isValidChecklist = false;
             }
         } else {
              if (!isValidSchema) {
@@ -123,7 +131,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
              }
         }
         
-        return isValidSchema && isValidRecebimento;
+        return isValidSchema && isValidChecklist;
     };
 
     // Função para salvar dados no Supabase
@@ -139,7 +147,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         console.log('💾 Salvando formulário pós-visita...');
 
         // Preparar dados para salvar
-        const dadosEtapa = isRecebimento
+        const dadosEtapa = isChecklistMode
           ? {
             finalidadeInspecao: data.finalidadeInspecao,
             checklistRecebimento: data.checklistRecebimento,
@@ -193,7 +201,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
       salvar,
       validate,
       isFormValid: () => validateAll(validationData)
-    }), [osId, etapaId, data, currentUser, isRecebimento, validateAll, validationData]);
+    }), [osId, etapaId, data, currentUser, isChecklistMode, validateAll, validationData]);
 
     const handleInputChange = (field: keyof FormularioGenericoData, value: string | FileWithComment[]) => {
       if (readOnly) return;
@@ -304,8 +312,48 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           </div>
         )}
 
-        {/* Se NÃO for recebimento, mostrar formulário técnico */}
-        {!isRecebimento && data.finalidadeInspecao && (
+        {/* Se for SPCI, mostrar checklist SPCI */}
+        {isSPCI && (
+          <div className="space-y-6">
+            <ChecklistSPCITable
+              data={data.checklistRecebimento || { items: {} }}
+              onChange={handleChecklistChange}
+              readOnly={readOnly}
+              osId={osId}
+            />
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Todos os itens marcados como "Não Conforme" devem ter uma observação obrigatória.
+                Anexe fotos para evidenciar cada não conformidade.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Se for SPDA, mostrar checklist SPDA */}
+        {isSPDA && (
+          <div className="space-y-6">
+            <ChecklistSPDATable
+              data={data.checklistRecebimento || { items: {} }}
+              onChange={handleChecklistChange}
+              readOnly={readOnly}
+              osId={osId}
+            />
+
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Todos os itens marcados como "Não Conforme" devem ter uma observação obrigatória.
+                Anexe fotos para evidenciar cada não conformidade.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
+
+        {/* Se NÃO for checklist, mostrar formulário técnico */}
+        {!isChecklistMode && data.finalidadeInspecao && (
           <>
             {/* Questionário Inicial */}
             <div className="space-y-4">

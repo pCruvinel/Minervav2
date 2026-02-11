@@ -371,143 +371,43 @@ export function OS14WorkflowPage({
   // ========================================
 
   // Buscar dados de uma etapa específica
+  // Defaults de fields para evitar warnings uncontrolled/controlled
+  const STEP_DEFAULTS: Record<number, Record<string, unknown>> = {
+    2: { tipoOS: '' },
+    3: {
+      anexos: [],
+      idadeEdificacao: '', motivoProcura: '', quandoAconteceu: '',
+      oqueFeitoARespeito: '', existeEscopo: '', previsaoOrcamentaria: '',
+      grauUrgencia: '', apresentacaoProposta: '',
+      nomeContatoLocal: '', telefoneContatoLocal: '', cargoContatoLocal: '',
+    },
+    5: { visitaRealizada: false },
+    6: {
+      fotosAncoragem: [], arquivosGerais: [],
+      outrasEmpresas: '', comoEsperaResolver: '', expectativaCliente: '',
+      estadoAncoragem: '', quemAcompanhou: '', avaliacaoVisita: '',
+      estadoGeralEdificacao: '', servicoResolver: '',
+    },
+    8: {
+      etapasPrincipais: [],
+      percentualImprevisto: '', percentualLucro: '',
+      percentualImposto: '', percentualEntrada: '', numeroParcelas: '',
+    },
+    11: { visitaRealizada: false, observacoes: '' },
+    12: {
+      propostaApresentada: '', metodoApresentacao: '',
+      clienteAchouProposta: '', clienteAchouContrato: '',
+      doresNaoAtendidas: '', indicadorFechamento: '',
+      quemEstavaNaApresentacao: '', nivelSatisfacao: '',
+    },
+    14: { contratoAssinado: false, dataAssinatura: '', observacoes: '' },
+  };
+
+  // Buscar dados de uma etapa específica
   const getStepData = (stepNum: number) => {
+    const defaults = STEP_DEFAULTS[stepNum] || {};
     const data = formDataByStep[stepNum];
-
-    if (!data) {
-      // Retornar estruturas padrão para etapas que precisam de arrays inicializados
-      // Garantir que todos os campos string sejam '' e não undefined para evitar warnings de uncontrolled/controlled
-      const defaults: Record<number, any> = {
-        2: {
-          tipoOS: '', // ✅ Evitar undefined no Select (controlled/uncontrolled warning)
-        },
-        3: {
-          anexos: [],
-          idadeEdificacao: '',
-          motivoProcura: '',
-          quandoAconteceu: '',
-          oqueFeitoARespeito: '',
-          existeEscopo: '',
-          previsaoOrcamentaria: '',
-          grauUrgencia: '',
-          apresentacaoProposta: '',
-          nomeContatoLocal: '',
-          telefoneContatoLocal: '',
-          cargoContatoLocal: '',
-        },
-        5: {
-          visitaRealizada: false, // ✅ Evitar undefined no Switch (controlled/uncontrolled warning)
-        },
-        6: {
-          fotosAncoragem: [],
-          arquivosGerais: [],
-          outrasEmpresas: '',
-          comoEsperaResolver: '',
-          expectativaCliente: '',
-          estadoAncoragem: '',
-          quemAcompanhou: '',
-          avaliacaoVisita: '',
-          estadoGeralEdificacao: '',
-          servicoResolver: '',
-        },
-        8: {
-          etapasPrincipais: [],
-          percentualImprevisto: '',
-          percentualLucro: '',
-          percentualImposto: '',
-          percentualEntrada: '',
-          numeroParcelas: '',
-        },
-        12: {
-          propostaApresentada: '',
-          metodoApresentacao: '',
-          clienteAchouProposta: '',
-          clienteAchouContrato: '',
-          doresNaoAtendidas: '',
-          indicadorFechamento: '',
-          quemEstavaNaApresentacao: '',
-          nivelSatisfacao: '',
-        },
-        11: {
-          visitaRealizada: false,
-          observacoes: '',
-        },
-        14: {
-          contratoAssinado: false,
-          dataAssinatura: '',
-          observacoes: '',
-        },
-      };
-
-      return defaults[stepNum] || {};
-    }
-
-    // Garantir que campos string nunca sejam undefined (evitar warnings uncontrolled/controlled)
-    const defaults: Record<number, any> = {
-      2: {
-        tipoOS: '', // ✅ Evitar undefined no Select
-      },
-      3: {
-        anexos: [],
-        idadeEdificacao: '',
-        motivoProcura: '',
-        quandoAconteceu: '',
-        oqueFeitoARespeito: '',
-        existeEscopo: '',
-        previsaoOrcamentaria: '',
-        grauUrgencia: '',
-        apresentacaoProposta: '',
-        nomeContatoLocal: '',
-        telefoneContatoLocal: '',
-        cargoContatoLocal: '',
-      },
-      5: {
-        visitaRealizada: false, // ✅ Evitar undefined no Switch (controlled/uncontrolled warning)
-      },
-      6: {
-        fotosAncoragem: [],
-        arquivosGerais: [],
-        outrasEmpresas: '',
-        comoEsperaResolver: '',
-        expectativaCliente: '',
-        estadoAncoragem: '',
-        quemAcompanhou: '',
-        avaliacaoVisita: '',
-        estadoGeralEdificacao: '',
-        servicoResolver: '',
-      },
-      8: {
-        etapasPrincipais: [],
-        percentualImprevisto: '',
-        percentualLucro: '',
-        percentualImposto: '',
-        percentualEntrada: '',
-        numeroParcelas: '',
-      },
-      11: {
-        visitaRealizada: false, // ✅ Evitar undefined no Checkbox
-        observacoes: '',
-      },
-      12: {
-        propostaApresentada: '',
-        metodoApresentacao: '',
-        clienteAchouProposta: '',
-        clienteAchouContrato: '',
-        doresNaoAtendidas: '',
-        indicadorFechamento: '',
-        quemEstavaNaApresentacao: '',
-        nivelSatisfacao: '',
-      },
-      14: {
-        contratoAssinado: false, // ✅ Evitar undefined no Checkbox
-        dataAssinatura: '',
-        observacoes: '',
-      },
-    };
-
-    // Merge data with defaults to ensure no undefined string fields
-    const defaultData = defaults[stepNum] || {};
-    return { ...defaultData, ...data };
+    return { ...defaults, ...(data || {}) };
   };
 
   // Atualizar dados de uma etapa (síncrono para inputs controlados)
@@ -889,13 +789,11 @@ export function OS14WorkflowPage({
   const saveCurrentStepData = async (markAsComplete: boolean = true) => {
     if (!osId) {
       logger.warn('⚠️ Não é possível salvar: osId não disponível');
-      console.warn('[SAVE-STEP] ⚠️ osId vazio, não pode salvar');
       return;
     }
 
     try {
-      logger.log(`💾 Salvando etapa ${currentStep}...`);
-      console.log(`[SAVE-STEP] 💾 Iniciando save da etapa ${currentStep}, markAsComplete=${markAsComplete}`);
+      logger.log(`💾 Salvando etapa ${currentStep}, markAsComplete=${markAsComplete}`);
 
       const saveStartTime = performance.now();
       await saveStep(currentStep, !markAsComplete); // saveStep recebe isDraft como segundo argumento
@@ -911,10 +809,8 @@ export function OS14WorkflowPage({
         logger.error('❌ Erro ao exibir toast de sucesso (saveStep):', toastError);
       }
       logger.log(`✅ ${successMessage} (${saveDuration.toFixed(0)}ms)`);
-      console.log(`[SAVE-STEP] ✅ Etapa ${currentStep} salva com sucesso (${saveDuration.toFixed(0)}ms)`);
     } catch (error) {
       logger.error('❌ Erro ao salvar etapa:', error);
-      console.error('[SAVE-STEP] ❌ Erro ao salvar:', error);
       try {
         toast.error('Erro ao salvar dados. Tente novamente.');
       } catch (toastError) {
@@ -1127,20 +1023,16 @@ export function OS14WorkflowPage({
     // ========================================
     if (currentStep === 3) {
       logger.log('🔍 [STEP 3→4] Iniciando fluxo de avanço');
-      console.log('[OS-WORKFLOW] Step 3→4: Começando validação');
 
       // Usar validação imperativa do componente StepFollowup1
       if (stepFollowup1Ref.current) {
         logger.log('🔍 [STEP 3→4] stepFollowup1Ref.current existe, iniciando validate()');
-        console.log('[OS-WORKFLOW] Step 3→4: Ref existe, chamando validate()');
         const isValid = stepFollowup1Ref.current.validate();
 
         logger.log('🔍 [STEP 3→4] Resultado da validação:', { isValid });
-        console.log('[OS-WORKFLOW] Step 3→4: Validação resultado=', isValid);
 
         if (!isValid) {
           logger.warn('⚠️ [STEP 3→4] Validação falhou - bloqueando avanço');
-          console.warn('[OS-WORKFLOW] Step 3→4: ❌ Validação FALHOU - não pode avançar');
           try {
             toast.error('Preencha todos os campos obrigatórios antes de avançar');
           } catch (toastError) {
@@ -1150,37 +1042,30 @@ export function OS14WorkflowPage({
         }
       } else {
         logger.warn('⚠️ [STEP 3→4] stepFollowup1Ref.current é null/undefined!');
-        console.warn('[OS-WORKFLOW] Step 3→4: ⚠️ Ref é null!');
       }
 
       // Se passou na validação, continuar com salvamento e avanço
       try {
         logger.log('✅ [STEP 3→4] Passou validação, continuando com salvamento');
-        console.log('[OS-WORKFLOW] Step 3→4: ✅ Validação passou, continuando...');
 
         if (osId) {
           logger.log('🔍 [STEP 3→4] osId disponível:', osId);
-          console.log('[OS-WORKFLOW] Step 3→4: osId=', osId);
 
           // Realizar upload dos arquivos pendentes
           let uploadedFiles = [];
           try {
             logger.log('📁 [STEP 3→4] Tentando fazer upload de arquivos pendentes');
-            console.log('[OS-WORKFLOW] Step 3→4: Iniciando upload de arquivos');
             if (stepFollowup1Ref.current) {
               const ref = stepFollowup1Ref.current as any;
               if (ref.uploadPendingFiles && typeof ref.uploadPendingFiles === 'function') {
                 uploadedFiles = await ref.uploadPendingFiles();
                 logger.log('📁 [STEP 3→4] Upload concluído:', { filesCount: uploadedFiles.length });
-                console.log('[OS-WORKFLOW] Step 3→4: ✅ Upload de arquivos concluído, count=', uploadedFiles.length);
               } else {
                 logger.log('📁 [STEP 3→4] uploadPendingFiles não é função ou não existe');
-                console.log('[OS-WORKFLOW] Step 3→4: uploadPendingFiles não existe');
               }
             }
           } catch (uploadError) {
             logger.error('❌ [STEP 3→4] Erro ao fazer upload dos arquivos:', uploadError);
-            console.error('[OS-WORKFLOW] Step 3→4: ❌ Erro no upload:', uploadError);
             toast.error('Erro ao enviar arquivos anexados. Tente novamente.');
             return; // Interrompe o avanço se falhar o upload
           }
@@ -1199,25 +1084,20 @@ export function OS14WorkflowPage({
           }
 
           logger.log('💾 [STEP 3→4] Iniciando saveCurrentStepData');
-          console.log('[OS-WORKFLOW] Step 3→4: Salvando dados da etapa');
           await saveCurrentStepData(true);
           logger.log('✅ [STEP 3→4] saveCurrentStepData concluído');
-          console.log('[OS-WORKFLOW] Step 3→4: ✅ Dados salvos');
         } else {
           logger.warn('⚠️ [STEP 3→4] osId não disponível, pulando save');
-          console.warn('[OS-WORKFLOW] Step 3→4: ⚠️ osId vazio, pulando save');
         }
 
         if (currentStep < steps.length) {
           logger.log('📍 [STEP 3→4] Avançando para próxima etapa:', { from: currentStep, to: currentStep + 1 });
-          console.log('[OS-WORKFLOW] Step 3→4: 📍 Avançando para etapa', currentStep + 1);
           setCurrentStep(currentStep + 1);
         } else {
           logger.warn('⚠️ [STEP 3→4] currentStep >= steps.length, não pode avançar');
         }
       } catch (error) {
         logger.error('❌ [STEP 3→4] Erro geral ao processar avanço:', error);
-        console.error('[OS-WORKFLOW] Step 3→4: ❌ Erro:', error);
       }
 
       return;
@@ -1451,9 +1331,12 @@ export function OS14WorkflowPage({
 
 
   // Verificar se o formulário da etapa atual está inválido
-  // ✅ FIX: Remover validação durante render para evitar setState warning
-  // A validação real acontece no handleNextStep, este é apenas visual
-  const isCurrentStepInvalid = false;
+  // A validação real acontece no handleNextStep, este é feedback visual para o footer
+  const isCurrentStepInvalid = useMemo(() => {
+    if (isHistoricalNavigation) return false;
+    if (currentStep <= 2) return false; // Etapas 1-2 são via LeadCadastro/TipoOS
+    return !completedSteps.includes(currentStep);
+  }, [currentStep, isHistoricalNavigation, completedSteps]);
 
   // ✅ Calcular ID da etapa atual para passar aos componentes filhos
   const currentStepEtapa = etapas?.find(e => e.ordem === currentStep);

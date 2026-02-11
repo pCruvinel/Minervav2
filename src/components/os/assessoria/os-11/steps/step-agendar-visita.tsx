@@ -25,6 +25,10 @@ interface StepAgendarVisitaData {
   tecnicoResponsavel: string;
   tecnicoNome: string;
   instrucoes: string;
+  // EtapaCheck
+  realizadoConfirmado?: boolean;
+  dataRealizacao?: string;
+  confirmadoPor?: string;
 }
 
 interface StepAgendarVisitaProps {
@@ -196,6 +200,8 @@ export const StepAgendarVisita = forwardRef<
       }
     };
 
+
+
     if (loadingOS) {
       return (
         <div className="flex items-center justify-center py-12">
@@ -238,7 +244,7 @@ export const StepAgendarVisita = forwardRef<
                         turnoId: data.turnoId || '',
                         categoria: 'Vistoria Técnica',
                         setor: setorSlug,
-                        status: 'confirmado',
+                        status: data.realizadoConfirmado ? 'realizado' : 'confirmado',
                     }
                     : undefined
                 }

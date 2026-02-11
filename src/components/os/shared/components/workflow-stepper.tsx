@@ -13,6 +13,8 @@ export interface WorkflowStep {
   short: string;
   responsible?: string;
   status?: 'pending' | 'active' | 'completed';
+  setor?: 'administrativo' | 'assessoria' | 'obras';
+  setorNome?: string;
 }
 
 export interface WorkflowStepperProps {

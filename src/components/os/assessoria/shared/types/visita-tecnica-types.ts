@@ -156,6 +156,27 @@ export function deveAutoPreencherArea(finalidade: FinalidadeInspecao): boolean {
   return finalidade === 'laudo_spci' || finalidade === 'laudo_spda';
 }
 
+/**
+ * Verifica se a finalidade é SPCI (Sistema de Proteção e Combate a Incêndio)
+ */
+export function isFinalidadeSPCI(finalidade: FinalidadeInspecao | string): boolean {
+  return finalidade === 'laudo_spci';
+}
+
+/**
+ * Verifica se a finalidade é SPDA (Sistema de Proteção contra Descargas Atmosféricas)
+ */
+export function isFinalidadeSPDA(finalidade: FinalidadeInspecao | string): boolean {
+  return finalidade === 'laudo_spda';
+}
+
+/**
+ * Verifica se a finalidade usa formulário de checklist (recebimento, SPCI ou SPDA)
+ */
+export function isFinalidadeChecklist(finalidade: FinalidadeInspecao | string): boolean {
+  return isFinalidadeRecebimento(finalidade as FinalidadeInspecao) || isFinalidadeSPCI(finalidade) || isFinalidadeSPDA(finalidade);
+}
+
 // =====================================================
 // INTERFACES DE DADOS DAS ETAPAS
 // =====================================================

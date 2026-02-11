@@ -56,6 +56,10 @@ interface ModalNovoAgendamentoV2Props {
   onSuccess?: (agendamento?: any) => void;
   /** Filtro de setor - exibe apenas vagas desse setor (usado em OS) */
   setorFiltro?: string;
+  /** ID da OS vinculada (passado automaticamente via CalendarioIntegracao) */
+  osId?: string;
+  /** ID da etapa da OS vinculada */
+  etapaId?: string;
 }
 
 // =====================================================
@@ -80,7 +84,9 @@ export function ModalNovoAgendamentoV2({
   data,
   agendamentosExistentes,
   onSuccess,
-  setorFiltro 
+  setorFiltro,
+  osId,
+  etapaId,
 }: ModalNovoAgendamentoV2Props) {
   // Estados
   const [colaboradorSelecionado, setColaboradorSelecionado] = useState<ColaboradorSelecionado | null>(null);
@@ -190,6 +196,9 @@ export function ModalNovoAgendamentoV2({
         categoria: 'Agendamento', // Categoria fixa simplificada
         setor: colaboradorSelecionado.setor,
         responsavelId: colaboradorSelecionado.id,
+        // Contexto OS (opcional — preenchido quando vem de CalendarioIntegracao)
+        ...(osId && { osId }),
+        ...(etapaId && { etapaId }),
       };
 
       await criarAgendamento(novoAgendamento);

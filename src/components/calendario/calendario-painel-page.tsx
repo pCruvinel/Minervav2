@@ -447,12 +447,37 @@ export function CalendarioPainelPage() {
                                                     {agendamento.categoria}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {agendamento.osCodigo || '-'}
+                                                    {agendamento.osCodigo ? (
+                                                        <div className="flex flex-col gap-0.5">
+                                                            <Badge variant="outline" className="text-xs w-fit">
+                                                                {agendamento.osCodigo}
+                                                            </Badge>
+                                                            {agendamento.etapaNome && (
+                                                                <span className="text-[10px] text-muted-foreground truncate max-w-[120px]" title={agendamento.etapaNome}>
+                                                                    {agendamento.etapaNome}
+                                                                </span>
+                                                            )}
+                                                            {agendamento.clienteNome && (
+                                                                <span className="text-[10px] text-muted-foreground truncate max-w-[120px]" title={agendamento.clienteNome}>
+                                                                    {agendamento.clienteNome}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">-</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>
                                                     <Badge
-                                                        variant={agendamento.status === 'confirmado' ? 'default' : 'secondary'}
+                                                        variant={
+                                                            agendamento.status === 'realizado' ? 'default' :
+                                                            agendamento.status === 'confirmado' ? 'default' :
+                                                            agendamento.status === 'cancelado' ? 'destructive' :
+                                                            'secondary'
+                                                        }
+                                                        className={agendamento.status === 'realizado' ? 'bg-success text-success-foreground' : ''}
                                                     >
+                                                        {agendamento.status === 'realizado' && '✅ '}
                                                         {agendamento.status}
                                                     </Badge>
                                                 </TableCell>

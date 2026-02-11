@@ -67,7 +67,7 @@ function CalendarioMesComponent({ mesInicial, onRefresh }: CalendarioMesProps) {
   // Loading state
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[600px]">
+      <div className="flex items-center justify-center flex-1 min-h-[300px]">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
           <p className="text-sm text-muted-foreground mt-2">Carregando calendário...</p>
@@ -104,7 +104,7 @@ function CalendarioMesComponent({ mesInicial, onRefresh }: CalendarioMesProps) {
     : null;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Header com navegação */}
       <CalendarioHeaderMes
         mesInicio={mesInicio}
@@ -113,11 +113,13 @@ function CalendarioMesComponent({ mesInicial, onRefresh }: CalendarioMesProps) {
         onHoje={handleHoje}
       />
 
-      {/* Grid mensal */}
-      <CalendarioGridMes
-        celulas={mesData.celulas}
-        onCelulaClick={handleClickCelula}
-      />
+      {/* Grid mensal — flex-1 preenche o espaço restante */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <CalendarioGridMes
+          celulas={mesData.celulas}
+          onCelulaClick={handleClickCelula}
+        />
+      </div>
 
       {/* Modal de detalhes do dia */}
       <Suspense fallback={null}>

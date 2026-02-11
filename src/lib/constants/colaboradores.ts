@@ -1,5 +1,12 @@
 // Constantes para o módulo de Colaboradores
 
+/**
+ * Fator de encargos CLT (INSS patronal + FGTS ≈ 46%)
+ * Usado para calcular o custo real diário de um colaborador CLT:
+ * custo_dia = (salario_base × FATOR_ENCARGOS_CLT) / dias_uteis_mes
+ */
+export const FATOR_ENCARGOS_CLT = 1.46;
+
 export const FUNCOES = [
   { value: 'admin', label: '1 - Admin do Sistema', setor: 'ti', nivel: 10 },
   { value: 'diretor', label: '2 - Diretor', setor: 'diretoria', nivel: 9 },

@@ -27,6 +27,8 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 
 interface RegistroPresencaDetalhes {
     id: string;
@@ -80,6 +82,10 @@ export function PresencaDetalhesPage() {
     const [filtroSetor, setFiltroSetor] = useState<string>('todos');
     const [busca, setBusca] = useState('');
     const [tabAtual, setTabAtual] = useState('registros');
+
+    // Dynamic business days
+    const now = new Date();
+    const { data: diasUteisMes = 22 } = useDiasUteisMes(now.getFullYear(), now.getMonth() + 1);
 
     // Parse da data
     const dataSelecionada = useMemo(() => {
@@ -202,7 +208,7 @@ export function PresencaDetalhesPage() {
             const col = r.colaborador;
             if (!col) return acc;
             if (col.tipo_contratacao === 'CLT') {
-                return acc + (col.salario_base || 0) * 1.46 / 22;
+                return acc + (col.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes;
             }
             return acc + (col.custo_dia || 0);
         }, 0);
@@ -250,7 +256,7 @@ export function PresencaDetalhesPage() {
                 r.minutos_atraso || '',
                 r.justificativa || '',
                 r.colaborador?.tipo_contratacao === 'CLT'
-                    ? ((r.colaborador.salario_base || 0) * 1.46 / 22).toFixed(2)
+                    ? ((r.colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes).toFixed(2)
                     : (r.colaborador?.custo_dia || 0).toFixed(2)
             ]);
 
@@ -539,7 +545,7 @@ export function PresencaDetalhesPage() {
                                                             ? <span className="text-muted-foreground">-</span>
                                                             : formatCurrency(
                                                                 registro.colaborador?.tipo_contratacao === 'CLT'
-                                                                    ? (registro.colaborador.salario_base || 0) * 1.46 / 22
+                                                                    ? (registro.colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
                                                                     : registro.colaborador?.custo_dia || 0
                                                             )
                                                         }

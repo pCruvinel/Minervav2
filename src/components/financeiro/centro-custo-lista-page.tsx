@@ -4,7 +4,8 @@ import {
   Building, 
   Search, 
   ArrowRight, 
-  Plus
+  Plus,
+  ShieldCheck
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -146,12 +147,22 @@ export function CentroCustoListaPage() {
                       {cc.descricao || '-'}
                     </CompactTableCell>
                     <CompactTableCell>
-                      <Badge 
-                        variant="outline" 
-                        className={cc.tipo === 'fixo' ? 'bg-secondary/10 text-secondary-foreground border-secondary/20' : 'bg-primary/10 text-primary border-primary/20'}
-                      >
-                        {cc.tipo === 'fixo' ? 'Fixo' : 'Variável'}
-                      </Badge>
+                      {cc.is_sistema ? (
+                        <Badge 
+                          variant="outline" 
+                          className="bg-primary/10 text-primary border-primary/20"
+                        >
+                          <ShieldCheck className="w-3 h-3 mr-1" />
+                          Sistema
+                        </Badge>
+                      ) : (
+                        <Badge 
+                          variant="outline" 
+                          className={cc.tipo === 'fixo' ? 'bg-secondary/10 text-secondary-foreground border-secondary/20' : 'bg-primary/10 text-primary border-primary/20'}
+                        >
+                          {cc.tipo === 'fixo' ? 'Fixo' : 'Variável'}
+                        </Badge>
+                      )}
                     </CompactTableCell>
                     <CompactTableCell className="text-right">
                       <Button 

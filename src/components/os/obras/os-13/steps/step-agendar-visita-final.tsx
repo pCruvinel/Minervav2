@@ -21,6 +21,10 @@ export interface StepAgendarVisitaFinalProps {
     horarioFim?: string;
     duracaoHoras?: number;
     turnoId?: string;
+    // EtapaCheck
+    realizadoConfirmado?: boolean;
+    dataRealizacao?: string;
+    confirmadoPor?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
@@ -101,6 +105,8 @@ export const StepAgendarVisitaFinal = forwardRef<
       });
     };
 
+
+
     // =====================================================
     // RENDER
     // =====================================================
@@ -140,7 +146,7 @@ export const StepAgendarVisitaFinal = forwardRef<
                 turnoId: data.turnoId || '',
                 categoria: 'Vistoria Final',
                 setor: setorSlug,
-                status: 'confirmado',
+                status: data.realizadoConfirmado ? 'realizado' : 'confirmado',
               }
               : undefined
           }

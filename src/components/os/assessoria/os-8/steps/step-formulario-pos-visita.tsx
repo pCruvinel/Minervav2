@@ -11,8 +11,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Upload, X, ClipboardCheck } from 'lucide-react';
 import { FileWithComment } from '@/components/ui/file-upload-unificado';
 import { toast } from '@/lib/utils/safe-toast';
-import { FinalidadeInspecao, isFinalidadeRecebimento, AREAS_VISTORIA } from '../../shared/types/visita-tecnica-types';
+import { FinalidadeInspecao, isFinalidadeRecebimento, isFinalidadeSPCI, isFinalidadeSPDA, AREAS_VISTORIA } from '../../shared/types/visita-tecnica-types';
 import { ChecklistRecebimentoTable, ChecklistRecebimentoData } from '../../shared/components/checklist-recebimento-table';
+import { ChecklistSPCITable } from '../../shared/components/checklist-spci-table';
+import { ChecklistSPDATable } from '../../shared/components/checklist-spda-table';
 
 // =====================================================
 // TYPES
@@ -59,8 +61,11 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
     const [fotosFiles, setFotosFiles] = useState<File[]>([]);
     const [uploadingFiles, setUploadingFiles] = useState(false);
 
-    // Verificar se é finalidade de recebimento
+    // Verificar tipo de finalidade
     const isRecebimento = finalidadeInspecao ? isFinalidadeRecebimento(finalidadeInspecao) : false;
+    const isSPCI = finalidadeInspecao ? isFinalidadeSPCI(finalidadeInspecao) : false;
+    const isSPDA = finalidadeInspecao ? isFinalidadeSPDA(finalidadeInspecao) : false;
+    const isChecklist = isRecebimento || isSPCI || isSPDA;
 
     const handleInputChange = (field: string, value: string) => {
       if (readOnly) return;
@@ -138,7 +143,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
         }
 
         // Preparar dados para salvar
-        const dadosEtapa = isRecebimento
+        const dadosEtapa = isChecklist
           ? {
             finalidadeInspecao,
             checklistRecebimento: data.checklistRecebimento,
@@ -191,7 +196,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
     useImperativeHandle(ref, () => ({
       salvar,
-    }), [osId, etapaId, data, fotosFiles, currentUser, isRecebimento]);
+    }), [osId, etapaId, data, fotosFiles, currentUser, isChecklist]);
 
     // =====================================================
     // RENDERIZAÇÃO CONDICIONAL
@@ -214,6 +219,50 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           </div>
 
           <ChecklistRecebimentoTable
+            data={data.checklistRecebimento || { items: {} }}
+            onChange={handleChecklistChange}
+            readOnly={readOnly}
+            osId={osId}
+          />
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Todos os itens marcados como "Não Conforme" devem ter uma observação obrigatória.
+              Anexe fotos para evidenciar cada não conformidade.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // Se for SPCI, mostrar checklist SPCI
+    if (isSPCI) {
+      return (
+        <div className="space-y-6">
+          <ChecklistSPCITable
+            data={data.checklistRecebimento || { items: {} }}
+            onChange={handleChecklistChange}
+            readOnly={readOnly}
+            osId={osId}
+          />
+
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Todos os itens marcados como "Não Conforme" devem ter uma observação obrigatória.
+              Anexe fotos para evidenciar cada não conformidade.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    }
+
+    // Se for SPDA, mostrar checklist SPDA
+    if (isSPDA) {
+      return (
+        <div className="space-y-6">
+          <ChecklistSPDATable
             data={data.checklistRecebimento || { items: {} }}
             onChange={handleChecklistChange}
             readOnly={readOnly}

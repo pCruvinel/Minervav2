@@ -669,10 +669,17 @@ const ChecklistSection = ({ data }: { data: VisitaTecnicaData }) => {
         groupedByBloco[item.bloco].push(item);
     });
 
+    // Título dinâmico baseado na finalidade
+    const tituloChecklist = data.finalidadeInspecao === 'laudo_spci'
+        ? '3. CHECKLIST DE INSPEÇÃO SPCI'
+        : data.finalidadeInspecao === 'laudo_spda'
+            ? '3. CHECKLIST DE INSPEÇÃO SPDA'
+            : '3. CHECKLIST DE RECEBIMENTO DE UNIDADE';
+
     return (
         <View>
             <View style={styles.blueHeader}>
-                <Text style={styles.blueHeaderText}>3. CHECKLIST DE RECEBIMENTO DE UNIDADE</Text>
+                <Text style={styles.blueHeaderText}>{tituloChecklist}</Text>
             </View>
 
             {/* Estatísticas */}
@@ -820,9 +827,17 @@ const Conclusao = ({ data }: { data: VisitaTecnicaData }) => (
 
             {data.checklistRecebimento && (
                 <Text style={styles.textBlock}>
-                    {data.checklistRecebimento.estatisticas.naoConformes === 0
-                        ? 'A unidade autônoma foi inspecionada e encontra-se em conformidade com os padrões estabelecidos pela NBR 15575 e PBQP-H.'
-                        : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) que devem ser corrigidas antes da entrega da unidade.`
+                    {data.finalidadeInspecao === 'laudo_spci'
+                        ? (data.checklistRecebimento.estatisticas.naoConformes === 0
+                            ? 'O sistema de proteção e combate a incêndio foi inspecionado e encontra-se em conformidade com as normas técnicas aplicáveis (NBR 12693, NBR 13434, NBR 10898, NBR 9077, NBR 13714, NBR 17240, NBR 10897, NBR 14276).'
+                            : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção e combate a incêndio que devem ser corrigidas.`)
+                        : data.finalidadeInspecao === 'laudo_spda'
+                            ? (data.checklistRecebimento.estatisticas.naoConformes === 0
+                                ? 'O sistema de proteção contra descargas atmosféricas foi inspecionado e encontra-se em conformidade com a NBR 5419:2015.'
+                                : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção contra descargas atmosféricas que devem ser corrigidas.`)
+                            : (data.checklistRecebimento.estatisticas.naoConformes === 0
+                                ? 'A unidade autônoma foi inspecionada e encontra-se em conformidade com os padrões estabelecidos pela NBR 15575 e PBQP-H.'
+                                : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) que devem ser corrigidas antes da entrega da unidade.`)
                     }
                 </Text>
             )}

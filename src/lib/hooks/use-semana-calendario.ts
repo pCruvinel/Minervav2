@@ -39,6 +39,10 @@ export interface AgendamentoProcessado {
   usuarioNome?: string;
   usuarioAvatarUrl?: string;
   osCodigo?: string;
+  osNome?: string;
+  responsavelNome?: string;
+  etapaNome?: string;
+  descricao?: string;
 }
 
 export interface CelulaData {
@@ -88,8 +92,11 @@ const semanaAPI = {
         categoria,
         setor,
         status,
+        descricao,
         responsavel:responsavel_id (nome_completo, avatar_url),
-        ordens_servico:os_id (codigo_os)
+        colaborador:criado_por (nome_completo),
+        ordens_servico:os_id (codigo_os, descricao),
+        os_etapas:etapa_id (nome_etapa)
       `)
       .gte('data', dataInicio)
       .lte('data', dataFim)
@@ -160,9 +167,13 @@ const semanaAPI = {
         categoria: agend.categoria,
         setor: agend.setor,
         status: agend.status,
-        usuarioNome: (agend.responsavel as any)?.nome_completo,
+        descricao: agend.descricao,
+        usuarioNome: (agend.colaborador as any)?.nome_completo || (agend.responsavel as any)?.nome_completo,
         usuarioAvatarUrl: (agend.responsavel as any)?.avatar_url,
         osCodigo: (agend.ordens_servico as any)?.codigo_os,
+        osNome: (agend.ordens_servico as any)?.descricao,
+        responsavelNome: (agend.responsavel as any)?.nome_completo,
+        etapaNome: (agend.os_etapas as any)?.nome_etapa,
       };
 
       const lista = agendamentosPorDia.get(agend.data) || [];

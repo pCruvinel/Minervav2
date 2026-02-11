@@ -43,8 +43,10 @@ import {
 } from 'recharts';
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
 import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustoTotalMensal } from '@/lib/hooks/use-custos-variaveis';
+import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 
 // Types
 interface Documento {
@@ -80,6 +82,8 @@ export function ColaboradorDetalhesPage() {
     
     // Data hooks
     const { data: historicoCustos = [] } = useCustoTotalMensal({ colaboradorId });
+    const now = new Date();
+    const { data: diasUteisMes = 22 } = useDiasUteisMes(now.getFullYear(), now.getMonth() + 1);
 
     // Fetch Data
     const fetchData = async () => {
@@ -352,7 +356,7 @@ export function ColaboradorDetalhesPage() {
         if (!colaborador) return { monthlyData: [], totalCost: 0, avgAttendance: 0 };
 
         const custoDia = colaborador.tipo_contratacao === 'CLT'
-            ? (colaborador.salario_base || 0) * 1.6 / 22 // Estimativa encargos
+            ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
             : (colaborador.custo_dia || 0);
 
         // Group by month
@@ -476,7 +480,13 @@ export function ColaboradorDetalhesPage() {
                         value="financial"
                         className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
                     >
-                        Financeiro & Presença
+                        Financeiro
+                    </TabsTrigger>
+                    <TabsTrigger
+                        value="presence"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+                    >
+                        Presença & Performance
                     </TabsTrigger>
                     <TabsTrigger
                         value="documents"
@@ -719,43 +729,67 @@ export function ColaboradorDetalhesPage() {
                     </Card>
                 </TabsContent>
 
-                {/* TAB: FINANCEIRO & PRESENÇA */}
+                {/* TAB: FINANCEIRO */}
                 <TabsContent value="financial" className="mt-6 space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Financial KPIs */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Presença (6 meses)</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Salário Base</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{stats.avgAttendance.toFixed(1)}%</div>
-                                <p className="text-xs text-muted-foreground mt-1">Baseado em {registros.length} registros</p>
+                                <div className="text-2xl font-bold">
+                                    {(colaborador.salario_base || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">{colaborador.tipo_contratacao || 'CLT'}</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Faltas Injustificadas</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Encargos CLT</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-destructive">
-                                    {registros.filter(r => r.status === 'FALTA' && !r.justificativa).length}
+                                <div className="text-2xl font-bold">
+                                    {colaborador.tipo_contratacao === 'CLT'
+                                        ? ((colaborador.salario_base || 0) * (FATOR_ENCARGOS_CLT - 1)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+                                        : '—'}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {colaborador.tipo_contratacao === 'CLT' ? `Fator ${FATOR_ENCARGOS_CLT}× (INSS+FGTS)` : 'N/A para PJ'}
+                                </p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Atrasos</CardTitle>
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Custo/Dia ({diasUteisMes}d)</CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold text-warning">
-                                    {registros.filter(r => r.status === 'ATRASADO').length}
+                                <div className="text-2xl font-bold">
+                                    {(colaborador.tipo_contratacao === 'CLT'
+                                        ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
+                                        : (colaborador.custo_dia || 0)
+                                    ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </div>
-                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
+                                <p className="text-xs text-muted-foreground mt-1">Base de {diasUteisMes} dias úteis</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Custo Mensal Estimado</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-success">
+                                    {(colaborador.tipo_contratacao === 'CLT'
+                                        ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT
+                                        : ((colaborador.custo_dia || 0) * diasUteisMes)
+                                    ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Previsão mensal</p>
                             </CardContent>
                         </Card>
                     </div>
 
-                    {/* Tabela de Custos Reais */}
+                    {/* Cost Detail Table */}
                     <Card>
                         <CardHeader>
                             <CardTitle>Detalhamento de Custos (Base + Variável)</CardTitle>
@@ -769,7 +803,7 @@ export function ColaboradorDetalhesPage() {
                                         <TableHead>Custo Fixo</TableHead>
                                         <TableHead>Custo Variável</TableHead>
                                         <TableHead className="text-right font-bold">Total</TableHead>
-                                        <TableHead className="text-right">Custo/Dia (22d)</TableHead>
+                                        <TableHead className="text-right">Custo/Dia ({diasUteisMes}d)</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
@@ -805,30 +839,114 @@ export function ColaboradorDetalhesPage() {
                         </CardContent>
                     </Card>
 
+                    {/* Cost Chart */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Custo Mensal Estimado</CardTitle>
+                        </CardHeader>
+                        <CardContent className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={stats.monthlyData}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                    <XAxis dataKey="name" />
+                                    <YAxis
+                                        tickFormatter={(value) => `R$${value / 1000}k`}
+                                    />
+                                    <Tooltip
+                                        formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Custo']}
+                                    />
+                                    <Bar dataKey="custo" fill="var(--foreground)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* TAB: PRESENÇA & PERFORMANCE */}
+                <TabsContent value="presence" className="mt-6 space-y-6">
+                    {/* Presence KPIs */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Presença</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold">{stats.avgAttendance.toFixed(1)}%</div>
+                                <p className="text-xs text-muted-foreground mt-1">Baseado em {registros.length} registros</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Dias Trabalhados</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-success">
+                                    {registros.filter(r => r.status !== 'FALTA').length}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Faltas Injustificadas</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-destructive">
+                                    {registros.filter(r => r.status === 'FALTA' && !r.justificativa).length}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-medium text-muted-foreground">Atrasos</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="text-2xl font-bold text-warning">
+                                    {registros.filter(r => r.status === 'ATRASADO').length}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                    {registros.reduce((acc, r) => acc + (r.minutos_atraso || 0), 0)} min de atraso total
+                                </p>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Performance Distribution */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Chart */}
                         <Card>
                             <CardHeader>
-                                <CardTitle>Custo Mensal Estimado</CardTitle>
+                                <CardTitle>Distribuição de Performance</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-[300px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={stats.monthlyData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                        <XAxis dataKey="name" />
-                                        <YAxis
-                                            tickFormatter={(value) => `R$${value / 1000}k`}
-                                        />
-                                        <Tooltip
-                                            formatter={(value: number) => [`R$ ${value.toLocaleString('pt-BR')}`, 'Custo']}
-                                        />
-                                        <Bar dataKey="custo" fill="var(--foreground)" radius={[4, 4, 0, 0]} />
-                                    </BarChart>
-                                </ResponsiveContainer>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {(['OTIMA', 'BOA', 'REGULAR', 'RUIM'] as const).map((perf) => {
+                                        const count = registros.filter(r => r.performance === perf).length;
+                                        const pct = registros.length > 0 ? (count / registros.length) * 100 : 0;
+                                        const colors: Record<string, string> = {
+                                            OTIMA: 'bg-success',
+                                            BOA: 'bg-primary',
+                                            REGULAR: 'bg-warning',
+                                            RUIM: 'bg-destructive',
+                                        };
+                                        return (
+                                            <div key={perf} className="flex items-center gap-3">
+                                                <span className="text-sm font-medium w-20 capitalize">{perf.toLowerCase()}</span>
+                                                <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
+                                                    <div
+                                                        className={`h-full rounded-full ${colors[perf]}`}
+                                                        style={{ width: `${pct}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-sm text-muted-foreground w-16 text-right">{count} ({pct.toFixed(0)}%)</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </CardContent>
                         </Card>
 
-                        {/* Recent Logs Table */}
+                        {/* Attendance History */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Histórico Recente</CardTitle>

@@ -252,11 +252,24 @@ export const bloqueioColors = {
     border: '#FCA5A5',
     text: '#7F1D1D',
     pattern: 'striped',                    // Padrão hachurado
-    icon: '🎉',
+    icon: '🏛️',
     badge: {
       bg: '#EF4444',
       text: '#FFFFFF',
       border: '#DC2626'
+    }
+  },
+  ponto_facultativo: {
+    bg: 'rgba(245, 158, 11, 0.12)',       // Âmbar suave
+    bgSolid: '#F59E0B',                    // Âmbar sólido
+    border: '#FCD34D',
+    text: '#92400E',
+    pattern: 'dashed',                     // Padrão tracejado
+    icon: '⚡',
+    badge: {
+      bg: '#F59E0B',
+      text: '#FFFFFF',
+      border: '#D97706'
     }
   },
   manutencao: {

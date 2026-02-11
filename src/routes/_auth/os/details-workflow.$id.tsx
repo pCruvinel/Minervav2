@@ -10,6 +10,7 @@ import { OS07WorkflowPage } from '@/components/os/assessoria/os-7/pages/os07-wor
 import { OS08WorkflowPage } from '@/components/os/assessoria/os-8/pages/os08-workflow-page'
 import { OS09WorkflowPage } from '@/components/os/administrativo/os-9/pages/os09-workflow-page'
 import { OS10WorkflowPage } from '@/components/os/administrativo/os-10/pages/os10-workflow-page'
+import { OS13WorkflowPage } from '@/components/os/obras/os-13/pages/os13-workflow-page'
 
 /**
  * Feature Flag: Usar novo sistema de Accordion para OS 5-6
@@ -149,6 +150,16 @@ function OSDetailsWorkflowRoute() {
       return (
         <OS10WorkflowPage
           osId={id}
+          onBack={handleBack}
+        />
+      )
+
+    case 13:
+      // OS 13: Contrato de Obra (17 etapas)
+      return (
+        <OS13WorkflowPage
+          osId={id}
+          initialStep={step}
           onBack={handleBack}
         />
       )

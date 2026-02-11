@@ -6,7 +6,9 @@ import {
   TrendingDown, 
   DollarSign, 
   PieChart as PieChartIcon, 
-  FileText
+  FileText,
+  Building,
+  ShieldCheck
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ import { useLucratividadeCC } from "@/lib/hooks/use-lucratividade-cc";
 import { useCCDetalhes } from "@/lib/hooks/use-cc-detalhes";
 import { formatCurrency as formatarMoeda } from "@/lib/utils";
 import { useCentroCusto } from "@/lib/hooks/use-centro-custo";
+import { useDistribuicaoCustos } from "@/lib/hooks/use-distribuicao-custos";
 
 // Componentes internos (mantidos para estrutura)
 import { KPIFinanceiroGrid, KPICardFinanceiro } from "@/components/financeiro/kpi-financeiro-grid";
@@ -59,6 +62,11 @@ export function CentroCustoDetalhesPage() {
   const isLoading = resumoLoading || detalhesLoading;
   const nomeCC = ccResumo?.nome || ccBasico?.nome || "Centro de Custo";
   const statusCC = "Ativo"; // Pode vir do banco depois
+  const isSistema = ccBasico?.is_sistema || false;
+  const isCCFixo = ccBasico?.tipo === 'fixo' || isSistema;
+
+  // Distribution data (only for departmental CCs)
+  const { data: distribuicaoData, loading: distribuicaoLoading } = useDistribuicaoCustos();
 
   if (!ccId) return <div>ID não fornecido</div>;
 
@@ -74,9 +82,15 @@ export function CentroCustoDetalhesPage() {
              <h1 className="text-2xl font-bold tracking-tight">{nomeCC}</h1>
              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                <span>Contrato Global: {formatarMoeda(Number(ccResumo?.contrato_global || 0))}</span>
-               <Badge variant="outline" className="text-success border-success/20 bg-success/10">
-                 {statusCC}
-               </Badge>
+                <Badge variant="outline" className="text-success border-success/20 bg-success/10">
+                  {statusCC}
+                </Badge>
+                {isSistema && (
+                  <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                    <ShieldCheck className="w-3 h-3 mr-1" />
+                    Sistema
+                  </Badge>
+                )}
              </div>
            </div>
         </div>
@@ -133,6 +147,7 @@ export function CentroCustoDetalhesPage() {
           <TabsTrigger value="receitas">Receitas</TabsTrigger>
           <TabsTrigger value="despesas">Despesas Operacionais</TabsTrigger>
           <TabsTrigger value="overhead">Overhead & Indiretos</TabsTrigger>
+          {isCCFixo && <TabsTrigger value="distribuicao">Distribuição</TabsTrigger>}
           <TabsTrigger value="documentos">Documentos</TabsTrigger>
         </TabsList>
 
@@ -351,6 +366,70 @@ export function CentroCustoDetalhesPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* --- ABA DISTRIBUIÇÃO (CCs Departamentais) --- */}
+        {isCCFixo && (
+          <TabsContent value="distribuicao">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building className="h-5 w-5" />
+                  Distribuição de Custos Departamentais
+                </CardTitle>
+                <CardDescription>
+                  Rateio dos custos fixos entre clientes ativos por setor.
+                  Fórmula: ((Custo Escritório ÷ 2) + Custo Setor) ÷ Qtd Clientes Ativos
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {distribuicaoLoading ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map(i => <Skeleton key={i} className="h-10 w-full" />)}
+                  </div>
+                ) : distribuicaoData.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-muted/40">
+                        <CompactTableHead>Período</CompactTableHead>
+                        <CompactTableHead>Setor</CompactTableHead>
+                        <CompactTableHead align="right">Custo Escritório</CompactTableHead>
+                        <CompactTableHead align="right">½ Escritório</CompactTableHead>
+                        <CompactTableHead align="right">Custo Setor</CompactTableHead>
+                        <CompactTableHead align="right">Clientes Ativos</CompactTableHead>
+                        <CompactTableHead align="right" className="font-bold">Custo/Cliente</CompactTableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {distribuicaoData.map((item, idx) => (
+                        <CompactTableRow key={idx}>
+                          <CompactTableCell>
+                            {new Date(item.periodo).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
+                          </CompactTableCell>
+                          <CompactTableCell>
+                            <Badge variant="outline">{item.setor_nome}</Badge>
+                          </CompactTableCell>
+                          <CompactTableCell className="text-right">{formatarMoeda(item.custo_escritorio)}</CompactTableCell>
+                          <CompactTableCell className="text-right">{formatarMoeda(item.metade_escritorio)}</CompactTableCell>
+                          <CompactTableCell className="text-right">{formatarMoeda(item.custo_setor)}</CompactTableCell>
+                          <CompactTableCell className="text-right">{item.qtd_clientes_ativos}</CompactTableCell>
+                          <CompactTableCell className="text-right font-bold text-primary">
+                            {formatarMoeda(item.custo_distribuido_por_cliente)}
+                          </CompactTableCell>
+                        </CompactTableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground">
+                    <Building className="h-8 w-8 mb-2 opacity-50" />
+                    <p>Nenhum dado de distribuição disponível</p>
+                    <p className="text-xs mt-1">Lance despesas nos CCs departamentais para ver o rateio</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* --- ABA DOCUMENTOS --- */}
         <TabsContent value="documentos">

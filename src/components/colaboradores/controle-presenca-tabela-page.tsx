@@ -43,6 +43,8 @@ import { Colaborador } from '@/types/colaborador';
 import { CentroCusto } from '@/lib/hooks/use-centro-custo';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { Link } from '@tanstack/react-router';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 
 interface RegistroPresenca {
   colaboradorId: string;
@@ -73,6 +75,7 @@ interface ColaboradorRateio {
 export function ControlePresencaTabelaPage() {
   const { currentUser } = useAuth();
   const [dataSelecionada, setDataSelecionada] = useState<Date>(new Date());
+  const { data: diasUteisMes = 22 } = useDiasUteisMes(dataSelecionada.getFullYear(), dataSelecionada.getMonth() + 1);
   const [colaboradores, setColaboradores] = useState<Colaborador[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [registros, setRegistros] = useState<Record<string, RegistroPresenca>>({});
@@ -456,7 +459,7 @@ export function ControlePresencaTabelaPage() {
 
   const calcularCustoDia = (colaborador: Colaborador) => {
     if (colaborador.tipo_contratacao === 'CLT') {
-      return (colaborador.salario_base || 0) * 1.46 / 22;
+      return (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes;
     }
     return colaborador.custo_dia || 0;
   };

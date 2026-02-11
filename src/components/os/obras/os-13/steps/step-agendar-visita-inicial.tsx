@@ -21,6 +21,10 @@ export interface StepAgendarVisitaInicialProps {
     horarioFim?: string;
     duracaoHoras?: number;
     turnoId?: string;
+    // EtapaCheck — kept in data interface for future use in execution steps
+    realizadoConfirmado?: boolean;
+    dataRealizacao?: string;
+    confirmadoPor?: string;
   };
   onDataChange: (data: any) => void;
   readOnly?: boolean;
@@ -101,6 +105,8 @@ export const StepAgendarVisitaInicial = forwardRef<
       });
     };
 
+
+
     // =====================================================
     // RENDER
     // =====================================================
@@ -140,7 +146,7 @@ export const StepAgendarVisitaInicial = forwardRef<
                 turnoId: data.turnoId || '',
                 categoria: 'Vistoria Inicial',
                 setor: setorSlug,
-                status: 'confirmado',
+                status: data.realizadoConfirmado ? 'realizado' : 'confirmado',
               }
               : undefined
           }

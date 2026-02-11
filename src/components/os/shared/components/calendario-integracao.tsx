@@ -33,6 +33,7 @@ import {
   useEffect,
 } from 'react';
 import { CalendarioSemanaCustom } from '@/components/calendario/calendario-semana-custom';
+
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Calendar,
@@ -45,6 +46,7 @@ import {
   Bell,
 } from 'lucide-react';
 import { logger } from '@/lib/utils/logger';
+
 
 // =====================================================
 // TYPES
@@ -59,7 +61,9 @@ export interface Agendamento {
   turnoId: string;
   categoria: string;
   setor: string;
-  status: 'confirmado' | 'cancelado';
+  status: 'pendente' | 'confirmado' | 'cancelado' | 'realizado' | 'ausente' | 'concluido';
+  etapaId?: string;
+  descricao?: string;
   // Novos campos para UX melhorada
   agendadoPorId?: string;
   agendadoPorNome?: string;
@@ -99,6 +103,8 @@ export interface CalendarioIntegracaoProps {
   dataInicial?: Date;
   /** Filtro de setor para restringir vagas disponíveis (usado em OS) */
   setorFiltro?: string;
+  /** ID da etapa da OS vinculada ao agendamento */
+  etapaId?: string;
 }
 
 // =====================================================
@@ -111,11 +117,13 @@ export const CalendarioIntegracao = forwardRef<
 >(
   (
     {
+      osId,
       agendamentoExistente,
       onAgendamentoChange,
       readOnly = false,
       dataInicial,
       setorFiltro,
+      etapaId,
     },
     ref
   ) => {
@@ -125,6 +133,8 @@ export const CalendarioIntegracao = forwardRef<
 
     // Ref do calendário para triggerar refresh
     const calendarioRef = useRef<HTMLDivElement>(null);
+
+
 
     // =====================================================
     // EFEITOS
@@ -314,6 +324,8 @@ export const CalendarioIntegracao = forwardRef<
           </CardContent>
         </Card>
 
+
+
         {/* Calendário Integrado - OCULTAR APÓS CONFIRMAÇÃO */}
         {!readOnly && !agendamentoSelecionado && (
           <Card className="border-border">
@@ -321,6 +333,8 @@ export const CalendarioIntegracao = forwardRef<
               <CalendarioSemanaCustom
                 dataInicial={dataInicial}
                 setorFiltro={setorFiltro}
+                osId={osId}
+                etapaId={etapaId}
                 onAgendamentoCriado={handleAgendamentoChange}
               />
             </CardContent>

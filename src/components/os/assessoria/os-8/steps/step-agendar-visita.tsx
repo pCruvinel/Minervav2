@@ -21,6 +21,10 @@ interface StepAgendarVisitaProps {
     horarioFim?: string;
     duracaoHoras?: number;
     turnoId?: string;
+    // EtapaCheck — kept in data interface for future use in execution steps
+    realizadoConfirmado?: boolean;
+    dataRealizacao?: string;
+    confirmadoPor?: string;
   };
   onDataChange: (newData: any) => void;
   readOnly?: boolean;
@@ -101,6 +105,8 @@ export const StepAgendarVisita = forwardRef<
       });
     };
 
+
+
     // =====================================================
     // RENDER
     // =====================================================
@@ -140,7 +146,7 @@ export const StepAgendarVisita = forwardRef<
                 turnoId: data.turnoId || '',
                 categoria: 'Vistoria Técnica',
                 setor: setorSlug,
-                status: 'confirmado',
+                status: data.realizadoConfirmado ? 'realizado' : 'confirmado',
               }
               : undefined
           }

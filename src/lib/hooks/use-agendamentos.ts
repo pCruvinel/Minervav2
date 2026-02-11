@@ -31,10 +31,13 @@ export interface Agendamento {
   solicitanteContato?: string;
   solicitanteObservacoes?: string;
   osId?: string;
-  status: 'confirmado' | 'cancelado' | 'realizado' | 'ausente';
+  etapaId?: string;
+  descricao?: string;
+  status: 'pendente' | 'confirmado' | 'cancelado' | 'realizado' | 'ausente' | 'concluido';
   criadoPor?: string;
   criadoEm?: string;
   atualizadoEm?: string;
+  atualizadoPor?: string;
   canceladoEm?: string;
   canceladoMotivo?: string;
   // Responsável pela execução (dono da agenda)
@@ -47,6 +50,8 @@ export interface Agendamento {
   clienteNome?: string;
   statusGeralOS?: string;
   etapasAtivas?: number;
+  // Dados enriquecidos da etapa
+  etapaNome?: string;
 }
 
 export interface AgendamentoComTurno extends Agendamento {
@@ -73,6 +78,11 @@ export interface AgendamentoComTurno extends Agendamento {
     };
     etapas?: { status: string }[];
   };
+  // Etapa vinculada ao agendamento
+  etapa?: {
+    nome_etapa?: string;
+    status?: string;
+  };
 }
 
 export interface AgendamentoRealizadoCard {
@@ -98,6 +108,10 @@ export interface CreateAgendamentoInput {
   solicitanteContato?: string;
   solicitanteObservacoes?: string;
   osId?: string;
+  /** ID da etapa da OS vinculada ao agendamento */
+  etapaId?: string;
+  /** Texto descritivo do agendamento */
+  descricao?: string;
   /** ID do responsável pela execução. Se não informado, usa o usuário logado. */
   responsavelId?: string;
   /** IDs dos participantes do agendamento (colaboradores adicionais) */
@@ -113,7 +127,8 @@ export interface UpdateAgendamentoInput {
   solicitanteNome?: string;
   solicitanteContato?: string;
   solicitanteObservacoes?: string;
-  status?: 'confirmado' | 'cancelado' | 'realizado' | 'ausente';
+  descricao?: string;
+  status?: 'pendente' | 'confirmado' | 'cancelado' | 'realizado' | 'ausente' | 'concluido';
 }
 
 export interface CancelarAgendamentoInput {
@@ -128,6 +143,7 @@ export interface AgendamentoFilters {
   status?: string;
   setor?: string;
   osId?: string;
+  etapaId?: string;
 }
 
 // =====================================================
@@ -165,6 +181,10 @@ const agendamentosAPI = {
           etapas:os_etapas (
             status
           )
+        ),
+        etapa:etapa_id (
+          nome_etapa,
+          status
         )
       `)
       .order('data', { ascending: true })
@@ -196,6 +216,10 @@ const agendamentosAPI = {
 
     if (filters?.osId) {
       query = query.eq('os_id', filters.osId);
+    }
+
+    if (filters?.etapaId) {
+      query = query.eq('etapa_id', filters.etapaId);
     }
 
     const { data, error } = await query;
@@ -296,6 +320,8 @@ const agendamentosAPI = {
         solicitante_contato: input.solicitanteContato,
         solicitante_observacoes: input.solicitanteObservacoes,
         os_id: input.osId,
+        etapa_id: input.etapaId,
+        descricao: input.descricao,
         criado_por: user.user?.id,
         responsavel_id: responsavelId,
       })
@@ -310,6 +336,7 @@ const agendamentosAPI = {
    * Atualizar agendamento existente
    */
   async update(id: string, input: UpdateAgendamentoInput): Promise<Agendamento> {
+    const { data: user } = await supabase.auth.getUser();
     const updateData: any = {};
 
     if (input.horarioInicio) updateData.horario_inicio = input.horarioInicio;
@@ -320,7 +347,11 @@ const agendamentosAPI = {
     if (input.solicitanteNome !== undefined) updateData.solicitante_nome = input.solicitanteNome;
     if (input.solicitanteContato !== undefined) updateData.solicitante_contato = input.solicitanteContato;
     if (input.solicitanteObservacoes !== undefined) updateData.solicitante_observacoes = input.solicitanteObservacoes;
+    if (input.descricao !== undefined) updateData.descricao = input.descricao;
     if (input.status) updateData.status = input.status;
+
+    // Rastreabilidade: registrar quem fez a última atualização
+    updateData.atualizado_por = user.user?.id;
 
     const { data, error } = await supabase
       .from('agendamentos')
@@ -646,10 +677,13 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     solicitanteContato: data.solicitante_contato,
     solicitanteObservacoes: data.solicitante_observacoes,
     osId: data.os_id,
+    etapaId: data.etapa_id,
+    descricao: data.descricao,
     status: data.status,
     criadoPor: data.criado_por,
     criadoEm: data.criado_em,
     atualizadoEm: data.atualizado_em,
+    atualizadoPor: data.atualizado_por,
     canceladoEm: data.cancelado_em,
     canceladoMotivo: data.cancelado_motivo,
     // Responsável pela execução
@@ -665,6 +699,8 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
       data.ordens_servico?.etapas?.filter((etapa: any) =>
         ['pendente', 'em_andamento', 'bloqueada'].includes(etapa.status)
       ).length || 0,
+    // Dados da etapa vinculada
+    etapaNome: data.etapa?.nome_etapa,
   };
 
   if (data.turno) {
@@ -681,6 +717,14 @@ function mapAgendamentoFromDB(data: any): AgendamentoComTurno {
     agendamento.responsavel = {
       nome_completo: data.responsavel.nome_completo,
       avatar_url: data.responsavel.avatar_url,
+    };
+  }
+
+  // Mapear objeto etapa se existir
+  if (data.etapa) {
+    agendamento.etapa = {
+      nome_etapa: data.etapa.nome_etapa,
+      status: data.etapa.status,
     };
   }
 

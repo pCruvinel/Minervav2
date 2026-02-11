@@ -20,6 +20,10 @@ interface CalendarioSemanaCustomProps {
     setorFiltro?: string;
     /** Callback chamado quando um agendamento é criado com sucesso */
     onAgendamentoCriado?: (agendamento: any) => void;
+    /** ID da OS vinculada (contexto OS) */
+    osId?: string;
+    /** ID da etapa da OS vinculada (contexto OS) */
+    etapaId?: string;
 }
 
 /**
@@ -28,7 +32,7 @@ interface CalendarioSemanaCustomProps {
  * Grid semanal (Dom-Sáb) com turnos e agendamentos.
  * Desenvolvido do zero em React + CSS Grid.
  */
-function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, onAgendamentoCriado }: CalendarioSemanaCustomProps) {
+function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, onAgendamentoCriado, osId, etapaId }: CalendarioSemanaCustomProps) {
     const { currentUser } = useAuth();
     const [dataAtual, setDataAtual] = useState(dataInicial || new Date());
     
@@ -135,7 +139,7 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, 
     }
 
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col flex-1 min-h-0">
             {/* Header com navegação */}
             <CalendarioHeader
                 dataInicio={dataInicio}
@@ -148,13 +152,15 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, 
                 ehAdmin={!!ehAdmin}
             />
 
-            {/* Grid do calendário v2 - Blocos de Turno */}
-            <CalendarioGridV2
-                semanaData={semanaData}
-                bloqueios={bloqueios}
-                onClickTurno={handleClickTurno}
-                ehAdmin={!!ehAdmin}
-            />
+            {/* Grid do calendário v2 - Blocos de Turno — flex-1 para preencher */}
+            <div className="flex-1 min-h-0 overflow-auto">
+              <CalendarioGridV2
+                  semanaData={semanaData}
+                  bloqueios={bloqueios}
+                  onClickTurno={handleClickTurno}
+                  ehAdmin={!!ehAdmin}
+              />
+            </div>
 
             {/* Modal de novo agendamento v2 */}
             <Suspense fallback={null}>
@@ -170,6 +176,8 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, 
                     data={dataSelecionada}
                     agendamentosExistentes={agendamentosDoTurno}
                     setorFiltro={setorFiltro}
+                    osId={osId}
+                    etapaId={etapaId}
                     onSuccess={(agendamento) => {
                         handleRefetchCompleto();
                         onAgendamentoCriado?.(agendamento);

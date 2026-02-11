@@ -29,6 +29,8 @@ import {
 import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 import { useNavigate } from '@tanstack/react-router';
 import { useCustoMOPorCC, useCustoMOPorColaborador, useCustoMOKPIs } from '@/lib/hooks/use-custo-mo';
+import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
+import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -100,6 +102,8 @@ export function CustoMaoDeObraPage() {
     const [periodo, setPeriodo] = useState<PeriodoFiltro>('thisMonth');
     const [busca, setBusca] = useState('');
     const [setorFiltro, setSetorFiltro] = useState<string>('todos');
+    const now = new Date();
+    const { data: diasUteisMes = 22 } = useDiasUteisMes(now.getFullYear(), now.getMonth() + 1);
 
     // ========== HOOKS DE DADOS REAIS ==========
     const kpis = useCustoMOKPIs();
@@ -117,10 +121,10 @@ export function CustoMaoDeObraPage() {
             cargo: '-',
             setor: '-',
             salarioBase: c.salario_base,
-            encargos: Math.round(c.salario_base * 0.46),
+            encargos: Math.round(c.salario_base * (FATOR_ENCARGOS_CLT - 1)),
             beneficios: 450,
             custosVariaveis: 0,
-            custoDia: c.salario_base / 22,
+            custoDia: (c.salario_base * FATOR_ENCARGOS_CLT) / diasUteisMes,
             diasTrabalhados: c.dias_trabalhados,
             custoTotal: c.custo_total,
             ccs: c.ccs,

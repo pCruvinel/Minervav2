@@ -126,6 +126,13 @@ function TurnoBlockComponent({
           const cor = getSetorColor(item.setor);
           const cheio = item.vagasOcupadas >= item.vagasTotal;
           
+          // Agendamentos deste setor para badges OS e status
+          const agendamentosSetor = agendamentos.filter(a => a.setor === item.setor);
+          const osCodigos = agendamentosSetor
+            .filter(a => a.osCodigo)
+            .map(a => a.osCodigo!);
+          const temRealizado = agendamentosSetor.some(a => a.status === 'realizado');
+          
           return (
             <div 
               key={item.setor} 
@@ -154,6 +161,18 @@ function TurnoBlockComponent({
               >
                 {item.vagasOcupadas}/{item.vagasTotal}
               </span>
+
+              {/* Badge OS (ex: OS1300001) */}
+              {osCodigos.length > 0 && (
+                <span className="text-[9px] bg-primary/10 text-primary px-1 rounded font-medium truncate max-w-[60px]" title={osCodigos.join(', ')}>
+                  {osCodigos[0]}{osCodigos.length > 1 && `+${osCodigos.length - 1}`}
+                </span>
+              )}
+
+              {/* Indicador de Realizado */}
+              {temRealizado && (
+                <span className="text-success flex-shrink-0" title="Realizado">✅</span>
+              )}
             </div>
           );
         })}
