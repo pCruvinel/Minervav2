@@ -4,7 +4,7 @@
  * Exibe:
  * 1. Resumo financeiro (KPIs: receita mensal, valor contratos, status)
  * 2. Detalhes de contratos ativos
- * 3. Histórico de Movimentações (Cora) — transações vinculadas ao cliente
+ * 3. Histórico de Movimentações — transações vinculadas ao cliente
  *
  * @example
  * ```tsx
@@ -28,6 +28,10 @@ import {
   ExternalLink,
   ArrowDownRight,
   ArrowUpRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Filter,
   Wallet,
   UserCheck,
   Zap,
@@ -111,15 +115,60 @@ export function ClienteTabFinanceiro({ clienteId }: ClienteTabFinanceiroProps) {
     .reduce((sum, c) => sum + (c.valor_mensal || 0), 0);
   const valorTotalContratos = contratosAtivos.reduce((sum, c) => sum + (c.valor_total || 0), 0);
 
-  // Movimentações — pagination
+  // Movimentações — sorting, filtering, pagination
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortField, setSortField] = useState<'data' | 'valor'>('data');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [periodoFiltro, setPeriodoFiltro] = useState<number | null>(null); // null = all, 30/60/90 days
   const itemsPerPage = 10;
-  const totalPages = Math.ceil(movimentacoes.length / itemsPerPage);
+
+  const handleSort = (field: 'data' | 'valor') => {
+    if (sortField === field) {
+      setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir('desc');
+    }
+    setCurrentPage(1);
+  };
+
+  const handlePeriodoChange = (dias: number | null) => {
+    setPeriodoFiltro(dias);
+    setCurrentPage(1);
+  };
+
+  const filteredMov = useMemo(() => {
+    let filtered = [...movimentacoes];
+
+    // Period filter
+    if (periodoFiltro) {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - periodoFiltro);
+      filtered = filtered.filter(m => new Date(m.data) >= cutoff);
+    }
+
+    // Sort
+    filtered.sort((a, b) => {
+      if (sortField === 'data') {
+        const diff = new Date(a.data).getTime() - new Date(b.data).getTime();
+        return sortDir === 'asc' ? diff : -diff;
+      } else {
+        const valA = (a.entrada ?? 0) > 0 ? (a.entrada ?? 0) : -(a.saida ?? 0);
+        const valB = (b.entrada ?? 0) > 0 ? (b.entrada ?? 0) : -(b.saida ?? 0);
+        const diff = valA - valB;
+        return sortDir === 'asc' ? diff : -diff;
+      }
+    });
+
+    return filtered;
+  }, [movimentacoes, sortField, sortDir, periodoFiltro]);
+
+  const totalPages = Math.ceil(filteredMov.length / itemsPerPage);
 
   const paginatedMov = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
-    return movimentacoes.slice(start, start + itemsPerPage);
-  }, [movimentacoes, currentPage]);
+    return filteredMov.slice(start, start + itemsPerPage);
+  }, [filteredMov, currentPage]);
 
   const handleVerContasReceber = () => {
     navigate({ to: '/financeiro/contas-receber', search: { clienteId } });
@@ -275,14 +324,14 @@ export function ClienteTabFinanceiro({ clienteId }: ClienteTabFinanceiroProps) {
       </div>
 
       {/* ═══════════════════════════════════════════
-          SEÇÃO 3 — Histórico de Movimentações (Cora)
+          SEÇÃO 3 — Histórico de Movimentações
       ═══════════════════════════════════════════ */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Wallet className="h-5 w-5 text-primary" />
-              Histórico de Movimentações (Cora)
+              Histórico de Movimentações
             </CardTitle>
             {movimentacoes.length > 0 && (
               <div className="flex items-center gap-3">
@@ -302,9 +351,25 @@ export function ClienteTabFinanceiro({ clienteId }: ClienteTabFinanceiroProps) {
             )}
           </div>
           {movimentacoes.length > 0 && (
-            <p className="text-xs text-muted-foreground mt-1">
-              {movSummary.quantidadeEntradas} entrada(s) • {movSummary.quantidadeSaidas} saída(s) • {movSummary.total} transação(ões) total
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-muted-foreground">
+                {movSummary.quantidadeEntradas} entrada(s) • {movSummary.quantidadeSaidas} saída(s) • {movSummary.total} transação(ões) total
+              </p>
+              <div className="flex items-center gap-1">
+                <Filter className="h-3.5 w-3.5 text-muted-foreground" />
+                {([{ label: '30d', value: 30 }, { label: '60d', value: 60 }, { label: '90d', value: 90 }, { label: 'Todos', value: null }] as const).map(opt => (
+                  <Button
+                    key={opt.label}
+                    variant={periodoFiltro === opt.value ? 'default' : 'ghost'}
+                    size="sm"
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => handlePeriodoChange(opt.value)}
+                  >
+                    {opt.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
           )}
         </CardHeader>
         <CardContent className="pt-0">
@@ -334,12 +399,28 @@ export function ClienteTabFinanceiro({ clienteId }: ClienteTabFinanceiroProps) {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/40">
-                      <CompactTableHead className="w-24">Data</CompactTableHead>
+                      <CompactTableHead className="w-24 cursor-pointer select-none" onClick={() => handleSort('data')}>
+                        <span className="flex items-center gap-1">
+                          Data
+                          {sortField === 'data' ? (
+                            sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
+                          )}
+                        </span>
+                      </CompactTableHead>
                       <CompactTableHead className="min-w-[160px]">Pagador</CompactTableHead>
-                      <CompactTableHead className="min-w-[100px]">Descrição</CompactTableHead>
-                      <CompactTableHead className="w-24">Vínculo</CompactTableHead>
-                      <CompactTableHead className="w-28 text-right" align="right">
-                        Valor
+                      <CompactTableHead className="min-w-[100px]">Descricao</CompactTableHead>
+                      <CompactTableHead className="w-24">Vinculo</CompactTableHead>
+                      <CompactTableHead className="w-28 text-right cursor-pointer select-none" align="right" onClick={() => handleSort('valor')}>
+                        <span className="flex items-center gap-1 justify-end">
+                          Valor
+                          {sortField === 'valor' ? (
+                            sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
+                          )}
+                        </span>
                       </CompactTableHead>
                     </TableRow>
                   </TableHeader>
@@ -403,7 +484,7 @@ export function ClienteTabFinanceiro({ clienteId }: ClienteTabFinanceiroProps) {
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t bg-muted/20">
                   <span className="text-xs text-muted-foreground">
-                    Mostrando {paginatedMov.length} de {movimentacoes.length}
+                    Mostrando {paginatedMov.length} de {filteredMov.length}
                   </span>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground">

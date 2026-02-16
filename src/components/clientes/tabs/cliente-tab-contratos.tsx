@@ -36,6 +36,9 @@ import {
   Eye,
   FileSignature,
   AlertCircle,
+  HardHat,
+  ClipboardCheck,
+  Wrench,
 } from 'lucide-react';
 import { useNavigate } from '@tanstack/react-router';
 import {
@@ -57,14 +60,8 @@ export function ClienteTabContratos({ clienteId }: ClienteTabContratosProps) {
   const navigate = useNavigate();
   const { contratos, summary, isLoading, error } = useClienteContratos(clienteId);
 
-  const handleNovoContrato = (tipo: 'assessoria' | 'obra') => {
-    // Redireciona para o fluxo de criação de contrato com cliente pré-selecionado
-    if (tipo === 'assessoria') {
-      navigate({ to: '/os/criar/assessoria-recorrente', search: { clienteId } });
-    } else {
-      // Para obras, pode ser outro fluxo
-      navigate({ to: '/os/criar/assessoria-recorrente', search: { clienteId } });
-    }
+  const handleNovoContrato = (route: string) => {
+    navigate({ to: route, search: { clienteId } });
   };
 
   const handleVerContrato = (contrato: Contrato) => {
@@ -133,14 +130,26 @@ export function ClienteTabContratos({ clienteId }: ClienteTabContratosProps) {
               <ChevronDown className="ml-2 h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => handleNovoContrato('assessoria')}>
-              <FileSignature className="mr-2 h-4 w-4" />
-              Contrato de Assessoria
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => handleNovoContrato('/os/criar/start-contrato-obra')}>
+              <HardHat className="mr-2 h-4 w-4" />
+              Contrato de Obras
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleNovoContrato('obra')}>
+            <DropdownMenuItem onClick={() => handleNovoContrato('/os/criar/laudo-pontual')}>
               <FileText className="mr-2 h-4 w-4" />
-              Contrato de Obra
+              Laudo Pontual
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNovoContrato('/os/criar/assessoria-recorrente')}>
+              <ClipboardCheck className="mr-2 h-4 w-4" />
+              Assessoria Tecnica
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNovoContrato('/os/criar/vistoria')}>
+              <Eye className="mr-2 h-4 w-4" />
+              Parecer Tecnico
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleNovoContrato('/os/criar/solicitacao-reforma')}>
+              <Wrench className="mr-2 h-4 w-4" />
+              Solicitacao de Reforma
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
