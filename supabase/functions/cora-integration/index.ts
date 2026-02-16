@@ -784,7 +784,74 @@ app.post('/sync', async (c) => {
     const importedCount = inserted?.length || 0;
     console.log(`✅ Sincronização concluída: ${importedCount} novos lançamentos`);
     
-    // 4. Atualizar última sincronização na integração
+    // 4. AUTO-MATCH: vincular lançamentos a clientes
+    let matchedDireto = 0;
+    let matchedTerceiro = 0;
+    
+    try {
+      // Buscar todos os lançamentos sem cliente_id que têm contraparte_documento
+      const { data: pendentes } = await supabase
+        .from('lancamentos_bancarios')
+        .select('id, contraparte_documento')
+        .is('cliente_id', null)
+        .not('contraparte_documento', 'is', null);
+
+      if (pendentes && pendentes.length > 0) {
+        const docs = [...new Set(pendentes.map((p: any) => p.contraparte_documento).filter(Boolean))];
+        
+        // Etapa 1: Match direto por cpf_cnpj do cliente
+        const { data: clientesDiretos } = await supabase
+          .from('clientes')
+          .select('id, cpf_cnpj')
+          .in('cpf_cnpj', docs);
+        
+        const mapaDireto = new Map<string, string>(
+          (clientesDiretos || []).map((c: any) => [c.cpf_cnpj, c.id])
+        );
+        
+        // Etapa 2: Match por pagadores conhecidos (terceiros)
+        const docsRestantes = docs.filter((d: string) => !mapaDireto.has(d));
+        let mapaTerceiros = new Map<string, string>();
+        
+        if (docsRestantes.length > 0) {
+          const { data: pagadores } = await supabase
+            .from('cliente_pagadores_conhecidos')
+            .select('documento, cliente_id')
+            .in('documento', docsRestantes);
+          
+          mapaTerceiros = new Map<string, string>(
+            (pagadores || []).map((p: any) => [p.documento, p.cliente_id])
+          );
+        }
+        
+        // Etapa 3: Aplicar matches em batch
+        for (const lancamento of pendentes) {
+          const doc = lancamento.contraparte_documento;
+          if (!doc) continue;
+          
+          if (mapaDireto.has(doc)) {
+            await supabase.from('lancamentos_bancarios')
+              .update({ cliente_id: mapaDireto.get(doc), match_type: 'auto_direto' })
+              .eq('id', lancamento.id);
+            matchedDireto++;
+          } else if (mapaTerceiros.has(doc)) {
+            await supabase.from('lancamentos_bancarios')
+              .update({ cliente_id: mapaTerceiros.get(doc), match_type: 'auto_terceiro' })
+              .eq('id', lancamento.id);
+            matchedTerceiro++;
+          }
+        }
+        
+        if (matchedDireto > 0 || matchedTerceiro > 0) {
+          console.log(`🔗 Auto-match: ${matchedDireto} direto(s), ${matchedTerceiro} terceiro(s)`);
+        }
+      }
+    } catch (matchError) {
+      console.error('⚠️ Erro no auto-match (não-fatal):', matchError);
+      // Auto-match é best-effort, não falha a sincronização
+    }
+    
+    // 5. Atualizar última sincronização na integração
     await supabase
       .from('integracoes_bancarias')
       .update({ ultima_sincronizacao: new Date().toISOString() })
@@ -795,6 +862,7 @@ app.post('/sync', async (c) => {
       message: `Sincronização concluída`,
       imported: importedCount,
       total: entries.length,
+      matched: { direto: matchedDireto, terceiro: matchedTerceiro },
       period: { start, end },
       logs: debugLogs
     });

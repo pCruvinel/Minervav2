@@ -66,11 +66,17 @@ export interface LancamentoBancario {
   tipo_custo_mo: 'flutuante' | 'geral' | null;
   colaborador_ids: string[] | null;
   is_rateio_colaboradores: boolean | null;
+  // Campos de vínculo com cliente
+  cliente_id: string | null;
+  match_type: 'auto_direto' | 'auto_terceiro' | 'manual' | null;
+  vinculado_por_id: string | null;
+  vinculado_em: string | null;
   // Joins
   categoria?: { id: string; nome: string; codigo: string } | null;
   setor?: { id: string; nome: string } | null;
   centro_custo?: { id: string; nome: string } | null;
   classificado_por?: { id: string; nome: string } | null;
+  cliente?: { id: string; nome_razao_social: string; cpf_cnpj: string } | null;
 }
 
 export interface RateioCentroCusto {
@@ -93,6 +99,7 @@ export interface ClassificarLancamentoParams {
   tipo_custo_mo?: 'flutuante' | 'geral';
   colaborador_ids?: string[];
   is_rateio_colaboradores?: boolean;
+  colabAnexoUrls?: Record<string, string>;
 }
 
 export interface ImportarExtratoParams {
@@ -157,6 +164,10 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     tipo_custo_mo: null,
     colaborador_ids: null,
     is_rateio_colaboradores: null,
+    cliente_id: null,
+    match_type: null,
+    vinculado_por_id: null,
+    vinculado_em: null,
   },
   {
     id: 'mock-2',
@@ -196,6 +207,10 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     tipo_custo_mo: null,
     colaborador_ids: null,
     is_rateio_colaboradores: null,
+    cliente_id: null,
+    match_type: null,
+    vinculado_por_id: null,
+    vinculado_em: null,
   },
   {
     id: 'mock-3',
@@ -235,6 +250,10 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     tipo_custo_mo: null,
     colaborador_ids: null,
     is_rateio_colaboradores: null,
+    cliente_id: null,
+    match_type: null,
+    vinculado_por_id: null,
+    vinculado_em: null,
   },
   {
     id: 'mock-4',
@@ -274,6 +293,10 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     tipo_custo_mo: null,
     colaborador_ids: null,
     is_rateio_colaboradores: null,
+    cliente_id: null,
+    match_type: null,
+    vinculado_por_id: null,
+    vinculado_em: null,
   },
   {
     id: 'mock-5',
@@ -316,6 +339,10 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     tipo_custo_mo: null,
     colaborador_ids: null,
     is_rateio_colaboradores: null,
+    cliente_id: null,
+    match_type: null,
+    vinculado_por_id: null,
+    vinculado_em: null,
   },
 ];
 
@@ -342,7 +369,8 @@ export function useLancamentosBancarios(options?: {
           *,
           categoria:categorias_financeiras!categoria_id (id, nome, codigo),
           setor:setores!setor_id (id, nome),
-          centro_custo:centros_custo!cc_id (id, nome)
+          centro_custo:centros_custo!cc_id (id, nome),
+          cliente:clientes!cliente_id (id, nome_razao_social, cpf_cnpj)
         `)
         .order('data', { ascending: false });
 
@@ -546,7 +574,7 @@ export function useClassificarLancamento() {
       // ==========================================================
       // Lógica Pós-RPC: Tratar Custos Variáveis de Colaborador
       // ==========================================================
-      const { tipo_custo_mo, colaborador_ids, is_rateio_colaboradores, id: lancamentoId } = params;
+      const { tipo_custo_mo, colaborador_ids, is_rateio_colaboradores, colabAnexoUrls, id: lancamentoId } = params;
 
       if (tipo_custo_mo && colaborador_ids && colaborador_ids.length > 0) {
         console.log('Classificando Mão de Obra:', { tipo_custo_mo, colaborador_ids, is_rateio_colaboradores });
@@ -567,23 +595,10 @@ export function useClassificarLancamento() {
           // toast.error('Erro ao salvar detalhes de MO');
         }
 
-        // 2. Se for FLUTUANTE, criar registros na tabela de custos variáveis
-        // OBS: "Geral/Tributo" só marca o lancamento, não cria custo extra (conforme regra de negocio)
-        // MAS a regra diz "O registro serve apenas para conciliar... e não deve ser somado".
-        // O user disse: "Você precisa criar uma lógica onde a Conciliação Bancária alimenta a tabela de custos extras".
-        // Se for Salário Base, não cria custo extra. Mas podemos querer o registro histórico?
-        // A regra diz: "não deve ser somado como um 'custo extra'".
-        // Vamos criar APENAS para 'flutuante'.
-
-        if (tipo_custo_mo === 'flutuante') {
-           // Calcular valor por colaborador
-           // Assumindo que o valor total é o do lançamento (entrada ou saida)
-           // Precisamos pegar o valor atualizado do lançamento.
-           // Mas params não tem o valor. Vamos pegar do retorno RPC ou assumir contexto?
-           // O RPC retorna success e ID. Não retorna valor.
-           // Vamos fazer um fetch rápido ou passar o valor no params?
-           // Melhor passar o valor no params para evitar roundtrip, mas o hook original n pede valor.
-           // Vamos buscar o lançamento atualizado.
+        // 2. Criar registros na tabela de custos variáveis para AMBOS os tipos.
+        // "flutuante" soma ao custo-dia; "geral" fica registrado mas a view
+        // vw_custo_total_colaborador_mensal já filtra com FILTER(WHERE tipo_custo='flutuante').
+        {
            const { data: lancData } = await supabase
              .from('lancamentos_bancarios')
              .select('entrada, saida, data')
@@ -591,22 +606,25 @@ export function useClassificarLancamento() {
              .single();
            
            if (lancData) {
-             const valorTotal = (lancData.entrada || 0) + (lancData.saida || 0); // Um deles é null/0 normalmente.
+             const valorTotal = (lancData.entrada || 0) + (lancData.saida || 0);
              const numColaboradores = colaborador_ids.length;
              const valorPorColaborador = valorTotal / numColaboradores;
-             const mesReferencia = lancData.data; // Data da transação define o mês de competência
+             const mesReferencia = lancData.data;
 
              const inserts = colaborador_ids.map(colabId => ({
                colaborador_id: colabId,
                lancamento_bancario_id: lancamentoId,
-               mes_referencia: mesReferencia, // Pode precisar ajustar para 1º do mês? O banco aceita DATE.
-               tipo_custo: 'flutuante',
-               descricao: params.observacoes || 'Custo flutuante via conciliação',
+               mes_referencia: mesReferencia,
+               tipo_custo: tipo_custo_mo,
+               descricao: tipo_custo_mo === 'geral'
+                 ? params.observacoes || 'Tributo/encargo geral via conciliação (não soma ao custo-dia)'
+                 : params.observacoes || 'Custo flutuante via conciliação',
                valor: valorPorColaborador,
                rateio_origem: !!is_rateio_colaboradores,
                total_colaboradores: numColaboradores,
                valor_original: valorTotal,
-               created_by: userId
+               created_by: userId,
+               anexo_url: colabAnexoUrls?.[colabId] || null,
              }));
 
              const { error: insertCustosError } = await supabase

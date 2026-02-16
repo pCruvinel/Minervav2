@@ -30,6 +30,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '../ui/alert-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 import { ModalHeaderPadrao } from '../ui/modal-header-padrao';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -40,7 +47,6 @@ import { cn } from '@/lib/utils';
 import {
   FileText,
   DollarSign,
-  Calendar,
   Eye,
   AlertTriangle,
   Upload,
@@ -59,6 +65,7 @@ import {
   MapPin,
   UserMinus,
   UserCheck,
+  MoreHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
@@ -350,232 +357,309 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
     );
   }
 
+  // Avatar initials helper
+  const getInitials = (name: string) => {
+    const parts = name.split(' ').filter(Boolean);
+    if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    return parts[0]?.[0]?.toUpperCase() || '?';
+  };
+
   return (
-    <div className="p-6 space-y-6 bg-background min-h-screen">
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={onBack}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl">{cliente.nome_razao_social}</h1>
-              <Badge variant="outline" className="font-mono text-xs">
-                {cliente.id.slice(0, 8)}...
-              </Badge>
-              {renderStatusBadge(cliente.status as ClienteStatus)}
+    <div className="bg-muted pb-6">
+      {/* Header Bar — Padrão OS Details */}
+      <div className="bg-background/95 backdrop-blur-sm border-b border-border">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            {/* Left: Back */}
+            <Button variant="ghost" size="sm" className="gap-2" onClick={onBack}>
+              <ArrowLeft className="w-4 h-4" />
+              Voltar
+            </Button>
+
+            {/* Center: Avatar + Name */}
+            <div className="text-center flex flex-col items-center gap-1">
+              <div className="w-12 h-12 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center">
+                <span className="text-sm font-bold text-primary">
+                  {getInitials(cliente.nome_razao_social)}
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-neutral-900">{cliente.nome_razao_social}</h1>
+              <div className="flex items-center gap-2 text-sm text-neutral-600">
+                {cliente.cpf_cnpj && <span className="font-mono text-xs">{cliente.cpf_cnpj}</span>}
+                {cliente.cpf_cnpj && <span>•</span>}
+                <span>Cliente desde {formatDate(cliente.created_at)}</span>
+              </div>
             </div>
-            <p className="text-muted-foreground">
-              Dossiê interno do cliente - Visão administrativa
-            </p>
+
+            {/* Right: Status + Actions */}
+            <div className="flex items-center gap-2">
+              {renderStatusBadge(cliente.status as ClienteStatus)}
+
+              <Button variant="outline" size="sm" onClick={() => setModalEditarOpen(true)}>
+                <Pencil className="mr-2 h-4 w-4" />
+                Editar
+              </Button>
+
+              {/* Dropdown: Mais Ações */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  {(cliente.email || cliente.telefone) && (
+                    <DropdownMenuItem onClick={() => setShowSendMessageModal(true)}>
+                      <Send className="mr-2 h-4 w-4" />
+                      Enviar Mensagem
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuItem onClick={handleVisualizarPortal}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    Visualizar como Cliente
+                  </DropdownMenuItem>
+
+                  {cliente.email && (
+                    <DropdownMenuItem
+                      onClick={() => {
+                        if (inviteStatus?.inviteAccepted) {
+                          setModalToggleAcessoOpen(true);
+                        } else {
+                          setModalConviteOpen(true);
+                        }
+                      }}
+                      disabled={isLoadingInvite}
+                    >
+                      {inviteStatus?.inviteAccepted && inviteStatus?.portalAtivo ? (
+                        <CheckCircle className="mr-2 h-4 w-4 text-success" />
+                      ) : inviteStatus?.inviteAccepted && !inviteStatus?.portalAtivo ? (
+                        <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
+                      ) : (
+                        <Mail className="mr-2 h-4 w-4" />
+                      )}
+                      {inviteStatus?.inviteAccepted
+                        ? inviteStatus?.portalAtivo ? 'Acesso Ativo' : 'Acesso Desativado'
+                        : inviteStatus?.hasInvite ? 'Reenviar Convite' : 'Enviar Convite de Acesso'}
+                    </DropdownMenuItem>
+                  )}
+
+                  <DropdownMenuSeparator />
+
+                  <DropdownMenuItem
+                    onClick={() => setModalStatusOpen(true)}
+                    variant={cliente.status === 'ativo' ? 'destructive' : 'default'}
+                  >
+                    {cliente.status === 'ativo' ? (
+                      <><UserMinus className="mr-2 h-4 w-4" /> Desativar Cliente</>
+                    ) : (
+                      <><UserCheck className="mr-2 h-4 w-4" /> Ativar Cliente</>
+                    )}
+                  </DropdownMenuItem>
+
+                  {cliente.status === 'ativo' && contratosSummary.contratosAtivos > 0 && (
+                    <DropdownMenuItem
+                      onClick={() => setModalInativarOpen(true)}
+                      variant="destructive"
+                    >
+                      <AlertTriangle className="mr-2 h-4 w-4" />
+                      Inativar Contrato
+                    </DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* Botão Editar */}
-          <Button variant="outline" onClick={() => setModalEditarOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" />
-            Editar
-          </Button>
-
-          {/* Botão Enviar Mensagem */}
-          {(cliente.email || cliente.telefone) && (
-            <Button variant="outline" onClick={() => setShowSendMessageModal(true)}>
-              <Send className="mr-2 h-4 w-4" />
-              Enviar Mensagem
-            </Button>
-          )}
-
-          {/* Botão Desativar/Ativar */}
-          <Button
-            variant="outline"
-            onClick={() => setModalStatusOpen(true)}
-            className={cn(
-              cliente.status === 'ativo' && "text-warning hover:text-warning"
-            )}
-          >
-            {cliente.status === 'ativo' ? (
-              <>
-                <UserMinus className="mr-2 h-4 w-4" />
-                Desativar
-              </>
-            ) : (
-              <>
-                <UserCheck className="mr-2 h-4 w-4" />
-                Ativar
-              </>
-            )}
-          </Button>
-
-          {/* Botão de Convite de Acesso / Toggle */}
-          {cliente.email && (
-            <Button
-              variant="outline"
-              onClick={() => {
-                if (inviteStatus?.inviteAccepted) {
-                  // Se tem acesso, abrir modal de toggle
-                  setModalToggleAcessoOpen(true);
-                } else {
-                  // Se não tem acesso, abrir modal de convite
-                  setModalConviteOpen(true);
-                }
-              }}
-              disabled={isLoadingInvite}
-              className={cn(
-                inviteStatus?.inviteAccepted && !inviteStatus?.portalAtivo && "text-destructive hover:text-destructive"
-              )}
-            >
-              {isLoadingInvite ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : inviteStatus?.inviteAccepted && inviteStatus?.portalAtivo ? (
-                <CheckCircle className="mr-2 h-4 w-4 text-success" />
-              ) : inviteStatus?.inviteAccepted && !inviteStatus?.portalAtivo ? (
-                <AlertCircle className="mr-2 h-4 w-4 text-destructive" />
-              ) : (
-                <Mail className="mr-2 h-4 w-4" />
-              )}
-              {inviteStatus?.inviteAccepted
-                ? inviteStatus?.portalAtivo
-                  ? 'Acesso Ativo'
-                  : 'Acesso Desativado'
-                : inviteStatus?.hasInvite
-                  ? 'Reenviar Convite'
-                  : 'Enviar Convite de Acesso'}
-            </Button>
-          )}
-          <Button variant="outline" onClick={handleVisualizarPortal}>
-            <Eye className="mr-2 h-4 w-4" />
-            Visualizar como Cliente
-          </Button>
-          {cliente.status === 'ativo' && contratosSummary.contratosAtivos > 0 && (
-            <Button variant="destructive" onClick={() => setModalInativarOpen(true)}>
-              <AlertTriangle className="mr-2 h-4 w-4" />
-              Inativar Contrato
-            </Button>
-          )}
-        </div>
       </div>
 
-      {/* Resumo Rápido */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Contratos Ativos</p>
-              <FileText className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-xl">{contratosSummary.contratosAtivos}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              {contratoPrincipal ? `Principal: ${contratoPrincipal.tipo}` : 'Nenhum contrato ativo'}
-            </p>
-          </CardContent>
-        </Card>
+      {/* Content */}
+      <div className="container mx-auto px-6 py-6">
+        <Tabs defaultValue="visao-geral" className="space-y-6">
+          {/* Tab Navigation — Pill Style (Padrão OS Details) */}
+          <TabsList className="w-full h-auto p-1 bg-muted rounded-xl">
+            <TabsTrigger value="visao-geral" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <FileText className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Visão Geral</span>
+              <span className="sm:hidden truncate">Geral</span>
+            </TabsTrigger>
+            <TabsTrigger value="contratos" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <ClipboardList className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Contratos ({contratosSummary.contratosAtivos})</span>
+              <span className="sm:hidden truncate">Contratos ({contratosSummary.contratosAtivos})</span>
+            </TabsTrigger>
+            <TabsTrigger value="historico-os" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <ClipboardList className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Histórico OS ({ordensServico.length})</span>
+              <span className="sm:hidden truncate">OS ({ordensServico.length})</span>
+            </TabsTrigger>
+            <TabsTrigger value="financeiro" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <DollarSign className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Financeiro</span>
+              <span className="sm:hidden truncate">Financ.</span>
+            </TabsTrigger>
+            <TabsTrigger value="documentos" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <FolderOpen className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Documentos</span>
+              <span className="sm:hidden truncate">Docs</span>
+            </TabsTrigger>
+          </TabsList>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Total de OS</p>
-              <ClipboardList className="h-4 w-4 text-blue-500" />
-            </div>
-            <h3 className="text-xl text-blue-500">{ordensServico.length}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Ordens de serviço
-            </p>
-          </CardContent>
-        </Card>
+          {/* Overview Tab — Grid 2:1 (Padrão OS Details) */}
+          <TabsContent value="visao-geral" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Left Column: Detalhes (span 2) */}
+              <Card className="border-border rounded-lg shadow-sm h-full flex flex-col lg:col-span-2">
+                <CardContent className="space-y-6 pt-6 flex-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Contato Section */}
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <User className="w-4 h-4" />
+                        <span className="font-medium">Contato</span>
+                      </div>
+                      <p className="text-lg font-medium text-foreground">{cliente.nome_razao_social}</p>
+                      <div className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
+                        {cliente.email && (
+                          <span className="flex items-center gap-2">
+                            <Mail className="w-3.5 h-3.5" />
+                            {cliente.email}
+                          </span>
+                        )}
+                        {cliente.telefone && (
+                          <span className="flex items-center gap-2">
+                            <Phone className="w-3.5 h-3.5" />
+                            {cliente.telefone}
+                          </span>
+                        )}
+                      </div>
+                      {(cliente.email || cliente.telefone) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-3 w-full"
+                          onClick={() => setShowSendMessageModal(true)}
+                        >
+                          <Mail className="w-4 h-4 mr-2" />
+                          Enviar Mensagem
+                        </Button>
+                      )}
+                    </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Valor Mensal</p>
-              <DollarSign className="h-4 w-4 text-success" />
-            </div>
-            <h3 className="text-xl text-success">
-              {formatCurrency(contratosSummary.valorRecorrenteMensal)}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Receita recorrente
-            </p>
-          </CardContent>
-        </Card>
+                    {/* Endereço Section */}
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                        <MapPin className="w-4 h-4" />
+                        <span className="font-medium">Endereço</span>
+                      </div>
+                      {cliente.endereco?.logradouro ? (
+                        <div className="text-sm text-foreground">
+                          <p className="font-medium">
+                            {cliente.endereco.logradouro}
+                            {cliente.endereco.numero ? `, ${cliente.endereco.numero}` : ''}
+                          </p>
+                          <p className="text-muted-foreground">
+                            {cliente.endereco.bairro || ''}
+                            {cliente.endereco.cidade ? ` - ${cliente.endereco.cidade}` : ''}
+                            {cliente.endereco.estado ? `/${cliente.endereco.estado}` : ''}
+                          </p>
+                          {cliente.endereco.cep && (
+                            <p className="text-xs text-muted-foreground mt-1">CEP: {cliente.endereco.cep}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">Endereço não informado</p>
+                      )}
+                    </div>
+                  </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Valor Total</p>
-              <DollarSign className="h-4 w-4 text-primary" />
-            </div>
-            <h3 className="text-xl">
-              {formatCurrency(contratosSummary.valorTotalContratos)}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Todos os contratos
-            </p>
-          </CardContent>
-        </Card>
+                  {/* Grid: CPF/CNPJ + Data Cadastro + Tipo */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">CPF/CNPJ</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground font-mono">
+                        {cliente.cpf_cnpj || '-'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <User className="w-4 h-4" />
+                        <span className="font-medium">Tipo</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        {cliente.tipo_cliente === 'PESSOA_JURIDICA' ? 'Pessoa Jurídica' : 'Pessoa Física'}
+                      </p>
+                    </div>
+                    <div className="p-4 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                        <FileText className="w-4 h-4" />
+                        <span className="font-medium">Cadastro</span>
+                      </div>
+                      <p className="text-sm font-medium text-foreground">
+                        {formatDate(cliente.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-muted-foreground">Cliente desde</p>
-              <Calendar className="h-4 w-4 text-warning" />
+              {/* Right Column: Resumo (span 1) */}
+              <div className="space-y-4 lg:col-span-1">
+                {/* Resumo Financeiro */}
+                <Card className="border-border rounded-lg shadow-sm">
+                  <CardContent className="pt-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                        <p className="text-2xl font-bold text-foreground mb-0.5">{contratosSummary.contratosAtivos}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Contratos</p>
+                      </div>
+                      <div className="p-3 rounded-lg bg-muted/30 border border-border/50 text-center hover:bg-muted/50 transition-colors">
+                        <p className="text-2xl font-bold text-foreground mb-0.5">{ordensServico.length}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">OS Total</p>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Receita Mensal</p>
+                      <p className="text-xl font-bold text-success">{formatCurrency(contratosSummary.valorRecorrenteMensal)}</p>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Valor Total Contratos</p>
+                      <p className="text-xl font-bold text-primary">{formatCurrency(contratosSummary.valorTotalContratos)}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {contratoPrincipal ? `Principal: ${contratoPrincipal.tipo}` : 'Nenhum contrato ativo'}
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
-            <h3 className="text-xl">{formatDate(cliente.created_at)}</h3>
-            <p className="text-xs text-muted-foreground mt-1">
-              Data de cadastro
-            </p>
-          </CardContent>
-        </Card>
+
+            {/* Visão Geral Tab Content (below grid) */}
+            <ClienteTabVisaoGeral cliente={cliente} isLoading={isLoadingCliente} />
+          </TabsContent>
+
+          <TabsContent value="contratos" className="space-y-6">
+            <ClienteTabContratos clienteId={clienteId} />
+          </TabsContent>
+
+          <TabsContent value="historico-os" className="space-y-6">
+            <ClienteTabHistoricoOS ordensServico={ordensServico} isLoading={isLoadingCliente} />
+          </TabsContent>
+
+          <TabsContent value="financeiro" className="space-y-6">
+            <ClienteTabFinanceiro clienteId={clienteId} />
+          </TabsContent>
+
+          <TabsContent value="documentos" className="space-y-6">
+            <ClienteTabDocumentos clienteId={clienteId} />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      {/* Tabs de Conteúdo */}
-      <Tabs defaultValue="visao-geral" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="visao-geral">Visão Geral</TabsTrigger>
-          <TabsTrigger value="contratos">
-            Contratos
-            {contratosSummary.contratosAtivos > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
-                {contratosSummary.contratosAtivos}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="historico-os">
-            Histórico de OS
-            {ordensServico.length > 0 && (
-              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
-                {ordensServico.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="financeiro">Financeiro</TabsTrigger>
-          <TabsTrigger value="documentos">
-            <FolderOpen className="h-4 w-4 mr-1" />
-            Documentos
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="visao-geral">
-          <ClienteTabVisaoGeral cliente={cliente} isLoading={isLoadingCliente} />
-        </TabsContent>
-
-        <TabsContent value="contratos">
-          <ClienteTabContratos clienteId={clienteId} />
-        </TabsContent>
-
-        <TabsContent value="historico-os">
-          <ClienteTabHistoricoOS ordensServico={ordensServico} isLoading={isLoadingCliente} />
-        </TabsContent>
-
-        <TabsContent value="financeiro">
-          <ClienteTabFinanceiro clienteId={clienteId} />
-        </TabsContent>
-
-        <TabsContent value="documentos">
-          <ClienteTabDocumentos clienteId={clienteId} />
-        </TabsContent>
-      </Tabs>
 
       {/* Modal de Inativação de Contrato - Modernizado */}
       <Dialog open={modalInativarOpen} onOpenChange={setModalInativarOpen}>

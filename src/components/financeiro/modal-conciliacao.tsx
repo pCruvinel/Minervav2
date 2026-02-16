@@ -58,6 +58,8 @@ import {
   AlertTriangle,
   Info,
   Users,
+  UserCheck,
+  Unlink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -79,6 +81,14 @@ import { useColaboradoresSelect } from '@/lib/hooks/use-colaboradores';
 import { useCustosVariaveisPorLancamento } from '@/lib/hooks/use-custos-variaveis';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import {
+  useReceitasPrevistasConciliacao,
+  filtrarReceitasPorBusca,
+  type ReceitaPrevistaConciliacao,
+} from '@/lib/hooks/use-receitas-previstas-conciliacao';
+import { validarExtensaoAnexo, gerarPathAnexo } from '@/lib/hooks/colab-anexo-utils';
+import { useVincularPagador, useDesvincularPagador } from '@/lib/hooks/use-vincular-pagador';
+import { useClientes } from '@/lib/hooks/use-clientes';
 
 const CATEGORIA_MAO_DE_OBRA_ID = '843f5fef-fb6a-49bd-bec3-b0917c2d4204';
 
@@ -150,9 +160,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
   const [usarValorParcial, setUsarValorParcial] = useState(false);
   const [valorParcial, setValorParcial] = useState<number>(0);
   const [searchTerm, setSearchTerm] = useState('');
-
-  // Entry Vincular: CC-first flow
-  const [centroCustoVincular, setCentroCustoVincular] = useState('');
+  const [searchTermReceitas, setSearchTermReceitas] = useState('');
 
   // Criar state
   const [categoriaIdSelecionada, setCategoriaIdSelecionada] = useState('');
@@ -163,6 +171,13 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
   const [selectedColabIds, setSelectedColabIds] = useState<string[]>([]);
   const [tipoCustoVariavel, setTipoCustoVariavel] = useState<'flutuante' | 'geral'>('flutuante');
   const [colabRateios, setColabRateios] = useState<Record<string, number>>({}); // { colabId: percentual }
+  const [colabAnexos, setColabAnexos] = useState<Record<string, File | null>>({}); // { colabId: File }
+
+  // Vincular Cliente state
+  const [clienteSelecionadoId, setClienteSelecionadoId] = useState<string>('');
+  const [lembrarPagador, setLembrarPagador] = useState(true);
+  const [relacaoPagador, setRelacaoPagador] = useState<'titular' | 'socio' | 'familiar' | 'terceiro'>('terceiro');
+  const [searchCliente, setSearchCliente] = useState('');
 
   // Read-only mode detection
   const isReadOnly = lancamento?.status === 'conciliado';
@@ -192,8 +207,28 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
     isReadOnly && lancamento?.id ? lancamento.id : undefined
   );
 
+  // Hook: receitas previstas para Vincular Entrada
+  const { data: receitasPrevistas = [], isLoading: loadingReceitas } = useReceitasPrevistasConciliacao(
+    open && !!lancamento?.entrada
+  );
+
   const vincularMutation = useVincularLancamento();
   const classificarMutation = useClassificarLancamento();
+  const vincularPagadorMutation = useVincularPagador();
+  const desvincularPagadorMutation = useDesvincularPagador();
+  const { clientes: todosClientes = [], loading: loadingClientes } = useClientes({ status: ['ativo', 'lead'] });
+
+  // Filtrar clientes por busca
+  const clientesFiltrados = useMemo(() => {
+    if (!searchCliente) return todosClientes.slice(0, 20);
+    const term = searchCliente.toLowerCase();
+    return todosClientes.filter(
+      (c: any) =>
+        c.nome_razao_social?.toLowerCase().includes(term) ||
+        c.cpf_cnpj?.toLowerCase().includes(term) ||
+        c.apelido?.toLowerCase().includes(term)
+    ).slice(0, 20);
+  }, [todosClientes, searchCliente]);
 
   // Detectar se categoria é Mão de Obra (para read-only)
   const isCategoriaMovelObra = useMemo(() => {
@@ -221,11 +256,10 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
     return ids.includes(categoriaIdSelecionada);
   }, [categoriaIdSelecionada, aplicacaoDbId]);
 
-  // Para Entrada Vincular: filtrar receitas pelo CC selecionado
-  const receitasFiltradas = useMemo(() => {
-    if (!lancamento?.entrada || !centroCustoVincular) return [];
-    return todosRegistros.filter(r => r.cc_id === centroCustoVincular);
-  }, [lancamento?.entrada, centroCustoVincular, todosRegistros]);
+  // Para Entrada Vincular: filtrar receitas previstas por busca
+  const receitasPrevistasFiltradas = useMemo(() => {
+    return filtrarReceitasPorBusca(receitasPrevistas, searchTermReceitas);
+  }, [receitasPrevistas, searchTermReceitas]);
 
   // Load CCs when modal opens
   useEffect(() => {
@@ -248,7 +282,12 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
       setSelectedColabIds([]);
       setTipoCustoVariavel('flutuante');
       setColabRateios({});
-      setCentroCustoVincular('');
+      setColabAnexos({});
+      setSearchTermReceitas('');
+      setClienteSelecionadoId('');
+      setLembrarPagador(true);
+      setRelacaoPagador('terceiro');
+      setSearchCliente('');
     }
   }, [open, lancamento, valorLancamento]);
 
@@ -461,8 +500,25 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
       let notaFiscalUrl = lancamento.nota_fiscal_url;
       let comprovanteUrl = lancamento.comprovante_url;
 
-      if (notaFiscal) notaFiscalUrl = await uploadFile(notaFiscal);
-      if (comprovante) comprovanteUrl = await uploadFile(comprovante);
+      // Upload per-collaborator attachments for MO
+      let colabAnexoUrls: Record<string, string> | undefined;
+      if (isCategoriaMaoDeObra) {
+        colabAnexoUrls = {};
+        for (const [colabId, file] of Object.entries(colabAnexos)) {
+          if (file) {
+            const path = gerarPathAnexo(colabId, lancamento.id, file.name);
+            const { error: upErr } = await supabase.storage
+              .from('financeiro')
+              .upload(path, file);
+            if (upErr) throw upErr;
+            const { data: urlData } = supabase.storage.from('financeiro').getPublicUrl(path);
+            colabAnexoUrls[colabId] = urlData.publicUrl;
+          }
+        }
+      } else {
+        if (notaFiscal) notaFiscalUrl = await uploadFile(notaFiscal);
+        if (comprovante) comprovanteUrl = await uploadFile(comprovante);
+      }
 
       await classificarMutation.mutateAsync({
         id: lancamento.id,
@@ -475,12 +531,13 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
           valor: r.valor,
           percentual: r.percentual,
         })),
-        nota_fiscal_url: notaFiscalUrl || undefined,
-        comprovante_url: comprovanteUrl || undefined,
+        nota_fiscal_url: isCategoriaMaoDeObra ? undefined : (notaFiscalUrl || undefined),
+        comprovante_url: isCategoriaMaoDeObra ? undefined : (comprovanteUrl || undefined),
         // Campos Extras Mão de Obra
         tipo_custo_mo: isCategoriaMaoDeObra ? tipoCustoVariavel : undefined,
         colaborador_ids: isCategoriaMaoDeObra ? selectedColabIds : undefined,
         is_rateio_colaboradores: isCategoriaMaoDeObra ? selectedColabIds.length > 0 : undefined,
+        colabAnexoUrls: isCategoriaMaoDeObra ? colabAnexoUrls : undefined,
       });
 
       toast.success('Transação classificada com sucesso!');
@@ -903,6 +960,149 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
           </div>
         </DialogHeader>
 
+        {/* Seção: Vincular Cliente */}
+        {lancamento.contraparte_documento && (
+          <div className="mx-6 mt-3 rounded-lg border p-3 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                Cliente Vinculado
+              </h4>
+              {lancamento.match_type && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[10px]',
+                    lancamento.match_type === 'auto_direto' && 'border-success/30 text-success bg-success/10',
+                    lancamento.match_type === 'auto_terceiro' && 'border-primary/30 text-primary bg-primary/10',
+                    lancamento.match_type === 'manual' && 'border-warning/30 text-warning bg-warning/10'
+                  )}
+                >
+                  {lancamento.match_type === 'auto_direto' && '✓ Auto (CPF/CNPJ)'}
+                  {lancamento.match_type === 'auto_terceiro' && '✓ Auto (Terceiro)'}
+                  {lancamento.match_type === 'manual' && '✓ Manual'}
+                </Badge>
+              )}
+            </div>
+
+            {lancamento.cliente_id && lancamento.cliente ? (
+              /* Cliente já vinculado */
+              <div className="flex items-center justify-between bg-muted/50 rounded-md p-2">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{lancamento.cliente.nome_razao_social}</p>
+                    <p className="text-xs text-muted-foreground font-mono">{lancamento.cliente.cpf_cnpj}</p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs text-destructive hover:text-destructive"
+                  onClick={() => {
+                    if (lancamento?.id) {
+                      desvincularPagadorMutation.mutate(lancamento.id);
+                    }
+                  }}
+                  disabled={desvincularPagadorMutation.isPending}
+                >
+                  <Unlink className="h-3 w-3 mr-1" />
+                  Desvincular
+                </Button>
+              </div>
+            ) : (
+              /* Sem vínculo — formulário de busca */
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar cliente por nome ou CPF/CNPJ..."
+                    value={searchCliente}
+                    onChange={(e) => setSearchCliente(e.target.value)}
+                    className="pl-9 h-8 text-sm"
+                  />
+                </div>
+
+                {/* Lista de clientes */}
+                {(searchCliente || clienteSelecionadoId) && (
+                  <div className="max-h-[120px] overflow-y-auto border rounded-md">
+                    {loadingClientes ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Carregando...</p>
+                    ) : clientesFiltrados.length === 0 ? (
+                      <p className="text-xs text-muted-foreground text-center py-2">Nenhum cliente encontrado</p>
+                    ) : (
+                      clientesFiltrados.map((c: any) => (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={cn(
+                            'w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 flex items-center justify-between',
+                            clienteSelecionadoId === c.id && 'bg-primary/10 text-primary'
+                          )}
+                          onClick={() => setClienteSelecionadoId(c.id === clienteSelecionadoId ? '' : c.id)}
+                        >
+                          <div>
+                            <span className="font-medium">{c.nome_razao_social}</span>
+                            {c.apelido && <span className="text-muted-foreground ml-1">({c.apelido})</span>}
+                          </div>
+                          <span className="font-mono text-muted-foreground">{c.cpf_cnpj}</span>
+                        </button>
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {/* Opções de vínculo */}
+                {clienteSelecionadoId && (
+                  <div className="flex items-center gap-4 pt-1">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        id="lembrar-pagador"
+                        checked={lembrarPagador}
+                        onCheckedChange={(v) => setLembrarPagador(!!v)}
+                      />
+                      <Label htmlFor="lembrar-pagador" className="text-xs cursor-pointer">
+                        Lembrar este pagador
+                      </Label>
+                    </div>
+                    {lembrarPagador && (
+                      <Select value={relacaoPagador} onValueChange={(v) => setRelacaoPagador(v as any)}>
+                        <SelectTrigger className="h-7 w-[130px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="titular">Titular</SelectItem>
+                          <SelectItem value="socio">Sócio</SelectItem>
+                          <SelectItem value="familiar">Familiar</SelectItem>
+                          <SelectItem value="terceiro">Terceiro</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      size="sm"
+                      className="h-7 text-xs ml-auto"
+                      onClick={() => {
+                        if (lancamento?.id && clienteSelecionadoId) {
+                          vincularPagadorMutation.mutate({
+                            lancamento_id: lancamento.id,
+                            cliente_id: clienteSelecionadoId,
+                            lembrar: lembrarPagador,
+                            relacao: relacaoPagador,
+                          });
+                        }
+                      }}
+                      disabled={vincularPagadorMutation.isPending}
+                    >
+                      <UserCheck className="h-3 w-3 mr-1" />
+                      Vincular
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'vincular' | 'criar')} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="mx-6 mt-4 grid w-auto grid-cols-2 bg-muted/50">
@@ -918,73 +1118,80 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
 
           {/* Tab: Vincular */}
           <TabsContent value="vincular" className="flex-1 overflow-hidden flex flex-col m-0 px-6 py-4 data-[state=inactive]:hidden">
-            {/* ===== FLUXO ENTRADA: CC-first ===== */}
+            {/* ===== FLUXO ENTRADA: Receitas Previstas ===== */}
             {isEntrada ? (
               <>
-                {/* Step 1: Selecionar Centro de Custo */}
+                {/* Busca */}
                 <div className="space-y-2 mb-4">
-                  <Label className="text-sm font-medium">1. Selecione o Centro de Custo (Obra/Cliente)</Label>
-                  <Select value={centroCustoVincular} onValueChange={(val) => { setCentroCustoVincular(val); setRegistroSelecionado(null); }}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um centro de custo..." />
-                    </SelectTrigger>
-                    <SelectContent className="max-h-[200px]">
-                      {centrosCusto.map((cc) => (
-                        <SelectItem key={cc.id} value={cc.id}>
-                          {cc.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm font-medium">Selecione a receita prevista</Label>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por cliente, centro de custo..."
+                      value={searchTermReceitas}
+                      onChange={(e) => setSearchTermReceitas(e.target.value)}
+                      className="pl-9"
+                      aria-label="Buscar receita prevista"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {receitasPrevistasFiltradas.length} receita{receitasPrevistasFiltradas.length !== 1 ? 's' : ''} pendente{receitasPrevistasFiltradas.length !== 1 ? 's' : ''}
+                  </p>
                 </div>
 
-                {/* Step 2: Listar Receitas Pendentes do CC */}
-                {centroCustoVincular ? (
-                  <div className="flex-1 overflow-hidden">
-                    <p className="text-sm font-medium mb-2">
-                      2. Selecione a receita/fatura sendo paga
-                    </p>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Receitas pendentes em <span className="font-medium">{centrosCusto.find(cc => cc.id === centroCustoVincular)?.nome}</span> ({receitasFiltradas.length})
-                    </p>
-                    <div className="h-[200px] overflow-y-auto pr-4">
-                      <div className="space-y-2">
-                        {loadingRegistros ? (
-                          <p className="text-sm text-muted-foreground text-center py-4">Carregando...</p>
-                        ) : receitasFiltradas.length === 0 ? (
-                          <p className="text-sm text-muted-foreground text-center py-8">
-                            Nenhuma receita pendente neste centro de custo.
-                          </p>
-                        ) : (
-                          receitasFiltradas.map((registro) => (
-                            <RegistroCard
-                              key={registro.id}
-                              registro={{
-                                ...registro,
-                                matchScore: registro.matchScore ?? 0,
-                                matchReason: registro.matchReason ?? ''
+                {/* Lista de receitas previstas */}
+                <div className="flex-1 overflow-hidden">
+                  <div className="h-[250px] overflow-y-auto pr-2">
+                    <div className="space-y-2" role="listbox" aria-label="Receitas previstas pendentes">
+                      {loadingReceitas ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">Carregando receitas...</p>
+                      ) : receitasPrevistasFiltradas.length === 0 ? (
+                        <div className="flex-1 flex items-center justify-center py-8">
+                          <div className="text-center text-muted-foreground">
+                            <Wallet className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">Nenhuma receita prevista encontrada</p>
+                            {searchTermReceitas && (
+                              <p className="text-xs mt-1">Tente outro termo de busca</p>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        receitasPrevistasFiltradas.map((receita) => {
+                          const valorMatch = Math.abs(receita.valor_previsto - valorLancamento) < 0.01;
+                          const isSelected = registroSelecionado?.id === receita.id;
+                          return (
+                            <ReceitaPrevistaCard
+                              key={receita.id}
+                              receita={receita}
+                              selected={isSelected}
+                              valorMatch={valorMatch}
+                              onSelect={() => {
+                                setRegistroSelecionado({
+                                  id: receita.id,
+                                  tipo: 'receber',
+                                  descricao: receita.descricaoFormatada,
+                                  valor: receita.valor_previsto,
+                                  vencimento: receita.vencimento,
+                                  status: receita.status as 'pendente' | 'pago' | 'recebido' | 'atrasado' | 'parcial',
+                                  cc_id: receita.cc_id,
+                                  cc_nome: receita.cc_nome,
+                                  categoria_id: null,
+                                  categoria_nome: null,
+                                  setor_id: null,
+                                  setor_nome: null,
+                                  cliente_nome: receita.cliente_nome,
+                                  contrato_id: receita.contrato_id,
+                                  matchScore: valorMatch ? 100 : 0,
+                                  matchReason: valorMatch ? 'Valor exato' : '',
+                                });
                               }}
-                              selected={registroSelecionado?.id === registro.id}
-                              onSelect={() => setRegistroSelecionado({
-                                ...registro,
-                                matchScore: registro.matchScore ?? 0,
-                                matchReason: registro.matchReason ?? ''
-                              })}
                             />
-                          ))
-                        )}
-                      </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
-                ) : (
-                  <div className="flex-1 flex items-center justify-center">
-                    <div className="text-center text-muted-foreground">
-                      <Building2 className="h-10 w-10 mx-auto mb-2 opacity-30" />
-                      <p className="text-sm">Selecione um Centro de Custo acima</p>
-                      <p className="text-xs mt-1">As receitas pendentes aparecerão aqui</p>
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 {/* Opção de valor parcial */}
                 {registroSelecionado && (
@@ -1254,6 +1461,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                                               <th className="text-left px-3 py-2 font-medium">Setor</th>
                                               <th className="text-right px-3 py-2 font-medium w-24">%</th>
                                               <th className="text-right px-3 py-2 font-medium w-28">Valor</th>
+                                              <th className="text-center px-3 py-2 font-medium w-24">Anexo</th>
                                           </tr>
                                       </thead>
                                       <tbody>
@@ -1290,6 +1498,46 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                                                               className="h-7 text-right tabular-nums text-xs w-24 ml-auto"
                                                           />
                                                       </td>
+                                                      <td className="px-1 py-1 text-center">
+                                                          {colabAnexos[colabId] ? (
+                                                            <div className="flex items-center justify-center gap-1">
+                                                              <FileText className="h-3.5 w-3.5 text-primary shrink-0" />
+                                                              <span className="text-[10px] truncate max-w-[50px]" title={colabAnexos[colabId]!.name}>
+                                                                {colabAnexos[colabId]!.name}
+                                                              </span>
+                                                              <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="h-5 w-5 p-0 shrink-0"
+                                                                aria-label={`Remover anexo de ${colab?.nome_completo || 'colaborador'}`}
+                                                                onClick={() => setColabAnexos(prev => ({ ...prev, [colabId]: null }))}
+                                                              >
+                                                                <Trash2 className="h-3 w-3 text-destructive" />
+                                                              </Button>
+                                                            </div>
+                                                          ) : (
+                                                            <label
+                                                              className="inline-flex items-center gap-1 cursor-pointer text-muted-foreground hover:text-primary transition-colors"
+                                                              aria-label={`Anexar documento para ${colab?.nome_completo || 'colaborador'}`}
+                                                            >
+                                                              <Upload className="h-3.5 w-3.5" />
+                                                              <span className="text-[10px]">Anexar</span>
+                                                              <input
+                                                                type="file"
+                                                                className="hidden"
+                                                                accept=".pdf,.jpg,.jpeg,.png"
+                                                                onChange={(e) => {
+                                                                  const file = e.target.files?.[0];
+                                                                  if (file && validarExtensaoAnexo(file.name)) {
+                                                                    setColabAnexos(prev => ({ ...prev, [colabId]: file }));
+                                                                  }
+                                                                  e.target.value = '';
+                                                                }}
+                                                              />
+                                                            </label>
+                                                          )}
+                                                      </td>
                                                   </tr>
                                               );
                                           })}
@@ -1299,7 +1547,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                                           isColabRateioValido ? "bg-muted/30" : "bg-destructive/10"
                                       )}>
                                           <tr>
-                                              <td className="px-3 py-2" colSpan={2}>TOTAL</td>
+                                              <td className="px-3 py-2" colSpan={3}>TOTAL</td>
                                               <td className={cn(
                                                   "px-3 py-2 text-right",
                                                   !isColabRateioValido && "text-destructive"
@@ -1424,7 +1672,8 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
               </div>
               )}
 
-              {/* Seção: Documentos */}
+              {/* Seção: Documentos - oculta quando Mão de Obra (upload é por linha) */}
+              {categoriaIdSelecionada !== CATEGORIA_MAO_DE_OBRA_ID && (
               <div className="space-y-3 pt-2 border-t">
                 <h4 className="text-sm font-semibold flex items-center gap-2">
                   <FileText className="h-4 w-4" />
@@ -1529,6 +1778,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                   </div>
                 </div>
               </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
@@ -1665,6 +1915,85 @@ function RegistroCard({ registro, selected, onSelect, showMatch }: RegistroCardP
       {showMatch && registro.matchReason && (
         <p className="text-[10px] text-muted-foreground mt-1">{registro.matchReason}</p>
       )}
+    </button>
+  );
+}
+
+// ---- ReceitaPrevistaCard ----
+
+interface ReceitaPrevistaCardProps {
+  receita: ReceitaPrevistaConciliacao;
+  selected: boolean;
+  valorMatch: boolean;
+  onSelect: () => void;
+}
+
+function ReceitaPrevistaCard({ receita, selected, valorMatch, onSelect }: ReceitaPrevistaCardProps) {
+  const fmtCurrency = (v: number) =>
+    new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+  const fmtDate = (d: string) => {
+    try {
+      return format(new Date(d), 'dd/MM/yyyy', { locale: ptBR });
+    } catch {
+      return d;
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      role="option"
+      aria-selected={selected}
+      onClick={onSelect}
+      className={cn(
+        'w-full text-left p-3 rounded-lg border transition-all',
+        'hover:bg-muted/50 hover:border-primary/30',
+        selected ? 'bg-primary/5 border-primary ring-1 ring-primary/20' : 'bg-background border-border'
+      )}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm truncate">{receita.descricaoFormatada}</p>
+          <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+            {receita.cc_nome && (
+              <span className="flex items-center gap-1">
+                <Wallet className="h-3 w-3" />
+                {receita.cc_nome}
+              </span>
+            )}
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              Venc: {fmtDate(receita.vencimento)}
+            </span>
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="font-semibold text-sm tabular-nums">{fmtCurrency(receita.valor_previsto)}</p>
+          {receita.valor_recebido > 0 && (
+            <p className="text-[10px] text-muted-foreground">Recebido: {fmtCurrency(receita.valor_recebido)}</p>
+          )}
+          <div className="flex gap-1 mt-1 justify-end">
+            {valorMatch && (
+              <Badge variant="outline" className="text-[10px] border-success/50 text-success bg-success/10">
+                Valor exato
+              </Badge>
+            )}
+            {receita.dias_atraso > 0 && (
+              <Badge variant="outline" className="text-[10px] border-destructive/50 text-destructive bg-destructive/10">
+                {receita.dias_atraso}d atraso
+              </Badge>
+            )}
+          </div>
+        </div>
+        {selected && (
+          <div className="shrink-0">
+            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+              <Check className="h-3 w-3 text-primary-foreground" />
+            </div>
+          </div>
+        )}
+      </div>
     </button>
   );
 }

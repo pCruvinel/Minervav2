@@ -10,7 +10,8 @@ import {
   TrendingDown,
   DollarSign,
   AlertTriangle,
-  RefreshCw
+  RefreshCw,
+  UserCheck,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
@@ -413,9 +414,17 @@ export function ConciliacaoBancariaPage() {
                   <span>{format(new Date(lancamento.data), 'dd/MM/yy - HH:mm:ss', { locale: ptBR })}</span>
                 </CompactTableCell>
                 
-                {/* IDENTIFICAÇÃO - Nome do Remetente/Destinatário (SEMPRE MAIÚSCULO) */}
-                <CompactTableCell className="truncate max-w-[180px]" title={(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}>
-                  {(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}
+                {/* IDENTIFICAÇÃO - Nome do Remetente/Destinatário (SEMPRE MAIÚSCULO) + Cliente vinculado */}
+                <CompactTableCell className="max-w-[180px]" title={(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}>
+                  <div className="truncate">
+                    {(lancamento.contraparte_nome || lancamento.descricao || '').toUpperCase()}
+                  </div>
+                  {lancamento.cliente && (
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <UserCheck className="h-3 w-3 text-success flex-shrink-0" />
+                      <span className="text-[10px] text-muted-foreground truncate">{lancamento.cliente.nome_razao_social}</span>
+                    </div>
+                  )}
                 </CompactTableCell>
                 
                 {/* DETALHAMENTO (categoria + observações) */}
