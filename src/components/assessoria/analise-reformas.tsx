@@ -382,7 +382,7 @@ export function AnaliseReformas() {
 
       {/* Modal de Análise */}
       <Dialog open={modalAnalisar} onOpenChange={setModalAnalisar}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Analisar Solicitação de Reforma</DialogTitle>
             <DialogDescription>

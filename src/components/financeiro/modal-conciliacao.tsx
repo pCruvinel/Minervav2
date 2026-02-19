@@ -1070,7 +1070,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                         <SelectTrigger className="h-7 w-[130px] text-xs">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent side="bottom" sideOffset={4}>
                           <SelectItem value="titular">Titular</SelectItem>
                           <SelectItem value="socio">Sócio</SelectItem>
                           <SelectItem value="familiar">Familiar</SelectItem>
@@ -1339,7 +1339,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" sideOffset={4}>
                       {categoriasComExtras.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id}>
                           {cat.nome}
@@ -1355,7 +1355,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent side="bottom" sideOffset={4}>
                       {SETORES.map((s) => (
                         <SelectItem key={s.value} value={s.value}>
                           {s.label}
@@ -1599,7 +1599,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                         <SelectTrigger className="h-9">
                           <SelectValue placeholder="Selecione CC..." />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[200px]">
+                        <SelectContent className="max-h-[200px]" side="bottom" sideOffset={4}>
                           {centrosCusto.map((cc) => (
                             <SelectItem key={cc.id} value={cc.id}>
                               {cc.nome}

@@ -657,7 +657,7 @@ export function ReceitasRecorrentesPage() {
 
             {/* ========== Dialog de Parcelas do Contrato ========== */}
             <Dialog open={parcelasDialogOpen} onOpenChange={setParcelasDialogOpen}>
-                <DialogContent className="max-w-2xl shadow-modal">
+                <DialogContent className="max-w-2xl shadow-modal max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle>Parcelas - {selectedReceita?.ccCodigo}</DialogTitle>
                         <DialogDescription>

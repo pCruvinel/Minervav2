@@ -390,7 +390,7 @@ export function FluxoCaixaPage() {
             )}
             {/* ========== Dialog de Detalhes do Dia ========== */}
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogContent className="max-w-2xl shadow-modal">
+                <DialogContent className="max-w-2xl shadow-modal max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <CalendarDays className="w-5 h-5 text-primary" />

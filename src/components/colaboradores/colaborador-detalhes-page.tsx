@@ -9,6 +9,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { toast } from 'sonner';
 import { format, parseISO, subMonths, eachMonthOfInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -25,12 +31,13 @@ import {
     Download,
     Loader2,
     CheckCircle,
-    XCircle,
     Clock,
     AlertTriangle,
     Edit,
     UserCheck,
-    UserX
+    UserX,
+    ChevronDown,
+    FileSpreadsheet
 } from 'lucide-react';
 import {
     BarChart,
@@ -42,11 +49,14 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
+import { ColaboradorPresencaTab } from './ColaboradorPresencaTab';
 import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
 import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCustoTotalMensal } from '@/lib/hooks/use-custos-variaveis';
 import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
+import { getColaboradorStatus } from '@/lib/utils/colaborador-status';
+import { useColaboradorExport } from '@/lib/hooks/use-colaborador-export';
 
 // Types
 interface Documento {
@@ -84,6 +94,10 @@ export function ColaboradorDetalhesPage() {
     const { data: historicoCustos = [] } = useCustoTotalMensal({ colaboradorId });
     const now = new Date();
     const { data: diasUteisMes = 22 } = useDiasUteisMes(now.getFullYear(), now.getMonth() + 1);
+    const { exporting, exportarPDF, exportarCSV } = useColaboradorExport();
+
+    // Computed status
+    const statusInfo = colaborador ? getColaboradorStatus(colaborador) : null;
 
     // Fetch Data
     const fetchData = async () => {
@@ -424,9 +438,11 @@ export function ColaboradorDetalhesPage() {
                                 {colaborador.setor}
                             </span>
                             <span>•</span>
-                            <Badge className={colaborador.ativo ? "bg-success/10 text-success hover:bg-success/10" : "bg-destructive/10 text-destructive"}>
-                                {colaborador.ativo ? 'Ativo' : 'Inativo'}
-                            </Badge>
+                            {statusInfo && (
+                                <Badge className={statusInfo.className}>
+                                    {statusInfo.label}
+                                </Badge>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -447,6 +463,32 @@ export function ColaboradorDetalhesPage() {
                             Reenviar Convite
                         </Button>
                     )}
+
+                    {/* Dropdown Exportar */}
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" disabled={exporting}>
+                                {exporting ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Download className="mr-2 h-4 w-4" />
+                                )}
+                                Exportar
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => exportarPDF(colaborador, registros)}>
+                                <FileText className="mr-2 h-4 w-4" />
+                                PDF (Relatório Executivo)
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => exportarCSV(colaborador, registros)}>
+                                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                                Excel/CSV (Analítico)
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button variant="outline" onClick={() => setModalEdicaoOpen(true)}>
                         <Edit className="mr-2 h-4 w-4" />
                         Editar Cadastro
@@ -472,25 +514,25 @@ export function ColaboradorDetalhesPage() {
                 <TabsList className="w-full justify-start border-b rounded-none h-auto p-0 bg-transparent gap-6">
                     <TabsTrigger
                         value="overview"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
                     >
                         Visão Geral
                     </TabsTrigger>
                     <TabsTrigger
                         value="financial"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
                     >
                         Financeiro
                     </TabsTrigger>
                     <TabsTrigger
                         value="presence"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
                     >
                         Presença & Performance
                     </TabsTrigger>
                     <TabsTrigger
                         value="documents"
-                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-3"
                     >
                         Documentos
                     </TabsTrigger>
@@ -688,12 +730,6 @@ export function ColaboradorDetalhesPage() {
                                 <p className="font-medium">{colaborador.rateio_fixo ? 'Sim' : 'Não'}</p>
                             </div>
                             <div className="space-y-1">
-                                <Label className="text-muted-foreground">Status Sistema</Label>
-                                <Badge variant={colaborador.bloqueado_sistema ? "destructive" : "default"}>
-                                    {colaborador.bloqueado_sistema ? 'Bloqueado' : 'Liberado'}
-                                </Badge>
-                            </div>
-                            <div className="space-y-1">
                                 <Label className="text-muted-foreground">Dia de Vencimento</Label>
                                 <div className="flex items-center gap-2">
                                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
@@ -863,132 +899,8 @@ export function ColaboradorDetalhesPage() {
                 </TabsContent>
 
                 {/* TAB: PRESENÇA & PERFORMANCE */}
-                <TabsContent value="presence" className="mt-6 space-y-6">
-                    {/* Presence KPIs */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Taxa de Presença</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold">{stats.avgAttendance.toFixed(1)}%</div>
-                                <p className="text-xs text-muted-foreground mt-1">Baseado em {registros.length} registros</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Dias Trabalhados</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-success">
-                                    {registros.filter(r => r.status !== 'FALTA').length}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Faltas Injustificadas</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-destructive">
-                                    {registros.filter(r => r.status === 'FALTA' && !r.justificativa).length}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">Nos últimos 6 meses</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Atrasos</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-warning">
-                                    {registros.filter(r => r.status === 'ATRASADO').length}
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-1">
-                                    {registros.reduce((acc, r) => acc + (r.minutos_atraso || 0), 0)} min de atraso total
-                                </p>
-                            </CardContent>
-                        </Card>
-                    </div>
-
-                    {/* Performance Distribution */}
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Distribuição de Performance</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-3">
-                                    {(['OTIMA', 'BOA', 'REGULAR', 'RUIM'] as const).map((perf) => {
-                                        const count = registros.filter(r => r.performance === perf).length;
-                                        const pct = registros.length > 0 ? (count / registros.length) * 100 : 0;
-                                        const colors: Record<string, string> = {
-                                            OTIMA: 'bg-success',
-                                            BOA: 'bg-primary',
-                                            REGULAR: 'bg-warning',
-                                            RUIM: 'bg-destructive',
-                                        };
-                                        return (
-                                            <div key={perf} className="flex items-center gap-3">
-                                                <span className="text-sm font-medium w-20 capitalize">{perf.toLowerCase()}</span>
-                                                <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
-                                                    <div
-                                                        className={`h-full rounded-full ${colors[perf]}`}
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                </div>
-                                                <span className="text-sm text-muted-foreground w-16 text-right">{count} ({pct.toFixed(0)}%)</span>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* Attendance History */}
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Histórico Recente</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="max-h-[300px] overflow-y-auto">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Data</TableHead>
-                                                <TableHead>Status</TableHead>
-                                                <TableHead>Performance</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {registros.slice(0, 10).map((reg) => (
-                                                <TableRow key={reg.id}>
-                                                    <TableCell>{format(parseISO(reg.data), 'dd/MM/yy')}</TableCell>
-                                                    <TableCell>
-                                                        <div className="flex items-center gap-2">
-                                                            {reg.status === 'OK' && <CheckCircle className="h-4 w-4 text-success" />}
-                                                            {reg.status === 'FALTA' && <XCircle className="h-4 w-4 text-destructive" />}
-                                                            {reg.status === 'ATRASADO' && <Clock className="h-4 w-4 text-warning" />}
-                                                            <span className="text-sm font-medium">{reg.status}</span>
-                                                        </div>
-                                                    </TableCell>
-                                                    <TableCell>
-                                                        <Badge variant="outline" className={
-                                                            reg.performance === 'OTIMA' ? 'bg-success/5 text-success' :
-                                                                reg.performance === 'RUIM' ? 'bg-destructive/5 text-destructive' : ''
-                                                        }>
-                                                            {reg.performance}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                <TabsContent value="presence" className="mt-6">
+                    <ColaboradorPresencaTab colaboradorId={colaboradorId} />
                 </TabsContent>
 
                 {/* TAB: DOCUMENTOS */}

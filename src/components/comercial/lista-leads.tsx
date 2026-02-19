@@ -351,7 +351,7 @@ export function ListaLeads({ onLeadClick }: ListaLeadsProps) {
 
       {/* Dialog Novo Lead */}
       <Dialog open={dialogNovoLead} onOpenChange={setDialogNovoLead}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-black">Cadastrar Novo Lead</DialogTitle>
             <DialogDescription>

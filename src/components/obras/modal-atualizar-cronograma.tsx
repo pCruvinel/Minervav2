@@ -61,7 +61,7 @@ export function ModalAtualizarCronograma({
 
   return (
     <Dialog open={aberto} onOpenChange={onFechar}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Atualizar Cronograma da Obra</DialogTitle>
           <DialogDescription>

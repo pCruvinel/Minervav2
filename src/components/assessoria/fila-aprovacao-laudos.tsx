@@ -223,7 +223,7 @@ export function FilaAprovacaoLaudos() {
 
       {/* Modal de Revisão */}
       <Dialog open={modalRevisar} onOpenChange={setModalRevisar}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Revisar Laudo Técnico</DialogTitle>
             <DialogDescription>
