@@ -123,6 +123,24 @@ export function useLucratividadeOS(options?: {
 }
 
 /**
+ * Busca resumo financeiro de TODOS os Centros de Custo
+ * Usado na listagem para exibir colunas de Receita, Custo e Lucro
+ */
+export function useLucratividadeAllCCs() {
+  return useQuery({
+    queryKey: ['lucratividade-all-ccs'],
+    queryFn: async (): Promise<LucratividadeCC[]> => {
+      const { data, error } = await supabase
+        .from('vw_lucratividade_cc')
+        .select('*');
+
+      if (error) throw error;
+      return (data ?? []) as LucratividadeCC[];
+    },
+  });
+}
+
+/**
  * Busca resumo financeiro de um Centro de Custo específico
  * Usa a nova view vw_lucratividade_cc
  */

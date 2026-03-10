@@ -94,8 +94,7 @@ const menuItems = [
     label: 'Financeiro',
     icon: DollarSign,
     submenu: [
-      { id: 'financeiro-dashboard', label: 'Dashboard', icon: PieChart, to: '/financeiro' },
-      { id: 'fluxo-caixa', label: 'Fluxo de Caixa', icon: TrendingUp, to: '/financeiro/fluxo-caixa' },
+      { id: 'financeiro-dashboard', label: 'Painel Financeiro', icon: PieChart, to: '/financeiro' },
       { id: 'receitas', label: 'Receitas', icon: TrendingUp, to: '/financeiro/receitas-recorrentes' },
       { id: 'despesas', label: 'Despesas', icon: TrendingDown, to: '/financeiro/despesas' },
       { id: 'conciliacao-bancaria', label: 'Conciliação Bancária', icon: CreditCard, to: '/financeiro/conciliacao' },
@@ -128,7 +127,8 @@ const menuItems = [
     submenu: [
       { id: 'usuarios-permissoes', label: 'Usuários e Permissões', icon: Shield, to: '/configuracoes' },
       { id: 'sistema', label: 'WhatsApp e Email', icon: Settings, to: '/configuracoes/sistema' },
-      { id: 'integracoes', label: 'Integrações', icon: Link2, to: '/configuracoes/integracoes' }, // NOVA ROTA
+      { id: 'integracoes', label: 'Integrações', icon: Link2, to: '/configuracoes/integracoes' },
+      { id: 'ordens-servico', label: 'Ordens de Serviço', icon: ClipboardCheck, to: '/configuracoes/ordens-servico' },
       { id: 'teste-pdf', label: 'Teste de PDFs', icon: FileText, to: '/configuracoes/teste-pdf' },
       { id: 'seed-usuarios', label: 'Seed de Usuários', icon: UserPlus, to: '/configuracoes/seed-usuarios' },
       // Formulários Externos (temporário para testes)

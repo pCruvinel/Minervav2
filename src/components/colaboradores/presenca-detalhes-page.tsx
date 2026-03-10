@@ -27,7 +27,7 @@ import { format, parseISO, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { calcularCustoDiaMaoDeObra, formatMinutosAtraso } from '@/lib/constants/colaboradores';
 import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 
 interface RegistroPresencaDetalhes {
@@ -35,10 +35,12 @@ interface RegistroPresencaDetalhes {
     colaborador_id: string;
     data: string;
     status: 'OK' | 'ATRASADO' | 'FALTA';
-    minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
     performance: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
     performance_justificativa?: string;
+    minutos_atraso?: number;
     centros_custo: string[];
     anexo_url?: string;
     confirmed_at?: string;
@@ -207,10 +209,14 @@ export function PresencaDetalhesPage() {
             if (r.status === 'FALTA') return acc;
             const col = r.colaborador;
             if (!col) return acc;
-            if (col.tipo_contratacao === 'CLT') {
-                return acc + (col.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes;
-            }
-            return acc + (col.custo_dia || 0);
+            
+            const custoDia = calcularCustoDiaMaoDeObra(
+                col.salario_base,
+                col.custo_dia,
+                diasUteisMes,
+                col.tipo_contratacao === 'CLT'
+            );
+            return acc + custoDia;
         }, 0);
 
         const isConfirmado = registros.some(r => r.confirmed_at);
@@ -253,11 +259,14 @@ export function PresencaDetalhesPage() {
                 r.colaborador?.funcao || '',
                 r.status,
                 r.performance || '',
-                r.minutos_atraso || '',
+                r.minutos_atraso ? formatMinutosAtraso(r.minutos_atraso) : '',
                 r.justificativa || '',
-                r.colaborador?.tipo_contratacao === 'CLT'
-                    ? ((r.colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes).toFixed(2)
-                    : (r.colaborador?.custo_dia || 0).toFixed(2)
+                calcularCustoDiaMaoDeObra(
+                    r.colaborador?.salario_base,
+                    r.colaborador?.custo_dia,
+                    diasUteisMes,
+                    r.colaborador?.tipo_contratacao === 'CLT'
+                ).toFixed(2)
             ]);
 
             const csv = [headers.join(';'), ...rows.map(row => row.join(';'))].join('\n');
@@ -536,7 +545,7 @@ export function PresencaDetalhesPage() {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {registro.minutos_atraso
-                                                            ? <span className="text-warning font-medium">{registro.minutos_atraso} min</span>
+                                                            ? <span className="text-warning font-medium">{formatMinutosAtraso(registro.minutos_atraso)}</span>
                                                             : <span className="text-muted-foreground">-</span>
                                                         }
                                                     </TableCell>
@@ -544,9 +553,12 @@ export function PresencaDetalhesPage() {
                                                         {registro.status === 'FALTA'
                                                             ? <span className="text-muted-foreground">-</span>
                                                             : formatCurrency(
-                                                                registro.colaborador?.tipo_contratacao === 'CLT'
-                                                                    ? (registro.colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
-                                                                    : registro.colaborador?.custo_dia || 0
+                                                                calcularCustoDiaMaoDeObra(
+                                                                    registro.colaborador?.salario_base,
+                                                                    registro.colaborador?.custo_dia,
+                                                                    diasUteisMes,
+                                                                    registro.colaborador?.tipo_contratacao === 'CLT'
+                                                                )
                                                             )
                                                         }
                                                     </TableCell>

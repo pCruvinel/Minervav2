@@ -20,7 +20,8 @@ const requisitionItemsAPI = {
 
   async create(
     etapaId: string,
-    item: Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'created_at' | 'updated_at'>
+    osId: string | undefined,
+    item: Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'os_id' | 'created_at' | 'updated_at'>
   ): Promise<ItemRequisicao> {
     logger.log(`➕ Criando item de requisição...`, item);
 
@@ -33,7 +34,7 @@ const requisitionItemsAPI = {
 
     const { data, error } = await supabase
       .from('os_requisition_items')
-      .insert({ os_etapa_id: etapaId, ...normalizedItem })
+      .insert({ os_etapa_id: etapaId, os_id: osId, ...normalizedItem })
       .select()
       .single();
 
@@ -125,8 +126,9 @@ export function useCreateRequisitionItem() {
   return useMutation(
     (params: {
       etapaId: string;
-      item: Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'created_at' | 'updated_at'>;
-    }) => requisitionItemsAPI.create(params.etapaId, params.item),
+      osId?: string;
+      item: Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'os_id' | 'created_at' | 'updated_at'>;
+    }) => requisitionItemsAPI.create(params.etapaId, params.osId, params.item),
     {
       onSuccess: () => toast.success('Item adicionado com sucesso!'),
       onError: (error) => {

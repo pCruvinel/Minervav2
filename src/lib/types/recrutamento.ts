@@ -12,11 +12,43 @@ export type RecruitmentColumnStatus =
   | 'finalizado';
 
 /**
+ * Candidato (tabela candidatos)
+ */
+export interface Candidato {
+  id: string;
+  nome_completo: string;
+  email: string | null;
+  telefone: string | null;
+  curriculo_url: string | null;
+  fonte: 'indicacao' | 'portal' | 'linkedin' | 'outro' | null;
+  observacoes: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+
+/**
+ * Junção Candidato ↔ Vaga (tabela candidato_vaga)
+ */
+export interface CandidatoVaga {
+  id: string;
+  candidato_id: string;
+  vaga_id: string;
+  status_candidatura: 'inscrito' | 'em_analise' | 'entrevista' | 'aprovado' | 'reprovado' | 'desistiu';
+  nota_entrevista: string | null;
+  avaliacao: number | null;
+  created_at: string;
+  updated_at?: string;
+  // Campos do join
+  candidato?: Candidato;
+}
+
+/**
  * Vaga de recrutamento (tabela os_vagas_recrutamento)
  */
 export interface VagaRecrutamento {
   id: string;
   os_id: string;
+  cargo_id: string | null;
   cargo_funcao: string;
   quantidade: number;
   salario_base: number | null;

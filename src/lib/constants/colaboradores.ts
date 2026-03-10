@@ -38,38 +38,14 @@ export const TIPOS_CONTRATACAO = [
 export const DIAS_SEMANA = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB', 'DOM'];
 
 export const DOCUMENTOS_OBRIGATORIOS = [
-  // Documentos Pessoais
-  { value: 'RG', label: 'RG', categoria: 'pessoal' },
-  { value: 'CPF', label: 'CPF', categoria: 'pessoal' },
-  { value: 'CNH', label: 'CNH', categoria: 'pessoal' },
-  { value: 'COMPROVANTE_RESIDENCIA', label: 'Comprovante de Residência', categoria: 'pessoal' },
-  { value: 'TITULO_ELEITOR', label: 'Título de Eleitor', categoria: 'pessoal' },
-  { value: 'RESERVISTA', label: 'Certificado de Reservista', categoria: 'pessoal' },
-  { value: 'CERTIDAO_NASCIMENTO', label: 'Certidão de Nascimento', categoria: 'pessoal' },
-  { value: 'CERTIDAO_CASAMENTO', label: 'Certidão de Casamento', categoria: 'pessoal' },
-  
-  // Documentos CLT
-  { value: 'CTPS', label: 'Carteira de Trabalho (CTPS)', categoria: 'clt' },
-  { value: 'PIS_PASEP', label: 'PIS/PASEP', categoria: 'clt' },
-  { value: 'EXAME_ADMISSIONAL', label: 'Exame Admissional', categoria: 'clt' },
-  
-  // Documentos MEI/PJ
-  { value: 'CNPJ', label: 'Cartão CNPJ', categoria: 'pj' },
-  { value: 'CCMEI', label: 'Certificado MEI (CCMEI)', categoria: 'pj' },
-  { value: 'CONTRATO_SOCIAL', label: 'Contrato Social / Requerimento MEI', categoria: 'pj' },
-  { value: 'ALVARA_FUNCIONAMENTO', label: 'Alvará de Funcionamento', categoria: 'pj' },
-  { value: 'COMPROVANTE_INSCRICAO_MUNICIPAL', label: 'Inscrição Municipal', categoria: 'pj' },
-  { value: 'CERTIDAO_NEGATIVA_FEDERAL', label: 'Certidão Negativa Federal', categoria: 'pj' },
-  { value: 'CERTIDAO_NEGATIVA_ESTADUAL', label: 'Certidão Negativa Estadual', categoria: 'pj' },
-  { value: 'CERTIDAO_NEGATIVA_MUNICIPAL', label: 'Certidão Negativa Municipal', categoria: 'pj' },
-  { value: 'RPA', label: 'Recibo de Pagamento Autônomo (RPA)', categoria: 'pj' },
-  { value: 'DADOS_BANCARIOS_PJ', label: 'Comprovante Conta PJ', categoria: 'pj' },
-  
-  // Outros
-  { value: 'CERTIFICADOS', label: 'Certificados e Cursos', categoria: 'outros' },
-  { value: 'FOTO_3X4', label: 'Foto 3x4', categoria: 'outros' },
-  { value: 'CONTRATO_TRABALHO', label: 'Contrato de Prestação de Serviços', categoria: 'outros' },
-];
+  { value: 'DOCUMENTO_FOTO', label: 'Documento com Foto' },
+  { value: 'CONTRATO_TRABALHO', label: 'Contrato de Trabalho' },
+  { value: 'CHECKLIST_ADMISSIONAL', label: 'Checklist Admissional' },
+  { value: 'TERMO_SIGILO', label: 'Termo de Sigilo' },
+  { value: 'TERMO_INTEGRACAO', label: 'Termo de Integracao' },
+  { value: 'COMPROVANTE_ESCOLARIDADE', label: 'Comprovante de Escolaridade' },
+  { value: 'CONTRATO_CONFIDENCIALIDADE', label: 'Contrato de Confidencialidade' },
+] as const;
 
 export const BANCOS = [
   { value: '001', label: '001 - Banco do Brasil' },
@@ -137,4 +113,82 @@ export function getCargoIdByFuncao(funcao: string | null | undefined): string | 
 export function getSetorIdBySlug(setorSlug: string | null | undefined): string | null {
   if (!setorSlug) return null;
   return SETOR_SLUG_TO_ID[setorSlug] || null;
+}
+
+/**
+ * Helper unificado para cálculo de custo diário da mão de obra
+ * Para CLT: (salario_base * FATOR_ENCARGOS_CLT) / dias_uteis_mes
+ * Para PJ/Outros: custo_dia do banco de dados
+ */
+export function calcularCustoDiaMaoDeObra(
+  salarioBase: number | null | undefined,
+  custoDiaPJ: number | null | undefined,
+  diasUteisMes: number,
+  isCLT: boolean = true
+): number {
+  if (isCLT) {
+    const base = salarioBase || 0;
+    if (base === 0 || diasUteisMes === 0) return 0;
+    return (base * FATOR_ENCARGOS_CLT) / diasUteisMes;
+  }
+  
+  return custoDiaPJ || 0;
+}
+
+// =====================================================
+// CENTRO DE CUSTO FIXO — MAPEAMENTO POR FUNÇÃO
+// Colaboradores "sem divisão de custo" alocam 100% no CC fixo
+// =====================================================
+
+/**
+ * Mapeamento de função (slug) → código do Centro de Custo Fixo
+ * Regra de negócio hardcoded:
+ * - coord_administrativo, operacional_admin, operacional_comercial, diretor → CC-ESCRITORIO
+ * - coord_obras → CC-SETOR_OBRAS  
+ * - coord_assessoria → CC-SETOR_ASSESSORIA
+ * 
+ * Funções NÃO listadas aqui (operacional_assessoria, operacional_obras, colaborador_obra)
+ * são "com divisão de custo" — seus custos são rateados entre CCs de clientes.
+ */
+export const CENTRO_CUSTO_FIXO_MAP: Record<string, string> = {
+  diretor: 'CC-ESCRITORIO',
+  coord_administrativo: 'CC-ESCRITORIO',
+  coord_assessoria: 'CC-SETOR_ASSESSORIA',
+  coord_obras: 'CC-SETOR_OBRAS',
+  operacional_admin: 'CC-ESCRITORIO',
+  operacional_comercial: 'CC-ESCRITORIO',
+};
+
+/**
+ * Helper para obter o código do CC Fixo a partir da função do colaborador
+ * @returns código CC (ex: 'CC-ESCRITORIO') ou null se função tem divisão de custo
+ */
+export function getCentroCustoFixo(funcao: string | null | undefined): string | null {
+  if (!funcao) return null;
+  return CENTRO_CUSTO_FIXO_MAP[funcao] || null;
+}
+
+/**
+ * Verifica se uma função tem centro de custo fixo (sem divisão)
+ */
+export function temCentroCustoFixo(funcao: string | null | undefined): boolean {
+  return getCentroCustoFixo(funcao) !== null;
+}
+
+// =====================================================
+// FORMATAÇÃO DE TEMPO
+// =====================================================
+
+/**
+ * Converte minutos de atraso para formato legível:
+ * - < 60 min → "45 min"
+ * - = 60 min → "1h"
+ * - > 60 min → "2h 15min"
+ */
+export function formatMinutosAtraso(minutos: number | null | undefined): string {
+  if (!minutos || minutos <= 0) return '0 min';
+  if (minutos < 60) return `${minutos} min`;
+  const horas = Math.floor(minutos / 60);
+  const mins = minutos % 60;
+  return mins > 0 ? `${horas}h ${mins}min` : `${horas}h`;
 }

@@ -8,7 +8,9 @@ import {
   PieChart as PieChartIcon, 
   FileText,
   Building,
-  ShieldCheck
+  ShieldCheck,
+  ChevronRight,
+  ChevronDown
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -44,6 +46,7 @@ export function CentroCustoDetalhesPage() {
   const { ccId } = useParams({ from: '/_auth/financeiro/centro-custo/$ccId' });
   const router = useRouter();
   const [activeTab, setActiveTab] = useState("resumo");
+  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
   // Hooks de Dados Reais
   const { data: ccResumo, isLoading: resumoLoading } = useLucratividadeCC(ccId);
@@ -164,6 +167,7 @@ export function CentroCustoDetalhesPage() {
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/40">
+                <CompactTableHead className="w-8"></CompactTableHead>
                 <CompactTableHead>Categoria</CompactTableHead>
                 <CompactTableHead align="right">Previsto</CompactTableHead>
                 <CompactTableHead align="right">Realizado</CompactTableHead>
@@ -171,22 +175,94 @@ export function CentroCustoDetalhesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {custosPorCategoria.data?.map((cat, idx) => (
-                <CompactTableRow key={idx}>
-                  <CompactTableCell className="font-medium">{cat.categoria_nome}</CompactTableCell>
-                  <CompactTableCell className="text-right">{formatarMoeda(cat.valor_previsto)}</CompactTableCell>
-                  <CompactTableCell className="text-right">{formatarMoeda(cat.valor_realizado)}</CompactTableCell>
-                  <CompactTableCell className="text-right">{cat.percentual_total}%</CompactTableCell>
-                </CompactTableRow>
-              ))}
+              {custosPorCategoria.data?.map((cat, idx) => {
+                const isExpanded = expandedCategory === (cat.codigo || cat.categoria_id || String(idx));
+                const catKey = cat.codigo || cat.categoria_id || String(idx);
+                const catDespesas = despesas.data?.filter(
+                  (d) => d.categoria_codigo === cat.codigo
+                ) || [];
+
+                return (
+                  <>
+                    <CompactTableRow
+                      key={catKey}
+                      className="cursor-pointer hover:bg-muted/60 transition-colors"
+                      onClick={() => setExpandedCategory(isExpanded ? null : catKey)}
+                    >
+                      <CompactTableCell className="w-8 px-2">
+                        {isExpanded ? (
+                          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        )}
+                      </CompactTableCell>
+                      <CompactTableCell className="font-medium">
+                        <span className="text-xs text-muted-foreground mr-1.5">{cat.codigo}</span>
+                        {cat.categoria_nome}
+                      </CompactTableCell>
+                      <CompactTableCell className="text-right">{formatarMoeda(cat.valor_previsto)}</CompactTableCell>
+                      <CompactTableCell className="text-right">{formatarMoeda(cat.valor_realizado)}</CompactTableCell>
+                      <CompactTableCell className="text-right">{cat.percentual_total}%</CompactTableCell>
+                    </CompactTableRow>
+
+                    {/* Sub-tabela compacta com despesas da categoria */}
+                    {isExpanded && (
+                      <TableRow className="bg-muted/10">
+                        <TableCell colSpan={5} className="p-0">
+                          <div className="px-3 py-1.5 border-l-2 border-primary/20 ml-6">
+                            {catDespesas.length > 0 ? (
+                              <Table>
+                                <TableHeader>
+                                  <TableRow className="bg-muted/20">
+                                    <CompactTableHead>Data</CompactTableHead>
+                                    <CompactTableHead>Descrição</CompactTableHead>
+                                    <CompactTableHead>Fornecedor</CompactTableHead>
+                                    <CompactTableHead>Status</CompactTableHead>
+                                    <CompactTableHead align="right">Valor</CompactTableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {catDespesas.map((d) => (
+                                    <CompactTableRow key={d.id}>
+                                      <CompactTableCell>{new Date(d.data).toLocaleDateString('pt-BR')}</CompactTableCell>
+                                      <CompactTableCell>{d.descricao}</CompactTableCell>
+                                      <CompactTableCell>{d.fornecedor || '-'}</CompactTableCell>
+                                      <CompactTableCell>
+                                        <Badge
+                                          variant="outline"
+                                          className={
+                                            d.status === 'pago' ? 'bg-success/10 text-success border-success/20' :
+                                            d.status === 'atrasado' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+                                            'bg-warning/10 text-warning border-warning/20'
+                                          }
+                                        >
+                                          {d.status}
+                                        </Badge>
+                                      </CompactTableCell>
+                                      <CompactTableCell className="text-right">{formatarMoeda(d.valor)}</CompactTableCell>
+                                    </CompactTableRow>
+                                  ))}
+                                </TableBody>
+                              </Table>
+                            ) : (
+                              <p className="text-xs text-muted-foreground py-1">Nenhum lançamento nesta categoria para este CC.</p>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })}
               {custosPorCategoria.data?.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground h-24">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground h-24">
                     Nenhum custo registrado
                   </TableCell>
                 </TableRow>
               ) : (
                 <TableRow className="bg-muted/50 font-bold border-t-2">
+                  <CompactTableCell className="py-3"></CompactTableCell>
                   <CompactTableCell className="py-3">TOTAL</CompactTableCell>
                   <CompactTableCell className="text-right py-3">
                     {formatarMoeda(custosPorCategoria.data?.reduce((acc, curr) => acc + curr.valor_previsto, 0) || 0)}

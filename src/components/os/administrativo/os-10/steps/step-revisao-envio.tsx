@@ -16,28 +16,13 @@ import { supabase } from '@/lib/supabase-client';
 import { toast } from '@/lib/utils/safe-toast';
 import { logger } from '@/lib/utils/logger';
 import { useNavigate } from '@tanstack/react-router';
-import type { VagaRecrutamento } from '../components/vaga-card';
+import { etapa3Schema, getFirstZodError } from '@/lib/validations/os10-schemas';
+import type { Etapa1Data, Etapa2Data, Etapa3Data } from '@/lib/validations/os10-schemas';
 
-interface Etapa1Data {
-    dataAbertura: string;
-    solicitante: string;
-    departamento: string;
-    urgencia: string;
-    justificativa: string;
-}
-
-interface Etapa2Data {
-    centroCusto: string;
-    centroCustoNome: string;
-    obraVinculada: string;
-    clienteId?: string;
-}
-
-interface Etapa3Data {
-    vagas: VagaRecrutamento[];
-}
+// Types importados de @/lib/validations/os10-schemas (SSoT)
 
 interface StepRevisaoEnvioProps {
+    osId?: string;
     etapa1Data: Etapa1Data;
     etapa2Data: Etapa2Data;
     etapa3Data: Etapa3Data;
@@ -48,14 +33,17 @@ interface StepRevisaoEnvioProps {
  * StepRevisaoEnvio - Etapa 4 (Final): Revisão e Envio
  *
  * Exibe resumo de:
- * - Centro de Custo selecionado
- * - Lista de vagas com totais
+ * - Dados da solicitação (Etapa 1)
+ * - Centro de Custo selecionado (Etapa 2)
+ * - Lista de vagas com totais (Etapa 3)
  *
  * Ao clicar em "Enviar":
- * - Cria registro em ordens_servico
- * - Insere vagas em os_vagas_recrutamento
+ * - Insere vagas em os_vagas_recrutamento vinculadas à OS já existente (criada na Etapa 2)
+ * - Atualiza status_geral da OS para 'em_andamento'
+ * - Marca todas as os_etapas como 'concluida'
  */
 export function StepRevisaoEnvio({
+    osId,
     etapa1Data,
     etapa2Data,
     etapa3Data,
@@ -72,7 +60,7 @@ export function StepRevisaoEnvio({
             baixa: { label: 'Baixa', variant: 'secondary' },
             normal: { label: 'Normal', variant: 'default' },
             alta: { label: 'Alta', variant: 'destructive' },
-            urgente: { label: 'Urgente', variant: 'destructive' },
+            critica: { label: 'Crítica', variant: 'destructive' },
         };
         return map[urgencia] || { label: urgencia, variant: 'default' };
     };
@@ -80,65 +68,41 @@ export function StepRevisaoEnvio({
     const handleEnviar = async () => {
         if (isSubmitting) return;
 
+        // Validação: osId deve existir (criada na Etapa 2)
+        if (!osId) {
+            toast.error('Erro interno: OS não encontrada. Volte ao início do formulário.');
+            logger.error('[StepRevisaoEnvio] osId ausente — a OS deveria ter sido criada na Etapa 2.');
+            return;
+        }
+
+        if (vagas.length === 0) {
+            toast.error('Adicione pelo menos uma vaga antes de enviar.');
+            return;
+        }
+
+        // Validação Zod das vagas
+        const validation = etapa3Schema.safeParse(etapa3Data);
+        if (!validation.success) {
+            toast.error(getFirstZodError(validation));
+            return;
+        }
+
         setIsSubmitting(true);
 
         try {
-            // 1. Buscar tipo_os_id para OS-10
-            const { data: tipoOS, error: tipoError } = await supabase
-                .from('tipos_os')
-                .select('id')
-                .eq('codigo', 'OS-10')
-                .single();
+            logger.log(`[StepRevisaoEnvio] 📤 Finalizando OS ${osId} com ${vagas.length} vagas`);
 
-            if (tipoError || !tipoOS) {
-                throw new Error('Tipo de OS não encontrado');
-            }
-
-            // 2. Buscar cliente_id do centro de custo
-            const { data: cc, error: ccError } = await supabase
-                .from('centros_custo')
-                .select('cliente_id')
-                .eq('id', etapa2Data.centroCusto)
-                .single();
-
-            if (ccError || !cc) {
-                throw new Error('Centro de custo não encontrado');
-            }
-
-            // 3. Criar OS
-            const { data: os, error: osError } = await supabase
-                .from('ordens_servico')
-                .insert({
-                    tipo_os_id: tipoOS.id,
-                    cliente_id: cc.cliente_id,
-                    cc_id: etapa2Data.centroCusto,
-                    status_geral: 'em_triagem',
-                    descricao: `Requisição de Mão de Obra - ${totalVagas} vaga(s)`,
-                    metadata: {
-                        solicitante: etapa1Data.solicitante,
-                        departamento: etapa1Data.departamento,
-                        urgencia: etapa1Data.urgencia,
-                        justificativa: etapa1Data.justificativa,
-                        dataAbertura: etapa1Data.dataAbertura,
-                    },
-                })
-                .select()
-                .single();
-
-            if (osError || !os) {
-                throw osError || new Error('Erro ao criar OS');
-            }
-
-            // 4. Inserir vagas em os_vagas_recrutamento
+            // 1. Inserir vagas em os_vagas_recrutamento vinculadas à OS já existente
             const vagasParaInserir = vagas.map((vaga) => ({
-                os_id: os.id,
+                os_id: osId,
+                cargo_id: vaga.cargo_id || null,
                 cargo_funcao: vaga.cargo_nome,
                 quantidade: vaga.quantidade,
                 habilidades_necessarias: vaga.habilidades_necessarias || null,
                 perfil_comportamental: vaga.perfil_comportamental || null,
                 experiencia_minima: vaga.experiencia_minima || null,
                 escolaridade_minima: vaga.escolaridade_minima || null,
-                status: 'aberta',
+                status: 'aberta' as const,
                 urgencia: etapa1Data.urgencia || 'normal',
             }));
 
@@ -147,17 +111,43 @@ export function StepRevisaoEnvio({
                 .insert(vagasParaInserir);
 
             if (vagasError) {
-                // Rollback: deletar OS criada
-                await supabase.from('ordens_servico').delete().eq('id', os.id);
+                logger.error('[StepRevisaoEnvio] ❌ Erro ao inserir vagas:', vagasError);
                 throw vagasError;
             }
 
-            // 5. Sucesso
+            logger.log(`[StepRevisaoEnvio] ✅ ${vagasParaInserir.length} vagas inseridas`);
+
+            // 2. Atualizar status_geral da OS para 'em_andamento'
+            const { error: osUpdateError } = await supabase
+                .from('ordens_servico')
+                .update({
+                    status_geral: 'em_andamento',
+                    descricao: `Requisição de Mão de Obra - ${totalVagas} vaga(s)`,
+                })
+                .eq('id', osId);
+
+            if (osUpdateError) {
+                logger.error('[StepRevisaoEnvio] ❌ Erro ao atualizar status da OS:', osUpdateError);
+                throw osUpdateError;
+            }
+
+            // 3. Marcar todas as etapas como 'concluida'
+            const { error: etapasUpdateError } = await supabase
+                .from('os_etapas')
+                .update({ status: 'concluida', data_conclusao: new Date().toISOString() })
+                .eq('os_id', osId);
+
+            if (etapasUpdateError) {
+                logger.error('[StepRevisaoEnvio] ⚠️ Erro ao atualizar etapas (não-bloqueante):', etapasUpdateError);
+                // Não bloqueia — as vagas já foram inseridas
+            }
+
+            // 4. Sucesso — navegar para listagem de OS
             toast.success('Requisição enviada com sucesso!');
             navigate({ to: '/os' });
 
         } catch (error) {
-            logger.error('Erro ao criar OS-10:', error);
+            logger.error('[StepRevisaoEnvio] ❌ Erro ao finalizar OS-10:', error);
             toast.error('Erro ao enviar requisição. Tente novamente.');
         } finally {
             setIsSubmitting(false);

@@ -239,7 +239,7 @@ export interface Cliente {
   telefone?: string;
   status: ClienteStatus;
   responsavel_id?: string;
-  endereco?: any; // JSONB
+  endereco?: Record<string, unknown> | null; // JSONB
   observacoes?: string;
 }
 
@@ -315,6 +315,7 @@ export const ROLE_LABELS: Record<RoleLevel, string> = {
   'operacional_assessoria': 'Operacional Assessoria',
   'operacional_obras': 'Operacional Obras',
   'colaborador_obra': 'Colaborador de Obra',
+  'cliente': 'Cliente',
 };
 
 
@@ -794,7 +795,7 @@ export interface HistoricoItem {
   descricao: string;
   userName: string;
   createdAt: string;
-  metadados?: any;
+  metadados?: Record<string, unknown> | null;
 }
 
 // ============================================================
@@ -812,6 +813,7 @@ export const ROLE_PARA_NIVEL: Record<RoleLevel, NivelHierarquico> = {
   'operacional_assessoria': 2,
   'operacional_obras': 2,
   'colaborador_obra': 0,
+  'cliente': 0,
 };
 
 
@@ -838,37 +840,61 @@ export const PERMISSOES_POR_ROLE_LEGADO: Record<RoleLevel, PermissoesLegadas> = 
     pode_aprovar_setores: ['*'],
     acesso_modulos: ['*'],
   },
-  'diretoria': {
+  'diretor': {
     acesso_setores: ['*'],
     pode_delegar_para: ['*'],
     pode_aprovar_setores: ['*'],
     acesso_modulos: ['financeiro', 'administrativo', 'comercial', 'obras', 'assessoria'],
   },
-  'gestor_administrativo': {
+  'coord_administrativo': {
     acesso_setores: ['*'],
     pode_delegar_para: ['*'],
     pode_aprovar_setores: ['*'],
     acesso_modulos: ['financeiro', 'administrativo', 'comercial', 'obras', 'assessoria'],
   },
-  'gestor_obras': {
+  'coord_obras': {
     acesso_setores: ['OBR'],
     pode_delegar_para: ['OBR'],
     pode_aprovar_setores: ['OBR'],
     acesso_modulos: ['obras'],
   },
-  'gestor_assessoria': {
+  'coord_assessoria': {
     acesso_setores: ['ASS'],
     pode_delegar_para: ['ASS'],
     pode_aprovar_setores: ['ASS'],
     acesso_modulos: ['assessoria'],
   },
-  'colaborador': {
+  'operacional_admin': {
     acesso_setores: [],
     pode_delegar_para: [],
     pode_aprovar_setores: [],
     acesso_modulos: ['tarefas'],
   },
-  'mao_de_obra': {
+  'operacional_comercial': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: ['tarefas'],
+  },
+  'operacional_assessoria': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: ['tarefas'],
+  },
+  'operacional_obras': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: ['tarefas'],
+  },
+  'colaborador_obra': {
+    acesso_setores: [],
+    pode_delegar_para: [],
+    pode_aprovar_setores: [],
+    acesso_modulos: [],
+  },
+  'cliente': {
     acesso_setores: [],
     pode_delegar_para: [],
     pode_aprovar_setores: [],
@@ -924,6 +950,7 @@ export type PrazoNecessidade =
 export interface ItemRequisicao {
   id?: string;
   os_etapa_id?: string;
+  os_id?: string;
   tipo: ItemTipo;
   sub_tipo?: ItemSubTipo;
   descricao: string;
@@ -943,13 +970,14 @@ export interface ItemRequisicao {
 export interface DadosRequisicaoOS {
   centro_custo_id?: string;
   prazo_necessidade: PrazoNecessidade;
-  cep: string;
-  logradouro: string;
-  numero: string;
+  local_entrega?: 'escritorio' | 'cliente' | 'outro';
+  cep?: string;
+  logradouro?: string;
+  numero?: string;
   complemento?: string;
-  bairro: string;
-  cidade: string;
-  uf: string;
+  bairro?: string;
+  cidade?: string;
+  uf?: string;
 }
 
 export interface ViaCEPResponse {

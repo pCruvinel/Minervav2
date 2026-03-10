@@ -101,7 +101,9 @@ export function useReceitasRecorrentes() {
           .eq('contrato_id', contrato.id)
           .eq('status', 'pago');
 
-        const clienteData = contrato.clientes as { id: string; nome_razao_social: string } | null;
+        const clienteData = Array.isArray(contrato.clientes) 
+          ? contrato.clientes[0] as unknown as { id: string; nome_razao_social: string }
+          : contrato.clientes as unknown as { id: string; nome_razao_social: string } | null;
         const valorMensal = contrato.parcelas_total > 0 
           ? Number(contrato.valor_total) / contrato.parcelas_total 
           : Number(contrato.valor_total);
@@ -188,7 +190,9 @@ export function useParcelasPendentes() {
         const diffTime = hojeDate.getTime() - vencDate.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        const clienteData = item.clientes as { nome_razao_social: string } | null;
+        const clienteData = Array.isArray(item.clientes)
+          ? item.clientes[0] as unknown as { nome_razao_social: string } 
+          : item.clientes as unknown as { nome_razao_social: string } | null;
 
         return {
           id: item.id,
@@ -209,6 +213,35 @@ export function useParcelasPendentes() {
       });
     },
     staleTime: 2 * 60 * 1000,
+  });
+}
+
+/**
+ * Hook para listar TODAS as parcelas de um contrato específico
+ */
+export function useParcelasContrato(contratoId: string) {
+  return useQuery({
+    queryKey: ['parcelas-contrato', contratoId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('contas_receber')
+        .select('*')
+        .eq('contrato_id', contratoId)
+        .order('parcela_num', { ascending: true });
+
+      if (error) throw error;
+
+      return (data || []).map((item) => ({
+        id: item.id,
+        parcela: `${item.parcela_num}/${item.total_parcelas}`,
+        vencimento: item.vencimento,
+        valor: Number(item.valor_previsto),
+        status: item.status,
+        dataPagamento: item.data_recebimento,
+      }));
+    },
+    enabled: !!contratoId,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

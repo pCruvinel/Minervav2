@@ -30,7 +30,7 @@ import { KPICardFinanceiro, KPIFinanceiroGrid } from './kpi-card-financeiro';
 import { useNavigate } from '@tanstack/react-router';
 import { useCustoMOPorCC, useCustoMOPorColaborador, useCustoMOKPIs } from '@/lib/hooks/use-custo-mo';
 import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { FATOR_ENCARGOS_CLT, calcularCustoDiaMaoDeObra } from '@/lib/constants/colaboradores';
 
 // ============================================================
 // MOCK DATA - FRONTEND-ONLY MODE
@@ -124,7 +124,7 @@ export function CustoMaoDeObraPage() {
             encargos: Math.round(c.salario_base * (FATOR_ENCARGOS_CLT - 1)),
             beneficios: 450,
             custosVariaveis: 0,
-            custoDia: (c.salario_base * FATOR_ENCARGOS_CLT) / diasUteisMes,
+            custoDia: calcularCustoDiaMaoDeObra(c.salario_base, 0, diasUteisMes, true),
             diasTrabalhados: c.dias_trabalhados,
             custoTotal: c.custo_total,
             ccs: c.ccs,

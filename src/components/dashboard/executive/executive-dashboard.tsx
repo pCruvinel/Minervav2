@@ -6,7 +6,9 @@
  * - Controladoria (Kanban de Carga)
  * - Auditoria (Logs)
  * - Avisos (Gerenciamento do Quadro de Avisos)
- * - SLA (Configuração de prazos por etapa)
+ * - WhatsApp Settings
+ *
+ * SLA e Taxas foram migrados para /configuracoes/ordens-servico
  *
  * Acesso restrito: admin, diretor, diretoria
  */
@@ -19,17 +21,14 @@ import { ExecutiveOverview } from './executive-overview';
 import { WorkloadTabContent } from './workload-tab-content';
 import { SystemAuditLog } from './system-audit-log';
 import { AnnouncementsManager } from './announcements-manager';
-import { SlaSettingsTab } from './sla-settings-tab';
-import { TaxasSettingsTab } from './taxas-settings-tab';
+
 import {
     ShieldAlert,
     BarChart3,
     Users,
     FileSearch,
     Megaphone,
-    Timer,
     Loader2,
-    Percent
 } from 'lucide-react';
 
 // ============================================================
@@ -83,7 +82,7 @@ export function ExecutiveDashboard() {
 
             {/* Tabs */}
             <Tabs defaultValue="overview" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-7 lg:w-[1050px]">
+                <TabsList className="grid w-full grid-cols-5 lg:w-[750px]">
                     <TabsTrigger value="overview" className="flex items-center gap-2">
                         <BarChart3 className="h-4 w-4" />
                         <span className="hidden sm:inline">Visão Geral</span>
@@ -104,16 +103,7 @@ export function ExecutiveDashboard() {
                         <span className="hidden sm:inline">Avisos</span>
                         <span className="sm:hidden">Avisos</span>
                     </TabsTrigger>
-                    <TabsTrigger value="sla" className="flex items-center gap-2">
-                        <Timer className="h-4 w-4" />
-                        <span className="hidden sm:inline">SLA</span>
-                        <span className="sm:hidden">SLA</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="taxas" className="flex items-center gap-2">
-                        <Percent className="h-4 w-4" />
-                        <span className="hidden sm:inline">Taxas</span>
-                        <span className="sm:hidden">Taxas</span>
-                    </TabsTrigger>
+
                 </TabsList>
 
                 <TabsContent value="overview">
@@ -132,13 +122,7 @@ export function ExecutiveDashboard() {
                     <AnnouncementsManager />
                 </TabsContent>
 
-                <TabsContent value="sla">
-                    <SlaSettingsTab />
-                </TabsContent>
 
-                <TabsContent value="taxas">
-                    <TaxasSettingsTab />
-                </TabsContent>
             </Tabs>
         </div>
     );

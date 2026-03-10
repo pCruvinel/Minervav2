@@ -16,6 +16,16 @@ export function formatCurrency(value: number | string | null | undefined): strin
   }).format(numericValue);
 }
 
+export function formatCurrencyCompact(value: number): string {
+  if (Math.abs(value) >= 1000000) {
+    return `R$ ${(value / 1000000).toFixed(1)}M`;
+  }
+  if (Math.abs(value) >= 1000) {
+    return `R$ ${(value / 1000).toFixed(0)}k`;
+  }
+  return formatCurrency(value);
+}
+
 export function formatDate(dateString: string | Date | null | undefined): string {
   if (!dateString) return '-';
   const date = typeof dateString === 'string' ? new Date(dateString) : dateString;

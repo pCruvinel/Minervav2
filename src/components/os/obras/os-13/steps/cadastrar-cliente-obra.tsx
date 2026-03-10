@@ -24,20 +24,13 @@
 
 import { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import { logger } from '@/lib/utils/logger';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { AlertCircle, Loader2 } from 'lucide-react';
-import { cn } from '@/components/ui/utils';
+import { Loader2 } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 
 // Hooks
-import { useClientes } from '@/lib/hooks/use-clientes';
 import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { FileUploadUnificado } from '@/components/ui/file-upload-unificado';
 import { supabase } from '@/lib/supabase-client';
@@ -45,7 +38,9 @@ import { supabase } from '@/lib/supabase-client';
 // Validação
 import { steps } from '@/components/os/obras/os-13/pages/constants';
 import { useCreateOSWorkflow } from '@/lib/hooks/use-os-workflows';
-import { type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
+import { cadastrarClienteObraSchema, type CadastrarClienteObraData } from '@/lib/validations/cadastrar-cliente-obra-schema';
+import { useFieldValidation } from '@/lib/hooks/use-field-validation';
+import { FormDatePicker } from '@/components/ui/form-date-picker';
 
 // Novos Componentes Reutilizáveis
 import { LeadCadastro, type LeadCadastroHandle } from '@/components/os/shared/lead-cadastro';
@@ -74,7 +69,6 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
     // Estados locais
     const [isSaving, setIsSaving] = useState(false);
-    const [errors, setErrors] = useState<Record<string, string>>({});
 
     // Estado para tipos (necessário para condicional de documentos)
     const [tipoCliente, setTipoCliente] = useState<TipoCliente>('fisica');
@@ -89,9 +83,18 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
     );
 
     // Hooks
-    const { clientes: leads } = useClientes('LEAD');
     const { createCentroCustoWithId } = useCentroCusto();
     const { mutate: createOS } = useCreateOSWorkflow();
+
+    // Hook de Validação Padrão (Validation System)
+    const {
+      errors,
+      touched,
+      validateField,
+      markFieldTouched,
+      validateAll,
+      markAllTouched
+    } = useFieldValidation(cadastrarClienteObraSchema);
 
     // Sincronizar dados iniciais se clienteId vier da prop (OS Pai)
     useEffect(() => {
@@ -104,48 +107,36 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
      * Valida todos os campos obrigatórios
      */
     const validate = (): boolean => {
-      const newErrors: Record<string, string> = {};
+      markAllTouched();
       let isValid = true;
 
       // 1. Valida Lead
       if (leadRef.current && !leadRef.current.validate()) {
         isValid = false;
       } else if (!data.clienteId && !leadRef.current) {
-        // Se não selecionou lead e o componente não está montado (não deveria acontecer)
         isValid = false;
         toast.error("Selecione ou cadastre um cliente");
       }
 
       // 2. Valida Documentos do Cliente
-      // Só validamos se tiver cliente selecionado. Se leadRef falhou, nem chegamos aqui idealmente, 
-      // mas vamos validar se possível.
       if (clienteRef.current && !clienteRef.current.validate()) {
         isValid = false;
       }
 
-      // 3. Valida Datas e Contrato Assinado
-      if (!dataContratacao) {
-        newErrors.dataContratacao = "Data de contratação é obrigatória";
+      // 3. Valida Schema via hook (Datas e Contrato Assinado)
+      const formIsValid = validateAll({
+        ...data,
+        dataContratacao: dataContratacao?.toISOString() || '',
+        aniversarioGestor: aniversarioGestor?.toISOString() || ''
+      });
+
+      if (!formIsValid) {
         isValid = false;
       }
-
-      // Aniversário não é mais obrigatório aqui, pois ClienteCompletar cuida dele 
-      // ou se quisermos manter obrigatório na OS:
-      if (!aniversarioGestor) {
-        newErrors.aniversarioGestor = "Aniversário do gestor é obrigatório";
-        isValid = false;
-      }
-
-      if (data.contratoAssinado.length === 0) {
-        newErrors.contratoAssinado = "Contrato assinado é obrigatório";
-        isValid = false;
-      }
-
-      setErrors(newErrors);
 
       if (!isValid) {
         toast.error('Verifique os campos obrigatórios');
-        logger.warn('❌ Validação falhou:', newErrors);
+        logger.warn('❌ Validação falhou:', errors);
       }
 
       return isValid;
@@ -171,6 +162,9 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
         // Garantir que temos o ID correto no data
         const currentClienteId = savedLeadId;
+        if (!currentClienteId) {
+          throw new Error("ID do cliente não retornado após salvamento");
+        }
 
         // 2. Salvar Documentos do Cliente
         // Nota: ClienteCompletar salva internamente (documentos e aniversário)
@@ -196,7 +190,7 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
             tipoOSCodigo: 'OS-13',
             clienteId: currentClienteId,
             ccId: undefined, // Será atualizado depois
-            responsavelId: user?.id || null,
+            responsavelId: user?.id || '',
             descricao: `Start de Contrato - ${leadNome}`,
             metadata: {
               data_contratacao: dataContratacao?.toISOString(),
@@ -207,10 +201,14 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
               ordem: s.id,
               dados_etapa: s.id === 1 ? { ...data, clienteId: currentClienteId } : {}
             })),
-            parentOSId
+            parentOSId: parentOSId || undefined
           });
 
-          currentOsId = result.os.id;
+          // Ignore specific type for os since we just need the id
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          currentOsId = String((result as any).os?.id || '');
+          if (!currentOsId) throw new Error("Falha ao recuperar ID da OS criada");
+          
           osCreatedNow = true;
           logger.log('✅ Nova OS criada:', currentOsId);
         } else {
@@ -236,6 +234,10 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
 
         // 5. Gerar Centro de Custo com ID = OS ID
         logger.log('🏗️ Gerando Centro de Custo com ID igual à OS...');
+        
+        if (!currentOsId) {
+          throw new Error("ID da OS não está definido para criação do Centro de Custo");
+        }
 
         // Recuperar tipoOSId
         let tipoOSId = '';
@@ -385,39 +387,24 @@ export const CadastrarClienteObra = forwardRef<CadastrarClienteObraHandle, Cadas
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Data de Contratação */}
-              <div className="space-y-2">
-                <Label htmlFor="dataContratacao">Data de Contratação *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      className={cn(
-                        'w-full md:w-[300px] justify-start text-left font-normal',
-                        !dataContratacao && 'text-muted-foreground',
-                        errors.dataContratacao && 'border-destructive'
-                      )}
-                      disabled={readOnly}
-                    >
-                      {dataContratacao ? format(dataContratacao, 'PPP', { locale: ptBR }) : 'Selecione a data'}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={dataContratacao}
-                      onSelect={(date) => {
-                        setDataContratacao(date);
-                        onDataChange({ ...data, dataContratacao: date?.toISOString() || '' });
-                      }}
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-                {errors.dataContratacao && (
-                  <p className="text-sm text-destructive">{errors.dataContratacao}</p>
-                )}
-              </div>
+              <FormDatePicker
+                id="dataContratacao"
+                label="Data de Contratação"
+                required
+                disabled={readOnly}
+                value={dataContratacao ? dataContratacao.toISOString() : undefined}
+                onChange={(dateStr) => {
+                  const date = dateStr ? new Date(dateStr) : undefined;
+                  setDataContratacao(date);
+                  const updatedData = { ...data, dataContratacao: dateStr };
+                  onDataChange(updatedData);
+                  markFieldTouched('dataContratacao');
+                  validateField('dataContratacao', dateStr);
+                }}
+                error={touched.dataContratacao ? errors.dataContratacao : undefined}
+                success={touched.dataContratacao && !errors.dataContratacao}
+                className="w-full md:w-[300px]"
+              />
 
               {/* Contrato Assinado (Upload) */}
               <div className="space-y-2">

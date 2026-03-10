@@ -28,6 +28,9 @@ import { CHECKLIST_BLOCOS } from '../../shared/components/checklist-recebimento-
 import { CHECKLIST_SPCI_BLOCOS } from '../../shared/components/checklist-spci-table';
 import { CHECKLIST_SPDA_BLOCOS } from '../../shared/components/checklist-spda-table';
 import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
+import type { SPDADynamicFormData } from '../../shared/schemas/spda-dynamic-schema';
+import type { SPCIDynamicFormData } from '../../shared/schemas/spci-dynamic-schema';
+import { flattenSPDAChecklist, flattenSPCIChecklist } from '../../shared/utils/flatten-dynamic-checklist';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { gerarDocumentoSchema } from '@/lib/validations/os11-schemas';
 
@@ -92,6 +95,9 @@ interface Etapa5Data { // Pós-Visita
         }>;
     };
     areaVistoriada?: string;
+    // Dynamic checklist data (structural multipliers)
+    checklistDinamicoSPDA?: SPDADynamicFormData;
+    checklistDinamicoSPCI?: SPCIDynamicFormData;
 }
 
 interface StepGerarDocumentoData {
@@ -108,8 +114,8 @@ interface StepGerarDocumentoProps {
   readOnly?: boolean;
   etapa1Data?: Etapa1Data;
   etapa2Data?: Etapa2Data;
-  etapa3Data?: any;
-  etapa4Data?: any;
+  etapa3Data?: unknown;
+  etapa4Data?: unknown;
   etapa5Data?: Etapa5Data;
 }
 
@@ -181,6 +187,17 @@ export const StepGerarDocumento = forwardRef<StepGerarDocumentoHandle, StepGerar
   }));
 
   const transformChecklistData = (): VisitaTecnicaData['checklistRecebimento'] | undefined => {
+    // ── Dynamic SPDA checklist (structural multipliers) ──
+    if (etapa5Data?.checklistDinamicoSPDA && finalidadeInspecao && isFinalidadeSPDA(finalidadeInspecao)) {
+      return flattenSPDAChecklist(etapa5Data.checklistDinamicoSPDA);
+    }
+
+    // ── Dynamic SPCI checklist (structural multipliers) ──
+    if (etapa5Data?.checklistDinamicoSPCI && finalidadeInspecao && isFinalidadeSPCI(finalidadeInspecao)) {
+      return flattenSPCIChecklist(etapa5Data.checklistDinamicoSPCI);
+    }
+
+    // ── Legacy flat checklist (recebimento_unidade or fallback) ──
     if (!etapa5Data?.checklistRecebimento?.items) return undefined;
 
     // Selecionar os blocos corretos baseado na finalidade

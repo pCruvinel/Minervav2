@@ -119,6 +119,21 @@ export interface LeadCadastroProps {
 
   /** Filtro de status para o seletor (ex: 'lead', 'cliente' ou ['lead', 'ativo']) */
   statusFilter?: string | string[];
+
+  /**
+   * Modo de exibição do componente.
+   * - 'modal': Selector + Dialog para criação (comportamento padrão/legado)
+   * - 'inline': Formulário completo renderizado diretamente, sem selector/dialog
+   * @default 'modal'
+   */
+  displayMode?: 'modal' | 'inline';
+
+  /**
+   * Label da entidade para textos de UI ("Cliente", "Lead", "Contato", etc.).
+   * Substitui todas as strings hardcoded de identificação da entidade.
+   * @default 'Cliente'
+   */
+  entityLabel?: string;
 }
 
 /**

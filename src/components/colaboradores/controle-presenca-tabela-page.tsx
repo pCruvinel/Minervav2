@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { TooltipProvider } from '../ui/tooltip';
 import {
   Calendar as CalendarIcon,
+  Search,
   User,
   CheckCircle,
   XCircle,
@@ -24,12 +25,9 @@ import {
   DollarSign,
   ChevronDown,
   Loader2,
-  PieChart,
-  AlertTriangle,
   Star,
   Building,
   X,
-  Paperclip,
   History,
   LayoutList
 } from 'lucide-react';
@@ -43,12 +41,14 @@ import { Colaborador } from '@/types/colaborador';
 import { CentroCusto } from '@/lib/hooks/use-centro-custo';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { Link } from '@tanstack/react-router';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { calcularCustoDiaMaoDeObra, getCentroCustoFixo } from '@/lib/constants/colaboradores';
 import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
+import { ModalJustificativa } from './modals/modal-justificativa';
+import { ModalRateioCC, ColaboradorRateio } from './modals/modal-rateio-cc';
 
-interface RegistroPresenca {
+export interface RegistroPresenca {
   colaboradorId: string;
-  status: 'OK' | 'ATRASADO' | 'FALTA';
+  status: 'OK' | 'ATRASADO' | 'FALTA' | 'FALTA_JUSTIFICADA';
   performance: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
   centrosCusto: string[];
   justificativaStatus?: string;
@@ -57,20 +57,14 @@ interface RegistroPresenca {
   anexoUrl?: string;
   confirmedAt?: string;
   confirmedBy?: string;
+  confirmedChanges?: { timestamp: string; action: string; previous_state?: string; by?: string | null }[];
+  isAbonada?: boolean;
+  motivoAbono?: string;
 }
 
-// Interface para rateio de CC
-interface RateioCC {
-  ccId: string;
-  ccNome: string;
-  percentual: number;
-}
-
-interface ColaboradorRateio {
-  colaboradorId: string;
-  colaboradorNome: string;
-  centrosCusto: RateioCC[];
-}
+/** Helper: verifica se o status é qualquer tipo de falta */
+const isFalta = (status: string | undefined): boolean =>
+  status === 'FALTA' || status === 'FALTA_JUSTIFICADA';
 
 export function ControlePresencaTabelaPage() {
   const { currentUser } = useAuth();
@@ -104,14 +98,22 @@ export function ControlePresencaTabelaPage() {
       try {
         setLoading(true);
         const [colsRes, ccRes] = await Promise.all([
-          supabase.from('colaboradores').select('*').eq('ativo', true).order('nome_completo'),
+          supabase.from('colaboradores').select('*, setores(id, nome, slug)').eq('ativo', true).order('nome_completo'),
           supabase.from('centros_custo').select('id, nome').eq('ativo', true).order('nome')
         ]);
 
         if (colsRes.error) throw colsRes.error;
         if (ccRes.error) throw ccRes.error;
 
-        setColaboradores(colsRes.data || []);
+        // Map the joined setor data onto each colaborador so that
+        // `colaborador.setor` (slug) is populated for filtering/display
+        const colaboradoresComSetor = (colsRes.data || []).map((col: Partial<Colaborador> & { setores?: { slug?: string } }) => ({
+          ...col,
+          setor: col.setores?.slug || col.setor || undefined,
+          setor_slug: col.setores?.slug || col.setor_slug || undefined,
+        })) as Colaborador[];
+
+        setColaboradores(colaboradoresComSetor);
         setCentrosCusto(ccRes.data || []);
       } catch (error) {
         console.error('Erro ao carregar dados iniciais:', error);
@@ -147,11 +149,15 @@ export function ControlePresencaTabelaPage() {
 
       // Inicializar todos com padrão
       colaboradores.forEach(col => {
+        const ccFixoCodigo = getCentroCustoFixo(col.funcao);
+        const ccFixoObj = ccFixoCodigo ? centrosCusto.find(cc => cc.nome === ccFixoCodigo) : undefined;
+        const defaultCCs = ccFixoObj ? [ccFixoObj.id] : [];
+
         novosRegistros[col.id] = {
           colaboradorId: col.id,
           status: 'OK',
           performance: 'BOA',
-          centrosCusto: [],
+          centrosCusto: defaultCCs,
         };
       });
 
@@ -159,17 +165,26 @@ export function ControlePresencaTabelaPage() {
       if (data && data.length > 0) {
         data.forEach(reg => {
           if (novosRegistros[reg.colaborador_id]) {
+            const currentColab = colaboradores.find(c => c.id === reg.colaborador_id);
+            const ccFixoCodigo = currentColab ? getCentroCustoFixo(currentColab.funcao) : undefined;
+            const ccFixoObj = ccFixoCodigo ? centrosCusto.find(cc => cc.nome === ccFixoCodigo) : undefined;
+            const dbCCs = reg.centros_custo || [];
+            const computedCCs = ccFixoObj && dbCCs.length === 0 ? [ccFixoObj.id] : dbCCs;
+
             novosRegistros[reg.colaborador_id] = {
               colaboradorId: reg.colaborador_id,
-              status: reg.status as any,
-              performance: reg.performance as any,
-              centrosCusto: reg.centros_custo || [],
+              status: (reg.status as  'OK' | 'ATRASADO' | 'FALTA' | 'FALTA_JUSTIFICADA') || 'OK',
+              performance: (reg.performance as 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM') || 'BOA',
+              centrosCusto: computedCCs,
               justificativaStatus: reg.justificativa,
               justificativaPerformance: reg.performance_justificativa,
               minutosAtraso: reg.minutos_atraso,
               anexoUrl: reg.anexo_url,
               confirmedAt: reg.confirmed_at,
-              confirmedBy: reg.confirmed_by
+              confirmedBy: reg.confirmed_by,
+              confirmedChanges: Array.isArray(reg.confirmed_changes) 
+                ? reg.confirmed_changes 
+                : (reg.confirmed_changes ? [reg.confirmed_changes] : [])
             };
           }
         });
@@ -253,10 +268,10 @@ export function ControlePresencaTabelaPage() {
   };
 
   const handleStatusChange = (colaboradorId: string, status: RegistroPresenca['status']) => {
-    // Se status é FALTA, limpar performance (não faz sentido avaliar quem faltou)
-    const novaPerformance = status === 'FALTA' ? undefined : registros[colaboradorId]?.performance;
+    // Se status é FALTA/FALTA_JUSTIFICADA, limpar performance (não faz sentido avaliar quem faltou)
+    const novaPerformance = isFalta(status) ? undefined : registros[colaboradorId]?.performance;
 
-    if (status === 'FALTA' || status === 'ATRASADO') {
+    if (isFalta(status) || status === 'ATRASADO') {
       setColaboradorAtual(colaboradorId);
       setTipoJustificativa('STATUS');
       setModalJustificativaOpen(true);
@@ -269,7 +284,7 @@ export function ControlePresencaTabelaPage() {
         status,
         performance: novaPerformance as RegistroPresenca['performance'],
         justificativaStatus: status === 'OK' ? undefined : prev[colaboradorId].justificativaStatus,
-        justificativaPerformance: status === 'FALTA' ? undefined : prev[colaboradorId].justificativaPerformance,
+        justificativaPerformance: isFalta(status) ? undefined : prev[colaboradorId].justificativaPerformance,
         minutosAtraso: status === 'ATRASADO' ? prev[colaboradorId].minutosAtraso : undefined,
       }
     }));
@@ -337,14 +352,18 @@ export function ControlePresencaTabelaPage() {
       return;
     }
 
+    // ATRASADO requer minutos individuais por colaborador — não suporta bulk
+    if (status === 'ATRASADO') {
+      toast.warning('Para marcar como ATRASADO, use o controle individual de cada colaborador. A ação em massa requer minutos de atraso específicos por pessoa.');
+      return;
+    }
+
     setRegistros(prev => {
       const novos = { ...prev };
       selecionados.forEach(id => {
         novos[id] = {
           ...novos[id],
           status,
-          performance: status === 'FALTA' ? undefined : novos[id].performance,
-          justificativaPerformance: status === 'FALTA' ? undefined : novos[id].justificativaPerformance,
         } as RegistroPresenca;
       });
       return novos;
@@ -413,7 +432,7 @@ export function ControlePresencaTabelaPage() {
       const novos = { ...prev };
       selecionados.forEach(id => {
         // Só atribui CC se não estiver como FALTA
-        if (novos[id].status !== 'FALTA') {
+        if (!isFalta(novos[id].status)) {
           novos[id] = {
             ...novos[id],
             centrosCusto: ccIds,
@@ -435,7 +454,7 @@ export function ControlePresencaTabelaPage() {
       const novos = { ...prev };
       selecionados.forEach(id => {
         // Só atribui performance se não estiver como FALTA
-        if (novos[id].status !== 'FALTA') {
+        if (!isFalta(novos[id].status)) {
           novos[id] = {
             ...novos[id],
             performance,
@@ -458,22 +477,24 @@ export function ControlePresencaTabelaPage() {
   };
 
   const calcularCustoDia = (colaborador: Colaborador) => {
-    if (colaborador.tipo_contratacao === 'CLT') {
-      return (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes;
-    }
-    return colaborador.custo_dia || 0;
+    return calcularCustoDiaMaoDeObra(
+      colaborador.salario_base,
+      colaborador.custo_dia,
+      diasUteisMes,
+      colaborador.tipo_contratacao === 'CLT'
+    );
   };
 
   const calcularCustoTotalDia = () => {
     return colaboradores.reduce((total, col) => {
       const registro = registros[col.id];
-      if (!registro || registro.status === 'FALTA') return total;
+      if (!registro || isFalta(registro.status)) return total;
       return total + calcularCustoDia(col);
     }, 0);
   };
 
   const calcularEstatisticas = () => {
-    const presentes = colaboradores.filter(col => registros[col.id]?.status !== 'FALTA').length;
+    const presentes = colaboradores.filter(col => !isFalta(registros[col.id]?.status)).length;
     const ausentes = colaboradores.length - presentes;
     const atrasados = colaboradores.filter(col => registros[col.id]?.status === 'ATRASADO').length;
 
@@ -494,17 +515,17 @@ export function ControlePresencaTabelaPage() {
       const registro = registros[col.id];
       if (!registro) return;
 
-      if (col.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0) {
+      if (col.setor !== 'administrativo' && !isFalta(registro.status) && registro.centrosCusto.length === 0) {
         erros.push(`${col.nome_completo} precisa ter pelo menos 1 Centro de Custo`);
       }
-      if ((registro.status === 'FALTA' || registro.status === 'ATRASADO') && !registro.justificativaStatus) {
-        erros.push(`${col.nome_completo} precisa ter justificativa de ${registro.status === 'FALTA' ? 'falta' : 'atraso'}`);
+      if ((isFalta(registro.status) || registro.status === 'ATRASADO') && !registro.justificativaStatus) {
+        erros.push(`${col.nome_completo} precisa ter justificativa de ${isFalta(registro.status) ? 'falta' : 'atraso'}`);
       }
       if (registro.performance === 'RUIM' && !registro.justificativaPerformance) {
         erros.push(`${col.nome_completo} precisa ter justificativa de performance ruim`);
       }
-      if (registro.status === 'ATRASADO' && !registro.minutosAtraso) {
-        erros.push(`${col.nome_completo} precisa informar os minutos de atraso`);
+      if (registro.status === 'ATRASADO' && (registro.minutosAtraso == null || registro.minutosAtraso <= 0)) {
+        erros.push(`${col.nome_completo} precisa informar os minutos de atraso (mínimo 1 minuto)`);
       }
     });
 
@@ -518,7 +539,7 @@ export function ControlePresencaTabelaPage() {
 
     colaboradores.forEach(col => {
       const registro = registros[col.id];
-      if (!registro || registro.status === 'FALTA') return;
+      if (!registro || isFalta(registro.status)) return;
 
       // Só precisa de rateio se tiver mais de 1 CC
       if (registro.centrosCusto.length > 1) {
@@ -561,7 +582,7 @@ export function ControlePresencaTabelaPage() {
           colaborador_id: col.id,
           data: dateStr,
           status: reg.status,
-          minutos_atraso: reg.minutosAtraso || null,
+          minutos_atraso: reg.status === 'ATRASADO' && reg.minutosAtraso ? reg.minutosAtraso : null,
           justificativa: reg.justificativaStatus || null,
           performance: reg.performance || 'BOA', // Default para 'BOA' quando FALTA (campo obrigatório no banco)
           performance_justificativa: reg.justificativaPerformance || null,
@@ -569,17 +590,20 @@ export function ControlePresencaTabelaPage() {
           anexo_url: reg.anexoUrl || null,
           confirmed_at: new Date().toISOString(),
           confirmed_by: currentUser?.id || null,
-          confirmed_changes: {
-            timestamp: new Date().toISOString(),
-            action: 'confirmed',
-            previous_state: reg.confirmedAt ? 'confirmed' : 'draft'
-          },
+          confirmed_changes: [
+            ...(reg.confirmedChanges || []),
+            {
+              timestamp: new Date().toISOString(),
+              action: 'confirmed',
+              previous_state: reg.confirmedAt ? 'confirmed' : 'draft'
+            }
+          ],
           updated_at: new Date().toISOString()
         };
       });
 
       // 1. Salvar registros de presença
-      const { data: registrosSalvos, error } = await supabase
+      const { error } = await supabase
         .from('registros_presenca')
         .upsert(upsertData, {
           onConflict: 'colaborador_id,data',
@@ -612,7 +636,7 @@ export function ControlePresencaTabelaPage() {
       // Montar alocações
       colaboradores.forEach(col => {
         const reg = registros[col.id];
-        if (!reg || reg.status === 'FALTA' || reg.centrosCusto.length === 0) return;
+        if (!reg || isFalta(reg.status) || reg.centrosCusto.length === 0) return;
 
         const registroPresencaId = registroIdMap.get(col.id);
         if (!registroPresencaId) return;
@@ -647,10 +671,15 @@ export function ControlePresencaTabelaPage() {
         const registroIds = Array.from(registroIdMap.values());
 
         // Deletar alocações existentes
-        await supabase
+        const { error: deleteAlocError } = await supabase
           .from('alocacao_horas_cc')
           .delete()
           .in('registro_presenca_id', registroIds);
+
+        if (deleteAlocError) {
+          toast.error('Erro ao limpar alocações anteriores de centros de custo. Tente novamente.');
+          throw deleteAlocError;
+        }
 
         // Inserir novas alocações
         const { error: alocError } = await supabase
@@ -658,8 +687,8 @@ export function ControlePresencaTabelaPage() {
           .insert(alocacoesParaSalvar);
 
         if (alocError) {
-          console.error('Erro ao salvar alocações:', alocError);
-          // Não falhar toda operação, só logar
+          toast.error('Erro ao salvar rateio de centros de custo. Verifique os dados e tente novamente.');
+          throw alocError;
         }
       }
 
@@ -688,23 +717,62 @@ export function ControlePresencaTabelaPage() {
   };
 
   const handleReverterConfirmacao = async () => {
+    if (selecionados.size === 0) {
+      toast.warning('Selecione pelo menos um colaborador para reverter a confirmação.');
+      return;
+    }
+
     try {
       setSaving(true);
       const dateStr = format(dataSelecionada, 'yyyy-MM-dd');
 
-      const { error } = await supabase
-        .from('registros_presenca')
-        .update({
+      const prevRegistros = Array.from(selecionados)
+        .map(id => registros[id])
+        .filter(reg => reg && isRegistroConfirmado(reg));
+
+      if (prevRegistros.length === 0) {
+        toast.warning('Nenhum registro selecionado já está confirmado.');
+        setSaving(false);
+        return;
+      }
+
+      const upsertData = prevRegistros.map(reg => {
+        return {
+          colaborador_id: reg.colaboradorId,
+          data: dateStr,
+          status: reg.status,
+          minutos_atraso: reg.minutosAtraso || null,
+          justificativa: reg.justificativaStatus || null,
+          performance: reg.performance || 'BOA',
+          performance_justificativa: reg.justificativaPerformance || null,
+          centros_custo: reg.centrosCusto,
+          anexo_url: reg.anexoUrl || null,
           confirmed_at: null,
           confirmed_by: null,
-          confirmed_changes: null,
+          confirmed_changes: [
+            ...(reg.confirmedChanges || []),
+            {
+              timestamp: new Date().toISOString(),
+              action: 'reverted',
+              previous_state: 'confirmed',
+              by: currentUser?.id || null
+            }
+          ],
           updated_at: new Date().toISOString()
-        })
-        .eq('data', dateStr);
+        };
+      });
+
+      const { error } = await supabase
+        .from('registros_presenca')
+        .upsert(upsertData, {
+          onConflict: 'colaborador_id,data',
+          ignoreDuplicates: false
+        });
 
       if (error) throw error;
 
-      toast.success('✅ Confirmação revertida! Agora é possível editar os registros.');
+      toast.success(`✅ Confirmação revertida para ${prevRegistros.length} colaborador(es)!`);
+      setSelecionados(new Set());
 
       // Recarregar para refletir mudanças
       fetchRegistrosDoDia(dataSelecionada);
@@ -738,10 +806,10 @@ export function ControlePresencaTabelaPage() {
 
     switch (field) {
       case 'centrosCusto':
-        hasError = colaborador.setor !== 'administrativo' && registro.status !== 'FALTA' && registro.centrosCusto.length === 0;
+        hasError = colaborador.setor !== 'administrativo' && !isFalta(registro.status) && registro.centrosCusto.length === 0;
         break;
       case 'status':
-        hasError = (registro.status === 'FALTA' || registro.status === 'ATRASADO') && !registro.justificativaStatus;
+        hasError = (isFalta(registro.status) || registro.status === 'ATRASADO') && !registro.justificativaStatus;
         break;
       case 'performance':
         hasError = registro.performance === 'RUIM' && !registro.justificativaPerformance;
@@ -787,10 +855,11 @@ export function ControlePresencaTabelaPage() {
                   variant="outline"
                   size="sm"
                   onClick={handleReverterConfirmacao}
-                  disabled={saving}
+                  disabled={saving || selecionados.size === 0}
                   className="h-9"
+                  title="Selecione um ou mais colaboradores para reverter"
                 >
-                  Reverter
+                  Reverter Selec.
                 </Button>
               </div>
             )}
@@ -1064,7 +1133,7 @@ export function ControlePresencaTabelaPage() {
                       key={colaborador.id}
                       className={cn(
                         "hover:bg-muted/50 transition-colors",
-                        registro.status === 'FALTA' && "bg-destructive/5 hover:bg-destructive/10",
+                        isFalta(registro.status) && "bg-destructive/5 hover:bg-destructive/10",
                         registro.status === 'ATRASADO' && "bg-warning/5 hover:bg-warning/10"
                       )}
                     >
@@ -1118,16 +1187,16 @@ export function ControlePresencaTabelaPage() {
 
                       <TableCell>
                         <Select
-                          value={registro.status === 'FALTA' ? '' : (registro.performance || '')}
+                          value={isFalta(registro.status) ? '' : (registro.performance || '')}
                           onValueChange={(value) => handlePerformanceChange(colaborador.id, value as RegistroPresenca['performance'])}
-                          disabled={isRegistroConfirmado(registro) || registro.status === 'FALTA'}
+                          disabled={isRegistroConfirmado(registro) || isFalta(registro.status)}
                         >
                           <SelectTrigger className={cn(
                             "w-full h-9",
                             getValidationClass(colaborador, registro, 'performance'),
-                            registro.status === 'FALTA' && "opacity-50 cursor-not-allowed bg-muted"
+                            isFalta(registro.status) && "opacity-50 cursor-not-allowed bg-muted"
                           )}>
-                            <SelectValue placeholder={registro.status === 'FALTA' ? 'N/A' : 'Selecione'} />
+                            <SelectValue placeholder={isFalta(registro.status) ? 'N/A' : 'Selecione'} />
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="OTIMA">Ótima</SelectItem>
@@ -1139,61 +1208,81 @@ export function ControlePresencaTabelaPage() {
                       </TableCell>
 
                       <TableCell>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className={cn("w-full justify-between h-auto min-h-9 py-2", getValidationClass(colaborador, registro, 'centrosCusto'))}
-                              disabled={isRegistroConfirmado(registro)}
-                            >
-                              <div className="flex flex-wrap gap-1 text-left">
-                                {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
-                                  registro.centrosCusto.map(ccId => (
-                                    <Badge
-                                      key={ccId}
-                                      variant="secondary"
-                                      className="text-[10px] bg-info/10 text-info hover:bg-info/20 border-none"
-                                    >
-                                      {getCentroCustoNome(ccId)}
-                                    </Badge>
-                                  ))
-                                ) : (
-                                  <span className="text-sm text-neutral-400">
-                                    Selecione os CCs...
-                                  </span>
-                                )}
-                              </div>
-                              <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-96 p-0" align="start">
-                            <div className="p-3 border-b bg-muted/30">
-                              <Label className="text-sm font-medium">
-                                Centros de Custo (Multiselect)
-                              </Label>
-                            </div>
-                            <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
-                              {centrosCusto.map(cc => (
-                                <label
-                                  key={cc.id}
-                                  className={cn(
-                                    "flex items-center gap-3 p-2 rounded-md cursor-pointer transition-all",
-                                    registro.centrosCusto?.includes(cc.id)
-                                      ? "bg-primary/5 text-primary"
-                                      : "hover:bg-muted"
-                                  )}
+                        {(() => {
+                          const ccFixoCodigo = getCentroCustoFixo(colaborador.funcao);
+                          const hasCCFixo = !!ccFixoCodigo;
+                          
+                          if (hasCCFixo) {
+                            return (
+                              <Badge variant="secondary" className="font-normal border-none bg-muted w-full justify-start py-2 px-3 text-sm h-9">
+                                Custo Fixo: {ccFixoCodigo}
+                              </Badge>
+                            );
+                          }
+                          
+                          const ccsFiltrados = centrosCusto.filter(cc => !cc.nome?.startsWith('CC-'));
+
+                          return (
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button
+                                  variant="outline"
+                                  className={cn("w-full justify-between h-auto min-h-9 py-2", getValidationClass(colaborador, registro, 'centrosCusto'))}
+                                  disabled={isRegistroConfirmado(registro) || hasCCFixo}
                                 >
-                                  <Checkbox
-                                    checked={registro.centrosCusto?.includes(cc.id)}
-                                    onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
-                                    className="border-muted-foreground/30 data-[state=checked]:border-primary"
-                                  />
-                                  <span className="text-sm flex-1">{cc.nome}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </PopoverContent>
-                        </Popover>
+                                  <div className="flex flex-wrap gap-1 text-left">
+                                    {registro.centrosCusto && registro.centrosCusto.length > 0 ? (
+                                      registro.centrosCusto.map(ccId => (
+                                        <Badge
+                                          key={ccId}
+                                          variant="secondary"
+                                          className="text-[10px] bg-info/10 text-info hover:bg-info/20 border-none"
+                                        >
+                                          {getCentroCustoNome(ccId)}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-sm text-neutral-400">
+                                        Selecione os CCs...
+                                      </span>
+                                    )}
+                                  </div>
+                                  <ChevronDown className="h-4 w-4 ml-2 flex-shrink-0 opacity-50" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-96 p-0" align="start">
+                                <div className="p-3 border-b bg-muted/30">
+                                  <Label className="text-sm font-medium">
+                                    Alocação de Custo (Onde trabalhou hoje?)
+                                  </Label>
+                                </div>
+                                <div className="p-2 space-y-1 max-h-60 overflow-y-auto">
+                                  {ccsFiltrados.length === 0 && (
+                                    <p className="text-sm text-muted-foreground p-2">Nenhum CC disponível.</p>
+                                  )}
+                                  {ccsFiltrados.map(cc => (
+                                    <label
+                                      key={cc.id}
+                                      className={cn(
+                                        "flex items-center gap-3 p-2 rounded-md cursor-pointer transition-all",
+                                        registro.centrosCusto?.includes(cc.id)
+                                          ? "bg-primary/5 text-primary"
+                                          : "hover:bg-muted"
+                                      )}
+                                    >
+                                      <Checkbox
+                                        checked={registro.centrosCusto?.includes(cc.id)}
+                                        onCheckedChange={() => handleCentroCustoToggle(colaborador.id, cc.id)}
+                                        className="border-muted-foreground/30 data-[state=checked]:border-primary"
+                                      />
+                                      <span className="text-sm flex-1">{cc.nome}</span>
+                                    </label>
+                                  ))}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
+                          );
+                        })()}
                       </TableCell>
 
                       <TableCell className="text-center">
@@ -1210,7 +1299,7 @@ export function ControlePresencaTabelaPage() {
                                 {registro.justificativaStatus && (
                                   <div>
                                     <Label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">
-                                      {registro.status === 'FALTA' ? 'Falta' : 'Atraso'}
+                                      {isFalta(registro.status) ? 'Falta' : 'Atraso'}
                                       {registro.minutosAtraso && ` (${registro.minutosAtraso} min)`}
                                     </Label>
                                     <p className="text-sm mt-1 bg-muted/50 p-2 rounded-md">{registro.justificativaStatus}</p>
@@ -1337,7 +1426,7 @@ export function ControlePresencaTabelaPage() {
           tipo={tipoJustificativa}
           colaboradorNome={colaboradores.find(c => c.id === colaboradorAtual)?.nome_completo || ''}
           colaboradorId={colaboradorAtual || undefined}
-          status={colaboradorAtual ? registros[colaboradorAtual]?.status : 'OK'}
+          status={colaboradorAtual ? (isFalta(registros[colaboradorAtual]?.status) ? 'FALTA' : registros[colaboradorAtual]?.status) as 'OK' | 'ATRASADO' | 'FALTA' : 'OK'}
         />
 
         {/* Modal de Justificativa em Massa */}
@@ -1418,404 +1507,5 @@ export function ControlePresencaTabelaPage() {
         </Dialog>
       </div>
     </TooltipProvider>
-  );
-}
-
-// Modal de Justificativa
-interface ModalJustificativaProps {
-  open: boolean;
-  onClose: () => void;
-  onSalvar: (justificativa: string, minutosAtraso?: number, anexoUrl?: string) => void;
-  tipo: 'STATUS' | 'PERFORMANCE';
-  colaboradorNome: string;
-  colaboradorId?: string;
-  status: RegistroPresenca['status'];
-}
-
-function ModalJustificativa({ open, onClose, onSalvar, tipo, colaboradorNome, colaboradorId, status }: ModalJustificativaProps) {
-  const [justificativa, setJustificativa] = useState('');
-  const [minutosAtraso, setMinutosAtraso] = useState('');
-  const [arquivo, setArquivo] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      // Validar tipo
-      const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
-      if (!allowedTypes.includes(file.type)) {
-        toast.error('Formato não suportado. Use PDF, JPG ou PNG.');
-        e.target.value = '';
-        return;
-      }
-      // Validar tamanho (5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. Máximo 5MB.');
-        e.target.value = '';
-        return;
-      }
-      setArquivo(file);
-    }
-  };
-
-  const handleSalvar = async () => {
-    if (!justificativa.trim()) {
-      toast.error('Preencha a justificativa');
-      return;
-    }
-
-    if (status === 'ATRASADO' && tipo === 'STATUS' && !minutosAtraso) {
-      toast.error('Informe os minutos de atraso');
-      return;
-    }
-
-    let anexoUrl: string | undefined;
-
-    // Upload do arquivo se existir
-    if (arquivo && colaboradorId) {
-      setUploading(true);
-      try {
-        const fileName = `${colaboradorId}/${Date.now()}_${arquivo.name}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('comprovantes-presenca')
-          .upload(fileName, arquivo);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('comprovantes-presenca')
-          .getPublicUrl(fileName);
-
-        anexoUrl = publicUrl;
-      } catch (error) {
-        console.error('Erro ao fazer upload:', error);
-        toast.error('Erro ao fazer upload do arquivo. Tente novamente.');
-        setUploading(false);
-        return;
-      }
-      setUploading(false);
-    }
-
-    onSalvar(justificativa, minutosAtraso ? parseInt(minutosAtraso) : undefined, anexoUrl);
-    setJustificativa('');
-    setMinutosAtraso('');
-    setArquivo(null);
-  };
-
-  const handleClose = () => {
-    setJustificativa('');
-    setMinutosAtraso('');
-    setArquivo(null);
-    onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle>
-            {tipo === 'STATUS' ? 'Justificativa Obrigatória' : 'Justifique a Performance'}
-          </DialogTitle>
-          <DialogDescription>
-            {tipo === 'STATUS'
-              ? `Informe o motivo da ${status === 'FALTA' ? 'falta' : 'chegada atrasada'} de ${colaboradorNome}`
-              : `Explique por que a performance de ${colaboradorNome} foi avaliada como RUIM`
-            }
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4">
-          {status === 'ATRASADO' && tipo === 'STATUS' && (
-            <div className="space-y-2">
-              <Label>Minutos de Atraso *</Label>
-              <Input
-                type="number"
-                min="1"
-                placeholder="Ex: 30"
-                value={minutosAtraso}
-                onChange={(e) => setMinutosAtraso(e.target.value)}
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label>Justificativa *</Label>
-            <Textarea
-              placeholder="Descreva o motivo detalhadamente..."
-              rows={4}
-              value={justificativa}
-              onChange={(e) => setJustificativa(e.target.value)}
-            />
-          </div>
-
-          {/* Campo de anexo - só para STATUS (falta/atraso) */}
-          {tipo === 'STATUS' && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                Anexar Comprovante (Opcional)
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="file"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onChange={handleFileChange}
-                  className="flex-1"
-                />
-                {arquivo && (
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setArquivo(null)}
-                    type="button"
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                )}
-              </div>
-              {arquivo && (
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Paperclip className="h-3 w-3" />
-                  {arquivo.name} ({(arquivo.size / 1024).toFixed(1)} KB)
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                Formatos aceitos: PDF, JPG, PNG (máx. 5MB)
-              </p>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={uploading}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSalvar} disabled={uploading}>
-            {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Salvar Justificativa
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Modal de Rateio de Centros de Custo
-interface ModalRateioCCProps {
-  open: boolean;
-  onClose: () => void;
-  colaboradores: ColaboradorRateio[];
-  onConfirmar: (rateios: ColaboradorRateio[]) => void;
-}
-
-function ModalRateioCC({ open, onClose, colaboradores, onConfirmar }: ModalRateioCCProps) {
-  const [rateiosLocal, setRateiosLocal] = useState<ColaboradorRateio[]>([]);
-  const [erros, setErros] = useState<Record<string, string>>({});
-
-  // Sincronizar estado local quando modal abre
-  React.useEffect(() => {
-    if (open && colaboradores.length > 0) {
-      setRateiosLocal([...colaboradores]);
-      setErros({});
-    }
-  }, [open, colaboradores]);
-
-  const handlePercentualChange = (colaboradorId: string, ccId: string, novoValor: string) => {
-    const valor = parseInt(novoValor) || 0;
-
-    setRateiosLocal(prev => prev.map(colab => {
-      if (colab.colaboradorId !== colaboradorId) return colab;
-
-      return {
-        ...colab,
-        centrosCusto: colab.centrosCusto.map(cc =>
-          cc.ccId === ccId ? { ...cc, percentual: valor } : cc
-        )
-      };
-    }));
-
-    // Limpar erro desse colaborador
-    setErros(prev => {
-      const novos = { ...prev };
-      delete novos[colaboradorId];
-      return novos;
-    });
-  };
-
-  const validarRateios = (): boolean => {
-    const novosErros: Record<string, string> = {};
-
-    rateiosLocal.forEach(colab => {
-      const soma = colab.centrosCusto.reduce((acc, cc) => acc + cc.percentual, 0);
-
-      if (soma !== 100) {
-        novosErros[colab.colaboradorId] = `Soma deve ser 100% (atual: ${soma}%)`;
-      }
-
-      // Verificar se algum CC tem 0%
-      const temZero = colab.centrosCusto.some(cc => cc.percentual <= 0);
-      if (temZero) {
-        novosErros[colab.colaboradorId] = 'Todos os CCs devem ter percentual maior que 0';
-      }
-    });
-
-    setErros(novosErros);
-    return Object.keys(novosErros).length === 0;
-  };
-
-  const handleConfirmar = () => {
-    if (validarRateios()) {
-      onConfirmar(rateiosLocal);
-    }
-  };
-
-  const getSomaPercentual = (colaboradorId: string): number => {
-    const colab = rateiosLocal.find(c => c.colaboradorId === colaboradorId);
-    if (!colab) return 0;
-    return colab.centrosCusto.reduce((acc, cc) => acc + cc.percentual, 0);
-  };
-
-  const distribuirIgualmente = (colaboradorId: string) => {
-    setRateiosLocal(prev => prev.map(colab => {
-      if (colab.colaboradorId !== colaboradorId) return colab;
-
-      const qtdCCs = colab.centrosCusto.length;
-      const percentualBase = Math.floor(100 / qtdCCs);
-      const resto = 100 - (percentualBase * qtdCCs);
-
-      return {
-        ...colab,
-        centrosCusto: colab.centrosCusto.map((cc, idx) => ({
-          ...cc,
-          percentual: idx === 0 ? percentualBase + resto : percentualBase
-        }))
-      };
-    }));
-
-    // Limpar erro
-    setErros(prev => {
-      const novos = { ...prev };
-      delete novos[colaboradorId];
-      return novos;
-    });
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-primary" />
-            Definir Rateio de Centros de Custo
-          </DialogTitle>
-          <DialogDescription>
-            Os colaboradores abaixo estão alocados em mais de um Centro de Custo.
-            Defina o percentual de cada CC (a soma deve ser 100%).
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto py-4 space-y-6">
-          {rateiosLocal.map((colab) => {
-            const soma = getSomaPercentual(colab.colaboradorId);
-            const temErro = !!erros[colab.colaboradorId];
-            const somaCorreta = soma === 100;
-
-            return (
-              <div
-                key={colab.colaboradorId}
-                className={cn(
-                  "p-4 rounded-lg border transition-all",
-                  temErro ? "border-destructive bg-destructive/5" :
-                    somaCorreta ? "border-success/50 bg-success/5" : "border-border"
-                )}
-              >
-                {/* Header do Colaborador */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                      <User className="h-4 w-4 text-primary" />
-                    </div>
-                    <span className="font-medium">{colab.colaboradorNome}</span>
-                    <Badge variant="secondary" className="text-xs">
-                      {colab.centrosCusto.length} CCs
-                    </Badge>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => distribuirIgualmente(colab.colaboradorId)}
-                      className="text-xs"
-                    >
-                      Distribuir igual
-                    </Button>
-                    <Badge
-                      variant={somaCorreta ? "default" : "destructive"}
-                      className={cn(
-                        "text-xs font-mono",
-                        somaCorreta && "bg-success hover:bg-success"
-                      )}
-                    >
-                      {soma}%
-                    </Badge>
-                  </div>
-                </div>
-
-                {/* Inputs de Percentual */}
-                <div className="grid gap-2">
-                  {colab.centrosCusto.map((cc) => (
-                    <div
-                      key={cc.ccId}
-                      className="flex items-center gap-3 p-2 rounded bg-muted/50"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate block">
-                          {cc.ccNome}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min="1"
-                          max="100"
-                          value={cc.percentual}
-                          onChange={(e) => handlePercentualChange(
-                            colab.colaboradorId,
-                            cc.ccId,
-                            e.target.value
-                          )}
-                          className="w-20 text-center font-mono"
-                        />
-                        <span className="text-sm text-muted-foreground">%</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Erro */}
-                {temErro && (
-                  <div className="flex items-center gap-2 mt-2 text-destructive text-sm">
-                    <AlertTriangle className="h-4 w-4" />
-                    {erros[colab.colaboradorId]}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        <DialogFooter className="border-t pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Cancelar
-          </Button>
-          <Button onClick={handleConfirmar}>
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Confirmar Rateio e Registrar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }

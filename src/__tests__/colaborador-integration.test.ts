@@ -230,7 +230,7 @@ describe('Módulo Colaborador - Validações Unitárias', () => {
 
     it('deve validar permissões por setor', () => {
       const setoresPermitidos = ['obras', 'assessoria', 'administrativo'];
-      const setorUsuario = 'obras';
+      const setorUsuario: string = 'obras';
 
       expect(setoresPermitidos).toContain(setorUsuario);
 

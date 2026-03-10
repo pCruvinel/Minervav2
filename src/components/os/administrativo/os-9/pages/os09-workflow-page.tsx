@@ -172,6 +172,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
           const { error: itemError } = await supabase
             .from('os_requisition_items')
             .insert({
+              os_id: osData.id,
               os_etapa_id: etapa1Criada.id,
               tipo: item.tipo,
               sub_tipo: item.sub_tipo || null,
@@ -506,6 +507,7 @@ export function OS09WorkflowPage({ onBack, osId }: OS09WorkflowPageProps) {
                 data={etapa1Data}
                 onDataChange={setEtapa1Data}
                 etapaId={etapa1Id}
+                osId={finalOsId}
                 readOnly={isHistoricalNavigation}
                 saveItemsRef={saveItemsRef}
                 onCreateOS={() => createOSWithCC(etapa1Data.centro_custo_id as string)}

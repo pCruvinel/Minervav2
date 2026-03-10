@@ -8,6 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Building2, Calendar, Briefcase } from 'lucide-react';
 import type { RequisicaoMaoDeObra, VagaRecrutamento } from '@/lib/types/recrutamento';
+import { useDraggable } from '@dnd-kit/core';
+import { CSS } from '@dnd-kit/utilities';
 
 interface RequisicaoCardProps {
   requisicao: RequisicaoMaoDeObra;
@@ -86,10 +88,25 @@ export function RequisicaoCard({ requisicao, onClick }: RequisicaoCardProps) {
   const urgencia = requisicao.metadata?.urgencia || 'normal';
   const urgenciaBadge = getUrgenciaBadge(urgencia);
 
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: requisicao.id,
+    data: requisicao,
+  });
+
+  const style = {
+    transform: CSS.Translate.toString(transform),
+  };
+
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
       onClick={onClick}
-      className="p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:shadow-md transition-all cursor-pointer"
+      className={`p-3 rounded-lg border border-border bg-card hover:border-primary/50 hover:shadow-md transition-all cursor-pointer ${
+        isDragging ? 'opacity-50 ring-2 ring-primary ring-offset-2' : ''
+      }`}
     >
       {/* Header: Código OS + Badge Urgência */}
       <div className="flex items-center justify-between mb-2">

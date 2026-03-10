@@ -88,7 +88,9 @@ export interface DespesaMaster {
 export function useDespesasMasterLedger(filters?: {
   status?: string[], // 'em_aberto', 'atrasado', 'pago'
   categoria_tipo?: string, // 'salario', 'fixa', 'variavel'
-  month?: Date | string
+  month?: Date | string,
+  page?: number,
+  limit?: number
 }) {
   return useQuery({
     queryKey: ['despesas-master', {
@@ -97,17 +99,24 @@ export function useDespesasMasterLedger(filters?: {
     }],
     retry: false, // Prevent freeze loops on error
     staleTime: 30000, // 30s cache to prevent fetch loops
-    queryFn: async (): Promise<DespesaMaster[]> => {
+    queryFn: async (): Promise<{ data: DespesaMaster[], totalCount: number }> => {
       console.log('[DEBUG] Fetching Despesas...', filters);
+      
+      const page = filters?.page || 1;
+      const limit = filters?.limit || 10;
+      const from = (page - 1) * limit;
+      const to = from + limit - 1;
+
       let query = supabase
         .from('contas_pagar')
-        .select(`
+          .select(`
           *,
           centros_custo ( nome ),
           favorecido_colaborador:colaboradores!contas_pagar_favorecido_colaborador_id_fkey ( nome_completo ),
-          categoria_rel:categorias_financeiras ( nome )
-        `)
-        .order('vencimento', { ascending: true });
+          categoria_rel:categorias_financeiras${filters?.categoria_tipo === 'salario' ? '!inner' : ''} ( nome, codigo )
+        `, { count: 'exact' })
+        .order('vencimento', { ascending: true })
+        .range(from, to);
 
       // Filtro de Status
       if (filters?.status && filters.status.length > 0) {
@@ -134,12 +143,9 @@ export function useDespesasMasterLedger(filters?: {
       }
 
       // Filtro de Tipo (Salário, Fixa, Variável)
-      // Filtro de Tipo (Salário, Fixa, Variável)
       if (filters?.categoria_tipo) {
          if (filters.categoria_tipo === 'salario') {
-             // TODO: Buscar ID da categoria 'Salários' ou filtrar por join
-             // Por enquanto, vamos ignorar para não quebrar a query com coluna inexistente
-             console.warn('Filtro de Salário temporariamente desabilitado aguardando ID fixo');
+             query = query.eq('categoria_rel.codigo', 'SAL');
          } else if (filters.categoria_tipo === 'fixa') {
              query = query.eq('tipo', 'fixa');
          } else if (filters.categoria_tipo === 'variavel') {
@@ -147,7 +153,7 @@ export function useDespesasMasterLedger(filters?: {
          }
       }
 
-      const { data, error } = await query;
+      const { data, error, count } = await query;
 
       if (error) {
         logger.error('Erro ao buscar despesas master:', error);
@@ -157,7 +163,7 @@ export function useDespesasMasterLedger(filters?: {
       const hoje = new Date();
       hoje.setHours(0,0,0,0);
 
-      return (data || []).map((item: any) => {
+      const mappedData = (data || []).map((item: any) => {
         // Ajuste de fuso horário simples para comparação de data (vencimento é yyyy-mm-dd)
         const vencimentoStr = item.vencimento; 
         // Comparação de string yyyy-mm-dd funciona bem
@@ -208,6 +214,8 @@ export function useDespesasMasterLedger(filters?: {
             is_atrasado: isAtrasado
         };
       });
+
+      return { data: mappedData, totalCount: count || 0 };
     },
      // staleTime: 5 * 60 * 1000 // Removido em favor do 30s lá em cima
   });
@@ -286,7 +294,16 @@ export function useSalariosPrevistos() {
   return useQuery({
     queryKey: ['salarios-previstos'],
     queryFn: async (): Promise<SalarioPrevisto[]> => {
-// Query simplificada sem joins problemáticos
+      // Buscar configurações de RH para os cálculos (encargos e benefícios)
+      const { data: configs } = await supabase.from('configuracoes_rh').select('chave, valor');
+      const configMap = (configs || []).reduce((acc: Record<string, number>, curr) => {
+        acc[curr.chave] = Number(curr.valor);
+        return acc;
+      }, {});
+      const percEncargos = configMap['percentual_encargos_clt'] || 46;
+      const benefPadrao = configMap['valor_beneficio_padrao'] || 450;
+
+      // Query simplificada sem joins problemáticos
       const { data: colaboradores, error } = await supabase
         .from('colaboradores')
         .select(`
@@ -294,8 +311,6 @@ export function useSalariosPrevistos() {
           nome_completo,
           salario_base,
           remuneracao_contratual,
-          tipo_contratacao,
-          setor,
           tipo_contratacao,
           setor,
           funcao,
@@ -326,12 +341,12 @@ export function useSalariosPrevistos() {
         // Se ambos existirem (raro), prioriza lógica baseada no tipo ou o que for maior > 0
         const valorBase = salarioBase > 0 ? salarioBase : remuneracaoContratual;
         
-        // Encargos apenas para CLT (aprox 46%)
+        // Encargos apenas para CLT (baseado na configuracoes_rh)
         // Se tipo_contratacao for nulo, assume CLT se tiver salario_base, senão sem encargos
         const isCLT = col.tipo_contratacao === 'CLT' || (salarioBase > 0 && !col.tipo_contratacao);
-        const encargos = isCLT ? Math.round(valorBase * 0.46) : 0;
+        const encargos = isCLT ? Math.round(valorBase * (percEncargos / 100)) : 0;
         
-        const beneficios = isCLT ? 450 : 0; // Benefícios padrão apenas para CLT
+        const beneficios = isCLT ? benefPadrao : 0; // Benefícios padrão apenas para CLT
 
         return {
           colaborador_id: col.id,
@@ -364,22 +379,16 @@ export function useFaturasKPIs(referenceDate: Date = new Date()) {
     queryFn: async (): Promise<FaturasKPIs> => {
       const year = referenceDate.getFullYear();
       const month = referenceDate.getMonth();
-      const hojeStr = new Date().toISOString().split('T')[0];
 
       const firstDayOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
-      const lastDayOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0];
 
-      // Busca unificada: Mes Corrente + Atrasados
-      const orQuery = `and(vencimento.gte.${firstDayOfMonth},vencimento.lte.${lastDayOfMonth}),and(vencimento.lt.${firstDayOfMonth},status.neq.pago)`;
-
-      const { data: faturas, error: faturasError } = await supabase
-        .from('contas_pagar')
-        .select('valor, status, vencimento')
-        .or(orQuery);
-
-      if (faturasError) {
-        logger.error('Erro ao buscar faturas do mês:', faturasError);
-      }
+      const { data: configs } = await supabase.from('configuracoes_rh').select('chave, valor');
+      const configMap = (configs || []).reduce((acc: Record<string, number>, curr) => {
+        acc[curr.chave] = Number(curr.valor);
+        return acc;
+      }, {});
+      const percEncargos = configMap['percentual_encargos_clt'] || 46;
+      const benefPadrao = configMap['valor_beneficio_padrao'] || 450;
 
       // Colaboradores ativos para folha (não depende do mês por enquanto, assume fixo)
       const { data: colaboradores, error: colabError } = await supabase
@@ -396,45 +405,24 @@ export function useFaturasKPIs(referenceDate: Date = new Date()) {
         c => c.salario_base && Number(c.salario_base) > 0
       );
 
-      // Cálculos
-      // 1. Total Faturas Mês (considera apenas o que vence NO MÊS selecionado, ignorando atrasados antigos para esta métrica específica, ou inclui?)
-      // Geralmente "Total do Mês" = Expectativa do mês. "Total a Pagar" = Mês + Atrasados.
-      // O tipo return FaturasKPIs tem campos limitados. Vamos adaptar.
-      
-      const faturasDoMes = faturas?.filter(f => f.vencimento >= firstDayOfMonth && f.vencimento <= lastDayOfMonth) || [];
-      const faturasAtrasadasAntigas = faturas?.filter(f => f.vencimento < firstDayOfMonth) || [];
+      // Despesas normais via RPC database (ignora folha previst, pois folha nunca teve despesa_pagar manual nesse modelo anterior)
+      const { data: despesasAPI, error: fetchError } = await supabase.rpc('get_despesas_kpis', { 
+        p_month: firstDayOfMonth 
+      });
 
-      const totalFaturasMes = faturasDoMes.reduce((acc, f) => acc + Number(f.valor || 0), 0);
-      
-      const pagoMes = faturasDoMes
-        .filter(f => f.status === 'pago')
-        .reduce((acc, f) => acc + Number(f.valor), 0);
-        
-      // Pendente mês: o que vence no mês e não tá pago
-      const pendenteMes = faturasDoMes
-        .filter(f => f.status !== 'pago')
-        .reduce((acc, f) => acc + Number(f.valor), 0);
+      if (fetchError) {
+        logger.error('Erro ao buscar KPIs de despesas via RPC:', fetchError);
+      }
 
-      // Atrasado: (Vencimento < Hoje E Não Pago) -> ISSO independe do mês selecionado se queremos alertar
-      // Mas se estamos navegando no passado, "atrasado" é relativo?
-      // Vamos manter o conceito absoluto de atraso (vencido e não pago).
-      // O hook traz (Mes Selecionado) + (Atrasados Antigos).
-      // Se atrasado antigo está pago (não deve vir na query), ok.
-      // Entao todos faturasAtrasadasAntigas são atrasadas.
-      // E das faturasDoMes, as que vencimento < hoje e status != pago também são atrasadas.
-      
-      const atrasadoAntigoVal = faturasAtrasadasAntigas.reduce((acc, f) => acc + Number(f.valor), 0);
-      
-      const atrasadoMesVal = faturasDoMes
-         .filter(f => f.status !== 'pago' && f.vencimento < hojeStr)
-         .reduce((acc, f) => acc + Number(f.valor), 0);
-      
-      const totalAtrasado = atrasadoAntigoVal + atrasadoMesVal;
+      const totalFaturasMes = despesasAPI?.total_mensal || 0;
+      const pagoMes = despesasAPI?.total_pago || 0;
+      const pendenteMes = despesasAPI?.total_pendente || 0;
+      const totalAtrasado = despesasAPI?.total_atrasado || 0;
 
-      // Folha de pagamento (salários + 46% encargos)
+      // Folha de pagamento (salários + encargos configuráveis)
       const folhaPagamento = colaboradoresComSalario.reduce((acc, c) => {
         const salario = Number(c.salario_base);
-        return acc + salario + Math.round(salario * 0.46) + 450;
+        return acc + salario + Math.round(salario * (percEncargos / 100)) + benefPadrao;
       }, 0);
 
       return {
@@ -507,6 +495,7 @@ export function useCreateDespesa() {
       centroCustoId?: string;
       parcelar?: boolean;
       numeroParcelas?: number;
+      comprovante_url?: string;
     }) => {
       const {
         descricao,
@@ -517,7 +506,8 @@ export function useCreateDespesa() {
         vencimentoData,
         centroCustoId,
         parcelar,
-        numeroParcelas
+        numeroParcelas,
+        comprovante_url
       } = dados;
 
       // Tratamento de CC ID
@@ -554,6 +544,7 @@ export function useCreateDespesa() {
               recorrente: false,
               forma_pagamento: 'boleto',
               tipo: 'variavel', // Única/Parcelada = variavel
+              comprovante_url
             });
           }
 
@@ -573,6 +564,7 @@ export function useCreateDespesa() {
             recorrente: false,
             forma_pagamento: 'boleto',
             tipo: 'variavel', // Única = variavel
+            comprovante_url
           });
           if (error) throw error;
         }
@@ -586,7 +578,7 @@ export function useCreateDespesa() {
         const frequenciaMap: Record<string, string> = {
           'mensal': 'mensal',
           'semanal': 'semanal',
-          'anual': 'mensal', // Anual é tratado como mensal no DB
+          'anual': 'anual', // Anual não é mais jogado pra mensal diretamente
         };
         const frequenciaDB = frequenciaMap[recorrencia.toLowerCase()] || 'mensal';
 
@@ -606,6 +598,7 @@ export function useCreateDespesa() {
           dia_vencimento: diaVencimento, // Salva o dia para referência futura
           forma_pagamento: 'boleto',
           tipo: 'fixa', // Mensal/Semanal/Anual = fixa
+          comprovante_url
         });
         if (error) throw error;
       }

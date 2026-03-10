@@ -23,6 +23,7 @@ import { CheckCircle, XCircle, FileText, Loader2, AlertCircle } from 'lucide-rea
 import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
+import { useAprovarRequisicao, useRecusarRequisicao } from '@/lib/hooks/use-aprovacao-requisicoes';
 import type { RequisicaoCompra } from '@/lib/hooks/use-aprovacao-requisicoes';
 
 interface DocumentoOS {
@@ -56,8 +57,12 @@ export function AprovacaoRequisicaoModal({
     const [documentos, setDocumentos] = useState<DocumentoOS[]>([]);
     const [selectedDocumento, setSelectedDocumento] = useState<string>('');
     const [observacao, setObservacao] = useState('');
-    const [loading, setLoading] = useState(false);
     const [loadingDocumentos, setLoadingDocumentos] = useState(false);
+
+    const { mutate: aprovarReq, loading: aprovando } = useAprovarRequisicao();
+    const { mutate: recusarReq, loading: recusando } = useRecusarRequisicao();
+
+    const loading = aprovando || recusando;
 
     // Buscar documentos da OS quando abrir o modal
     useEffect(() => {
@@ -105,65 +110,28 @@ export function AprovacaoRequisicaoModal({
             return;
         }
 
-        setLoading(true);
         try {
-            // Atualizar status da OS
-            const novoStatus = tipo === 'aprovar' ? 'concluido' : 'cancelado';
-            const novaSituacao = tipo === 'aprovar' ? 'finalizado' : 'finalizado';
-
-            const { error: updateError } = await supabase
-                .from('ordens_servico')
-                .update({
-                    status_geral: novoStatus,
-                    status_situacao: novaSituacao,
-                })
-                .eq('id', requisicao.id);
-
-            if (updateError) throw updateError;
-
-            // Registrar atividade
-            const { data: { user } } = await supabase.auth.getUser();
-
-            await supabase.from('os_atividades').insert({
-                os_id: requisicao.id,
-                tipo: tipo === 'aprovar' ? 'aprovacao' : 'rejeicao',
-                descricao: tipo === 'aprovar'
-                    ? `Requisição de compras aprovada${selectedDocumento ? ' - Documento selecionado: ' + documentos.find(d => d.id === selectedDocumento)?.nome : ''}`
-                    : `Requisição de compras recusada. Motivo: ${observacao}`,
-                dados: {
-                    documento_id: selectedDocumento || null,
-                    observacao: observacao || null,
-                },
-                criado_por_id: user?.id || null,
-            });
-
-            // Criar notificação para o criador da OS
-            if (requisicao.criado_por?.email) {
-                await supabase.from('notificacoes').insert({
-                    usuario_id: user?.id, // TODO: Buscar ID do criador
-                    titulo: tipo === 'aprovar' ? 'Requisição Aprovada' : 'Requisição Recusada',
-                    mensagem: tipo === 'aprovar'
-                        ? `Sua requisição de compras ${requisicao.codigo_os} foi aprovada.`
-                        : `Sua requisição de compras ${requisicao.codigo_os} foi recusada. Motivo: ${observacao}`,
-                    tipo: tipo === 'aprovar' ? 'sucesso' : 'erro',
-                    lida: false,
-                    dados: { os_id: requisicao.id },
+            if (tipo === 'aprovar') {
+                await aprovarReq({
+                    osId: requisicao.id,
+                    codigoOS: requisicao.codigo_os,
+                    observacao,
+                    documentoId: selectedDocumento || undefined
+                });
+            } else {
+                await recusarReq({
+                    osId: requisicao.id,
+                    motivo: observacao,
+                    codigoOS: requisicao.codigo_os,
+                    criadoPorId: requisicao.criado_por_id
                 });
             }
-
-            toast.success(
-                tipo === 'aprovar'
-                    ? 'Requisição aprovada com sucesso!'
-                    : 'Requisição recusada'
-            );
 
             onSuccess();
             onClose();
         } catch (error) {
             logger.error('Erro ao processar ação:', error);
-            toast.error('Erro ao processar. Tente novamente.');
-        } finally {
-            setLoading(false);
+            // Os hooks já exibem toast de erro interno
         }
     };
 

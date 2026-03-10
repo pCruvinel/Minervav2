@@ -9,6 +9,7 @@ const app = new Hono();
  * Uses SITE_URL secret in production, falls back to localhost for development.
  */
 const getBaseUrl = (): string => {
+  // eslint-disable-next-line no-undef
   const siteUrl = Deno.env.get("SITE_URL");
   if (siteUrl) return siteUrl;
   return "http://localhost:3000";
@@ -50,14 +51,16 @@ app.use("/*", async (c, next) => {
 
 // Initialize Supabase Admin Client
 const getSupabaseAdmin = () => {
+  // eslint-disable-next-line no-undef
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  // eslint-disable-next-line no-undef
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   return createClient(supabaseUrl, supabaseServiceKey);
 };
 
 // ============================================================
 // ROTA PRINCIPAL: POST /
-// Aceita convite único (email) ou em lote (invites array)
+// Aceita convite unico, em lote ou criacao completa (create-full)
 // ============================================================
 app.post("/*", async (c) => {
   const supabase = getSupabaseAdmin();
@@ -65,13 +68,100 @@ app.post("/*", async (c) => {
 
   try {
     body = await c.req.json();
-  } catch (_e) {
+  } catch {
     return c.json({ error: "Invalid JSON body" }, 400);
   }
 
-  const { invites, redirectTo, email, options } = body;
+  const { action, invites, redirectTo, email, options, email_acesso, enviar_convite, ...colaboradorData } = body;
 
-  // Se for convite único (legado)
+  // Fluxo novo: Cadastro completo centralizado
+  if (action === 'create-full') {
+    let authUserId = null;
+    let inviteStatus = 'nao_convidado';
+
+    // 1. Criar usuario no auth (se aplicavel)
+    if (enviar_convite && email_acesso) {
+      console.log(`📧 Sending invite to ${email_acesso} for full registration...`);
+      const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(
+        email_acesso,
+        {
+          redirectTo: redirectTo || getDefaultRedirectTo(),
+          data: { full_name: colaboradorData.nome_completo }
+        }
+      );
+
+      if (authError) {
+        console.error("❌ Error inviting user:", authError);
+        return c.json({ error: "Erro ao criar usuario de acesso: " + authError.message }, 400);
+      }
+      
+      authUserId = authData.user.id;
+      inviteStatus = 'convidado';
+      console.log(`✅ Auth user created: ${authUserId}`);
+    } else {
+      console.log(`ℹ️ User creation skipped (No access or no email provided)`);
+    }
+
+    const restColaboradorData = { ...colaboradorData };
+    delete restColaboradorData.documentos_obrigatorios;
+
+    // 2. Inserir em public.colaboradores
+    const insertData = {
+      ...restColaboradorData,
+      auth_user_id: authUserId,
+      email: email_acesso || colaboradorData.email_profissional || colaboradorData.email_pessoal || null,
+      status_convite: inviteStatus,
+    };
+
+    console.log(`💾 Inserting collaborator data...`);
+    const { data: colabData, error: colabError } = await supabase
+      .from('colaboradores')
+      .insert([insertData])
+      .select()
+      .single();
+    
+    if (colabError) {
+      console.error("❌ Error inserting into public.colaboradores:", colabError);
+      return c.json({ error: "Usuario de acesso criado, mas erro ao salvar dados do colaborador: " + colabError.message }, 500);
+    }
+
+    console.log(`✅ Collaborator fully registered: ${colabData.id}`);
+    return c.json({ success: true, colaborador: colabData });
+  }
+
+  // Fluxo novo: Gerar apenas o link de convite (para "Copiar Link")
+  if (action === 'generate-invite-link') {
+    if (!email) {
+      return c.json({ error: "Email is required for link generation" }, 400);
+    }
+    
+    try {
+      console.log(`🔗 Generating invite link for ${email}...`);
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'invite',
+        email: email,
+        options: {
+          redirectTo: redirectTo || getDefaultRedirectTo()
+        }
+      });
+
+      if (linkError) {
+        console.error("❌ Error generating link:", linkError);
+        return c.json({ error: linkError.message }, 400);
+      }
+
+      console.log(`✅ Link generated for ${email}`);
+      return c.json({ 
+        success: true, 
+        action_link: linkData.properties?.action_link || linkData.properties?.action_link 
+      });
+    } catch (err: unknown) {
+      console.error(`❌ Unexpected error generating link for ${email}:`, err);
+      return c.json({ error: (err as Error).message || "Unknown error" }, 500);
+    }
+  }
+
+  // Se for convite unico (legado)
   if (email && !invites) {
     const inviteOptions = {
       redirectTo: options?.redirectTo || getDefaultRedirectTo(),
@@ -109,7 +199,7 @@ app.post("/*", async (c) => {
     }
   }
 
-  // Convites em lote
+  // Convites em lote (usado no reenvio de convite)
   if (!invites || !Array.isArray(invites) || invites.length === 0) {
     return c.json({ error: "invites array is required and cannot be empty" }, 400);
   }
@@ -154,6 +244,15 @@ app.post("/*", async (c) => {
         results.failed.push({ email: inviteEmail, error: error.message });
       } else {
         console.log(`✅ Invited ${inviteEmail} (ID: ${data.user.id})`);
+        
+        // Em reenvio de convite, tentamos atualizar o auth_user_id do colaborador
+        await supabase.from('colaboradores')
+          .update({ 
+            auth_user_id: data.user.id,
+            status_convite: 'convidado' 
+          })
+          .eq('email', inviteEmail);
+
         results.success.push({ email: inviteEmail, user_id: data.user.id });
       }
 
@@ -175,4 +274,5 @@ app.post("/*", async (c) => {
   });
 });
 
+// eslint-disable-next-line no-undef
 Deno.serve(app.fetch);

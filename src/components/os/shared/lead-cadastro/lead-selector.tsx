@@ -44,6 +44,9 @@ interface LeadSelectorProps {
 
     /** Filtro de status para busca (ex: 'LEAD', ['LEAD', 'ATIVO']) */
     statusFilter?: string | string[];
+
+    /** Label da entidade para textos de UI @default 'Cliente' */
+    entityLabel?: string;
 }
 
 export function LeadSelector({
@@ -53,6 +56,7 @@ export function LeadSelector({
     disabled = false,
     placeholder = "Buscar por nome, CPF ou CNPJ...",
     statusFilter = 'LEAD',
+    entityLabel = 'Cliente',
 }: LeadSelectorProps) {
     const [open, setOpen] = useState(false);
 
@@ -210,7 +214,7 @@ export function LeadSelector({
                             }}
                         >
                             <UserPlus className="h-4 w-4 mr-2" />
-                            Criar novo cliente
+                            Criar novo {entityLabel.toLowerCase()}
                         </Button>
                     </div>
                 </Command>

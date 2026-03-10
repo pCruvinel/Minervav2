@@ -1,14 +1,7 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { FluxoCaixaPage } from '../../../components/financeiro/fluxo-caixa-page'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_auth/financeiro/fluxo-caixa')({
-    component: FluxoCaixaRoute,
+    beforeLoad: () => {
+        throw redirect({ to: '/financeiro' })
+    },
 })
-
-function FluxoCaixaRoute() {
-    return (
-        <div className="content-wrapper">
-            <FluxoCaixaPage />
-        </div>
-    )
-}

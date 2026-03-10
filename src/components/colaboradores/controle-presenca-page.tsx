@@ -31,7 +31,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { calcularCustoDiaMaoDeObra, getCentroCustoFixo, formatMinutosAtraso } from '@/lib/constants/colaboradores';
 
 // Interfaces
 interface CentroCusto {
@@ -50,6 +50,8 @@ interface RegistroPresenca {
   centrosCusto: string[]; // IDs dos centros de custo
   anexoArquivo?: File | null; // Arquivo para upload
   anexoUrl?: string; // URL do arquivo já salvo
+  isAbonada?: boolean;
+  motivoAbono?: string;
 }
 
 interface ResumoDia {
@@ -396,11 +398,13 @@ export function ControlePresencaPage() {
   };
 
   const calcularCustoDia = (colaborador: Colaborador, diasUteis?: number) => {
-    if (colaborador.tipo_contratacao === 'CLT') {
-      const dias = diasUteis || 22; // fallback se não tiver dados reais
-      return (colaborador.salario_base * FATOR_ENCARGOS_CLT) / dias;
-    }
-    return colaborador.custo_dia || 0;
+    const dias = diasUteis || 22; // fallback se não tiver dados reais
+    return calcularCustoDiaMaoDeObra(
+      colaborador.salario_base,
+      colaborador.custo_dia,
+      dias,
+      colaborador.tipo_contratacao === 'CLT'
+    );
   };
 
   const calcularResumoDia = (): ResumoDia => {
@@ -738,49 +742,82 @@ export function ControlePresencaPage() {
                           </div>
                         )}
 
-                        {/* Alocação de Centros de Custo */}
-                        {!['FALTA', 'FALTA_JUSTIFICADA'].includes(registro.status) && (
-                          <div className="pt-2 border-t mt-4">
-                            <Label className="mb-2 block text-xs uppercase text-muted-foreground font-semibold">
-                              Alocação de Custo (Onde trabalhou hoje?)
-                            </Label>
-                            <div className="flex flex-wrap gap-2">
-                              {centrosCusto.length === 0 && (
-                                <span className="text-sm text-muted-foreground italic">Nenhum centro de custo disponível.</span>
-                              )}
-                              {centrosCusto.map(cc => (
-                                <div key={cc.id} className="flex items-center space-x-2 bg-secondary/50 p-2 rounded-md">
-                                  <Checkbox
-                                    id={`cc-${colaborador.id}-${cc.id}`}
-                                    checked={registro.centrosCusto.includes(cc.id)}
-                                    onCheckedChange={(checked) => {
-                                      setRegistros(prev => {
-                                        const currentCCs = prev[colaborador.id].centrosCusto || [];
-                                        const newCCs = checked
-                                          ? [...currentCCs, cc.id]
-                                          : currentCCs.filter(id => id !== cc.id);
+                        {/* Alocação de Centros de Custo — Filtrado por cargo (#12, #13) */}
+                        {!['FALTA', 'FALTA_JUSTIFICADA'].includes(registro.status) && (() => {
+                          const ccFixoCodigo = getCentroCustoFixo(colaborador.funcao);
+                          const hasCCFixo = !!ccFixoCodigo;
 
-                                        return {
-                                          ...prev,
-                                          [colaborador.id]: {
-                                            ...prev[colaborador.id],
-                                            centrosCusto: newCCs
-                                          }
-                                        };
-                                      });
-                                    }}
-                                  />
-                                  <label
-                                    htmlFor={`cc-${colaborador.id}-${cc.id}`}
-                                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                  >
-                                    {cc.nome}
-                                  </label>
-                                </div>
-                              ))}
+                          // #12: Sem divisão de custo → Badge fixo, sem checkboxes
+                          if (hasCCFixo) {
+                            // Auto-set para o CC fixo do sistema
+                            const ccFixoObj = centrosCusto.find(cc => cc.nome === ccFixoCodigo);
+                            if (ccFixoObj && !registro.centrosCusto.includes(ccFixoObj.id)) {
+                              // Auto-selecionar CC fixo se ainda não selecionado
+                              setRegistros(prev => ({
+                                ...prev,
+                                [colaborador.id]: {
+                                  ...prev[colaborador.id],
+                                  centrosCusto: [ccFixoObj.id]
+                                }
+                              }));
+                            }
+                            return (
+                              <div className="pt-2 border-t mt-4">
+                                <Label className="mb-2 block text-xs uppercase text-muted-foreground font-semibold">
+                                  Alocação de Custo
+                                </Label>
+                                <Badge variant="secondary" className="text-sm px-3 py-1">
+                                  Custo fixo: {ccFixoCodigo}
+                                </Badge>
+                              </div>
+                            );
+                          }
+
+                          // #13: Com divisão de custo → Checkboxes filtrados (exclui CCs de sistema)
+                          const ccsFiltrados = centrosCusto.filter(cc => !cc.nome?.startsWith('CC-'));
+                          return (
+                            <div className="pt-2 border-t mt-4">
+                              <Label className="mb-2 block text-xs uppercase text-muted-foreground font-semibold">
+                                Alocação de Custo (Onde trabalhou hoje?)
+                              </Label>
+                              <div className="flex flex-wrap gap-2">
+                                {ccsFiltrados.length === 0 && (
+                                  <span className="text-sm text-muted-foreground italic">Nenhum centro de custo disponível para este setor.</span>
+                                )}
+                                {ccsFiltrados.map(cc => (
+                                  <div key={cc.id} className="flex items-center space-x-2 bg-secondary/50 p-2 rounded-md">
+                                    <Checkbox
+                                      id={`cc-${colaborador.id}-${cc.id}`}
+                                      checked={registro.centrosCusto.includes(cc.id)}
+                                      onCheckedChange={(checked) => {
+                                        setRegistros(prev => {
+                                          const currentCCs = prev[colaborador.id].centrosCusto || [];
+                                          const newCCs = checked
+                                            ? [...currentCCs, cc.id]
+                                            : currentCCs.filter(id => id !== cc.id);
+
+                                          return {
+                                            ...prev,
+                                            [colaborador.id]: {
+                                              ...prev[colaborador.id],
+                                              centrosCusto: newCCs
+                                            }
+                                          };
+                                        });
+                                      }}
+                                    />
+                                    <label
+                                      htmlFor={`cc-${colaborador.id}-${cc.id}`}
+                                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                    >
+                                      {cc.nome}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          );
+                        })()}
                       </div>
                     </div>
                   </CardContent>

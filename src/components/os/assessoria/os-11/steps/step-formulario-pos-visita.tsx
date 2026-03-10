@@ -21,6 +21,7 @@ import {
   AREAS_VISTORIA,
   FINALIDADE_AREA_MAP,
   isFinalidadeRecebimento,
+  isFinalidadeRecebimentoImovel,
   isFinalidadeSPCI,
   isFinalidadeSPDA,
   isFinalidadeChecklist,
@@ -28,8 +29,10 @@ import {
   gerarTituloDocumento,
 } from '../../shared/types/visita-tecnica-types';
 import { ChecklistRecebimentoTable, ChecklistRecebimentoData } from '../../shared/components/checklist-recebimento-table';
-import { ChecklistSPCITable } from '../../shared/components/checklist-spci-table';
-import { ChecklistSPDATable } from '../../shared/components/checklist-spda-table';
+import { ChecklistRecebimentoImovelTable } from '../../shared/components/checklist-recebimento-imovel-table';
+import { DynamicChecklistSelector } from '../../shared/components/dynamic-checklist-selector';
+import type { SPDADynamicFormData } from '../../shared/schemas/spda-dynamic-schema';
+import type { SPCIDynamicFormData } from '../../shared/schemas/spci-dynamic-schema';
 import { useFieldValidation } from '@/lib/hooks/use-field-validation';
 import { posVisitaSchema } from '@/lib/validations/os11-schemas';
 import { FormSelect } from '@/components/ui/form-select';
@@ -55,6 +58,9 @@ interface FormularioGenericoData {
   fotosLocal?: FileWithComment[];
   resultadoVisita: string;
   justificativa: string;
+  // Dynamic checklist data (structural multipliers)
+  checklistDinamicoSPDA?: SPDADynamicFormData;
+  checklistDinamicoSPCI?: SPCIDynamicFormData;
 }
 
 interface StepFormularioPosVisitaProps {
@@ -83,6 +89,7 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
 
     // Verificar tipo de finalidade
     const isRecebimento = data.finalidadeInspecao ? isFinalidadeRecebimento(data.finalidadeInspecao) : false;
+    const isRecebimentoImovel = data.finalidadeInspecao ? isFinalidadeRecebimentoImovel(data.finalidadeInspecao) : false;
     const isSPCI = data.finalidadeInspecao ? isFinalidadeSPCI(data.finalidadeInspecao) : false;
     const isSPDA = data.finalidadeInspecao ? isFinalidadeSPDA(data.finalidadeInspecao) : false;
     const isChecklistMode = data.finalidadeInspecao ? isFinalidadeChecklist(data.finalidadeInspecao) : false;
@@ -151,6 +158,8 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           ? {
             finalidadeInspecao: data.finalidadeInspecao,
             checklistRecebimento: data.checklistRecebimento,
+            checklistDinamicoSPDA: data.checklistDinamicoSPDA,
+            checklistDinamicoSPCI: data.checklistDinamicoSPCI,
             dataPreenchimento: new Date().toISOString(),
           }
           : {
@@ -221,6 +230,15 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
     const handleChecklistChange = (checklistData: ChecklistRecebimentoData) => {
       if (readOnly) return;
       onDataChange({ ...data, checklistRecebimento: checklistData });
+    };
+
+    const handleDynamicChecklistChange = (dynamicData: SPDADynamicFormData | SPCIDynamicFormData) => {
+      if (readOnly) return;
+      if (isSPDA) {
+        onDataChange({ ...data, checklistDinamicoSPDA: dynamicData as SPDADynamicFormData });
+      } else if (isSPCI) {
+        onDataChange({ ...data, checklistDinamicoSPCI: dynamicData as SPCIDynamicFormData });
+      }
     };
 
     // =====================================================
@@ -312,10 +330,22 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           </div>
         )}
 
-        {/* Se for SPCI, mostrar checklist SPCI */}
-        {isSPCI && (
+        {/* Se for recebimento de imóvel (áreas comuns), mostrar checklist de imóvel */}
+        {isRecebimentoImovel && (
           <div className="space-y-6">
-            <ChecklistSPCITable
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <div className="flex items-center gap-3">
+                <ClipboardCheck className="h-6 w-6 text-primary" />
+                <div>
+                  <h2 className="text-lg font-semibold">Inspeção de Recebimento de Imóvel</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Preencha o checklist de áreas comuns do condomínio
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <ChecklistRecebimentoImovelTable
               data={data.checklistRecebimento || { items: {} }}
               onChange={handleChecklistChange}
               readOnly={readOnly}
@@ -332,14 +362,14 @@ export const StepFormularioPosVisita = forwardRef<StepFormularioPosVisitaHandle,
           </div>
         )}
 
-        {/* Se for SPDA, mostrar checklist SPDA */}
-        {isSPDA && (
+        {/* Se for SPCI ou SPDA, mostrar checklist dinâmico com multiplicadores */}
+        {(isSPCI || isSPDA) && (
           <div className="space-y-6">
-            <ChecklistSPDATable
-              data={data.checklistRecebimento || { items: {} }}
-              onChange={handleChecklistChange}
+            <DynamicChecklistSelector
+              finalidadeInspecao={data.finalidadeInspecao as 'laudo_spda' | 'laudo_spci'}
+              onDataChange={handleDynamicChecklistChange}
               readOnly={readOnly}
-              osId={osId}
+              initialData={isSPDA ? data.checklistDinamicoSPDA : data.checklistDinamicoSPCI}
             />
 
             <Alert>

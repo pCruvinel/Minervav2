@@ -40,6 +40,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { useCreateDespesa } from '@/lib/hooks/use-faturas-recorrentes';
 import { useCategoriasFinanceiras } from '@/lib/hooks/use-categorias-financeiras';
 import { useColaboradoresSelect } from '@/lib/hooks/use-colaboradores';
+import { supabase } from '@/lib/supabase-client';
 
 // Schema com lógica condicional para vencimento e parcelamento
 const novaDespesaSchema = z.object({
@@ -182,6 +183,30 @@ export function NovaDespesaModal({
 
     async function onSubmit(data: NovaDespesaFormValues) {
         try {
+            let comprovante_url = undefined;
+
+            if (arquivos.length > 0) {
+                const file = arquivos[0]; // Pegamos apenas o primeiro por enquanto, já que nossa modelagem de DB suporta 1 URL
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+                const filePath = `comprovantes/${fileName}`;
+
+                const { error: uploadError, data: uploadData } = await supabase.storage
+                    .from('financeiro')
+                    .upload(filePath, file);
+
+                if (uploadError) {
+                    logger.error('Erro ao fazer upload do comprovante:', uploadError);
+                    toast.error('Erro ao salvar o anexo. A despesa não foi criada.');
+                    return;
+                }
+
+                if (uploadData) {
+                    const { data: urlData } = supabase.storage.from('financeiro').getPublicUrl(uploadData.path);
+                    comprovante_url = urlData.publicUrl;
+                }
+            }
+
             await createDespesa.mutateAsync({
                 descricao: data.descricao,
                 fornecedor: data.fornecedor,
@@ -192,7 +217,8 @@ export function NovaDespesaModal({
                 centroCustoId: data.centroCustoId,
                 parcelar: data.parcelar,
                 numeroParcelas: data.numeroParcelas,
-                favorecidoColaboradorId: data.favorecidoColaboradorId // Passar ID se existir
+                favorecidoColaboradorId: data.favorecidoColaboradorId, // Passar ID se existir
+                comprovante_url
             });
 
             toast.success('Despesa criada com sucesso!');

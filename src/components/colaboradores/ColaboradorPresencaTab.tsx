@@ -18,9 +18,10 @@ interface RegistroPresenca {
     data: string;
     status: 'OK' | 'ATRASADO' | 'FALTA';
     performance: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
-    centros_custo: string[];
     minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
 }
 
 interface ColaboradorPresencaTabProps {
@@ -36,7 +37,7 @@ const getDiaSemana = (dateStr: string): string => {
     return format(date, 'EEEE', { locale: ptBR });
 };
 
-const getStatusBadge = (status: RegistroPresenca['status']) => {
+const getStatusBadge = (status: RegistroPresenca['status'], registro?: RegistroPresenca) => {
     switch (status) {
         case 'OK':
             return (
@@ -46,6 +47,14 @@ const getStatusBadge = (status: RegistroPresenca['status']) => {
                 </Badge>
             );
         case 'FALTA':
+            if (registro?.is_abonada) {
+                return (
+                    <Badge className="bg-muted text-muted-foreground border-muted-foreground/30 gap-1" title={registro.motivo_abono}>
+                        <CheckCircle className="h-3 w-3" />
+                        Falta Abonada
+                    </Badge>
+                );
+            }
             return (
                 <Badge className="bg-destructive/10 text-destructive border-destructive/30 gap-1">
                     <XCircle className="h-3 w-3" />
@@ -121,7 +130,8 @@ export function ColaboradorPresencaTab({ colaboradorId }: ColaboradorPresencaTab
     const kpis = useMemo(() => {
         const total = registros.length;
         const presentes = registros.filter(r => r.status !== 'FALTA').length;
-        const faltas = registros.filter(r => r.status === 'FALTA' && !r.justificativa).length;
+        const faltasAbonadas = registros.filter(r => r.status === 'FALTA' && r.is_abonada).length;
+        const faltas = registros.filter(r => r.status === 'FALTA' && !r.is_abonada && !r.justificativa).length;
         const atrasos = registros.filter(r => r.status === 'ATRASADO').length;
         const minutosAtraso = registros.reduce((acc, r) => acc + (r.minutos_atraso || 0), 0);
         const taxaPresenca = total > 0 ? (presentes / total) * 100 : 0;
@@ -140,7 +150,7 @@ export function ColaboradorPresencaTab({ colaboradorId }: ColaboradorPresencaTab
             }
         }
 
-        return { total, presentes, faltas, atrasos, minutosAtraso, taxaPresenca, diasUteis };
+        return { total, presentes, faltas, faltasAbonadas, atrasos, minutosAtraso, taxaPresenca, diasUteis };
     }, [registros, dateRange]);
 
     // Performance distribution
@@ -280,7 +290,7 @@ export function ColaboradorPresencaTab({ colaboradorId }: ColaboradorPresencaTab
                                                     {getDiaSemana(reg.data)}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {getStatusBadge(reg.status)}
+                                                    {getStatusBadge(reg.status, reg)}
                                                 </TableCell>
                                                 <TableCell className="text-center text-sm">
                                                     {reg.minutos_atraso && reg.minutos_atraso > 0

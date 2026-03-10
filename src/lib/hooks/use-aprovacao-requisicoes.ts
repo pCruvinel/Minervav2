@@ -4,9 +4,6 @@ import { useApi, useMutation } from './use-api';
 import { toast } from 'sonner';
 import { logger } from '@/lib/utils/logger';
 
-/** ID fixo do tipo OS-09 (Requisição de Compras) no banco */
-const OS_09_ID = 'cd5c6c3a-0d00-4edd-8b06-d8ea48eadbd8';
-
 /** Interface para filtros do histórico de requisições */
 export interface RequisicaoFilters {
   status?: string[];
@@ -18,28 +15,8 @@ export interface RequisicaoFilters {
 
 /** Interface para dados de requisição com valores calculados */
 /**
- * Helper: Busca itens de uma OS via os_etapa_id (etapa ordem 1)
- * Items são salvos com os_etapa_id, não os_id diretamente
+ * O fetchItemsByOsId foi removido, pois agora o backend calcula N+1 via v_requisicoes_com_valor.
  */
-async function fetchItemsByOsId(osId: string): Promise<{ quantidade: number; preco_unitario: number }[]> {
-  // Primeiro, buscar o ID da etapa 1 desta OS
-  const { data: etapa } = await supabase
-    .from('os_etapas')
-    .select('id')
-    .eq('os_id', osId)
-    .eq('ordem', 1)
-    .single();
-
-  if (!etapa?.id) return [];
-
-  // Buscar itens pela etapa
-  const { data: items } = await supabase
-    .from('os_requisition_items')
-    .select('quantidade, preco_unitario')
-    .eq('os_etapa_id', etapa.id);
-
-  return items || [];
-}
 
 export interface RequisicaoCompra {
   id: string;
@@ -72,36 +49,15 @@ export function useRequisicoesPendentes() {
       logger.log('📋 Buscando requisições pendentes...');
 
       const { data, error } = await supabase
-        .from('ordens_servico')
-        .select(`
-          *,
-          tipo_os:tipo_os_id (codigo, nome),
-          criado_por:criado_por_id (nome_completo, email),
-          responsavel:responsavel_id (nome_completo),
-          centro_custo:cc_id (nome, cliente:cliente_id (nome_razao_social))
-        `)
-        .eq('tipo_os_id', OS_09_ID)
+        .from('v_requisicoes_com_valor')
+        .select('*')
         .eq('status_geral', 'em_andamento')
-        .eq('status_situacao', 'aguardando_aprovacao') // Aguardando aprovação do Financeiro
+        .eq('status_situacao', 'aguardando_aprovacao')
         .order('data_entrada', { ascending: false });
 
       if (error) throw error;
 
-      // Buscar itens e calcular valor total para cada OS
-      const osComValores = await Promise.all(
-        (data || []).map(async (os) => {
-          const items = await fetchItemsByOsId(os.id);
-
-          const valorTotal = items?.reduce(
-            (sum, item) => sum + (item.quantidade * item.preco_unitario),
-            0
-          ) || 0;
-
-          return { ...os, valorTotal, qtdItens: items?.length || 0 };
-        })
-      );
-
-      return osComValores as RequisicaoCompra[];
+      return (data || []) as RequisicaoCompra[];
     },
     {
       onError: (error) => {
@@ -119,46 +75,29 @@ export function useRequisicoesPendentes() {
  */
 export function useAprovarRequisicao() {
   return useMutation(
-    async ({ osId, valorTotal, ccId, codigoOS }: {
+    async ({ osId, observacao, documentoId, codigoOS }: {
       osId: string;
-      valorTotal: number;
-      ccId: string;
       codigoOS: string;
+      observacao?: string;
+      documentoId?: string;
     }) => {
       logger.log(`✅ Aprovando requisição ${codigoOS}...`);
 
-      // 1. Criar conta a pagar
-      const { error: contaError } = await supabase
-        .from('contas_pagar')
-        .insert({
-          descricao: `Aprovação de Compra - ${codigoOS}`,
-          tipo: 'despesa_variavel',
-          valor: valorTotal,
-          vencimento: new Date().toISOString().split('T')[0], // Hoje
-          status: 'em_aberto',
-          cc_id: ccId,
-          favorecido_fornecedor: 'A definir (cotação)',
-        });
+      const { data, error } = await supabase.rpc('aprovar_requisicao_compra', {
+        p_os_id: osId,
+        p_observacao: observacao || null,
+        p_documento_id: documentoId || null
+      });
 
-      if (contaError) throw contaError;
+      if (error) throw error;
 
-      // 2. Atualizar status da OS
-      const { error: osError } = await supabase
-        .from('ordens_servico')
-        .update({
-          status_geral: 'em_andamento', // Aprovada, indo para compras
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', osId);
-
-      if (osError) throw osError;
-
-      logger.log(`✅ Requisição ${codigoOS} aprovada com sucesso!`);
+      logger.log(`✅ Requisição ${codigoOS} aprovada com sucesso! Despesa ID: ${data}`);
+      return data;
     },
     {
       onSuccess: () => {
         toast.success('Requisição aprovada!', {
-          description: 'Conta a pagar criada automaticamente.'
+          description: 'A OS foi finalizada e a conta a pagar criada automaticamente.'
         });
       },
       onError: (error) => {
@@ -174,30 +113,53 @@ export function useAprovarRequisicao() {
  */
 export function useRecusarRequisicao() {
   return useMutation(
-    async ({ osId, motivo, codigoOS }: {
+    async ({ osId, motivo, codigoOS, criadoPorId }: {
       osId: string;
       motivo: string;
       codigoOS: string;
+      criadoPorId?: string;
     }) => {
       logger.log(`❌ Recusando requisição ${codigoOS}...`);
 
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from('ordens_servico')
         .update({
           status_geral: 'cancelado',
-          observacoes: `RECUSADA: ${motivo}`, // Salvar motivo
+          status_situacao: 'recusado',
+          observacoes: `RECUSADA: ${motivo}`,
           updated_at: new Date().toISOString()
         })
         .eq('id', osId);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+
+      await supabase.from('os_atividades').insert({
+        os_id: osId,
+        tipo: 'rejeicao',
+        descricao: `Requisição de compras recusada. Motivo: ${motivo}`,
+        dados: { observacao: motivo },
+        criado_por_id: user?.id || null,
+      });
+
+      if (criadoPorId) {
+        await supabase.from('notificacoes').insert({
+          usuario_id: criadoPorId,
+          titulo: 'Requisição Recusada',
+          mensagem: `Sua requisição de compras ${codigoOS} foi recusada. Motivo: ${motivo}`,
+          tipo: 'erro',
+          lida: false,
+          dados: { os_id: osId },
+        });
+      }
 
       logger.log(`❌ Requisição ${codigoOS} recusada.`);
     },
     {
       onSuccess: () => {
         toast.success('Requisição recusada', {
-          description: 'Solicitante será notificado.'
+          description: 'O solicitante será notificado do motivo da recusa.'
         });
       },
       onError: (error) => {
@@ -220,16 +182,8 @@ export function useHistoricoRequisicoes(pageSize = 10) {
       logger.log('📋 Buscando histórico de requisições...');
 
       let query = supabase
-        .from('ordens_servico')
-        .select(`
-          *,
-          tipo_os:tipo_os_id (codigo, nome),
-          criado_por:criado_por_id (nome_completo, email, avatar_url),
-          responsavel:responsavel_id (nome_completo),
-          centro_custo:cc_id (id, nome, cliente:cliente_id (nome_razao_social))
-        `, { count: 'exact' })
-        .eq('tipo_os_id', OS_09_ID)
-        .order('data_entrada', { ascending: false });
+        .from('v_requisicoes_com_valor')
+        .select('*', { count: 'exact' });
 
       // Aplicar filtros
       if (filters.status?.length) {
@@ -257,22 +211,8 @@ export function useHistoricoRequisicoes(pageSize = 10) {
 
       if (error) throw error;
 
-      // Buscar valores totais para cada OS
-      const osComValores = await Promise.all(
-        (data || []).map(async (os) => {
-          const items = await fetchItemsByOsId(os.id);
-
-          const valorTotal = items?.reduce(
-            (sum, item) => sum + (item.quantidade * item.preco_unitario),
-            0
-          ) || 0;
-
-          return { ...os, valorTotal, qtdItens: items?.length || 0 };
-        })
-      );
-
       return {
-        requisicoes: osComValores as RequisicaoCompra[],
+        requisicoes: (data || []) as RequisicaoCompra[],
         totalCount: count || 0,
         totalPages: Math.ceil((count || 0) / pageSize)
       };
@@ -338,11 +278,10 @@ export function useComprasKPIs() {
     async () => {
       logger.log('📊 Calculando KPIs de compras...');
 
-      // Buscar todas as OS-09
+      // Buscar da view que já possui os valores pré-calculados
       const { data: allOS, error: osError } = await supabase
-        .from('ordens_servico')
-        .select('id, status_geral, status_situacao, data_entrada')
-        .eq('tipo_os_id', OS_09_ID);
+        .from('v_requisicoes_com_valor')
+        .select('id, status_geral, status_situacao, data_entrada, valorTotal');
 
       if (osError) throw osError;
 
@@ -366,20 +305,12 @@ export function useComprasKPIs() {
         return dataOS >= inicioMes;
       }).length;
 
-      // Calcular valor total das pendentes
+      // Calcular valor total das pendentes (sem n+1, valor já está na view)
       const osPendentes = (allOS || []).filter(os => 
         os.status_geral === 'em_andamento' && os.status_situacao === 'aguardando_aprovacao'
       );
-      let valorTotalPendente = 0;
-
-      for (const os of osPendentes) {
-        const items = await fetchItemsByOsId(os.id);
-
-        valorTotalPendente += items?.reduce(
-          (sum, item) => sum + (item.quantidade * item.preco_unitario),
-          0
-        ) || 0;
-      }
+      
+      const valorTotalPendente = osPendentes.reduce((sum, os) => sum + (Number(os.valorTotal) || 0), 0);
 
       return {
         pendentes,

@@ -1,440 +1,142 @@
-## ⚡ INÍCIO RÁPIDO
+# 🏛️ MinervaV2 ERP
 
-### ✅ Sistema Já Está Funcionando!
+![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)
+![React](https://img.shields.io/badge/React-18.3-61DAFB.svg?logo=react)
+![Vite](https://img.shields.io/badge/Vite-6.3-646CFF.svg?logo=vite)
+![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E.svg?logo=supabase)
 
-O sistema está 100% operacional em **modo frontend-only** com dados mock. Você pode:
-
-- ✅ Navegar por todos os módulos
-- ✅ Testar todos os fluxos de OS
-- ✅ Ver dashboards completos
-- ✅ Gerenciar leads, clientes e propostas
-- ✅ Usar calendário e agendamentos
-
-### 🎯 Próximo Passo (Opcional)
-
-**Para habilitar backend com Supabase:**
-
-→ Leia **[docs/GUIA_RAPIDO_SUPABASE.md](./docs/GUIA_RAPIDO_SUPABASE.md)** (5 minutos)
-
-**Ou continue testando em modo mock** - funciona perfeitamente!
+Sistema ERP corporativo completo para gestão e operação da Minerva Engenharia. O sistema integra a jornada ponta a ponta desde a captação do lead até a execução da obra, passando pela gestão financeira e recursos humanos.
 
 ---
 
-## 🚀 Stack Tecnológica
+## 🚀 Tecnologias e Arquitetura
 
-- **Frontend:** Next.js 14 + React + TypeScript
-- **UI:** shadcn/ui + Tailwind CSS v4 + Sistema de Design Minerva
-- **Backend:** Supabase (Edge Functions + PostgreSQL)
-- **Autenticação:** Supabase Auth
-- **Storage:** Supabase Storage
-- **Ícones:** Lucide React
-- **CSS Architecture:** CSS Layers + Design Tokens + Layout System
+O projeto abandonou a arquitetura Next.js em favor de uma Single Page Application (SPA) altamente otimizada:
 
----
-
-## 🎨 Design System
-
-**Paleta de Cores:**
-- Primary: `#D3AF37` (Dourado)
-- Secondary: `#DDC063` (Dourado Claro)
-- Texto: Preto em todas as situações
-
-### ✨ Sistema CSS Moderno (v4.0)
-
-**Arquitetura de CSS Layers:**
-- `@layer reset` - Normalização moderna
-- `@layer base` - Variáveis, tipografia, layout estrutural
-- `@layer components` - Componentes Radix UI customizados
-- `@layer utilities` - Tailwind utilities (sempre ganha)
-
-**Design Tokens:**
-- Variáveis CSS em HSL para compatibilidade
-- Sistema de cores, espaçamentos, tipografia
-- Transições e sombras consistentes
-- Layout responsivo com containers inteligentes
-
-**Layout System:**
-- Sidebar adaptativa (256px/64px)
-- Content wrappers (1200px/1400px/1600px)
-- Grid responsivo otimizado
-- Mobile-first com breakpoints estratégicos
-
-**Componentes Otimizados:**
-- shadcn/ui com estilos customizados
-- Radix UI primitives com visual consistente
-- Formulários com validação visual
-- Tabelas responsivas com overflow inteligente
-
-**Documentação completa:** [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md)
+- **Frontend & Roteamento:** React 18.3, [Vite](https://vitejs.dev/) e [TanStack Router](https://tanstack.com/router) (Roteamento baseado em arquivos).
+- **Gerenciamento de Estado & Dados:** TanStack Query e Context API.
+- **UI & Estilização:** [Tailwind CSS v3.4](https://tailwindcss.com/), [shadcn/ui](https://ui.shadcn.com/) (Radix UI primitives) e Lucide React para ícones.
+- **Formulários & Validação:** React Hook Form integrado com Zod.
+- **Backend & Banco de Dados:** [Supabase](https://supabase.com/) (PostgreSQL, Auth, Storage, Edge Functions).
+- **Monitoramento & Analytics:** Sentry (Tracing/Error Tracking) e Vercel Analytics.
+- **Geração de Documentos:** `@react-pdf/renderer` para relatórios locais e Edge Functions para processamento isolado.
+- **Testes:** Vitest para testes unitários e Playwright para testes end-to-end (E2E).
 
 ---
 
-## 👥 Usuários de Teste
+## 🧩 Módulos Principais
 
-Após configurar o backend ou em modo mock:
-
-| Email | Senha | Perfil |
-|-------|-------|--------|
-| diretoria@minerva.com | diretoria123 | Diretoria |
-| gestor.adm@minerva.com | gestor123 | Gestor ADM |
-| gestor.obras@minerva.com | gestor123 | Gestor Obras |
-| gestor.assessoria@minerva.com | gestor123 | Gestor Assessoria |
-| colaborador@minerva.com | colaborador123 | Colaborador |
-
-**Mais detalhes:** [docs/USUARIOS_TESTE.md](./docs/USUARIOS_TESTE.md)
-
----
-
-## 📊 Módulos Implementados
-
-### ✅ Completos e Funcionais
-
-1. **Dashboard Executivo** (Diretoria)
-   - Visão geral de KPIs
-   - Gráficos de OS por setor e status
-   - Métricas financeiras
-
-2. **Dashboard Gestores** (Obras e Assessoria)
-   - Métricas específicas por setor
-   - Aprovações pendentes
-   - Gestão de equipes
-
-3. **Dashboard Colaborador**
-   - Minhas OS em andamento
-   - Agenda de compromissos
-   - Leads atribuídos
-   - Clientes
-
-4. **Gestão de Ordens de Serviço**
-   - OS 01-04: Fluxo especial com 15 etapas
-   - OS 05-13: Fluxo normal
-   - Workflow visual completo
-   - Sistema de aprovações hierárquicas
-
-5. **CRM Comercial**
-   - Dashboard comercial
-   - Gestão de leads
-   - Propostas (OS 01-04)
-   - Conversão de leads
-
-6. **Gest��o de Clientes**
-   - CRUD completo
-   - Histórico de OS
-   - Documentos
-   - Portal do cliente
-
-7. **Financeiro**
-   - Contas a pagar/receber
-   - Conciliação bancária
-   - Prestação de contas
-   - Custos flutuantes
-
-8. **Recursos Humanos**
-   - Gestão de colaboradores
-   - Controle de presença
-   - Gestão de permissões
-
-9. **Calendário & Agendamentos**
-   - Visão dia/semana/mês
-   - Agendamentos por turno
-   - Bloqueio de turnos
-
-10. **Portal do Cliente**
-    - Acompanhamento de obras
-    - Documentos de assessoria
-    - Timeline de eventos
+1. **Ordens de Serviço (OS)** (`docs/ordens-de-servico/README.md`)
+   - 13 tipos distintos de fluxos (Obras, Assessoria, Compras, RH).
+   - Workflow contínuo com handoffs automáticos entre setores e sistema de aprovações.
+2. **Financeiro** (`docs/finance/README.md`)
+   - Dashboard analítico e fluxo de caixa.
+   - Master ledger unificado conectando OS a Centros de Custo (CC).
+   - Conciliação Bancária via automação de mTLS com **Banco Cora** (`lancamentos_bancarios`).
+3. **Recursos Humanos (RH)** (`docs/rh/README.md`)
+   - Gestão de colaboradores estruturada em Sistema de Permissionamento RBAC (Admin, Diretor, Coordenadores, Operacional).
+   - Controle de presença e turnos com alocação automática de custos na DRE.
+   - Workflow OS-10 para Requisição de Mão de Obra e Kanban de recrutamento.
 
 ---
 
-## 📁 Estrutura do Projeto
+## 💻 Como Rodar (Desenvolvimento)
 
-```
-/
-├── app/                          # Rotas Next.js
-│   ├── colaborador/              # Módulo colaborador
-│   ├── gestor-obras/             # Módulo gestor obras
-│   └── gestor-assessoria/        # Módulo gestor assessoria
-│
-├── components/                   # Componentes React
-│   ├── auth/                     # Autenticação
-│   ├── dashboard/                # Dashboards
-│   ├── os/                       # Ordens de Serviço
-│   ├── clientes/                 # Gestão de clientes
-│   ├── comercial/                # CRM
-│   ├── financeiro/               # Financeiro
-│   ├── colaboradores/            # RH
-│   ├── calendario/               # Agendamentos
-│   └── ui/                       # shadcn/ui
-│
-├── lib/                          # Utilitários
-│   ├── mock-data*.ts             # Dados mockados
-│   ├── api-client.ts             # Cliente API
-│   └── hooks/                    # React Hooks
-│
-├── supabase/functions/server/    # Edge Functions
-│   └── index.tsx                 # API Backend
-│
-├── styles/                       # 🎨 Sistema de Design Minerva v4.0
-│   ├── index.css                 # Entry point com CSS layers
-│   ├── layers.css                # Arquitetura de camadas CSS
-│   ├── layout.css                # Sistema de layout estrutural
-│   ├── globals.css               # Utilities e componentes globais
-│   ├── base/                     # Foundation styles
-│   │   ├── reset.css            # CSS reset moderno
-│   │   ├── variables.css        # Design tokens (HSL)
-│   │   └── typography.css       # Sistema tipográfico
-│   └── components/               # Componentes customizados
-│       ├── radix/               # Estilos Radix UI
-│       └── custom/              # Componentes Minerva
-│
-└── docs/                         # 📚 DOCUMENTAÇÃO (NOVO!)
-    ├── 00-INDEX.md               # Índice completo
-    ├── START_HERE.md             # Comece aqui
-    ├── GUIA_RAPIDO_SUPABASE.md   # Setup backend
-    └── ...                       # 40+ documentos
-```
+### Pré-requisitos
+- **Node.js**: v20 ou superior.
+- **Gerenciador de Pacotes**: `npm` (utilizado como padrão pelo package.json).
+- **Supabase CLI** (Opcional, para geração de types ou rodar o banco de dados localmente).
 
----
-
-## 🔌 Backend e Deploy
-
-### Status Atual
-- ✅ **Código pronto** - Edge Functions implementadas
-- ✅ **Credenciais configuradas** - Supabase conectado
-- ⚠️ **Deploy pendente** - Erro 403 (resolvível)
-
-### Resolver Deploy
-1. Leia [docs/GUIA_RAPIDO_SUPABASE.md](./docs/GUIA_RAPIDO_SUPABASE.md) (5 minutos)
-2. Execute comandos do deploy via CLI
-3. Ou continue em modo frontend-only
-
-### Alternativa: Modo Frontend Only
-O sistema funciona perfeitamente sem backend:
-- Dados mock abundantes e realistas
-- Todos os fluxos operacionais
-- Ideal para demonstrações
-
-Para ativar: [docs/MODO_FRONTEND_ONLY.md](./docs/MODO_FRONTEND_ONLY.md)
-
----
-
-## 🗄️ Banco de Dados
-
-### Schema Completo
-Veja [docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md) para:
-- Estrutura de tabelas
-- Relacionamentos
-- ENUMs normalizados
-- Políticas RLS
-
-### Setup Rápido
-```sql
--- Execute no SQL Editor do Supabase
--- (Veja docs/COMANDOS_SUPABASE.md para SQL completo)
-```
-
----
-
-## 📚 Documentação
-
-### 🎯 Começar Aqui
-1. **[docs/START_HERE.md](./docs/START_HERE.md)** ⭐ - Início absoluto
-2. **[docs/GUIA_RAPIDO_SUPABASE.md](./docs/GUIA_RAPIDO_SUPABASE.md)** - Setup backend (5 min)
-3. **[docs/USUARIOS_TESTE.md](./docs/USUARIOS_TESTE.md)** - Fazer login
-
-### 📖 Documentação Completa
-- **[docs/00-INDEX.md](./docs/00-INDEX.md)** - Índice de toda documentação (40+ docs)
-- **[docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md)** - Sistema de design
-- **[docs/DATABASE_SCHEMA.md](./docs/DATABASE_SCHEMA.md)** - Schema do banco
-- **[docs/COMANDOS_SUPABASE.md](./docs/COMANDOS_SUPABASE.md)** - Comandos práticos
-- **[docs/finance/CONCILIACAO_BANCARIA.md](./docs/finance/CONCILIACAO_BANCARIA.md)** - Conciliação e Custos Variáveis
-
-### 🔧 Troubleshooting
-- **[docs/SOLUCAO_ERRO_403.md](./docs/SOLUCAO_ERRO_403.md)** - Resolver erro de deploy
-- **[docs/TEST_API_CONNECTION.md](./docs/TEST_API_CONNECTION.md)** - Testar conexão
-- **[docs/TROUBLESHOOTING.md](./docs/TROUBLESHOOTING.md)** - Problemas gerais
-
-### 🎨 Problemas de Frontend
-- **CSS não carrega:** Verificar ordem de imports em `src/index.css`
-- **Layout quebrado:** Verificar CSS layers em `src/styles/layers.css`
-- **Grid não funciona:** Verificar classes Tailwind e content-wrapper
-- **Responsividade:** Testar breakpoints (768px, 1024px)
-- **Componentes shadcn:** Verificar estilos Radix UI customizados
-
----
-
-## 🎯 Fluxos de Ordens de Serviço
-
-### OS 01-04 (Fluxo Especial - 15 Etapas)
-1. Identificação do Lead
-2. Follow-up 1, 2, 3
-3. Geração de Proposta
-4. Agendamento de Apresentação
-5. Realização de Apresentação
-6. Memorial e Escopo
-7. Precificação
-8. Geração de Contrato
-9. Contrato Assinado
-10. **Conversão automática para OS-13 (Obra)**
-
-### OS 05-13 (Fluxo Normal)
-- Campo Cliente obrigatório
-- Etapas específicas por tipo de OS
-- Sistema de aprovações
-- Workflow visual
-
-**Detalhes:** `/components/os/`
-
----
-
-## 🏆 Recursos Destacados
-
-### ✨ Gestão à Vista
-- Dashboards em tempo real
-- Métricas visuais
-- Status coloridos por tipo de OS
-
-### 🔄 Fluxo de Aprovação Hierárquico
-- Colaborador → Gestor → Diretoria
-- Notificações de pendências
-- Badge de aprovações
-
-### 📱 Design Responsivo
-- Desktop e mobile otimizados
-- Sidebar adaptativa (256px/64px)
-- Content wrappers inteligentes (1200px-1600px)
-- Grid system responsivo
-- Mobile-first approach
-
-### 🎨 Design System Consistente v4.0
-- Paleta dourada (#D3AF37) com HSL tokens
-- CSS Layers architecture moderna
-- Componentes shadcn/ui customizados
-- Tailwind CSS v4 com design tokens
-- Layout system estrutural
-- Transições e animações suaves
-
-### 📊 Dados Mock Abundantes
-- 18 Ordens de Serviço
-- 30 Clientes
-- 20 Leads comerciais
-- 18 Eventos de agenda
-- Múltiplos usuários de teste
-
----
-
-## 🔐 Segurança e Permissões
-
-### Sistema de Roles
-- **DIRETORIA** - Acesso total
-- **GESTOR_ADM** - Gestão administrativa
-- **GESTOR_SETOR** - Gestão por setor
-- **COLABORADOR** - Operacional
-
-### Visibilidade de Menu
-Sistema dinâmico baseado no perfil de acesso.
-
-**Documentação:** [docs/MENU_VISIBILIDADE_README.md](./docs/MENU_VISIBILIDADE_README.md)
-
----
-
-## 🧪 Testar o Sistema
-
-### 1. Acessar o Sistema
-O sistema já está rodando! Faça login com qualquer usuário de teste.
-
-### 2. Explorar Módulos
-Navegue pelos dashboards, OS, clientes e comercial.
-
-### 3. Testar Workflows
-Crie uma OS e navegue pelas etapas.
-
-### 4. Verificar Dados Mock
-Veja `/lib/mock-data-*.ts` para dados disponíveis.
-
----
-
-## 🚧 Roadmap
-
-### ✅ Fase 1-4: Fundação (Completo)
-- Sistema de autenticação
-- Layout e navegação
-- Design system v4.0 (CSS Layers + Design Tokens)
-- Estrutura de dados
-- Sistema de layout responsivo
-- Componentes shadcn/ui customizados
-
-### ✅ Fluxos 5-17: Módulos (Completo)
-- Todos os dashboards
-- Gestão de OS completa
-- CRM comercial
-- Financeiro
-- RH
-- Portal do cliente
-
-### ⚠️ Deploy Backend (Pendente)
-- Resolver erro 403
-- Configurar banco
-- Popular dados iniciais
-
-### 🔜 Próximos Passos
-- Notificações em tempo real
-- Relatórios PDF
-- Integrações externas
-- App mobile
-
----
-
-## 🤝 Contribuindo
-
-Este é um projeto privado da Minerva Engenharia.
-
-### Desenvolvimento
-1. Clone o repositório
-2. Leia [docs/GUIA_RAPIDO_SUPABASE.md](./docs/GUIA_RAPIDO_SUPABASE.md)
-3. Configure backend ou use modo mock
-4. Desenvolva seguindo [docs/DESIGN_SYSTEM.md](./docs/DESIGN_SYSTEM.md)
-
----
-
-## 📝 Licença
-
-© 2025 Minerva Engenharia - Todos os direitos reservados
-
----
-
-## 📞 Suporte
-
-- **Documentação:** [docs/00-INDEX.md](./docs/00-INDEX.md)
-- **Troubleshooting:** [docs/SOLUCAO_ERRO_403.md](./docs/SOLUCAO_ERRO_403.md)
-- **Deploy:** [docs/COMANDOS_SUPABASE.md](./docs/COMANDOS_SUPABASE.md)
-
----
-
-**Versão:** 1.0.1 (Frontend v4.0)
-**Última Atualização:** 02/12/2025
-**Status:** ✅ Sistema completo e funcionando
-**Frontend:** ✅ Design System v4.0 implementado
-**Backend:** ⚠️ Deploy pendente (opcional - sistema funciona em modo mock)
-
----
-
-## 🎉 Quick Start Absoluto
-
+### 1. Clonar e Instalar
 ```bash
-# 1. Sistema já está funcionando!
-# 2. Faça login com: colaborador@minerva.com / colaborador123
-# 3. Explore os módulos!
-
-# Opcional - Habilitar backend:
-npm install -g supabase
-supabase login
-supabase link --project-ref zxfevlkssljndqqhxkjb
-cd supabase/functions && supabase functions deploy server
+git clone <URL_DO_REPOSITORIO> minerva-v2
+cd minerva-v2
+npm install
 ```
 
-**Leia:** [docs/GUIA_RAPIDO_SUPABASE.md](./docs/GUIA_RAPIDO_SUPABASE.md) para mais detalhes.
+### 2. Configurar Variáveis de Ambiente
+Crie um arquivo `.env` na raiz do projeto com base no `.env.example` (se disponível) ou adicione as credenciais essenciais.
+```bash
+# [TODO: Adicionar outras variáveis de ambiente necessárias (ex: Sentry, Cora)]
+VITE_SUPABASE_URL=sua_url_do_supabase
+VITE_SUPABASE_ANON_KEY=sua_chave_anon_do_supabase
+```
+
+### 3. Rodar o Servidor de Desenvolvimento
+```bash
+npm run dev
+```
+A aplicação estará disponível em `http://localhost:5173`.
 
 ---
 
-**Desenvolvido com ❤️ para Minerva Engenharia**
+## 📁 Estrutura de Pastas
+
+A arquitetura do código adota responsabilidade por domínios e separação de lógica via hooks e rotas isoladas:
+
+```
+.
+├── src/
+│   ├── components/         # Componentes React segregados por módulo
+│   │   ├── os/             # Componentes de Ordens de Serviço e fluxos
+│   │   ├── financeiro/     # Dashboards, conciliação e componentes financeiros
+│   │   ├── colaboradores/  # Perfis, controle de presença, OS-10 (RH)
+│   │   ├── ui/             # Elementos base construídos com shadcn/ui
+│   │   └── shared/         # Componentes compartilhados
+│   ├── lib/                # Lógica central e abstrações
+│   │   ├── hooks/          # React Hooks contendo regras de negócio (queries/mutations)
+│   │   ├── types/          # Definições TypeScript (incluindo supabase.ts gerado)
+│   │   ├── utils/          # Funções utilitárias e logger nativo
+│   │   └── validations/    # Schemas de validação Zod
+│   ├── routes/             # TanStack Router (File-based Routing)
+│   │   └── _auth/          # Todas as rotas autenticadas sob este layout
+│   └── styles/             # Sistema de Design Minerva (CSS Layers)
+├── supabase/
+│   ├── functions/          # Edge functions do Supabase (ex: server, generate-pdf)
+│   └── migrations/         # Arquivos RLS e SQL do banco
+├── docs/                   # Documentação detalhada em Markdown por módulo
+│   ├── finance/            # Documentação específica de Financeiro
+│   ├── ordens-de-servico/  # Documentação específica de OS e workflows
+│   └── rh/                 # Documentação de Recursos Humanos e permissões
+└── tests/                  # Cenários de teste e mocks
+```
+
+---
+
+## 🛠️ Scripts Úteis
+
+O `package.json` fornece atalhos essenciais de desenvolvimento e testes:
+
+- `npm run dev` — Inicia o servidor local Vite.
+- `npm run build` — Verifica tipos a faz o bundle de produção via Vite.
+- `npm run lint` — Executa o ESLint em todo o diretório `src/`.
+- `npm run test` — Roda suítes de testes via Vitest.
+- `npm run test:ui` — Abre a interface visual do Vitest para debuggação.
+- `npm run update-types` — Gera novamente os tipos do TypeScript baseados no banco Supabase hospedado (projeto `zxfevlkssljndqqhxkjb`). Requer Supabase CLI logado.
+- `npm run update-types:local` — Como acima, mas aponta para seu contêiner Supabase local.
+
+---
+
+## 👥 Usuários Recomendados (Desenvolvimento/Mock)
+
+Caso prefira navegar em features locais sem impacto produtivo:
+
+| Email (Mock/Sample) | Senha | Perfil RBAC |
+|---------------------|-------|-------------|
+| diretoria@minerva.com | diretoria123 | Diretoria (Acesso Total) |
+| admin@minerva.com | admin123 | Administrador |
+| gestor.adm@minerva.com | gestor123 | Coordenador Administrativo |
+| gestor.obras@minerva.com | gestor123 | Coordenador de Obras |
+| colaborador@minerva.com | colaborador123 | Operacional |
+
+📝 *As senhas acima correspondem aos ambientes de testes ou mock local. Em ambiente de produção, contate o administrador para obter permissões RLS no Supabase Auth.*
+
+---
+
+## 📞 Suporte e Contribuição
+
+- Consulte a pasta de **[`docs/`](./docs/)** para aprofundar-se nativamente no fluxo arquitetural de cada departamento.
+- Siga as regras de integração declaradas no arquivo **`CLAUDE.md`** na raiz.
+- Use `logger.error` e `logger.warn` do `@/lib/utils/logger` no lugar de `console.log`.
+
+**Minerva Engenharia © 2026.**

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { Colaborador } from '@/types/colaborador';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { calcularCustoDiaMaoDeObra } from '@/lib/constants/colaboradores';
 import { getColaboradorStatus } from '@/lib/utils/colaborador-status';
 
 // ============================================================
@@ -14,8 +14,9 @@ interface RegistroPresenca {
     data: string;
     status: 'OK' | 'ATRASADO' | 'FALTA';
     performance?: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
-    minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
 }
 
 interface ColaboradorRelatorioProps {
@@ -140,12 +141,13 @@ export function ColaboradorRelatorioTemplate({ colaborador, registros }: Colabor
 
     // Financeiro
     const salarioBase = colaborador.salario_base || 0;
-    const custoDia = colaborador.tipo_contratacao === 'CLT'
-        ? salarioBase * FATOR_ENCARGOS_CLT / 22
-        : (colaborador.custo_dia || 0);
-    const custoMensal = colaborador.tipo_contratacao === 'CLT'
-        ? salarioBase * FATOR_ENCARGOS_CLT
-        : (colaborador.custo_dia || 0) * 22;
+    const custoDia = calcularCustoDiaMaoDeObra(
+        salarioBase,
+        colaborador.custo_dia,
+        22,
+        colaborador.tipo_contratacao === 'CLT'
+    );
+    const custoMensal = custoDia * 22;
 
     const formatCurrency = (value: number) =>
         value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

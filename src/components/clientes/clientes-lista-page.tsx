@@ -14,7 +14,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
-import { CadastrarLead, FormDataCompleto } from '../os/shared/steps/cadastrar-lead';
+import { LeadCadastro } from '../os/shared/lead-cadastro/lead-cadastro';
 import { cn } from '../ui/utils';
 import { useClientes } from '../../lib/hooks/use-clientes';
 import {
@@ -83,33 +83,8 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
   const [sortField, setSortField] = useState<keyof Cliente | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Estado para o componente CadastrarLead
+  // Estado para o cadastro de novo contato
   const [isCadastroOpen, setIsCadastroOpen] = useState(false);
-  const [selectedLeadId, setSelectedLeadId] = useState<string>('');
-  const [showCombobox, setShowCombobox] = useState(false);
-  const [formData, setFormData] = useState<FormDataCompleto>({
-    nome: '',
-    cpfCnpj: '',
-    tipo: '',
-    nomeResponsavel: '',
-    cargoResponsavel: '',
-    telefone: '',
-    email: '',
-    tipoEdificacao: '',
-    qtdUnidades: '',
-    qtdBlocos: '',
-    qtdPavimentos: '',
-    tipoTelhado: '',
-    possuiElevador: false,
-    possuiPiscina: false,
-    cep: '',
-    endereco: '',
-    numero: '',
-    complemento: '',
-    bairro: '',
-    cidade: '',
-    estado: '',
-  });
 
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
@@ -235,27 +210,34 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
         title="Gestão de Contatos"
         subtitle="Gerencie contatos, contratos e centros de custo"
       >
-        <Button onClick={() => setIsCadastroOpen(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Cadastrar
-        </Button>
+        {!isCadastroOpen ? (
+          <Button onClick={() => setIsCadastroOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Cadastrar
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={() => setIsCadastroOpen(false)}>
+            Voltar para a lista
+          </Button>
+        )}
       </PageHeader>
 
-      {/* Componente CadastrarLead (Oculto, mas renderiza o Dialog quando isCadastroOpen é true) */}
-      <div className="hidden">
-        <CadastrarLead
-          selectedLeadId={selectedLeadId}
-          onSelectLead={(id) => setSelectedLeadId(id)}
-          showCombobox={showCombobox}
-          onShowComboboxChange={setShowCombobox}
-          showNewLeadDialog={isCadastroOpen}
-          onShowNewLeadDialogChange={setIsCadastroOpen}
-          formData={formData}
-          onFormDataChange={setFormData}
-        />
-      </div>
-
-      {/* KPIs */}
+      {isCadastroOpen ? (
+        <div className="max-w-4xl mx-auto">
+          <LeadCadastro
+            displayMode="inline"
+            entityLabel="Lead"
+            onLeadChange={(id) => {
+              if (id) {
+                // Fechar o formulário e voltar à lista quando o contato for salvo com sucesso
+                setIsCadastroOpen(false);
+              }
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="pt-6">
@@ -431,6 +413,8 @@ export function ClientesListaPage({ onClienteClick }: ClientesListaPageProps) {
           </TableBody>
         </Table>
       </CompactTableWrapper>
+        </>
+      )}
     </div >
   );
 }

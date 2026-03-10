@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Lock } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import type { Etapa1Data } from '@/lib/validations/os10-schemas';
 
 // Mapeamento de setor_slug para nome legível
 const SETOR_LABELS: Record<string, string> = {
@@ -19,19 +20,12 @@ const URGENCIAS = [
     { value: 'baixa', label: 'Baixa - Até 30 dias' },
     { value: 'normal', label: 'Normal - Até 15 dias' },
     { value: 'alta', label: 'Alta - Até 7 dias' },
-    { value: 'urgente', label: 'Urgente - Até 3 dias' },
+    { value: 'critica', label: 'Crítica - Até 3 dias' },
 ];
 
 interface StepAberturaSolicitacaoProps {
-    data: {
-        dataAbertura: string;
-        solicitante: string;
-        solicitanteId?: string;
-        departamento: string;
-        urgencia: string;
-        justificativa: string;
-    };
-    onDataChange: (data: any) => void;
+    data: Etapa1Data;
+    onDataChange: (data: Etapa1Data) => void;
     readOnly?: boolean;
     currentUser?: {
         id: string;
@@ -41,9 +35,12 @@ interface StepAberturaSolicitacaoProps {
 }
 
 export function StepAberturaSolicitacao({ data, onDataChange, readOnly, currentUser }: StepAberturaSolicitacaoProps) {
+    const hasAutoFilled = useRef(false);
+
     // Auto-preencher dados do usuário logado quando o componente monta
     useEffect(() => {
-        if (currentUser && !data.solicitanteId) {
+        if (currentUser && !data.solicitanteId && !hasAutoFilled.current) {
+            hasAutoFilled.current = true;
             const setorDisplay = currentUser.setor_slug
                 ? (SETOR_LABELS[currentUser.setor_slug] || currentUser.setor_slug)
                 : '';
@@ -57,7 +54,7 @@ export function StepAberturaSolicitacao({ data, onDataChange, readOnly, currentU
         }
     }, [currentUser]);
 
-    const handleInputChange = (field: string, value: any) => {
+    const handleInputChange = (field: keyof Etapa1Data, value: string) => {
         if (readOnly) return;
         // Não permitir alteração de solicitante e departamento
         if (field === 'solicitante' || field === 'departamento') return;

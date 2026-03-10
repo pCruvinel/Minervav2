@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Dialog,
     DialogContent,
@@ -17,20 +17,33 @@ import {
 } from '@/components/ui/select';
 import { ModalHeaderPadrao } from '@/components/ui/modal-header-padrao';
 import { useCargos, Cargo } from '@/lib/hooks/use-os-workflows';
-import { Briefcase, Loader2 } from 'lucide-react';
+import { Briefcase, Loader2, Pencil } from 'lucide-react';
 import type { VagaRecrutamento } from './vaga-card';
 
+/* eslint-disable no-unused-vars */
 interface ModalAdicionarVagaProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onAdd: (vaga: Omit<VagaRecrutamento, 'id'>) => void;
+    /** Se fornecido, o modal opera em modo "editar" pré-preenchendo o form */
+    vagaParaEditar?: VagaRecrutamento;
+    /** Callback chamado ao salvar uma vaga editada */
+    onEdit?: (vaga: VagaRecrutamento) => void;
 }
+/* eslint-enable no-unused-vars */
 
 // Slugs de cargos a serem filtrados (não devem aparecer no dropdown)
 const CARGOS_FILTRADOS = ['admin', 'diretor'];
+type QuantityInputChangeEvent = Parameters<
+    NonNullable<React.ComponentProps<typeof Input>['onChange']>
+>[0];
 
 /**
- * ModalAdicionarVaga - Modal para adicionar uma nova vaga de recrutamento
+ * ModalAdicionarVaga - Modal para adicionar ou editar uma vaga de recrutamento
+ *
+ * Modos:
+ * - **Adicionar**: props `onAdd` sem `vagaParaEditar`
+ * - **Editar**: props `vagaParaEditar` + `onEdit`
  *
  * Campos:
  * - Cargo (Select com dados do Supabase, filtrando admin e diretor)
@@ -38,8 +51,9 @@ const CARGOS_FILTRADOS = ['admin', 'diretor'];
  * - Habilidades/Requisitos (Textarea)
  * - Perfil Comportamental (Textarea)
  */
-export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionarVagaProps) {
+export function ModalAdicionarVaga({ open, onOpenChange, onAdd, vagaParaEditar, onEdit }: ModalAdicionarVagaProps) {
     const { cargos, loading: cargosLoading } = useCargos();
+    const isEditMode = !!vagaParaEditar;
 
     // Estado do formulário
     const [cargoId, setCargoId] = useState('');
@@ -53,16 +67,26 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
         (cargo: Cargo) => !CARGOS_FILTRADOS.includes(cargo.slug)
     );
 
-    // Reset form quando fecha
+    // Reset ou pré-preencher form quando abre/fecha ou muda a vaga
     useEffect(() => {
-        if (!open) {
+        if (!open) return;
+
+        if (vagaParaEditar) {
+            // Modo edição: pré-preencher
+            setCargoId(vagaParaEditar.cargo_id);
+            setCargoNome(vagaParaEditar.cargo_nome);
+            setQuantidade(vagaParaEditar.quantidade);
+            setHabilidades(vagaParaEditar.habilidades_necessarias || '');
+            setPerfil(vagaParaEditar.perfil_comportamental || '');
+        } else {
+            // Modo adicionar: limpar
             setCargoId('');
             setCargoNome('');
             setQuantidade(1);
             setHabilidades('');
             setPerfil('');
         }
-    }, [open]);
+    }, [open, vagaParaEditar]);
 
     const handleCargoChange = (value: string) => {
         setCargoId(value);
@@ -72,7 +96,7 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
         }
     };
 
-    const handleQuantidadeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleQuantidadeChange = (e: QuantityInputChangeEvent) => {
         const value = parseInt(e.target.value, 10);
         if (!isNaN(value) && value >= 1) {
             setQuantidade(value);
@@ -84,13 +108,26 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
     const handleSubmit = () => {
         if (!isFormValid) return;
 
-        onAdd({
-            cargo_id: cargoId,
-            cargo_nome: cargoNome,
-            quantidade,
-            habilidades_necessarias: habilidades.trim(),
-            perfil_comportamental: perfil.trim(),
-        });
+        if (isEditMode && onEdit && vagaParaEditar) {
+            // Modo edição: preservar o ID original
+            onEdit({
+                ...vagaParaEditar,
+                cargo_id: cargoId,
+                cargo_nome: cargoNome,
+                quantidade,
+                habilidades_necessarias: habilidades.trim(),
+                perfil_comportamental: perfil.trim(),
+            });
+        } else {
+            // Modo adicionar
+            onAdd({
+                cargo_id: cargoId,
+                cargo_nome: cargoNome,
+                quantidade,
+                habilidades_necessarias: habilidades.trim(),
+                perfil_comportamental: perfil.trim(),
+            });
+        }
 
         onOpenChange(false);
     };
@@ -99,10 +136,10 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto p-0">
                 <ModalHeaderPadrao
-                    title="Adicionar Nova Vaga"
-                    description="Preencha os dados da vaga a ser requisitada"
-                    icon={Briefcase}
-                    theme="create"
+                    title={isEditMode ? 'Editar Vaga' : 'Adicionar Nova Vaga'}
+                    description={isEditMode ? 'Altere os dados da vaga' : 'Preencha os dados da vaga a ser requisitada'}
+                    icon={isEditMode ? Pencil : Briefcase}
+                    theme={isEditMode ? 'info' : 'create'}
                 />
 
                 <div className="space-y-5 p-6">
@@ -180,7 +217,7 @@ export function ModalAdicionarVaga({ open, onOpenChange, onAdd }: ModalAdicionar
                         Cancelar
                     </Button>
                     <Button onClick={handleSubmit} disabled={!isFormValid}>
-                        Adicionar Vaga
+                        {isEditMode ? 'Salvar Alterações' : 'Adicionar Vaga'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

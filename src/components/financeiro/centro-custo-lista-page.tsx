@@ -1,16 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from '@tanstack/react-router';
 import { 
   Building, 
   Search, 
-  ArrowRight, 
-  Plus,
-  ShieldCheck
+  Plus
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { 
   Table, 
   TableBody, 
@@ -25,17 +22,20 @@ import {
   CompactTableCell 
 } from "@/components/shared/compact-table";
 import { useCentroCusto, CentroCusto } from "@/lib/hooks/use-centro-custo";
+import { useLucratividadeAllCCs, LucratividadeCC } from "@/lib/hooks/use-lucratividade-cc";
+import { formatCurrency as formatarMoeda } from "@/lib/utils";
 import { PageHeader } from "@/components/shared/page-header";
 
 export function CentroCustoListaPage() {
   const router = useRouter();
   const { listCentrosCusto } = useCentroCusto();
+  const { data: lucratividadeData } = useLucratividadeAllCCs();
+
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
-  const [filteredCCs, setFilteredCCs] = useState<CentroCusto[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination state (client-side for now)
+  // Pagination state (client-side)
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
@@ -45,7 +45,6 @@ export function CentroCustoListaPage() {
       try {
         const data = await listCentrosCusto();
         setCentrosCusto(data);
-        setFilteredCCs(data);
       } catch (error) {
         console.error("Erro ao carregar centros de custo:", error);
       } finally {
@@ -55,15 +54,30 @@ export function CentroCustoListaPage() {
     loadData();
   }, [listCentrosCusto]);
 
-  useEffect(() => {
+  // Map de lucratividade por CC ID para lookup rápido
+  const lucratividadeMap = useMemo(() => {
+    const map = new Map<string, LucratividadeCC>();
+    lucratividadeData?.forEach((item) => {
+      map.set(item.cc_id, item);
+    });
+    return map;
+  }, [lucratividadeData]);
+
+  // Filter: excluir CCs do tipo "Sistema" + busca textual
+  const filteredCCs = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    const filtered = centrosCusto.filter(cc => 
-      cc.nome.toLowerCase().includes(term) || 
-      (cc.descricao && cc.descricao.toLowerCase().includes(term))
-    );
-    setFilteredCCs(filtered);
-    setCurrentPage(1); // Reset page on filter
+    return centrosCusto
+      .filter(cc => !cc.is_sistema) // Exclui CCs de sistema
+      .filter(cc =>
+        cc.nome.toLowerCase().includes(term) ||
+        (cc.descricao && cc.descricao.toLowerCase().includes(term))
+      );
   }, [searchTerm, centrosCusto]);
+
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // Pagination logic
   const totalItems = filteredCCs.length;
@@ -119,69 +133,55 @@ export function CentroCustoListaPage() {
               <TableRow className="bg-muted/40">
                 <CompactTableHead>Nome / Identificador</CompactTableHead>
                 <CompactTableHead>Descrição</CompactTableHead>
-                <CompactTableHead className="w-32">Tipo</CompactTableHead>
-                <CompactTableHead className="text-right w-24">Ações</CompactTableHead>
+                <CompactTableHead align="right" className="w-32">Receita</CompactTableHead>
+                <CompactTableHead align="right" className="w-32">Custo</CompactTableHead>
+                <CompactTableHead align="right" className="w-32">Lucro</CompactTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : paginatedItems.length > 0 ? (
-                paginatedItems.map((cc) => (
-                  <CompactTableRow 
-                    key={cc.id} 
-                    className="cursor-pointer"
-                    onClick={() => router.navigate({ to: `/financeiro/centro-custo/${cc.id}` })}
-                  >
-                    <CompactTableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        <Building className="h-4 w-4 text-primary/70" />
-                        {cc.nome}
-                      </div>
-                    </CompactTableCell>
-                    <CompactTableCell className="text-muted-foreground">
-                      {cc.descricao || '-'}
-                    </CompactTableCell>
-                    <CompactTableCell>
-                      {cc.is_sistema ? (
-                        <Badge 
-                          variant="outline" 
-                          className="bg-primary/10 text-primary border-primary/20"
-                        >
-                          <ShieldCheck className="w-3 h-3 mr-1" />
-                          Sistema
-                        </Badge>
-                      ) : (
-                        <Badge 
-                          variant="outline" 
-                          className={cc.tipo === 'fixo' ? 'bg-secondary/10 text-secondary-foreground border-secondary/20' : 'bg-primary/10 text-primary border-primary/20'}
-                        >
-                          {cc.tipo === 'fixo' ? 'Fixo' : 'Variável'}
-                        </Badge>
-                      )}
-                    </CompactTableCell>
-                    <CompactTableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          router.navigate({ to: `/financeiro/centro-custo/${cc.id}` });
-                        }}
-                      >
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </CompactTableCell>
-                  </CompactTableRow>
-                ))
+                paginatedItems.map((cc) => {
+                  const fin = lucratividadeMap.get(cc.id);
+                  const receita = Number(fin?.receita_realizada ?? 0);
+                  const custo = Number(fin?.custo_total_realizado ?? 0);
+                  const lucro = Number(fin?.lucro_realizado ?? 0);
+
+                  return (
+                    <CompactTableRow 
+                      key={cc.id} 
+                      className="cursor-pointer"
+                      onClick={() => router.navigate({ to: `/financeiro/centro-custo/${cc.id}` })}
+                    >
+                      <CompactTableCell className="font-medium">
+                        <div className="flex items-center gap-2">
+                          <Building className="h-4 w-4 text-primary/70" />
+                          {cc.nome}
+                        </div>
+                      </CompactTableCell>
+                      <CompactTableCell className="text-muted-foreground">
+                        {cc.descricao || '-'}
+                      </CompactTableCell>
+                      <CompactTableCell className="text-right tabular-nums">
+                        {formatarMoeda(receita)}
+                      </CompactTableCell>
+                      <CompactTableCell className="text-right tabular-nums">
+                        {formatarMoeda(custo)}
+                      </CompactTableCell>
+                      <CompactTableCell className={`text-right font-medium tabular-nums ${lucro >= 0 ? 'text-success' : 'text-destructive'}`}>
+                        {formatarMoeda(lucro)}
+                      </CompactTableCell>
+                    </CompactTableRow>
+                  );
+                })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                     Nenhum centro de custo encontrado.
                   </TableCell>
                 </TableRow>

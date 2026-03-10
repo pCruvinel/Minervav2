@@ -47,6 +47,8 @@ export interface OSComEtapa extends OrdemServico {
   is_atrasado?: boolean;
   is_alerta_prazo?: boolean;
   is_em_validacao?: boolean;
+  /** Total de etapas da OS (pré-calculado pela view) */
+  totalEtapas: number;
 }
 
 export interface DashboardData {
@@ -201,6 +203,7 @@ export function useDashboardData(): DashboardData {
             titulo: row.etapa_ativa_nome || 'Sem etapa',
             status: row.etapa_status
         },
+        totalEtapas: row.total_etapas || 0,
         
         // Campos específicos de OSComEtapa
         prazoEtapa: row.data_prazo, // View usa data_prazo geral como base para atraso

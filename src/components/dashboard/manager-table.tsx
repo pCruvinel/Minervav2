@@ -462,12 +462,15 @@ export function ManagerTable({
                                         {os.tipo_os_nome || '-'}
                                     </CompactTableCell>
 
-                                    {/* Etapa Atual */}
+                                    {/* Etapa Atual — formato x/y */}
                                     <CompactTableCell>
                                         {os.etapaAtual ? (
-                                            <div className="flex items-center gap-1.5" title={os.etapaAtual.titulo}>
-                                                <span className="truncate max-w-[140px]">
-                                                    {os.etapaAtual.numero}. {os.etapaAtual.titulo}
+                                            <div className="flex items-center gap-1.5" title={`${os.etapaAtual.numero}/${os.totalEtapas} — ${os.etapaAtual.titulo}`}>
+                                                <Badge variant="outline" className="font-mono text-xs shrink-0 px-1.5">
+                                                    {os.etapaAtual.numero}/{os.totalEtapas}
+                                                </Badge>
+                                                <span className="truncate max-w-[110px] text-muted-foreground text-xs">
+                                                    {os.etapaAtual.titulo}
                                                 </span>
                                                 {os.prazoVencido && (
                                                     <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />

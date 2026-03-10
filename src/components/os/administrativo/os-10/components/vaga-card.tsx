@@ -1,7 +1,7 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trash2, Briefcase } from 'lucide-react';
+import { Trash2, Briefcase, Pencil } from 'lucide-react';
 
 export interface VagaRecrutamento {
     id: string;
@@ -14,11 +14,14 @@ export interface VagaRecrutamento {
     escolaridade_minima?: string;
 }
 
+/* eslint-disable no-unused-vars */
 interface VagaCardProps {
     vaga: VagaRecrutamento;
     onRemove: (id: string) => void;
+    onEdit?: (vaga: VagaRecrutamento) => void;
     readOnly?: boolean;
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * VagaCard - Card compacto para exibir uma vaga de recrutamento
@@ -29,7 +32,7 @@ interface VagaCardProps {
  * - Preview das habilidades (truncado)
  * - Botão de remover (quando não é readOnly)
  */
-export function VagaCard({ vaga, onRemove, readOnly }: VagaCardProps) {
+export function VagaCard({ vaga, onRemove, onEdit, readOnly }: VagaCardProps) {
     const truncateText = (text: string, maxLength: number = 100) => {
         if (!text) return '—';
         return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text;
@@ -73,17 +76,30 @@ export function VagaCard({ vaga, onRemove, readOnly }: VagaCardProps) {
                         </div>
                     </div>
 
-                    {/* Botão Remover */}
+                    {/* Botões de Ação */}
                     {!readOnly && (
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="flex-shrink-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => onRemove(vaga.id)}
-                            title="Remover vaga"
-                        >
-                            <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                            {onEdit && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-muted-foreground hover:text-primary hover:bg-primary/10"
+                                    onClick={() => onEdit(vaga)}
+                                    title="Editar vaga"
+                                >
+                                    <Pencil className="w-4 h-4" />
+                                </Button>
+                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => onRemove(vaga.id)}
+                                title="Remover vaga"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                            </Button>
+                        </div>
                     )}
                 </div>
             </CardContent>

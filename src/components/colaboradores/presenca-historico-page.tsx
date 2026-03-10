@@ -23,24 +23,27 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
+import { useNavigate } from '@tanstack/react-router';
 import { cn } from '../ui/utils';
-import { format, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isWeekend, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase-client';
 import { Colaborador } from '@/types/colaborador';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
+import { calcularCustoDiaMaoDeObra, formatMinutosAtraso } from '@/lib/constants/colaboradores';
 
 interface RegistroPresencaHistorico {
     id: string;
     colaborador_id: string;
     data: string;
     status: 'OK' | 'ATRASADO' | 'FALTA';
-    minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
     performance?: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
     performance_justificativa?: string;
     centros_custo: string[];
+    minutos_atraso?: number;
     anexo_url?: string;
     confirmed_at?: string;
     confirmed_by?: string;
@@ -54,12 +57,14 @@ interface ResumoColaborador {
     presencas: number;
     atrasos: number;
     faltas: number;
+    faltasAbonadas: number;
     taxaPresenca: number;
     custoTotal: number;
     minutosAtrasoTotal: number;
 }
 
 export function PresencaHistoricoPage() {
+    const navigate = useNavigate();
     // Filtros
     const [dataInicio, setDataInicio] = useState<Date>(startOfMonth(subMonths(new Date(), 1)));
     const [dataFim, setDataFim] = useState<Date>(endOfMonth(subMonths(new Date(), 1)));
@@ -102,6 +107,14 @@ export function PresencaHistoricoPage() {
     };
 
     const fetchRegistros = async () => {
+        // Validar range de datas
+        if (isAfter(dataInicio, dataFim)) {
+            toast.error('A data de início deve ser anterior ou igual à data de fim.');
+            setRegistros([]);
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             const { data, error } = await supabase
@@ -115,7 +128,7 @@ export function PresencaHistoricoPage() {
             setRegistros(data || []);
         } catch (error) {
             console.error('Erro ao buscar registros:', error);
-            toast.error('Erro ao carregar registros de presença');
+            toast.error('Erro ao carregar registros de presença. Verifique sua conexão e tente novamente.');
         } finally {
             setLoading(false);
         }
@@ -140,13 +153,17 @@ export function PresencaHistoricoPage() {
 
             const presencas = registrosCol.filter(r => r.status !== 'FALTA').length;
             const atrasos = registrosCol.filter(r => r.status === 'ATRASADO').length;
-            const faltas = registrosCol.filter(r => r.status === 'FALTA').length;
+            const faltas = registrosCol.filter(r => r.status === 'FALTA' && !r.is_abonada).length;
+            const faltasAbonadas = registrosCol.filter(r => r.status === 'FALTA' && r.is_abonada).length;
             const minutosAtrasoTotal = registrosCol.reduce((acc, r) => acc + (r.minutos_atraso || 0), 0);
 
-            // Calcular custo
-            const custoDia = col.tipo_contratacao === 'CLT'
-                ? (col.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisPeriodo
-                : col.custo_dia || 0;
+            // Calcular custo utilizando utility
+            const custoDia = calcularCustoDiaMaoDeObra(
+                col.salario_base,
+                col.custo_dia,
+                diasUteisPeriodo,
+                col.tipo_contratacao === 'CLT'
+            );
             const custoTotal = presencas * custoDia;
 
             const taxaPresenca = diasUteisPeriodo > 0
@@ -161,6 +178,7 @@ export function PresencaHistoricoPage() {
                 presencas,
                 atrasos,
                 faltas,
+                faltasAbonadas,
                 taxaPresenca,
                 custoTotal,
                 minutosAtrasoTotal
@@ -186,11 +204,12 @@ export function PresencaHistoricoPage() {
 
     // KPIs gerais
     const kpis = useMemo(() => {
-        const totalPresencas = resumoFiltrado.reduce((acc, r) => acc + r.presencas, 0);
-        const totalFaltas = resumoFiltrado.reduce((acc, r) => acc + r.faltas, 0);
-        const totalAtrasos = resumoFiltrado.reduce((acc, r) => acc + r.atrasos, 0);
-        const totalCusto = resumoFiltrado.reduce((acc, r) => acc + r.custoTotal, 0);
-        const totalMinutosAtraso = resumoFiltrado.reduce((acc, r) => acc + r.minutosAtrasoTotal, 0);
+        const totalPresencas = resumoFiltrado.reduce((acc, curr) => acc + curr.presencas, 0);
+        const totalFaltas = resumoFiltrado.reduce((acc, curr) => acc + curr.faltas, 0);
+        const totalFaltasAbonadas = resumoFiltrado.reduce((acc, curr) => acc + curr.faltasAbonadas, 0);
+        const totalAtrasos = resumoFiltrado.reduce((acc, curr) => acc + curr.atrasos, 0);
+        const totalMinutosAtraso = resumoFiltrado.reduce((acc, curr) => acc + curr.minutosAtrasoTotal, 0);
+        const totalCusto = resumoFiltrado.reduce((acc, curr) => acc + curr.custoTotal, 0);
         const taxaMediaPresenca = resumoFiltrado.length > 0
             ? resumoFiltrado.reduce((acc, r) => acc + r.taxaPresenca, 0) / resumoFiltrado.length
             : 0;
@@ -199,6 +218,7 @@ export function PresencaHistoricoPage() {
             totalColaboradores: resumoFiltrado.length,
             totalPresencas,
             totalFaltas,
+            totalFaltasAbonadas,
             totalAtrasos,
             totalCusto,
             totalMinutosAtraso,
@@ -212,15 +232,16 @@ export function PresencaHistoricoPage() {
             setExporting(true);
 
             // Criar CSV
-            const headers = ['Colaborador', 'Setor', 'Dias Úteis', 'Presenças', 'Faltas', 'Atrasos', 'Min. Atraso', 'Taxa Presença', 'Custo Total'];
+            const headers = ['Colaborador', 'Setor', 'Dias Úteis', 'Presenças', 'Faltas', 'Faltas Abonadas', 'Atrasos', 'Min. Atraso', 'Taxa Presença', 'Custo Total'];
             const rows = resumoFiltrado.map(r => [
                 r.nome,
                 r.setor,
                 r.diasUteis,
                 r.presencas,
                 r.faltas,
+                r.faltasAbonadas,
                 r.atrasos,
-                r.minutosAtrasoTotal,
+                r.minutosAtrasoTotal ? formatMinutosAtraso(r.minutosAtrasoTotal) : '0m',
                 `${r.taxaPresenca.toFixed(1)}%`,
                 `R$ ${r.custoTotal.toFixed(2)}`
             ]);
@@ -454,7 +475,7 @@ export function PresencaHistoricoPage() {
                                 <AlertTriangle className="h-5 w-5 text-warning" />
                                 <div>
                                     <p className="text-xs text-muted-foreground">Min. Atraso</p>
-                                    <p className="text-xl font-bold">{kpis.totalMinutosAtraso}</p>
+                                    <p className="text-xl font-bold">{formatMinutosAtraso(kpis.totalMinutosAtraso) || '0m'}</p>
                                 </div>
                             </div>
                         </CardContent>
@@ -522,6 +543,7 @@ export function PresencaHistoricoPage() {
                                         <TableHead>Setor</TableHead>
                                         <TableHead className="text-center">Presenças</TableHead>
                                         <TableHead className="text-center">Faltas</TableHead>
+                                        <TableHead className="text-center" title="Faltas Abonadas (não descontadas da taxa de presença, mas não geram custo)">Abonos</TableHead>
                                         <TableHead className="text-center">Atrasos</TableHead>
                                         <TableHead className="text-center">Min. Atraso</TableHead>
                                         <TableHead className="text-center">Taxa</TableHead>
@@ -531,8 +553,12 @@ export function PresencaHistoricoPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {resumoFiltrado.map(resumo => (
-                                        <TableRow key={resumo.colaboradorId} className="hover:bg-muted/50">
-                                            <TableCell className="font-medium">{resumo.nome}</TableCell>
+                                        <TableRow 
+                                            key={resumo.colaboradorId} 
+                                            className="hover:bg-muted/50 cursor-pointer"
+                                            onClick={() => navigate({ to: '/colaboradores/presenca-detalhes/$colaboradorId', params: { colaboradorId: resumo.colaboradorId } })}
+                                        >
+                                            <TableCell className="font-medium text-primary hover:underline">{resumo.nome}</TableCell>
                                             <TableCell>
                                                 <Badge variant="outline" className="capitalize">{resumo.setor}</Badge>
                                             </TableCell>
@@ -548,6 +574,13 @@ export function PresencaHistoricoPage() {
                                                 )}
                                             </TableCell>
                                             <TableCell className="text-center">
+                                                {resumo.faltasAbonadas > 0 ? (
+                                                    <span className="text-muted-foreground font-medium">{resumo.faltasAbonadas}</span>
+                                                ) : (
+                                                    <span className="text-muted-foreground">0</span>
+                                                )}
+                                            </TableCell>
+                                            <TableCell className="text-center">
                                                 {resumo.atrasos > 0 ? (
                                                     <span className="text-warning font-medium">{resumo.atrasos}</span>
                                                 ) : (
@@ -556,7 +589,7 @@ export function PresencaHistoricoPage() {
                                             </TableCell>
                                             <TableCell className="text-center">
                                                 {resumo.minutosAtrasoTotal > 0 ? (
-                                                    <span className="text-warning">{resumo.minutosAtrasoTotal}min</span>
+                                                    <span className="text-warning">{formatMinutosAtraso(resumo.minutosAtrasoTotal)}</span>
                                                 ) : (
                                                     <span className="text-muted-foreground">-</span>
                                                 )}

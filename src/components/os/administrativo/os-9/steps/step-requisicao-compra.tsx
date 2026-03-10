@@ -14,12 +14,15 @@ import { useViaCEP } from '@/lib/hooks/use-viacep';
 import type { ItemRequisicao, DadosRequisicaoOS } from '@/lib/types';
 import { PRAZOS_NECESSIDADE } from '@/lib/types';
 import { logger } from '@/lib/utils/logger';
+import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase-client';
 
 interface StepRequisicaoCompraProps {
   data: Record<string, any>;
   onDataChange: (data: any) => void;
   readOnly?: boolean;
   etapaId?: string;
+  osId?: string;
   /** Ref para expor função de salvar itens locais antes de avançar */
   saveItemsRef?: React.MutableRefObject<(() => Promise<void>) | undefined>;
   /** Função para criar OS (usada quando o usuário tenta salvar item antes da OS existir) */
@@ -55,6 +58,7 @@ export function StepRequisicaoCompra({
   onDataChange,
   readOnly,
   etapaId,
+  osId,
   saveItemsRef,
   onCreateOS
 }: StepRequisicaoCompraProps) {
@@ -62,6 +66,7 @@ export function StepRequisicaoCompra({
   const [dadosOS, setDadosOS] = useState<Partial<DadosRequisicaoOS>>({
     centro_custo_id: data.centro_custo_id || undefined,
     prazo_necessidade: data.prazo_necessidade || undefined,
+    local_entrega: data.local_entrega || undefined,
     cep: data.cep || '',
     logradouro: data.logradouro || '',
     numero: data.numero || '',
@@ -192,7 +197,8 @@ export function StepRequisicaoCompra({
       try {
         await createItem({
           etapaId,
-          item: item as Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'created_at' | 'updated_at'>
+          osId,
+          item: item as Omit<ItemRequisicao, 'id' | 'os_etapa_id' | 'os_id' | 'created_at' | 'updated_at'>
         });
         logger.log(`✅ Item salvo com sucesso`);
       } catch (error) {
@@ -221,6 +227,79 @@ export function StepRequisicaoCompra({
   const handleOSFieldChange = (field: keyof DadosRequisicaoOS, value: any) => {
     if (readOnly) return;
     setDadosOS({ ...dadosOS, [field]: value });
+  };
+
+  const handleLocalEntregaChange = async (value: 'escritorio' | 'cliente' | 'outro') => {
+    if (readOnly) return;
+
+    if (value === 'escritorio') {
+      // Endereço fixo do escritório Minerva
+      setDadosOS(prev => ({
+        ...prev,
+        local_entrega: value,
+        cep: '04538-133',
+        logradouro: 'Avenida Brigadeiro Faria Lima',
+        numero: '3477',
+        complemento: '14º Andar - Itaim Bibi',
+        bairro: 'Itaim Bibi',
+        cidade: 'São Paulo',
+        uf: 'SP'
+      }));
+    } else if (value === 'cliente') {
+      // Buscar endereço do cliente vinculado ao centro de custo
+      if (dadosOS.centro_custo_id) {
+        try {
+          const { data: ccData } = await supabase
+            .from('centros_custo')
+            .select('cliente_id')
+            .eq('id', dadosOS.centro_custo_id)
+            .single();
+
+          if (ccData?.cliente_id) {
+            const { data: cliente } = await supabase
+              .from('clientes')
+              .select('endereco')
+              .eq('id', ccData.cliente_id)
+              .single();
+
+            if (cliente && cliente.endereco) {
+              const ende = cliente.endereco as any;
+              setDadosOS(prev => ({
+                ...prev,
+                local_entrega: value,
+                cep: ende.cep || '',
+                logradouro: ende.rua || ende.logradouro || '',
+                numero: ende.numero || '',
+                complemento: ende.complemento || '',
+                bairro: ende.bairro || '',
+                cidade: ende.cidade || '',
+                uf: ende.estado || ende.uf || ''
+              }));
+              return;
+            }
+          }
+          toast.warning('Cliente do centro de custo não possui endereço cadastrado. Preencha manualmente.');
+        } catch (error) {
+          logger.error('Erro ao buscar endereço do cliente:', error);
+        }
+      } else {
+        toast.warning('Selecione primeiro o Centro de Custo para buscar o endereço do cliente.');
+      }
+      
+      // Se falhar ou não tiver CC, apenas muda o tipo, limpando os dados (ou mantém para usuário preencher)
+      setDadosOS(prev => ({
+        ...prev,
+        local_entrega: value,
+        cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: ''
+      }));
+    } else {
+      // Outro local
+      setDadosOS(prev => ({
+        ...prev,
+        local_entrega: value,
+        cep: '', logradouro: '', numero: '', complemento: '', bairro: '', cidade: '', uf: ''
+      }));
+    }
   };
 
   const handleCEPBlur = async () => {
@@ -252,18 +331,22 @@ export function StepRequisicaoCompra({
   const dadosOSCompletos = !!(
     dadosOS.centro_custo_id &&
     dadosOS.prazo_necessidade &&
-    dadosOS.cep &&
-    dadosOS.logradouro &&
-    dadosOS.numero &&
-    dadosOS.bairro &&
-    dadosOS.cidade &&
-    dadosOS.uf
+    dadosOS.local_entrega &&
+    (dadosOS.local_entrega !== 'outro' || (
+      dadosOS.cep &&
+      dadosOS.logradouro &&
+      dadosOS.numero &&
+      dadosOS.bairro &&
+      dadosOS.cidade &&
+      dadosOS.uf
+    ))
   );
 
-  // Fluxo progressivo: CC + Prazo devem ser preenchidos primeiro
+  // Fluxo progressivo: CC + Prazo + Local devem ser preenchidos primeiro
   const camposPrincipaisPreenchidos = Boolean(
     dadosOS.centro_custo_id &&
-    dadosOS.prazo_necessidade
+    dadosOS.prazo_necessidade &&
+    dadosOS.local_entrega
   );
 
   // Sincronizar com parent component para validação de completude
@@ -314,32 +397,56 @@ export function StepRequisicaoCompra({
             error={!dadosOS.centro_custo_id && touched.centro_custo_id ? 'Centro de custo é obrigatório' : undefined}
           />
 
-          {/* Prazo de Necessidade */}
-          <div className="space-y-2">
-            <Label htmlFor="prazo-necessidade">
-              Prazo de Necessidade <span className="text-destructive">*</span>
-            </Label>
-            <Select
-              value={dadosOS.prazo_necessidade}
-              onValueChange={(value) => handleOSFieldChange('prazo_necessidade', value)}
-              disabled={readOnly}
-            >
-              <SelectTrigger id="prazo-necessidade">
-                <SelectValue placeholder="Selecione o prazo" />
-              </SelectTrigger>
-              <SelectContent>
-                {PRAZOS_NECESSIDADE.map((prazo) => (
-                  <SelectItem key={prazo.value} value={prazo.value}>
-                    {prazo.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {/* Prazo de Necessidade e Local de Entrega dividem a tela em grid em desktop */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Prazo de Necessidade */}
+            <div className="space-y-2">
+              <Label htmlFor="prazo-necessidade">
+                Prazo de Necessidade <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={dadosOS.prazo_necessidade}
+                onValueChange={(value) => handleOSFieldChange('prazo_necessidade', value)}
+                disabled={readOnly}
+              >
+                <SelectTrigger id="prazo-necessidade">
+                  <SelectValue placeholder="Selecione o prazo" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PRAZOS_NECESSIDADE.map((prazo) => (
+                    <SelectItem key={prazo.value} value={prazo.value}>
+                      {prazo.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Local de Entrega */}
+            <div className="space-y-2">
+              <Label htmlFor="local-entrega">
+                Local de Entrega <span className="text-destructive">*</span>
+              </Label>
+              <Select
+                value={dadosOS.local_entrega}
+                onValueChange={(value: any) => handleLocalEntregaChange(value)}
+                disabled={readOnly}
+              >
+                <SelectTrigger id="local-entrega">
+                  <SelectValue placeholder="Selecione o local de entrega" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="escritorio">Entregar no Escritório (Sede)</SelectItem>
+                  <SelectItem value="cliente">Entregar no Cliente</SelectItem>
+                  <SelectItem value="outro">Outro Endereço</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {/* Endereço de Entrega - Só aparece após selecionar CC + Prazo */}
-          {camposPrincipaisPreenchidos && (
-            <div className="space-y-4">
+          {/* Endereço de Entrega - Só aparece se Local for "Outro" */}
+          {camposPrincipaisPreenchidos && dadosOS.local_entrega === 'outro' && (
+            <div className="space-y-4 pt-2">
               <h4 className="text-sm font-medium border-b border-border pb-2" style={{ color: 'var(--primary)' }}>
                 Endereço de Entrega
               </h4>

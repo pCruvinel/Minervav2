@@ -24,11 +24,13 @@ interface OS10StepData {
     obraVinculada: string;
 }
 
+/* eslint-disable no-unused-vars */
 interface StepSelecaoCentroCustoProps {
     data: OS10StepData;
     onDataChange: (data: OS10StepData) => void;
     readOnly?: boolean;
 }
+/* eslint-enable no-unused-vars */
 
 export function StepSelecaoCentroCusto({ data, onDataChange, readOnly }: StepSelecaoCentroCustoProps) {
     const handleCentroCustoChange = (ccId: string, ccData: { nome: string; cliente?: { nome_razao_social: string } } | null) => {

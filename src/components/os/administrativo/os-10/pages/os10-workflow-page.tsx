@@ -17,6 +17,9 @@ import { useWorkflowCompletion } from '@/lib/hooks/use-workflow-completion';
 import { useAuth } from '@/lib/contexts/auth-context';
 import { supabase } from '@/lib/supabase-client';
 import { logger } from '@/lib/utils/logger';
+import { getOS10TipoId } from '@/lib/utils/os-helpers';
+import { etapa1Schema, getFirstZodError } from '@/lib/validations/os10-schemas';
+import type { Etapa1Data, Etapa2Data, Etapa3Data } from '@/lib/validations/os10-schemas';
 
 // Sistema de Aprovação
 import { AprovacaoModal } from '@/components/os/shared/components/aprovacao-modal';
@@ -86,22 +89,14 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
             // CCs fixos não têm cliente_id, CCs variáveis têm
             const clienteId = ccData.cliente_id || null;
 
-            // 2. Buscar tipo de OS-10
-            const { data: tipoOS, error: tipoOSError } = await supabase
-                .from('tipos_os')
-                .select('*')
-                .eq('codigo', 'OS-10')
-                .single();
-
-            if (tipoOSError || !tipoOS) {
-                throw new Error('Tipo de OS OS-10 não encontrado no sistema');
-            }
+            // 2. Buscar tipo de OS-10 (via helper cacheado)
+            const tipoOSId = await getOS10TipoId();
 
             // 3. Criar OS (cliente_id é opcional para CCs fixos)
             const { data: osData, error: osError } = await supabase
                 .from('ordens_servico')
                 .insert({
-                    tipo_os_id: tipoOS.id,
+                    tipo_os_id: tipoOSId,
                     status_geral: 'em_triagem',
                     descricao: 'OS-10: Requisição de Mão de Obra',
                     criado_por_id: currentUser?.id,
@@ -265,15 +260,15 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
     };
 
     // Setters wrappers
-    const setEtapa1Data = (data: any) => setStepData(1, data);
-    const setEtapa2Data = (data: any) => setStepData(2, data);
-    const setEtapa3Data = (data: any) => setStepData(3, data);
+    const setEtapa1Data = (data: Etapa1Data) => setStepData(1, data);
+    const setEtapa2Data = (data: Etapa2Data) => setStepData(2, data);
+    const setEtapa3Data = (data: Etapa3Data) => setStepData(3, data);
 
     // Regras de completude
     const completionRules = useMemo(() => ({
-        1: (data: any) => !!(data.solicitante && data.departamento && data.justificativa),
-        2: (data: any) => !!(data.centroCusto),
-        3: (data: any) => !!(data.vagas && data.vagas.length > 0),
+        1: (data: Etapa1Data) => !!(data.solicitante && data.departamento && data.justificativa),
+        2: (data: Etapa2Data) => !!(data.centroCusto),
+        3: (data: Etapa3Data) => !!(data.vagas && data.vagas.length > 0),
         4: () => true, // Revisão - sempre válido
     }), []);
 
@@ -300,8 +295,9 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
         // Etapa 1: Avançar sem salvar (não existe OS ainda)
         // Validar campos obrigatórios
         if (currentStep === 1) {
-            if (!etapa1Data.justificativa?.trim()) {
-                toast.error('Preencha a justificativa da contratação');
+            const result = etapa1Schema.safeParse(etapa1Data);
+            if (!result.success) {
+                toast.error(getFirstZodError(result));
                 return;
             }
             // Avançar diretamente para Etapa 2 sem chamar handleNextStep
@@ -426,6 +422,7 @@ export function OS10WorkflowPage({ onBack, osId: propOsId }: OS10WorkflowPagePro
                         {/* ETAPA 4: Revisão e Envio */}
                         {currentStep === 4 && (
                             <StepRevisaoEnvio
+                                osId={finalOsId}
                                 etapa1Data={etapa1Data}
                                 etapa2Data={etapa2Data}
                                 etapa3Data={etapa3Data}

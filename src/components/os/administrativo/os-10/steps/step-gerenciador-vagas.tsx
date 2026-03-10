@@ -6,6 +6,7 @@ import { VagaCard, VagaRecrutamento } from '../components/vaga-card';
 import { ModalAdicionarVaga } from '../components/modal-adicionar-vaga';
 import { Plus, Users, AlertCircle } from 'lucide-react';
 
+/* eslint-disable no-unused-vars */
 interface StepGerenciadorVagasProps {
     data: {
         vagas: VagaRecrutamento[];
@@ -13,6 +14,7 @@ interface StepGerenciadorVagasProps {
     onDataChange: (data: { vagas: VagaRecrutamento[] }) => void;
     readOnly?: boolean;
 }
+/* eslint-enable no-unused-vars */
 
 /**
  * StepGerenciadorVagas - Etapa 3 (Nova): Gerenciador de Vagas
@@ -20,11 +22,13 @@ interface StepGerenciadorVagasProps {
  * Interface Master-Detail para gerenciar múltiplas vagas:
  * - Lista de cards com vagas adicionadas
  * - Modal para adicionar nova vaga
+ * - Edição de vagas existentes via mesmo modal
  * - Total de vagas calculado automaticamente
  * - Validação: mínimo 1 vaga para avançar
  */
 export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGerenciadorVagasProps) {
     const [modalOpen, setModalOpen] = useState(false);
+    const [vagaEmEdicao, setVagaEmEdicao] = useState<VagaRecrutamento | undefined>(undefined);
 
     const vagas = data.vagas || [];
     const totalVagas = vagas.reduce((sum, vaga) => sum + vaga.quantidade, 0);
@@ -32,17 +36,41 @@ export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGeren
     const handleAddVaga = (novaVaga: Omit<VagaRecrutamento, 'id'>) => {
         const vagaComId: VagaRecrutamento = {
             ...novaVaga,
-            id: crypto.randomUUID(),
+            id: window.crypto.randomUUID(),
         };
         onDataChange({
             vagas: [...vagas, vagaComId],
         });
     };
 
+    const handleEditVaga = (vagaEditada: VagaRecrutamento) => {
+        onDataChange({
+            vagas: vagas.map((v) => v.id === vagaEditada.id ? vagaEditada : v),
+        });
+        setVagaEmEdicao(undefined);
+    };
+
     const handleRemoveVaga = (id: string) => {
         onDataChange({
             vagas: vagas.filter((v) => v.id !== id),
         });
+    };
+
+    const handleOpenEdit = (vaga: VagaRecrutamento) => {
+        setVagaEmEdicao(vaga);
+        setModalOpen(true);
+    };
+
+    const handleOpenAdd = () => {
+        setVagaEmEdicao(undefined);
+        setModalOpen(true);
+    };
+
+    const handleModalClose = (open: boolean) => {
+        setModalOpen(open);
+        if (!open) {
+            setVagaEmEdicao(undefined);
+        }
     };
 
     return (
@@ -68,7 +96,7 @@ export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGeren
                     </h3>
                     {!readOnly && (
                         <Button
-                            onClick={() => setModalOpen(true)}
+                            onClick={handleOpenAdd}
                             className="ml-4"
                         >
                             <Plus className="w-4 h-4 mr-2" />
@@ -86,7 +114,7 @@ export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGeren
                         {!readOnly && (
                             <Button
                                 variant="outline"
-                                onClick={() => setModalOpen(true)}
+                                onClick={handleOpenAdd}
                             >
                                 <Plus className="w-4 h-4 mr-2" />
                                 Adicionar Primeira Vaga
@@ -100,6 +128,7 @@ export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGeren
                                 key={vaga.id}
                                 vaga={vaga}
                                 onRemove={handleRemoveVaga}
+                                onEdit={readOnly ? undefined : handleOpenEdit}
                                 readOnly={readOnly}
                             />
                         ))}
@@ -132,11 +161,13 @@ export function StepGerenciadorVagas({ data, onDataChange, readOnly }: StepGeren
                 </Alert>
             )}
 
-            {/* Modal de Adicionar Vaga */}
+            {/* Modal de Adicionar/Editar Vaga */}
             <ModalAdicionarVaga
                 open={modalOpen}
-                onOpenChange={setModalOpen}
+                onOpenChange={handleModalClose}
                 onAdd={handleAddVaga}
+                vagaParaEditar={vagaEmEdicao}
+                onEdit={handleEditVaga}
             />
         </div>
     );

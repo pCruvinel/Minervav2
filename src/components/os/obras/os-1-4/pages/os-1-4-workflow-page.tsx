@@ -1399,8 +1399,9 @@ export function OS14WorkflowPage({
                   <ErrorBoundary>
                     <LeadCadastro
                       ref={stepLeadRef}
+                      entityLabel="Lead"
                       selectedLeadId={selectedLeadId}
-                      onLeadChange={(id: string, data: LeadCompleto | null) => {
+                      onLeadChange={(id: string, data?: LeadCompleto) => {
                         setSelectedLeadId(id);
                         if (data) {
                           setEtapa1Data({

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * LeadCadastro - Componente orquestrador para cadastro de Lead
+ * LeadCadastro - Componente orquestrador para cadastro de Lead/Cliente
  * 
  * Componente principal que integra:
  * - LeadSelector: Seleção de lead existente
@@ -9,25 +9,32 @@
  * - LeadFormEdificacao: Formulário de edificação
  * - LeadFormEndereco: Formulário de endereço
  * 
+ * Suporta dois modos de exibição:
+ * - 'modal' (default): Selector + Dialog para criação (comportamento legado)
+ * - 'inline': Formulário completo renderizado diretamente, sem selector/dialog
+ * 
  * @example
  * ```tsx
+ * // Modo modal (padrão) - usado nas OS
  * const ref = useRef<LeadCadastroHandle>(null);
  * 
  * <LeadCadastro
  *   ref={ref}
  *   selectedLeadId={leadId}
  *   onLeadChange={(id, data) => setLeadId(id)}
- *   showEdificacao={true}
- *   showEndereco={true}
  * />
  * 
- * // Para validar e salvar:
- * const isValid = ref.current?.validate();
- * const savedId = await ref.current?.save();
+ * // Modo inline - para página /contatos
+ * <LeadCadastro
+ *   ref={ref}
+ *   displayMode="inline"
+ *   entityLabel="Contato"
+ *   onLeadChange={(id, data) => handleCreated(id, data)}
+ * />
  * ```
  */
 
-import { forwardRef, useImperativeHandle, useState, useEffect, useRef, useCallback } from 'react';
+import { forwardRef, useImperativeHandle, useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -88,6 +95,15 @@ const EMPTY_ENDERECO: LeadEndereco = {
     estado: '',
 };
 
+// ============================================================
+// Opções para renderFormTabs
+// ============================================================
+
+interface FormTabsOptions {
+    /** Se deve incluir a aba de Identificação */
+    includeIdentificacao: boolean;
+}
+
 export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
     function LeadCadastro(
         {
@@ -98,6 +114,8 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
             showEndereco = true,
             initialData,
             statusFilter = 'LEAD',
+            displayMode = 'modal',
+            entityLabel = 'Cliente',
         },
         ref
     ) {
@@ -151,26 +169,26 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
 
                 // Edificação e Endereço do campo 'endereco' JSONB
                 if (selectedLead.endereco) {
-                    const endData = selectedLead.endereco as any;
+                    const endData = selectedLead.endereco as Record<string, unknown>;
 
                     setEdificacao({
-                        tipoEdificacao: endData.tipo_edificacao || '',
-                        qtdUnidades: endData.qtd_unidades?.toString() || '',
-                        qtdBlocos: endData.qtd_blocos?.toString() || '',
-                        qtdPavimentos: endData.qtd_pavimentos?.toString() || '',
-                        tipoTelhado: endData.tipo_telhado || '',
-                        possuiElevador: endData.possui_elevador || false,
-                        possuiPiscina: endData.possui_piscina || false,
+                        tipoEdificacao: (endData.tipo_edificacao as string) || '',
+                        qtdUnidades: endData.qtd_unidades != null ? String(endData.qtd_unidades) : '',
+                        qtdBlocos: endData.qtd_blocos != null ? String(endData.qtd_blocos) : '',
+                        qtdPavimentos: endData.qtd_pavimentos != null ? String(endData.qtd_pavimentos) : '',
+                        tipoTelhado: (endData.tipo_telhado as string) || '',
+                        possuiElevador: (endData.possui_elevador as boolean) || false,
+                        possuiPiscina: (endData.possui_piscina as boolean) || false,
                     });
 
                     setEndereco({
-                        cep: endData.cep || '',
-                        rua: endData.rua || endData.logradouro || '',
-                        numero: endData.numero || '',
-                        complemento: endData.complemento || '',
-                        bairro: endData.bairro || '',
-                        cidade: endData.cidade || '',
-                        estado: endData.estado || endData.uf || '',
+                        cep: (endData.cep as string) || '',
+                        rua: (endData.rua as string) || (endData.logradouro as string) || '',
+                        numero: (endData.numero as string) || '',
+                        complemento: (endData.complemento as string) || '',
+                        bairro: (endData.bairro as string) || '',
+                        cidade: (endData.cidade as string) || '',
+                        estado: (endData.estado as string) || (endData.uf as string) || '',
                     });
                 }
             }
@@ -353,7 +371,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                 }
 
                 logger.log('✅ Lead salvo com sucesso:', savedId);
-                toast.success('Lead salvo com sucesso!');
+                toast.success(`${entityLabel} salvo com sucesso!`);
 
                 // Atualizar lista de leads
                 await refetch();
@@ -362,20 +380,21 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                 onLeadChange(savedId, getData());
 
                 return savedId;
-            } catch (error: any) {
+            } catch (error: unknown) {
+                const dbError = error as { code?: string; message?: string };
                 logger.error('❌ Erro ao salvar lead:', error);
 
-                if (error.code === '23505') {
+                if (dbError.code === '23505') {
                     toast.error('CPF/CNPJ já cadastrado no sistema');
                 } else {
-                    toast.error('Erro ao salvar lead. Tente novamente.');
+                    toast.error(`Erro ao salvar ${entityLabel.toLowerCase()}. Tente novamente.`);
                 }
 
                 return null;
             } finally {
                 setIsSaving(false);
             }
-        }, [validate, identificacao, edificacao, endereco, selectedLeadId, onLeadChange, getData, refetch]);
+        }, [validate, identificacao, edificacao, endereco, selectedLeadId, onLeadChange, getData, refetch, entityLabel]);
 
         // Expor métodos via ref
         useImperativeHandle(ref, () => ({
@@ -386,56 +405,53 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
         }));
 
         /**
-         * Handle para quando um lead é selecionado no selector
-         */
-        /**
          * Mapeia dados brutos do cliente para o formato interno LeadCompleto
          */
-        const mapToLeadCompleto = useCallback((lead: any): LeadCompleto => {
-            if (!lead) return null as any;
+        const mapToLeadCompleto = useCallback((lead: Record<string, unknown>): LeadCompleto => {
+            if (!lead) return { identificacao: EMPTY_IDENTIFICACAO, edificacao: EMPTY_EDIFICACAO, endereco: EMPTY_ENDERECO };
 
-            const endData = lead.endereco || {};
+            const endData = (lead.endereco || {}) as Record<string, unknown>;
 
-            const identificacao: LeadIdentificacao = {
-                id: lead.id,
-                nome: lead.nome_razao_social || '',
-                cpfCnpj: lead.cpf_cnpj || '',
+            const mappedIdentificacao: LeadIdentificacao = {
+                id: lead.id as string,
+                nome: (lead.nome_razao_social as string) || '',
+                cpfCnpj: (lead.cpf_cnpj as string) || '',
                 tipo: lead.tipo_cliente === 'PESSOA_FISICA' ? 'fisica' : 'juridica',
-                tipoEmpresa: lead.tipo_empresa || undefined,
-                nomeResponsavel: lead.nome_responsavel || '',
+                tipoEmpresa: (lead.tipo_empresa as LeadIdentificacao['tipoEmpresa']) || undefined,
+                nomeResponsavel: (lead.nome_responsavel as string) || '',
                 cargoResponsavel: '',
-                telefone: lead.telefone || '',
-                email: lead.email || '',
-                apelido: lead.apelido || '',
+                telefone: (lead.telefone as string) || '',
+                email: (lead.email as string) || '',
+                apelido: (lead.apelido as string) || '',
             };
 
-            const edificacao: LeadEdificacao = {
-                tipoEdificacao: endData.tipo_edificacao || '',
-                qtdUnidades: endData.qtd_unidades?.toString() || '',
-                qtdBlocos: endData.qtd_blocos?.toString() || '',
-                qtdPavimentos: endData.qtd_pavimentos?.toString() || '',
-                tipoTelhado: endData.tipo_telhado || '',
-                possuiElevador: endData.possui_elevador || false,
-                possuiPiscina: endData.possui_piscina || false,
+            const mappedEdificacao: LeadEdificacao = {
+                tipoEdificacao: (endData.tipo_edificacao as string) || '',
+                qtdUnidades: endData.qtd_unidades != null ? String(endData.qtd_unidades) : '',
+                qtdBlocos: endData.qtd_blocos != null ? String(endData.qtd_blocos) : '',
+                qtdPavimentos: endData.qtd_pavimentos != null ? String(endData.qtd_pavimentos) : '',
+                tipoTelhado: (endData.tipo_telhado as string) || '',
+                possuiElevador: (endData.possui_elevador as boolean) || false,
+                possuiPiscina: (endData.possui_piscina as boolean) || false,
             };
 
-            const endereco: LeadEndereco = {
-                cep: endData.cep || '',
-                rua: endData.rua || endData.logradouro || '',
-                numero: endData.numero || '',
-                complemento: endData.complemento || '',
-                bairro: endData.bairro || '',
-                cidade: endData.cidade || '',
-                estado: endData.estado || endData.uf || '',
+            const mappedEndereco: LeadEndereco = {
+                cep: (endData.cep as string) || '',
+                rua: (endData.rua as string) || (endData.logradouro as string) || '',
+                numero: (endData.numero as string) || '',
+                complemento: (endData.complemento as string) || '',
+                bairro: (endData.bairro as string) || '',
+                cidade: (endData.cidade as string) || '',
+                estado: (endData.estado as string) || (endData.uf as string) || '',
             };
 
-            return { identificacao, edificacao, endereco };
+            return { identificacao: mappedIdentificacao, edificacao: mappedEdificacao, endereco: mappedEndereco };
         }, []);
 
         /**
          * Handle para quando um lead é selecionado no selector
          */
-        const handleSelectLead = (leadId: string, leadData?: any) => {
+        const handleSelectLead = (leadId: string, leadData?: Record<string, unknown>) => {
             // Resetar flag para carregar novos dados
             hasLoadedLead.current = false;
             setShowNewLeadDialog(false);
@@ -477,6 +493,157 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
             }
         };
 
+        // ============================================================
+        // Função renderizadora reutilizável: Tabs de formulário
+        // Consumida tanto pelo Dialog (modal) quanto pelo modo inline.
+        // ============================================================
+
+        /**
+         * Calcula o número de colunas visíveis nas Tabs
+         */
+        const getTabColumnCount = (includeIdentificacao: boolean): number => {
+            let count = 0;
+            if (includeIdentificacao) count++;
+            if (showEdificacao) count++;
+            if (showEndereco) count++;
+            return Math.max(count, 1);
+        };
+
+        /**
+         * Renderiza as Tabs do formulário de maneira DRY.
+         * @param options.includeIdentificacao - Se true, inclui a aba de Identificação
+         */
+        const renderFormTabs = ({ includeIdentificacao }: FormTabsOptions): ReactNode => {
+            const columnCount = getTabColumnCount(includeIdentificacao);
+
+            return (
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList
+                        className="grid w-full"
+                        style={{ gridTemplateColumns: `repeat(${columnCount}, 1fr)` }}
+                    >
+                        {includeIdentificacao && (
+                            <TabsTrigger value="identificacao" className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                Identificação
+                                {(errors.nome || errors.cpfCnpj || errors.tipo || errors.telefone || errors.email) && (
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                )}
+                            </TabsTrigger>
+                        )}
+                        {showEdificacao && (
+                            <TabsTrigger value="edificacao" className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4" />
+                                Edificação
+                                {(errors.tipoEdificacao || errors.tipoTelhado) && (
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                )}
+                            </TabsTrigger>
+                        )}
+                        {showEndereco && (
+                            <TabsTrigger value="endereco" className="flex items-center gap-2">
+                                <MapPin className="h-4 w-4" />
+                                Endereço
+                                {(errors.cep || errors.rua) && (
+                                    <AlertCircle className="h-4 w-4 text-destructive" />
+                                )}
+                            </TabsTrigger>
+                        )}
+                    </TabsList>
+
+                    {includeIdentificacao && (
+                        <TabsContent value="identificacao" className="mt-4">
+                            <LeadFormIdentificacao
+                                data={identificacao}
+                                onChange={setIdentificacao}
+                                errors={errors}
+                                readOnly={readOnly}
+                            />
+                        </TabsContent>
+                    )}
+
+                    {showEdificacao && (
+                        <TabsContent value="edificacao" className="mt-4">
+                            <LeadFormEdificacao
+                                data={edificacao}
+                                onChange={setEdificacao}
+                                errors={errors}
+                                readOnly={readOnly}
+                            />
+                        </TabsContent>
+                    )}
+
+                    {showEndereco && (
+                        <TabsContent value="endereco" className="mt-4">
+                            <LeadFormEndereco
+                                data={endereco}
+                                onChange={setEndereco}
+                                errors={errors}
+                                readOnly={readOnly}
+                            />
+                        </TabsContent>
+                    )}
+                </Tabs>
+            );
+        };
+
+        /**
+         * Renderiza o botão de salvar reutilizável
+         */
+        const renderSaveButton = (): ReactNode => (
+            <Button
+                onClick={handleSaveNewLead}
+                disabled={isSaving}
+                className="w-full sm:w-auto"
+            >
+                {isSaving ? (
+                    <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                    </>
+                ) : (
+                    <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Salvar {entityLabel}
+                    </>
+                )}
+            </Button>
+        );
+
+        // ============================================================
+        // MODO INLINE: Formulário completo renderizado diretamente
+        // ============================================================
+
+        if (displayMode === 'inline') {
+            return (
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader className="pb-3">
+                            <CardTitle className="text-lg flex items-center gap-2">
+                                <User className="h-5 w-5" />
+                                Cadastrar {entityLabel}
+                            </CardTitle>
+                            <CardDescription>
+                                Preencha os dados para cadastrar um novo {entityLabel.toLowerCase()}
+                            </CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="space-y-6">
+                            {renderFormTabs({ includeIdentificacao: true })}
+
+                            <div className="flex justify-end pt-4 border-t">
+                                {renderSaveButton()}
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            );
+        }
+
+        // ============================================================
+        // MODO MODAL (default): Selector + Dialog para criação
+        // ============================================================
+
         return (
             <div className="space-y-4">
                 {/* Card de Seleção/Resumo do Lead */}
@@ -484,10 +651,10 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                     <CardHeader className="pb-3">
                         <CardTitle className="text-lg flex items-center gap-2">
                             <User className="h-5 w-5" />
-                            Cliente
+                            {entityLabel}
                         </CardTitle>
                         <CardDescription>
-                            Selecione um cliente existente ou crie um novo
+                            Selecione um {entityLabel.toLowerCase()} existente ou crie um novo
                         </CardDescription>
                     </CardHeader>
 
@@ -500,6 +667,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                                 onCreateNew={handleCreateNew}
                                 disabled={readOnly || loadingLeads}
                                 statusFilter={statusFilter}
+                                entityLabel={entityLabel}
                             />
                         ) : (
                             // Card resumo do lead selecionado
@@ -542,50 +710,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                 {selectedLeadId && (showEdificacao || showEndereco) && (
                     <Card>
                         <CardContent className="pt-6">
-                            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${(showEdificacao ? 1 : 0) + (showEndereco ? 1 : 0)}, 1fr)` }}>
-                                    {showEdificacao && (
-                                        <TabsTrigger value="edificacao" className="flex items-center gap-2">
-                                            <Building2 className="h-4 w-4" />
-                                            Edificação
-                                            {(errors.tipoEdificacao || errors.tipoTelhado) && (
-                                                <AlertCircle className="h-4 w-4 text-destructive" />
-                                            )}
-                                        </TabsTrigger>
-                                    )}
-                                    {showEndereco && (
-                                        <TabsTrigger value="endereco" className="flex items-center gap-2">
-                                            <MapPin className="h-4 w-4" />
-                                            Endereço
-                                            {(errors.cep || errors.rua) && (
-                                                <AlertCircle className="h-4 w-4 text-destructive" />
-                                            )}
-                                        </TabsTrigger>
-                                    )}
-                                </TabsList>
-
-                                {showEdificacao && (
-                                    <TabsContent value="edificacao" className="mt-4">
-                                        <LeadFormEdificacao
-                                            data={edificacao}
-                                            onChange={setEdificacao}
-                                            errors={errors}
-                                            readOnly={readOnly}
-                                        />
-                                    </TabsContent>
-                                )}
-
-                                {showEndereco && (
-                                    <TabsContent value="endereco" className="mt-4">
-                                        <LeadFormEndereco
-                                            data={endereco}
-                                            onChange={setEndereco}
-                                            errors={errors}
-                                            readOnly={readOnly}
-                                        />
-                                    </TabsContent>
-                                )}
-                            </Tabs>
+                            {renderFormTabs({ includeIdentificacao: false })}
                         </CardContent>
                     </Card>
                 )}
@@ -594,64 +719,14 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                 <Dialog open={showNewLeadDialog} onOpenChange={setShowNewLeadDialog}>
                     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>Cadastrar Novo Cliente</DialogTitle>
+                            <DialogTitle>Cadastrar Novo {entityLabel}</DialogTitle>
                             <DialogDescription>
-                                Preencha os dados do cliente para criar um novo cadastro
+                                Preencha os dados para criar um novo {entityLabel.toLowerCase()}
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="space-y-6 py-4">
-                            <Tabs value={activeTab} onValueChange={setActiveTab}>
-                                <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="identificacao" className="flex items-center gap-2">
-                                        <User className="h-4 w-4" />
-                                        Identificação
-                                        {(errors.nome || errors.cpfCnpj) && (
-                                            <AlertCircle className="h-4 w-4 text-destructive" />
-                                        )}
-                                    </TabsTrigger>
-                                    {showEdificacao && (
-                                        <TabsTrigger value="edificacao" className="flex items-center gap-2">
-                                            <Building2 className="h-4 w-4" />
-                                            Edificação
-                                        </TabsTrigger>
-                                    )}
-                                    {showEndereco && (
-                                        <TabsTrigger value="endereco" className="flex items-center gap-2">
-                                            <MapPin className="h-4 w-4" />
-                                            Endereço
-                                        </TabsTrigger>
-                                    )}
-                                </TabsList>
-
-                                <TabsContent value="identificacao" className="mt-4">
-                                    <LeadFormIdentificacao
-                                        data={identificacao}
-                                        onChange={setIdentificacao}
-                                        errors={errors}
-                                    />
-                                </TabsContent>
-
-                                {showEdificacao && (
-                                    <TabsContent value="edificacao" className="mt-4">
-                                        <LeadFormEdificacao
-                                            data={edificacao}
-                                            onChange={setEdificacao}
-                                            errors={errors}
-                                        />
-                                    </TabsContent>
-                                )}
-
-                                {showEndereco && (
-                                    <TabsContent value="endereco" className="mt-4">
-                                        <LeadFormEndereco
-                                            data={endereco}
-                                            onChange={setEndereco}
-                                            errors={errors}
-                                        />
-                                    </TabsContent>
-                                )}
-                            </Tabs>
+                            {renderFormTabs({ includeIdentificacao: true })}
                         </div>
 
                         <DialogFooter>
@@ -664,22 +739,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                             >
                                 Cancelar
                             </Button>
-                            <Button
-                                onClick={handleSaveNewLead}
-                                disabled={isSaving}
-                            >
-                                {isSaving ? (
-                                    <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Salvando...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Check className="h-4 w-4 mr-2" />
-                                        Salvar Cliente
-                                    </>
-                                )}
-                            </Button>
+                            {renderSaveButton()}
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>

@@ -27,6 +27,9 @@ import { CHECKLIST_BLOCOS } from '../../shared/components/checklist-recebimento-
 import { CHECKLIST_SPCI_BLOCOS } from '../../shared/components/checklist-spci-table';
 import { CHECKLIST_SPDA_BLOCOS } from '../../shared/components/checklist-spda-table';
 import type { VisitaTecnicaData, ChecklistItem, GravidadeNivel } from '@/lib/pdf/templates/visita-tecnica-template';
+import type { SPDADynamicFormData } from '../../shared/schemas/spda-dynamic-schema';
+import type { SPCIDynamicFormData } from '../../shared/schemas/spci-dynamic-schema';
+import { flattenSPDAChecklist, flattenSPCIChecklist } from '../../shared/utils/flatten-dynamic-checklist';
 
 // =====================================================
 // TYPES
@@ -98,6 +101,9 @@ interface Etapa5Data {
       }>;
     }>;
   };
+  // Dynamic checklist data (structural multipliers)
+  checklistDinamicoSPDA?: SPDADynamicFormData;
+  checklistDinamicoSPCI?: SPCIDynamicFormData;
 }
 
 interface StepGerarDocumentoProps {
@@ -144,6 +150,17 @@ export function StepGerarDocumento({
    * Transforma dados do checklist para formato do PDF
    */
   const transformChecklistData = (): VisitaTecnicaData['checklistRecebimento'] | undefined => {
+    // ── Dynamic SPDA checklist (structural multipliers) ──
+    if (etapa5Data?.checklistDinamicoSPDA && finalidadeInspecao && isFinalidadeSPDA(finalidadeInspecao)) {
+      return flattenSPDAChecklist(etapa5Data.checklistDinamicoSPDA);
+    }
+
+    // ── Dynamic SPCI checklist (structural multipliers) ──
+    if (etapa5Data?.checklistDinamicoSPCI && finalidadeInspecao && isFinalidadeSPCI(finalidadeInspecao)) {
+      return flattenSPCIChecklist(etapa5Data.checklistDinamicoSPCI);
+    }
+
+    // ── Legacy flat checklist (recebimento_unidade or fallback) ──
     if (!etapa5Data?.checklistRecebimento?.items) return undefined;
 
     const items: ChecklistItem[] = [];

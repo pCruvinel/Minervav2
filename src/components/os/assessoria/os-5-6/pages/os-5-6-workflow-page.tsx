@@ -400,6 +400,7 @@ export function OS56WorkflowPage({
                     return (
                         <LeadCadastro
                             ref={stepLeadRef}
+                            entityLabel="Lead"
                             selectedLeadId={selectedLeadId}
                             onLeadChange={(id: string, data?: LeadCompleto) => {
                                 setSelectedLeadId(id);

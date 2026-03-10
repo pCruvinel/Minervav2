@@ -6,11 +6,31 @@ import { formatCurrency, formatDate } from "@/lib/utils"
 import { RateioPopover } from "./rateio-popover"
 import { Link } from "@tanstack/react-router"
 import { DespesaMaster } from "@/lib/hooks/use-faturas-recorrentes"
+import { Checkbox } from "@/components/ui/checkbox"
 
 // Tipo importado do hook
 export type { DespesaMaster };
 
 export const despesaColumns: ColumnDef<DespesaMaster>[] = [
+    {
+        id: "select",
+        header: ({ table }) => (
+            <Checkbox
+                checked={table.getIsAllPageRowsSelected()}
+                onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+                aria-label="Select all"
+            />
+        ),
+        cell: ({ row }) => (
+            <Checkbox
+                checked={row.getIsSelected()}
+                onCheckedChange={(value) => row.toggleSelected(!!value)}
+                aria-label="Select row"
+            />
+        ),
+        enableSorting: false,
+        enableHiding: false,
+    },
     {
         accessorKey: "descricao",
         header: "Descrição / Favorecido",
@@ -23,9 +43,8 @@ export const despesaColumns: ColumnDef<DespesaMaster>[] = [
                     </span>
                     <span className="text-xs text-muted-foreground truncate">
                         {despesa.favorecido_tipo === 'colaborador' && despesa.favorecido_id ? (
-                            // @ts-ignore - Rota dinâmica pode não estar gerada ainda no tipo
                             <Link 
-                                to={`/colaboradores/${despesa.favorecido_id}`}
+                                to={`/colaboradores/${despesa.favorecido_id}` as any}
                                 className="hover:underline flex items-center gap-1"
                             >
                                 {despesa.favorecido_nome}

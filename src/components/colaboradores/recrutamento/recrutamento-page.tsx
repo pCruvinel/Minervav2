@@ -12,8 +12,10 @@ import { Loader2, Plus, Users, Briefcase, Clock, CheckCircle2 } from 'lucide-rea
 import { PageHeader } from '@/components/shared/page-header';
 import { RecrutamentoKanban } from './recrutamento-kanban';
 import { ModalDetalhesRequisicao } from './modal-detalhes-requisicao';
-import { useRequisicoesMaoDeObra } from '@/lib/hooks/use-recrutamento';
 import type { RequisicaoMaoDeObra } from '@/lib/types/recrutamento';
+import { useRequisicoesMaoDeObra } from '@/lib/hooks/use-recrutamento';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { DashboardRecrutamento } from './dashboard-recrutamento';
 
 export function RecrutamentoPage() {
   const { requisicoes, loading, refetch } = useRequisicoesMaoDeObra();
@@ -61,70 +63,86 @@ export function RecrutamentoPage() {
         </Button>
       </PageHeader>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-600">Total Vagas</p>
-                <p className="text-2xl font-bold text-neutral-900 mt-1">{totalVagas}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-600">Vagas Abertas</p>
-                <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasAbertas}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
-                <Briefcase className="w-6 h-6 text-yellow-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-600">Vagas Preenchidas</p>
-                <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasPreenchidas}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-neutral-600">Requisições Ativas</p>
-                <p className="text-2xl font-bold text-neutral-900 mt-1">{totalRequisicoes}</p>
-              </div>
-              <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                <Clock className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Kanban Board */}
-      {loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      {/* Container Principal com Tabs */}
+      <Tabs defaultValue="kanban" className="w-full space-y-6">
+        <div className="flex items-center justify-between">
+          <TabsList>
+            <TabsTrigger value="kanban">Visualização Kanban</TabsTrigger>
+            <TabsTrigger value="dashboard">Métricas e Dashboard</TabsTrigger>
+          </TabsList>
         </div>
-      ) : (
-        <RecrutamentoKanban requisicoes={requisicoes} onCardClick={handleCardClick} />
-      )}
+
+        <TabsContent value="kanban" className="mt-0 space-y-6 animate-in fade-in-50 duration-500">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">Total Vagas</p>
+                    <p className="text-2xl font-bold text-neutral-900 mt-1">{totalVagas}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-primary" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">Vagas Abertas</p>
+                    <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasAbertas}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                    <Briefcase className="w-6 h-6 text-yellow-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">Vagas Preenchidas</p>
+                    <p className="text-2xl font-bold text-neutral-900 mt-1">{vagasPreenchidas}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle2 className="w-6 h-6 text-green-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-neutral-600">Requisições Ativas</p>
+                    <p className="text-2xl font-bold text-neutral-900 mt-1">{totalRequisicoes}</p>
+                  </div>
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-blue-600" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Kanban Board */}
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <RecrutamentoKanban requisicoes={requisicoes} onCardClick={handleCardClick} />
+          )}
+        </TabsContent>
+
+        <TabsContent value="dashboard" className="mt-0 animate-in fade-in-50 duration-500">
+          <DashboardRecrutamento />
+        </TabsContent>
+      </Tabs>
 
       {/* Modal de Detalhes */}
       <ModalDetalhesRequisicao

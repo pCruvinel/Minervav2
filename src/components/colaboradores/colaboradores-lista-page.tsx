@@ -9,7 +9,7 @@ import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { Loader2 } from 'lucide-react';
 import {
   Mail,
-  Send,
+  UserPlus,
   Building2,
   Briefcase,
   Clock,
@@ -19,9 +19,10 @@ import {
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { CardDescription } from '../ui/card';
-import { ModalConviteColaborador } from './modal-convite-colaborador';
+import { ModalCadastroColaborador, ColaboradorFormPayload } from './modal-cadastro-colaborador';
 import { ModalVencimentoLote } from './modal-vencimento-lote';
 import { colaboradoresAPI } from '../../lib/api-client';
+import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 import { FilterBar, SearchInput, FilterSelect } from '@/components/shared/filters';
 import { Calendar } from 'lucide-react';
@@ -55,7 +56,8 @@ export function ColaboradoresListaPage() {
   const [filtro, setFiltro] = useState('');
   const [setorFilter, setSetorFilter] = useState('todos');
   const [statusFilter, setStatusFilter] = useState('todos');
-  const [modalConviteOpen, setModalConviteOpen] = useState(false);
+  const [modalCadastroOpen, setModalCadastroOpen] = useState(false);
+  const [cadastroLoading, setCadastroLoading] = useState(false);
   const [modalVencimentoOpen, setModalVencimentoOpen] = useState(false);
 
   // Buscar colaboradores da API
@@ -64,11 +66,16 @@ export function ColaboradoresListaPage() {
       try {
         setLoading(true);
         const data = await colaboradoresAPI.list();
-        setColaboradores(data);
+        // Map setor slug from nested setores object for filtering
+        const mapped = data.map((col: any) => ({
+          ...col,
+          setor: col.setores?.slug || col.setor || null,
+        }));
+        setColaboradores(mapped);
       } catch (error) {
         logger.error('Erro ao buscar colaboradores:', error);
         toast.error('Erro ao carregar colaboradores', {
-          description: 'Não foi possível carregar a lista de colaboradores.',
+          description: 'Nao foi possivel carregar a lista de colaboradores.',
         });
       } finally {
         setLoading(false);
@@ -84,8 +91,6 @@ export function ColaboradoresListaPage() {
       currency: 'BRL',
     }).format(value);
   };
-
-
 
   const colaboradoresFiltrados = colaboradores.filter((colaborador) => {
     const matchesSearch =
@@ -106,14 +111,74 @@ export function ColaboradoresListaPage() {
     return matchesSearch && matchesSetor && matchesStatus;
   });
 
-  const handleConvidar = () => {
-    setModalConviteOpen(true);
-  };
+  // Handler de criacao de colaborador (cadastro completo)
+  const handleCriarColaborador = async (payload: ColaboradorFormPayload, files?: Record<string, File>) => {
+    setCadastroLoading(true);
+    try {
+      // Chamar Edge Function que cria auth.user + insere em public.colaboradores
+      const { data, error } = await supabase.functions.invoke('invite-user', {
+        body: {
+          action: 'create-full',
+          ...payload,
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
 
-  const handleConviteSuccess = async () => {
-    // Recarregar lista após enviar convites
-    const data = await colaboradoresAPI.list();
-    setColaboradores(data);
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      const colaboradorId = data?.colaborador?.id;
+
+      // Upload de Documentos
+      if (colaboradorId && files && Object.keys(files).length > 0) {
+        for (const [docKey, file] of Object.entries(files)) {
+          const fileExt = file.name.split('.').pop() || 'pdf';
+          const filePath = `${colaboradorId}/${docKey}_${Date.now()}.${fileExt}`;
+          const { error: uploadError } = await supabase.storage
+            .from('documentos-colaboradores')
+            .upload(filePath, file, { upsert: true });
+
+          if (uploadError) {
+            logger.error(`Erro ao fazer upload do documento ${docKey}:`, uploadError);
+            toast.error(`Erro no upload do documento: ${docKey}`);
+          }
+        }
+
+        // Atualiza a flag de documentos obrigatorios no colaborador
+        await supabase
+          .from('colaboradores')
+          .update({ documentos_obrigatorios: Object.keys(files) })
+          .eq('id', colaboradorId);
+      }
+
+      // Feedback profissional
+      if (payload.enviar_convite && payload.email_acesso) {
+        toast.success('Colaborador cadastrado com sucesso', {
+          description: `O convite de acesso foi enviado para ${payload.email_acesso}.`,
+        });
+      } else {
+        toast.success('Colaborador cadastrado com sucesso');
+      }
+
+      // Recarregar lista e fechar modal
+      const listaAtualizada = await colaboradoresAPI.list();
+      setColaboradores(listaAtualizada.map((col: any) => ({
+        ...col,
+        setor: col.setores?.slug || col.setor || null,
+      })));
+      setModalCadastroOpen(false);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Verifique os dados e tente novamente.';
+      logger.error('Erro ao cadastrar colaborador:', err);
+      toast.error('Nao foi possivel cadastrar o colaborador', {
+        description: errorMessage,
+      });
+    } finally {
+      setCadastroLoading(false);
+    }
   };
 
   // Navegar para detalhes ao clicar na linha
@@ -125,8 +190,8 @@ export function ColaboradoresListaPage() {
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
       <PageHeader
-        title="Gestão de Colaboradores"
-        subtitle="Gerencia os documentos e informações de todos os Colaboradores."
+        title="Gestao de Colaboradores"
+        subtitle="Gerencia os documentos e informacoes de todos os Colaboradores."
         showBackButton
       >
         <div className="flex gap-2">
@@ -134,9 +199,9 @@ export function ColaboradoresListaPage() {
             <Calendar className="w-4 h-4 mr-2" />
             Vencimentos em Lote
           </Button>
-          <Button onClick={handleConvidar}>
-            <Send className="w-4 h-4 mr-2" />
-            Convidar Colaborador
+          <Button onClick={() => setModalCadastroOpen(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Cadastrar Colaborador
           </Button>
         </div>
       </PageHeader>
@@ -177,7 +242,7 @@ export function ColaboradoresListaPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-neutral-600">Custo-Dia Médio</p>
+                <p className="text-sm font-medium text-neutral-600">Custo-Dia Medio</p>
                 {loading ? (
                   <Loader2 className="h-5 w-5 animate-spin mt-1" />
                 ) : (
@@ -265,9 +330,9 @@ export function ColaboradoresListaPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Colaborador</TableHead>
-                <TableHead>Função</TableHead>
+                <TableHead>Funcao</TableHead>
                 <TableHead>Setor</TableHead>
-                <TableHead>Tipo Contratação</TableHead>
+                <TableHead>Tipo Contratacao</TableHead>
                 <TableHead className="text-right">Custo-Dia</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -343,11 +408,13 @@ export function ColaboradoresListaPage() {
         </CardContent>
       </Card>
 
-      {/* Modal de Convite */}
-      <ModalConviteColaborador
-        open={modalConviteOpen}
-        onClose={() => setModalConviteOpen(false)}
-        onSuccess={handleConviteSuccess}
+      {/* Modal de Cadastro Completo */}
+      <ModalCadastroColaborador
+        open={modalCadastroOpen}
+        onClose={() => setModalCadastroOpen(false)}
+        mode="create"
+        onSalvar={handleCriarColaborador}
+        loading={cadastroLoading}
       />
 
       {/* Modal de Vencimento em Lote */}
@@ -361,7 +428,10 @@ export function ColaboradoresListaPage() {
         }))}
         onSuccess={async () => {
           const data = await colaboradoresAPI.list();
-          setColaboradores(data);
+          setColaboradores(data.map((col: any) => ({
+            ...col,
+            setor: col.setores?.slug || col.setor || null,
+          })));
         }}
       />
     </div>
@@ -370,7 +440,6 @@ export function ColaboradoresListaPage() {
 
 // Helper para badge de status
 function renderStatusBadge(colaborador: Colaborador) {
-  // Se o colaborador está inativo, sempre mostrar "Inativo" (prioridade máxima)
   if (colaborador.ativo === false) {
     return (
       <Badge variant="destructive">
@@ -379,7 +448,6 @@ function renderStatusBadge(colaborador: Colaborador) {
     );
   }
 
-  // Se está ativo, verificar o status do convite
   const statusConvite = colaborador.status_convite;
 
   switch (statusConvite) {
@@ -399,7 +467,6 @@ function renderStatusBadge(colaborador: Colaborador) {
         </Badge>
       );
     default:
-      // Colaborador ativo sem status de convite específico
       return (
         <Badge variant="default" className="bg-success/10 text-success border-success/30">
           Ativo

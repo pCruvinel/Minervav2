@@ -15,8 +15,9 @@ interface RegistroPresenca {
     data: string;
     status: 'OK' | 'ATRASADO' | 'FALTA';
     performance?: 'OTIMA' | 'BOA' | 'REGULAR' | 'RUIM';
-    minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
 }
 
 interface UseColaboradorExportReturn {
@@ -78,12 +79,13 @@ export function useColaboradorExport(): UseColaboradorExportReturn {
 
             const nomeColaborador = colaborador.nome_completo || colaborador.nome || 'Sem nome';
 
-            // Headers
             const headers = [
                 'Colaborador',
                 'Data',
                 'Dia da Semana',
                 'Status',
+                'Abonada?',
+                'Motivo Abono',
                 'Min. Atraso',
                 'Justificativa',
                 'Performance',
@@ -97,6 +99,8 @@ export function useColaboradorExport(): UseColaboradorExportReturn {
                     format(data, 'dd/MM/yyyy'),
                     format(data, 'EEEE', { locale: ptBR }),
                     reg.status,
+                    reg.is_abonada ? 'Sim' : 'Não',
+                    reg.motivo_abono || '',
                     reg.minutos_atraso?.toString() || '0',
                     reg.justificativa || '',
                     reg.performance || '',

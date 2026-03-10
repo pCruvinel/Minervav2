@@ -14,6 +14,7 @@
  * Tipos de finalidade de inspeção disponíveis
  */
 export type FinalidadeInspecao =
+  | 'recebimento_imovel'
   | 'recebimento_unidade'
   | 'escopo_tecnico'
   | 'parecer_tecnico'
@@ -28,6 +29,11 @@ export const FINALIDADE_OPTIONS: Array<{
   label: string;
   descricao: string;
 }> = [
+  {
+    value: 'recebimento_imovel',
+    label: 'Recebimento de Imóvel',
+    descricao: 'Inspeção de áreas comuns do condomínio (fachada, garagem, elevadores, lazer)',
+  },
   {
     value: 'recebimento_unidade',
     label: 'Recebimento de Unidade Autônoma',
@@ -109,6 +115,9 @@ export function gerarTituloDocumento(
     : 'ÁREA NÃO ESPECIFICADA';
 
   switch (finalidade) {
+    case 'recebimento_imovel':
+      return 'RELATÓRIO DE INSPEÇÃO DE RECEBIMENTO DE IMÓVEL';
+    
     case 'recebimento_unidade':
       return 'RELATÓRIO DE INSPEÇÃO DE RECEBIMENTO DE UNIDADE AUTÔNOMA';
     
@@ -143,10 +152,17 @@ export const FINALIDADE_AREA_MAP: Partial<Record<FinalidadeInspecao, string>> = 
 };
 
 /**
- * Verifica se a finalidade requer formulário de checklist de recebimento
+ * Verifica se a finalidade requer formulário de checklist de recebimento de unidade
  */
 export function isFinalidadeRecebimento(finalidade: FinalidadeInspecao): boolean {
   return finalidade === 'recebimento_unidade';
+}
+
+/**
+ * Verifica se a finalidade requer formulário de checklist de recebimento de imóvel (áreas comuns)
+ */
+export function isFinalidadeRecebimentoImovel(finalidade: FinalidadeInspecao | string): boolean {
+  return finalidade === 'recebimento_imovel';
 }
 
 /**
@@ -174,7 +190,7 @@ export function isFinalidadeSPDA(finalidade: FinalidadeInspecao | string): boole
  * Verifica se a finalidade usa formulário de checklist (recebimento, SPCI ou SPDA)
  */
 export function isFinalidadeChecklist(finalidade: FinalidadeInspecao | string): boolean {
-  return isFinalidadeRecebimento(finalidade as FinalidadeInspecao) || isFinalidadeSPCI(finalidade) || isFinalidadeSPDA(finalidade);
+  return isFinalidadeRecebimentoImovel(finalidade) || isFinalidadeRecebimento(finalidade as FinalidadeInspecao) || isFinalidadeSPCI(finalidade) || isFinalidadeSPDA(finalidade);
 }
 
 // =====================================================

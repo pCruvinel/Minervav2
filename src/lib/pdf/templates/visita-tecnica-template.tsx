@@ -674,7 +674,9 @@ const ChecklistSection = ({ data }: { data: VisitaTecnicaData }) => {
         ? '3. CHECKLIST DE INSPEÇÃO SPCI'
         : data.finalidadeInspecao === 'laudo_spda'
             ? '3. CHECKLIST DE INSPEÇÃO SPDA'
-            : '3. CHECKLIST DE RECEBIMENTO DE UNIDADE';
+            : data.finalidadeInspecao === 'recebimento_imovel'
+                ? '3. CHECKLIST DE RECEBIMENTO DE IMÓVEL (ÁREAS COMUNS)'
+                : '3. CHECKLIST DE RECEBIMENTO DE UNIDADE';
 
     return (
         <View>
@@ -876,7 +878,11 @@ const Footer = () => (
 // ============================================
 
 export const VisitaTecnicaTemplate = ({ data }: { data: VisitaTecnicaData }) => {
-    const isRecebimento = data.finalidadeInspecao === 'recebimento_unidade';
+    // Show checklist for recebimento, SPCI, and SPDA inspections
+    const isChecklistMode = data.finalidadeInspecao === 'recebimento_unidade'
+        || data.finalidadeInspecao === 'recebimento_imovel'
+        || data.finalidadeInspecao === 'laudo_spci'
+        || data.finalidadeInspecao === 'laudo_spda';
 
     return (
         <Document>
@@ -896,7 +902,7 @@ export const VisitaTecnicaTemplate = ({ data }: { data: VisitaTecnicaData }) => 
                 <ObjetivoVisita data={data} />
 
                 {/* 3. Conteúdo Técnico (condicional) */}
-                {isRecebimento ? (
+                {isChecklistMode ? (
                     <ChecklistSection data={data} />
                 ) : (
                     <ParecerTecnicoSection data={data} />

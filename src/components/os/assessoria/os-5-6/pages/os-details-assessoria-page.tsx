@@ -651,8 +651,9 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
               {currentStep === 1 && (
                 <LeadCadastro
                   ref={stepLeadRef}
+                  entityLabel="Lead"
                   selectedLeadId={selectedLeadId}
-                  onLeadChange={(id: string, data: LeadCompleto | null) => {
+                  onLeadChange={(id: string, data?: LeadCompleto) => {
                     setSelectedLeadId(id);
                     if (data) {
                       setEtapa1Data({

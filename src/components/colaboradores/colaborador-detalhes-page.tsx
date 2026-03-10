@@ -37,7 +37,9 @@ import {
     UserCheck,
     UserX,
     ChevronDown,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Archive,
+    Link
 } from 'lucide-react';
 import {
     BarChart,
@@ -48,11 +50,10 @@ import {
     Tooltip,
     ResponsiveContainer
 } from 'recharts';
-import { ModalCadastroColaborador } from './modal-cadastro-colaborador';
+import { ModalCadastroColaborador, ColaboradorFormPayload } from './modal-cadastro-colaborador';
 import { ColaboradorPresencaTab } from './ColaboradorPresencaTab';
 import { DOCUMENTOS_OBRIGATORIOS } from '@/lib/constants/colaboradores';
-import { FATOR_ENCARGOS_CLT } from '@/lib/constants/colaboradores';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FATOR_ENCARGOS_CLT, calcularCustoDiaMaoDeObra } from '@/lib/constants/colaboradores';
 import { useCustoTotalMensal } from '@/lib/hooks/use-custos-variaveis';
 import { useDiasUteisMes } from '@/lib/hooks/use-dias-uteis';
 import { getColaboradorStatus } from '@/lib/utils/colaborador-status';
@@ -76,6 +77,8 @@ interface RegistroPresenca {
     centros_custo: string[];
     minutos_atraso?: number;
     justificativa?: string;
+    is_abonada?: boolean;
+    motivo_abono?: string;
 }
 
 export function ColaboradorDetalhesPage() {
@@ -87,8 +90,8 @@ export function ColaboradorDetalhesPage() {
     const [uploading, setUploading] = useState(false);
     const [modalEdicaoOpen, setModalEdicaoOpen] = useState(false);
     const [isResendingInvite, setIsResendingInvite] = useState(false);
+    const [isGeneratingLink, setIsGeneratingLink] = useState(false);
     const [isTogglingStatus, setIsTogglingStatus] = useState(false);
-    const [selectedTipoDocumento, setSelectedTipoDocumento] = useState<string>('');
     
     // Data hooks
     const { data: historicoCustos = [] } = useCustoTotalMensal({ colaboradorId });
@@ -104,15 +107,21 @@ export function ColaboradorDetalhesPage() {
         try {
             setLoading(true);
 
-            // 1. Colaborador
+            // 1. Colaborador (com JOIN do setor)
             const { data: colData, error: colError } = await supabase
                 .from('colaboradores')
-                .select('*')
+                .select('*, setores(id, nome, slug)')
                 .eq('id', colaboradorId)
                 .single();
 
             if (colError) throw colError;
-            setColaborador(colData);
+            // Map setor slug from joined setores for display/filtering
+            const colaboradorComSetor = {
+                ...colData,
+                setor: (colData as any).setores?.slug || colData.setor || undefined,
+                setor_slug: (colData as any).setores?.slug || colData.setor_slug || undefined,
+            } as Colaborador;
+            setColaborador(colaboradorComSetor);
 
             // 2. Documentos
             const { data: docData, error: docError } = await supabase
@@ -151,20 +160,15 @@ export function ColaboradorDetalhesPage() {
     }, [colaboradorId]);
 
     // Handlers
-    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    // eslint-disable-next-line no-undef
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, tipoDocumento: string) => {
         const file = e.target.files?.[0];
         if (!file || !colaborador) return;
-
-        if (!selectedTipoDocumento) {
-            toast.error('Selecione o tipo de documento antes de fazer upload');
-            e.target.value = ''; // Reset input
-            return;
-        }
 
         try {
             setUploading(true);
             const fileExt = file.name.split('.').pop();
-            const fileName = `${colaborador.id}/${selectedTipoDocumento}_${Date.now()}.${fileExt}`;
+            const fileName = `${colaborador.id}/${tipoDocumento}_${Date.now()}.${fileExt}`;
 
             // 1. Upload Storage
             const { error: uploadError } = await supabase.storage
@@ -186,7 +190,7 @@ export function ColaboradorDetalhesPage() {
                     nome: file.name,
                     url: publicUrl,
                     tipo: fileExt,
-                    tipo_documento: selectedTipoDocumento,
+                    tipo_documento: tipoDocumento,
                     tamanho: file.size
                 })
                 .select()
@@ -195,7 +199,6 @@ export function ColaboradorDetalhesPage() {
             if (insertError) throw insertError;
 
             setDocumentos([insertData, ...documentos]);
-            setSelectedTipoDocumento(''); // Reset selection
             toast.success('Documento enviado com sucesso!');
 
         } catch (error) {
@@ -239,12 +242,15 @@ export function ColaboradorDetalhesPage() {
         }
     };
 
-    const handleSalvarEdicao = async (dados: Partial<Colaborador>) => {
+    const handleSalvarEdicao = async (dados: ColaboradorFormPayload) => {
         try {
             setLoading(true);
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { email_acesso: _, enviar_convite: __, ...updatePayload } = dados;
+            
             const { error } = await supabase
                 .from('colaboradores')
-                .update(dados)
+                .update(updatePayload)
                 .eq('id', colaboradorId);
 
             if (error) throw error;
@@ -292,11 +298,13 @@ export function ColaboradorDetalhesPage() {
             toast.success('Convite reenviado com sucesso!', {
                 description: `Email enviado para ${colaborador.email}`
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error('Erro ao reenviar convite:', err);
+            
+            const error = err instanceof Error ? err : new Error('Unknown error');
 
             // Fallback: Se o usuário já existe, enviar email de recuperação
-            if (err.message && (err.message.includes('already been registered') || err.message.includes('already registered'))) {
+            if (error.message && (error.message.includes('already been registered') || error.message.includes('already registered'))) {
                 try {
                     toast.info('Usuário já cadastrado. Enviando email de recuperação de senha...');
 
@@ -311,20 +319,58 @@ export function ColaboradorDetalhesPage() {
                     });
                     return;
 
-                } catch (recoveryErr: any) {
+                } catch (recoveryErr: unknown) {
                     console.error('Erro no fallback de recuperação:', recoveryErr);
+                    const recError = recoveryErr instanceof Error ? recoveryErr : new Error('Unknown error');
                     toast.error('Erro ao enviar recuperação', {
-                        description: recoveryErr.message
+                        description: recError.message
                     });
                     return;
                 }
             }
 
             toast.error('Erro ao reenviar convite', {
-                description: err.message || 'Verifique se o email é válido ou se houve limite de envios.'
+                description: error.message || 'Verifique se o email é válido ou se houve limite de envios.'
             });
         } finally {
             setIsResendingInvite(false);
+        }
+    };
+
+    // Copiar Link de Convite
+    const handleCopiarLinkConvite = async () => {
+        if (!colaborador?.email) {
+            toast.error('Colaborador não possui email cadastrado');
+            return;
+        }
+
+        setIsGeneratingLink(true);
+        try {
+            const { data, error } = await supabase.functions.invoke('invite-user', {
+                body: {
+                    action: 'generate-invite-link',
+                    email: colaborador.email,
+                    redirectTo: `${window.location.origin}/auth/callback`
+                }
+            });
+
+            if (error) throw error;
+            if (data?.error) throw new Error(data.error);
+            if (!data?.action_link) throw new Error('Link não retornado pela função');
+
+            await window.navigator.clipboard.writeText(data.action_link);
+            
+            toast.success('Link copiado!', {
+                description: 'O link de acesso foi copiado para a área de transferência. Envie-o para o colaborador definir sua senha.'
+            });
+        } catch (err: unknown) {
+            console.error('Erro ao gerar link de convite:', err);
+            const error = err instanceof Error ? err : new Error('Unknown error');
+            toast.error('Erro ao gerar link', {
+                description: error.message || 'Verifique se o email é válido ou se houve falha no servidor.'
+            });
+        } finally {
+            setIsGeneratingLink(false);
         }
     };
 
@@ -369,9 +415,12 @@ export function ColaboradorDetalhesPage() {
     const calculateFinancialStats = () => {
         if (!colaborador) return { monthlyData: [], totalCost: 0, avgAttendance: 0 };
 
-        const custoDia = colaborador.tipo_contratacao === 'CLT'
-            ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
-            : (colaborador.custo_dia || 0);
+        const custoDia = calcularCustoDiaMaoDeObra(
+            colaborador.salario_base,
+            colaborador.custo_dia,
+            diasUteisMes,
+            colaborador.tipo_contratacao === 'CLT'
+        );
 
         // Group by month
         const months = eachMonthOfInterval({
@@ -448,20 +497,31 @@ export function ColaboradorDetalhesPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                    {/* Botão Reenviar Convite - só aparece se não for ativo */}
-                    {colaborador.status_convite && colaborador.status_convite !== 'ativo' && (
-                        <Button
-                            variant="outline"
-                            onClick={handleReenviarConvite}
-                            disabled={isResendingInvite}
-                        >
-                            {isResendingInvite ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            ) : (
-                                <Mail className="mr-2 h-4 w-4" />
-                            )}
-                            Reenviar Convite
-                        </Button>
+                    {/* Ações de Convite - só aparece se não for ativo e não for obra */}
+                    {colaborador.status_convite && colaborador.status_convite !== 'ativo' && colaborador.funcao !== 'colaborador_obra' && (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="outline" disabled={isResendingInvite || isGeneratingLink}>
+                                    {isResendingInvite || isGeneratingLink ? (
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Mail className="mr-2 h-4 w-4" />
+                                    )}
+                                    Opções de Acesso
+                                    <ChevronDown className="ml-2 h-4 w-4" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                                <DropdownMenuItem onClick={handleReenviarConvite} disabled={isResendingInvite}>
+                                    <Mail className="mr-2 h-4 w-4" />
+                                    Enviar Convite por Email
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={handleCopiarLinkConvite} disabled={isGeneratingLink}>
+                                    <Link className="mr-2 h-4 w-4" />
+                                    Copiar Link de Acesso
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     )}
 
                     {/* Dropdown Exportar */}
@@ -801,9 +861,11 @@ export function ColaboradorDetalhesPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold">
-                                    {(colaborador.tipo_contratacao === 'CLT'
-                                        ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT / diasUteisMes
-                                        : (colaborador.custo_dia || 0)
+                                    {calcularCustoDiaMaoDeObra(
+                                        colaborador.salario_base,
+                                        colaborador.custo_dia,
+                                        diasUteisMes,
+                                        colaborador.tipo_contratacao === 'CLT'
                                     ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">Base de {diasUteisMes} dias úteis</p>
@@ -815,10 +877,12 @@ export function ColaboradorDetalhesPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold text-success">
-                                    {(colaborador.tipo_contratacao === 'CLT'
-                                        ? (colaborador.salario_base || 0) * FATOR_ENCARGOS_CLT
-                                        : ((colaborador.custo_dia || 0) * diasUteisMes)
-                                    ).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                                    {(calcularCustoDiaMaoDeObra(
+                                        colaborador.salario_base,
+                                        colaborador.custo_dia,
+                                        diasUteisMes,
+                                        colaborador.tipo_contratacao === 'CLT'
+                                    ) * diasUteisMes).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">Previsão mensal</p>
                             </CardContent>
@@ -907,44 +971,10 @@ export function ColaboradorDetalhesPage() {
                 <TabsContent value="documents" className="mt-6">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle>Documentos do Colaborador</CardTitle>
-                            <div className="flex items-center gap-2">
-                                <Select value={selectedTipoDocumento} onValueChange={setSelectedTipoDocumento}>
-                                    <SelectTrigger className="w-[200px]">
-                                        <SelectValue placeholder="Selecione o tipo" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {DOCUMENTOS_OBRIGATORIOS.map((doc) => (
-                                            <SelectItem key={doc.value} value={doc.value}>
-                                                {doc.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                                <input
-                                    type="file"
-                                    id="file-upload"
-                                    className="hidden"
-                                    onChange={handleFileUpload}
-                                    disabled={uploading || !selectedTipoDocumento}
-                                />
-                                <Button asChild disabled={uploading || !selectedTipoDocumento}>
-                                    <label htmlFor="file-upload" className="cursor-pointer">
-                                        {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-                                        Upload
-                                    </label>
-                                </Button>
-                            </div>
+                            <CardTitle>Documentos de Compliance (Obrigatórios)</CardTitle>
                         </CardHeader>
                         <CardContent>
                             {(() => {
-                                // Obter lista de documentos obrigatórios do colaborador
-                                const docsObrigatorios: string[] = colaborador.documentos_obrigatorios
-                                    ? (Array.isArray(colaborador.documentos_obrigatorios)
-                                        ? colaborador.documentos_obrigatorios
-                                        : Object.keys(colaborador.documentos_obrigatorios))
-                                    : [];
-
                                 // Criar mapa de documentos enviados por tipo
                                 const docsEnviados = new Map<string, Documento>();
                                 documentos.forEach(doc => {
@@ -957,59 +987,34 @@ export function ColaboradorDetalhesPage() {
                                     }
                                 });
 
-                                // Combinar lista: documentos obrigatórios + documentos enviados que não são obrigatórios
-                                const todosDocumentos = [
-                                    // Primeiro os obrigatórios
-                                    ...docsObrigatorios.map(tipoDoc => {
-                                        const docInfo = DOCUMENTOS_OBRIGATORIOS.find(d => d.value === tipoDoc);
-                                        const docEnviado = docsEnviados.get(tipoDoc);
-                                        return {
-                                            tipo_documento: tipoDoc,
-                                            label: docInfo?.label || tipoDoc,
-                                            obrigatorio: true,
-                                            enviado: !!docEnviado,
-                                            documento: docEnviado
-                                        };
-                                    }),
-                                    // Depois documentos enviados que não são obrigatórios
-                                    ...documentos
-                                        .filter(doc => doc.tipo_documento && !docsObrigatorios.includes(doc.tipo_documento))
-                                        .reduce((acc, doc) => {
-                                            // Agrupar por tipo_documento mantendo o mais recente
-                                            const existing = acc.find(d => d.tipo_documento === doc.tipo_documento);
-                                            if (!existing) {
-                                                const docInfo = DOCUMENTOS_OBRIGATORIOS.find(d => d.value === doc.tipo_documento);
-                                                acc.push({
-                                                    tipo_documento: doc.tipo_documento!,
-                                                    label: docInfo?.label || doc.tipo_documento!,
-                                                    obrigatorio: false,
-                                                    enviado: true,
-                                                    documento: doc
-                                                });
-                                            }
-                                            return acc;
-                                        }, [] as { tipo_documento: string; label: string; obrigatorio: boolean; enviado: boolean; documento?: Documento }[]),
-                                    // Por fim, documentos sem tipo_documento (legados)
-                                    ...documentos
-                                        .filter(doc => !doc.tipo_documento)
-                                        .map(doc => ({
-                                            tipo_documento: '',
-                                            label: doc.nome,
-                                            obrigatorio: false,
-                                            enviado: true,
-                                            documento: doc
-                                        }))
-                                ];
+                                // Lista fixa baseada na constante DOCUMENTOS_OBRIGATORIOS
+                                const checklist = DOCUMENTOS_OBRIGATORIOS.map(docInfo => {
+                                    const docEnviado = docsEnviados.get(docInfo.value);
+                                    return {
+                                        tipo_documento: docInfo.value,
+                                        label: docInfo.label,
+                                        obrigatorio: true,
+                                        enviado: !!docEnviado,
+                                        documento: docEnviado,
+                                        isLegacy: false
+                                    };
+                                });
+                                
+                                // Documentos "extras" ou legados (que não estão na lista fixa atual)
+                                const legacyDocs = Array.from(docsEnviados.values()).filter(
+                                    (doc) => !DOCUMENTOS_OBRIGATORIOS.some(d => d.value === doc.tipo_documento)
+                                );
+                                
+                                const documentosLegadosStatus = legacyDocs.map(doc => ({
+                                    tipo_documento: doc.tipo_documento || doc.id,
+                                    label: doc.tipo_documento ? `(Legado) ${doc.tipo_documento}` : `(Legado) ${doc.nome}`,
+                                    obrigatorio: false,
+                                    enviado: true,
+                                    documento: doc,
+                                    isLegacy: true
+                                }));
 
-                                if (todosDocumentos.length === 0 && documentos.length === 0) {
-                                    return (
-                                        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg">
-                                            <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                                            <p>Nenhum documento obrigatório definido.</p>
-                                            <p className="text-sm mt-1">Configure os documentos obrigatórios no cadastro do colaborador.</p>
-                                        </div>
-                                    );
-                                }
+                                const todosDocumentos = [...checklist, ...documentosLegadosStatus];
 
                                 return (
                                     <Table>
@@ -1018,60 +1023,82 @@ export function ColaboradorDetalhesPage() {
                                                 <TableHead>Documento</TableHead>
                                                 <TableHead>Situação</TableHead>
                                                 <TableHead>Último Envio</TableHead>
-                                                <TableHead className="text-center">Download</TableHead>
+                                                <TableHead className="text-center">Ações</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {todosDocumentos.map((item, idx) => (
-                                                <TableRow key={item.tipo_documento || idx}>
+                                                <TableRow key={`${item.tipo_documento}-${idx}`}>
                                                     <TableCell>
                                                         <div className="flex items-center gap-2">
-                                                            <FileText className="h-4 w-4 text-primary" />
-                                                            <span className="font-medium">{item.label}</span>
+                                                            <FileText className="h-4 w-4 text-primary shrink-0" />
+                                                            <span className="font-medium text-sm">{item.label}</span>
                                                             {item.obrigatorio && (
                                                                 <Badge variant="outline" className="text-xs">Obrigatório</Badge>
                                                             )}
                                                         </div>
                                                     </TableCell>
                                                     <TableCell>
-                                                        {item.enviado ? (
+                                                        {item.enviado && !item.isLegacy ? (
                                                             <Badge className="bg-success/10 text-success border-success/30">
-                                                                <CheckCircle className="h-3 w-3 mr-1" />
+                                                                <CheckCircle className="h-3 w-3 mr-1 shrink-0" />
                                                                 Enviado
+                                                            </Badge>
+                                                        ) : item.isLegacy ? (
+                                                             <Badge variant="secondary" className="bg-muted text-muted-foreground border-border">
+                                                                <Archive className="h-3 w-3 mr-1 shrink-0" />
+                                                                Arquivado
                                                             </Badge>
                                                         ) : (
                                                             <Badge variant="destructive" className="bg-warning/10 text-warning border-warning/30">
-                                                                <Clock className="h-3 w-3 mr-1" />
+                                                                <Clock className="h-3 w-3 mr-1 shrink-0" />
                                                                 Pendente
                                                             </Badge>
                                                         )}
                                                     </TableCell>
-                                                    <TableCell>
+                                                    <TableCell className="text-sm">
                                                         {item.documento?.created_at
                                                             ? format(parseISO(item.documento.created_at), 'dd/MM/yyyy HH:mm')
                                                             : '-'
                                                         }
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        {item.documento ? (
-                                                            <div className="flex justify-center gap-2">
-                                                                <Button variant="ghost" size="sm" asChild>
-                                                                    <a href={item.documento.url} target="_blank" rel="noopener noreferrer">
-                                                                        <Download className="h-4 w-4" />
-                                                                    </a>
-                                                                </Button>
-                                                                <Button
-                                                                    variant="ghost"
-                                                                    size="sm"
-                                                                    className="text-destructive hover:text-destructive hover:bg-destructive/5"
-                                                                    onClick={() => handleDeleteDocumento(item.documento!.id, item.documento!.url)}
-                                                                >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                </Button>
-                                                            </div>
-                                                        ) : (
-                                                            <span className="text-muted-foreground">-</span>
-                                                        )}
+                                                        <div className="flex justify-center flex-row gap-2">
+                                                            {item.documento ? (
+                                                                <>
+                                                                    <Button variant="ghost" size="icon" asChild>
+                                                                        <a href={item.documento.url} target="_blank" rel="noopener noreferrer">
+                                                                            <Download className="h-4 w-4" />
+                                                                        </a>
+                                                                    </Button>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="icon"
+                                                                        className="text-destructive hover:text-destructive hover:bg-destructive/5"
+                                                                        onClick={() => handleDeleteDocumento(item.documento!.id, item.documento!.url)}
+                                                                        disabled={uploading}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </Button>
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <input
+                                                                        type="file"
+                                                                        id={`file-upload-${item.tipo_documento}`}
+                                                                        className="hidden"
+                                                                        onChange={(e) => handleFileUpload(e, item.tipo_documento)}
+                                                                        disabled={uploading}
+                                                                    />
+                                                                    <Button variant="outline" size="sm" asChild disabled={uploading}>
+                                                                        <label htmlFor={`file-upload-${item.tipo_documento}`} className="cursor-pointer">
+                                                                            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+                                                                            Upload
+                                                                        </label>
+                                                                    </Button>
+                                                                </>
+                                                            )}
+                                                        </div>
                                                     </TableCell>
                                                 </TableRow>
                                             ))}
@@ -1087,6 +1114,7 @@ export function ColaboradorDetalhesPage() {
             {/* Modal de Edição */}
             {colaborador && (
                 <ModalCadastroColaborador
+                    mode="edit"
                     open={modalEdicaoOpen}
                     onClose={() => setModalEdicaoOpen(false)}
                     colaborador={colaborador}
