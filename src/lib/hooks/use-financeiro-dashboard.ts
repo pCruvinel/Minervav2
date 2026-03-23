@@ -1,7 +1,7 @@
 /**
  * use-financeiro-dashboard.ts
  * 
- * Hooks para o dashboard financeiro, agregando dados de contas_receber,
+ * Hooks para o dashboard financeiro, agregando dados de faturas,
  * contas_pagar e views de lucratividade.
  * 
  * @example
@@ -68,10 +68,10 @@ export function useFinanceiroDashboard() {
       const { firstDayOfMonth, lastDayOfMonth } = getMonthBounds();
       const today = formatToday();
 
-      // Query 1: Receitas do mês
+      // Query 1: Receitas do mês (faturas)
       const { data: receitasMes, error: errReceitas } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto, valor_recebido, status')
+        .from('faturas')
+        .select('valor_original, valor_final, status')
         .gte('vencimento', firstDayOfMonth)
         .lte('vencimento', lastDayOfMonth);
 
@@ -86,12 +86,12 @@ export function useFinanceiroDashboard() {
 
       if (errDespesas) throw errDespesas;
 
-      // Query 3: A receber hoje
+      // Query 3: A receber hoje (faturas)
       const { data: receitasHoje, error: errHoje } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto')
+        .from('faturas')
+        .select('valor_original')
         .eq('vencimento', today)
-        .in('status', ['em_aberto', 'pendente']);
+        .in('status', ['pendente', 'em_aberto']);
 
       if (errHoje) throw errHoje;
 
@@ -121,13 +121,13 @@ export function useFinanceiroDashboard() {
       if (errOS) throw errOS;
 
       // Agregar valores
-      const previsaoReceitaMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0;
-      const receitaRealizadaMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0;
+      const previsaoReceitaMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_original || 0), 0) ?? 0;
+      const receitaRealizadaMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_final || 0), 0) ?? 0;
       const previsaoFaturasMes = despesasMes?.reduce((acc, d) => acc + Number(d.valor || 0), 0) ?? 0;
       const faturasPagasMes = despesasMes
         ?.filter(d => d.status === 'pago')
         .reduce((acc, d) => acc + Number(d.valor || 0), 0) ?? 0;
-      const aReceberHoje = receitasHoje?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0;
+      const aReceberHoje = receitasHoje?.reduce((acc, r) => acc + Number(r.valor_original || 0), 0) ?? 0;
       const aPagarHoje = despesasHoje?.reduce((acc, d) => acc + Number(d.valor || 0), 0) ?? 0;
       const lucroMes = receitaRealizadaMes - faturasPagasMes;
       const margemMes = receitaRealizadaMes > 0 ? (lucroMes / receitaRealizadaMes) * 100 : 0;
@@ -165,15 +165,15 @@ export function useReceitasComparacao() {
         const mesNome = data.toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '');
 
         const { data: receitas } = await supabase
-          .from('contas_receber')
-          .select('valor_previsto, valor_recebido')
+          .from('faturas')
+          .select('valor_original, valor_final')
           .gte('vencimento', firstDayOfMonth)
           .lte('vencimento', lastDayOfMonth);
 
         meses.push({
           mes: mesNome.charAt(0).toUpperCase() + mesNome.slice(1),
-          previsto: receitas?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0,
-          realizado: receitas?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0,
+          previsto: receitas?.reduce((acc, r) => acc + Number(r.valor_original || 0), 0) ?? 0,
+          realizado: receitas?.reduce((acc, r) => acc + Number(r.valor_final || 0), 0) ?? 0,
         });
       }
 
@@ -249,10 +249,10 @@ export function useAnaliseVariacao() {
       const hoje = new Date();
       const periodo = hoje.toLocaleDateString('pt-BR', { month: 'short', year: 'numeric' });
 
-      // Receitas do mês
+      // Receitas do mês (faturas)
       const { data: receitas } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto, valor_recebido, status')
+        .from('faturas')
+        .select('valor_original, valor_final, status')
         .gte('vencimento', firstDayOfMonth)
         .lte('vencimento', lastDayOfMonth);
 
@@ -264,8 +264,8 @@ export function useAnaliseVariacao() {
         .lte('vencimento', lastDayOfMonth);
 
       // Calcular receitas
-      const receitaPrevisto = receitas?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0;
-      const receitaRealizado = receitas?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0;
+      const receitaPrevisto = receitas?.reduce((acc, r) => acc + Number(r.valor_original || 0), 0) ?? 0;
+      const receitaRealizado = receitas?.reduce((acc, r) => acc + Number(r.valor_final || 0), 0) ?? 0;
       const receitaVariacao = receitaRealizado - receitaPrevisto;
       const receitaPercentual = receitaPrevisto > 0 ? (receitaVariacao / receitaPrevisto) * 100 : 0;
 
@@ -328,10 +328,10 @@ export function usePrestacaoContas() {
         `)
         .in('status', ['ativo', 'concluido']);
 
-      // Buscar receitas realizadas
+      // Buscar receitas realizadas (faturas)
       const { data: receitas } = await supabase
-        .from('contas_receber')
-        .select('contrato_id, valor_recebido')
+        .from('faturas')
+        .select('contrato_id, valor_final')
         .in('status', ['pago', 'recebido', 'conciliado']);
 
       // Buscar despesas realizadas - usando cc_id (contas_pagar não tem contrato_id)
@@ -355,7 +355,7 @@ export function usePrestacaoContas() {
       const receitasPorContrato: Record<string, number> = {};
       receitas?.forEach(r => {
         if (r.contrato_id) {
-          receitasPorContrato[r.contrato_id] = (receitasPorContrato[r.contrato_id] || 0) + Number(r.valor_recebido || 0);
+          receitasPorContrato[r.contrato_id] = (receitasPorContrato[r.contrato_id] || 0) + Number(r.valor_final || 0);
         }
       });
 

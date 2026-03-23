@@ -18,6 +18,8 @@ interface CalendarioSemanaCustomProps {
     onRefresh?: () => void;
     /** Filtro de setor para restringir vagas (usado em OS) */
     setorFiltro?: string;
+    /** Filtro de cargo para restringir colaboradores (ex: coordenadores) */
+    cargoFiltro?: string[];
     /** Callback chamado quando um agendamento é criado com sucesso */
     onAgendamentoCriado?: (agendamento: any) => void;
     /** ID da OS vinculada (contexto OS) */
@@ -32,7 +34,7 @@ interface CalendarioSemanaCustomProps {
  * Grid semanal (Dom-Sáb) com turnos e agendamentos.
  * Desenvolvido do zero em React + CSS Grid.
  */
-function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, onAgendamentoCriado, osId, etapaId }: CalendarioSemanaCustomProps) {
+function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, cargoFiltro, onAgendamentoCriado, osId, etapaId }: CalendarioSemanaCustomProps) {
     const { currentUser } = useAuth();
     const [dataAtual, setDataAtual] = useState(dataInicial || new Date());
     
@@ -176,6 +178,7 @@ function CalendarioSemanaCustomComponent({ dataInicial, onRefresh, setorFiltro, 
                     data={dataSelecionada}
                     agendamentosExistentes={agendamentosDoTurno}
                     setorFiltro={setorFiltro}
+                    cargoFiltro={cargoFiltro}
                     osId={osId}
                     etapaId={etapaId}
                     onSuccess={(agendamento) => {

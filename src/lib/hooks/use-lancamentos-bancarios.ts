@@ -3,7 +3,9 @@
  * 
  * Hooks para gerenciamento de lançamentos bancários (conciliação).
  * Permite listar, classificar, ratear e vincular lançamentos do extrato
- * com contas_pagar e contas_receber do sistema.
+ * com contas_pagar e faturas do sistema.
+ * 
+ * NOTA: A coluna `conta_receber_id` foi removida. Receitas são vinculadas via `fatura_id`.
  * 
  * @example
  * ```tsx
@@ -14,6 +16,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase-client';
 import { toast } from 'sonner';
 
@@ -48,7 +51,7 @@ export interface LancamentoBancario {
   cc_id: string | null;
   rateios: RateioCentroCusto[] | null;
   conta_pagar_id: string | null;
-  conta_receber_id: string | null;
+  fatura_id: string | null;
   comprovante_url: string | null;
   nota_fiscal_url: string | null;
   observacoes: string | null;
@@ -118,7 +121,7 @@ export interface ImportarExtratoParams {
 export interface VincularContaParams {
   lancamento_id: string;
   conta_pagar_id?: string;
-  conta_receber_id?: string;
+  fatura_id?: string;
 }
 
 // ============================================================
@@ -145,7 +148,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     cc_id: null,
     rateios: null,
     conta_pagar_id: null,
-    conta_receber_id: null,
+    fatura_id: null,
     comprovante_url: null,
     nota_fiscal_url: null,
     observacoes: null,
@@ -188,7 +191,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     cc_id: null,
     rateios: null,
     conta_pagar_id: null,
-    conta_receber_id: null,
+    fatura_id: null,
     comprovante_url: null,
     nota_fiscal_url: 'https://example.com/nf12345.pdf',
     observacoes: 'Cimento e areia para obra Solar I',
@@ -231,7 +234,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     cc_id: null,
     rateios: null,
     conta_pagar_id: 'cp-mock-1',
-    conta_receber_id: null,
+    fatura_id: null,
     comprovante_url: 'https://example.com/comprovante.pdf',
     nota_fiscal_url: null,
     observacoes: null,
@@ -274,7 +277,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
     cc_id: null,
     rateios: null,
     conta_pagar_id: null,
-    conta_receber_id: null,
+    fatura_id: null,
     comprovante_url: null,
     nota_fiscal_url: null,
     observacoes: null,
@@ -320,7 +323,7 @@ export const MOCK_LANCAMENTOS: LancamentoBancario[] = [
       { cc_id: 'cc-2', cc_nome: 'CC05002-PRIMAVERA', percentual: 60, valor: 15000 },
     ],
     conta_pagar_id: null,
-    conta_receber_id: null,
+    fatura_id: null,
     comprovante_url: null,
     nota_fiscal_url: null,
     observacoes: 'Rateio entre obras ativas',
@@ -657,14 +660,14 @@ export function useClassificarLancamento() {
 }
 
 /**
- * Vincula lançamento bancário a uma conta_pagar ou conta_receber
+ * Vincula lançamento bancário a uma conta_pagar ou fatura
  */
 export function useVincularConta() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (params: VincularContaParams) => {
-      const { lancamento_id, conta_pagar_id, conta_receber_id } = params;
+      const { lancamento_id, conta_pagar_id, fatura_id } = params;
 
       // Obter usuário atual
       const { data: { session } } = await supabase.auth.getSession();
@@ -674,7 +677,8 @@ export function useVincularConta() {
         .from('lancamentos_bancarios')
         .update({
           conta_pagar_id,
-          conta_receber_id,
+          fatura_id,
+          conciliado_em: new Date().toISOString(),
           status: 'conciliado' as LancamentoBancarioStatus,
           classificado_em: new Date().toISOString(),
           classificado_por_id: userId,
@@ -869,3 +873,59 @@ export function useSyncExtrato() {
     },
   });
 }
+
+/**
+ * Auto-sincroniza o extrato bancário via Cora a cada `intervalMs`.
+ * Implementa resiliência: backoff exponencial em erro, pausa se pending,
+ * re-sync ao focar janela se última sync > 30min.
+ */
+export function useAutoSyncExtrato(intervalMs = 3_600_000) {
+  const syncMutation = useSyncExtrato();
+  const [lastSyncAt, setLastSyncAt] = useState<Date | null>(null);
+  const [errorCount, setErrorCount] = useState(0);
+  const maxRetries = 3;
+
+  useEffect(() => {
+    // Backoff: se errar, espera intervalMs * 2^errorCount (max 4h)
+    const delay =
+      errorCount > 0
+        ? Math.min(intervalMs * Math.pow(2, errorCount), 4 * 3_600_000)
+        : intervalMs;
+
+    const timer = window.setInterval(() => {
+      if (syncMutation.isPending) return;
+      syncMutation.mutate(undefined, {
+        onSuccess: () => {
+          setLastSyncAt(new Date());
+          setErrorCount(0);
+        },
+        onError: () => {
+          setErrorCount((prev: number) => Math.min(prev + 1, maxRetries));
+        },
+      });
+    }, delay);
+
+    return () => window.clearInterval(timer);
+  }, [intervalMs, errorCount, syncMutation]);
+
+  // Re-sync ao focar janela se última sync > 30min atrás
+  useEffect(() => {
+    const onFocus = () => {
+      if (!lastSyncAt || syncMutation.isPending) return;
+      const minsSinceSync = (Date.now() - lastSyncAt.getTime()) / 60_000;
+      if (minsSinceSync > 30) {
+        syncMutation.mutate(undefined, {
+          onSuccess: () => {
+            setLastSyncAt(new Date());
+            setErrorCount(0);
+          },
+        });
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [lastSyncAt, syncMutation]);
+
+  return { lastSyncAt, errorCount, isPending: syncMutation.isPending };
+}
+

@@ -2,7 +2,7 @@
  * Template de Contrato em React PDF
  */
 
-import React from 'react';
+import React from 'react'; // Required by @react-pdf/renderer JSX
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { colors, spacing, fonts, fontSize, commonStyles } from '../shared-styles';
 import { formatarMoeda, formatarData, formatarCpfCnpj } from '../utils/pdf-formatter';
@@ -14,6 +14,9 @@ export interface ContratoData {
     dataEmissao: string;
     dataInicio: string;
     dataTermino?: string;
+
+    // Título customizável do contrato
+    tituloContrato?: string;
 
     // Dados do Contratante (Cliente)
     contratanteNome: string;
@@ -228,7 +231,7 @@ export function ContratoTemplate({ data }: { data: ContratoData }) {
         <Document>
             <Page size="A4" style={styles.page}>
                 {/* Cabeçalho */}
-                <Text style={styles.contratoTitle}>CONTRATO DE PRESTAÇÃO DE SERVIÇOS</Text>
+                <Text style={styles.contratoTitle}>{data.tituloContrato || 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS'}</Text>
                 <Text style={styles.numeroContrato}>Nº {data.numeroContrato}</Text>
 
                 {/* Partes */}

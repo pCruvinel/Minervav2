@@ -3,10 +3,13 @@
  *
  * Busca aniversários de colaboradores e clientes para exibição no calendário.
  * Retorna um Map com chave no formato MM-DD e lista de aniversariantes.
+ * 
+ * v2.0 (KOD-79): Inclui clientes + hook server-side useAniversariosSemana
  */
 
 import { useMemo } from 'react';
 import { useApi } from './use-api';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase-client';
 import type { AniversarioCalendario } from '@/lib/types';
 
@@ -19,8 +22,6 @@ const aniversariosAPI = {
    * Buscar aniversários de colaboradores e clientes para um mês específico
    */
   async getByMes(mes: number): Promise<Map<string, AniversarioCalendario[]>> {
-    const mesStr = String(mes).padStart(2, '0');
-
     // Buscar colaboradores com data de nascimento no mês
     const { data: colaboradores, error: errColabs } = await supabase
       .from('colaboradores')
@@ -30,13 +31,13 @@ const aniversariosAPI = {
 
     if (errColabs) throw errColabs;
 
-    // Buscar clientes (se tiverem campo de data de aniversário/fundação)
-    // Por enquanto, clientes não têm data de nascimento no schema, mas preparamos a estrutura
-    // const { data: clientes, error: errClientes } = await supabase
-    //   .from('clientes')
-    //   .select('id, nome_razao_social, data_fundacao')
-    //   .eq('status', 'ativo')
-    //   .not('data_fundacao', 'is', null);
+    // v2.0: Buscar clientes com data_nascimento
+    const { data: clientes, error: errClientes } = await supabase
+      .from('clientes')
+      .select('id, nome_razao_social, data_nascimento')
+      .not('data_nascimento', 'is', null);
+
+    if (errClientes) throw errClientes;
 
     // Processar aniversários
     const aniversariosPorDia = new Map<string, AniversarioCalendario[]>();
@@ -45,12 +46,10 @@ const aniversariosAPI = {
     (colaboradores || []).forEach(colab => {
       if (!colab.data_nascimento) return;
 
-      // Extrair mês e dia da data de nascimento
       const dataNasc = new Date(colab.data_nascimento + 'T00:00:00');
       const mesNasc = dataNasc.getMonth() + 1;
       const diaNasc = dataNasc.getDate();
 
-      // Verificar se é do mês solicitado
       if (mesNasc !== mes) return;
 
       const chaveDia = `${String(mesNasc).padStart(2, '0')}-${String(diaNasc).padStart(2, '0')}`;
@@ -70,6 +69,32 @@ const aniversariosAPI = {
       aniversariosPorDia.set(chaveDia, lista);
     });
 
+    // v2.0: Processar clientes
+    (clientes || []).forEach(cliente => {
+      if (!cliente.data_nascimento) return;
+
+      const dataNasc = new Date(cliente.data_nascimento + 'T00:00:00');
+      const mesNasc = dataNasc.getMonth() + 1;
+      const diaNasc = dataNasc.getDate();
+
+      if (mesNasc !== mes) return;
+
+      const chaveDia = `${String(mesNasc).padStart(2, '0')}-${String(diaNasc).padStart(2, '0')}`;
+
+      const aniversario: AniversarioCalendario = {
+        id: cliente.id,
+        nome: cliente.nome_razao_social || 'Cliente',
+        tipo: 'cliente',
+        data: chaveDia,
+        dataCompleta: cliente.data_nascimento,
+        empresa: cliente.nome_razao_social,
+      };
+
+      const lista = aniversariosPorDia.get(chaveDia) || [];
+      lista.push(aniversario);
+      aniversariosPorDia.set(chaveDia, lista);
+    });
+
     return aniversariosPorDia;
   },
 
@@ -77,11 +102,9 @@ const aniversariosAPI = {
    * Buscar todos os aniversários de um período (para exibição mensal com overflow)
    */
   async getByPeriodo(dataInicio: string, dataFim: string): Promise<Map<string, AniversarioCalendario[]>> {
-    // Extrair meses únicos do período
     const [anoInicio, mesInicio] = dataInicio.split('-').map(Number);
     const [anoFim, mesFim] = dataFim.split('-').map(Number);
 
-    // Coletar meses únicos
     const meses = new Set<number>();
     let current = new Date(anoInicio, mesInicio - 1, 1);
     const end = new Date(anoFim, mesFim - 1, 1);
@@ -91,7 +114,6 @@ const aniversariosAPI = {
       current.setMonth(current.getMonth() + 1);
     }
 
-    // Buscar aniversários de todos os meses
     const aniversariosPorDia = new Map<string, AniversarioCalendario[]>();
 
     for (const mes of meses) {
@@ -149,6 +171,53 @@ export function useAniversariosPeriodo(dataInicio: string, dataFim: string) {
 }
 
 /**
+ * v2.0 (KOD-79): Hook server-side para buscar aniversários via RPC
+ * Usa a function get_aniversarios_periodo do Supabase
+ * Ideal para dashboard e widgets de notificação
+ */
+export function useAniversariosSemana(dataInicio?: string, dataFim?: string) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const seteDias = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  const inicio = dataInicio || hoje;
+  const fim = dataFim || seteDias;
+
+  return useQuery({
+    queryKey: ['aniversarios-semana', inicio, fim],
+    queryFn: async (): Promise<AniversarioCalendario[]> => {
+      const { data, error } = await supabase.rpc('get_aniversarios_periodo', {
+        p_data_inicio: inicio,
+        p_data_fim: fim,
+      });
+
+      if (error) throw error;
+
+      // Map RPC result to AniversarioCalendario
+      return (data || []).map((row: {
+        id: string;
+        nome: string;
+        tipo: string;
+        data_nascimento: string;
+        avatar_url: string | null;
+        cargo: string | null;
+        empresa: string | null;
+        dia_aniversario: string;
+      }) => ({
+        id: row.id,
+        nome: row.nome,
+        tipo: row.tipo as 'colaborador' | 'cliente',
+        data: `${row.dia_aniversario.split('-')[1]}-${row.dia_aniversario.split('-')[2]}`,
+        dataCompleta: row.data_nascimento,
+        avatarUrl: row.avatar_url || undefined,
+        cargo: row.cargo || undefined,
+        empresa: row.empresa || undefined,
+      }));
+    },
+    staleTime: 1000 * 60 * 60, // 1h cache
+  });
+}
+
+/**
  * Helper para obter aniversários de uma data específica
  */
 export function getAniversariosDia(
@@ -162,3 +231,4 @@ export function getAniversariosDia(
 
 // Export API para uso direto
 export { aniversariosAPI };
+

@@ -2,10 +2,11 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Timer, Percent } from 'lucide-react';
+import { Timer, Percent, FileText } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { SlaSettingsTab } from './sla-settings-tab';
 import { TaxasSettingsTab } from './taxas-settings-tab';
+import { ContratosSettingsTab } from './contratos-settings-tab';
 
 export function OrdensServicoSettingsPage() {
     const [activeTab, setActiveTab] = useState('sla');
@@ -14,7 +15,7 @@ export function OrdensServicoSettingsPage() {
         <div className="container mx-auto p-6 space-y-6">
             <PageHeader
                 title="Ordens de Serviço"
-                subtitle="Configure os prazos de SLA e as taxas de precificação para cada tipo de OS."
+                subtitle="Configure os prazos de SLA, taxas de precificação e modelos de contrato."
                 showBackButton
             />
 
@@ -28,6 +29,10 @@ export function OrdensServicoSettingsPage() {
                         <Percent className="w-4 h-4" />
                         Taxas de Precificação
                     </TabsTrigger>
+                    <TabsTrigger value="contratos" className="gap-2">
+                        <FileText className="w-4 h-4" />
+                        Modelos de Contrato
+                    </TabsTrigger>
                 </TabsList>
 
                 <div className="mt-6">
@@ -37,6 +42,10 @@ export function OrdensServicoSettingsPage() {
 
                     <TabsContent value="taxas" className="animate-fade-in">
                         <TaxasSettingsTab />
+                    </TabsContent>
+
+                    <TabsContent value="contratos" className="animate-fade-in">
+                        <ContratosSettingsTab />
                     </TabsContent>
                 </div>
             </Tabs>

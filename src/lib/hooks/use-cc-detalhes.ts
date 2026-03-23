@@ -84,7 +84,7 @@ export interface CCDocumento {
 // ============================================================
 
 /**
- * Busca receitas (contas_receber) vinculadas a um Centro de Custo
+ * Busca receitas (faturas) vinculadas a um Centro de Custo
  */
 export function useCCReceitas(ccId: string | undefined | null) {
   return useQuery({
@@ -93,36 +93,39 @@ export function useCCReceitas(ccId: string | undefined | null) {
       if (!ccId) return [];
 
       const { data, error } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .select(`
           id,
           vencimento,
-          parcela,
-          valor_previsto,
-          valor_recebido,
+          parcela_descricao,
+          valor_original,
+          valor_final,
           status,
           parcela_num,
-          total_parcelas,
           contrato_id,
-          clientes:cliente_id (nome_razao_social)
+          clientes:cliente_id (nome_razao_social),
+          contratos!inner (cc_id, parcelas_total)
         `)
-        .eq('cc_id', ccId)
+        .eq('contratos.cc_id', ccId)
         .order('vencimento', { ascending: false });
 
       if (error) throw error;
 
-      return (data ?? []).map((item) => ({
-        id: item.id,
-        data: item.vencimento ?? '',
-        descricao: item.parcela ?? 'Parcela',
-        valor: Number(item.valor_previsto ?? 0),
-        valor_recebido: item.valor_recebido != null ? Number(item.valor_recebido) : null,
-        status: item.status ?? 'pendente',
-        parcela_num: item.parcela_num,
-        total_parcelas: item.total_parcelas,
-        contrato_id: item.contrato_id,
-        cliente_nome: (item.clientes as { nome_razao_social?: string } | null)?.nome_razao_social ?? null,
-      }));
+      return (data ?? []).map((item) => {
+        const contratoData = item.contratos as unknown as { parcelas_total?: number } | null;
+        return {
+          id: item.id,
+          data: item.vencimento ?? '',
+          descricao: item.parcela_descricao ?? 'Parcela',
+          valor: Number(item.valor_original ?? 0),
+          valor_recebido: item.valor_final != null ? Number(item.valor_final) : null,
+          status: item.status ?? 'pendente',
+          parcela_num: item.parcela_num,
+          total_parcelas: contratoData?.parcelas_total ?? 0,
+          contrato_id: item.contrato_id,
+          cliente_nome: (item.clientes as unknown as { nome_razao_social?: string } | null)?.nome_razao_social ?? null,
+        };
+      });
     },
     enabled: !!ccId,
   });
@@ -298,9 +301,9 @@ export function useCCEvolucaoMensal(ccId: string | undefined | null, meses = 6) 
       // Buscar receitas e despesas
       const [receitasResult, despesasResult] = await Promise.all([
         supabase
-          .from('contas_receber')
-          .select('vencimento, valor_previsto, valor_recebido, status')
-          .eq('cc_id', ccId),
+          .from('faturas')
+          .select('vencimento, valor_original, valor_final, status, contratos!inner(cc_id)')
+          .eq('contratos.cc_id', ccId),
         supabase
           .from('contas_pagar')
           .select('vencimento, valor, status')
@@ -328,8 +331,8 @@ export function useCCEvolucaoMensal(ccId: string | undefined | null, meses = 6) 
         const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
         if (monthData[key]) {
           const valor = item.status === 'pago' || item.status === 'recebido'
-            ? Number(item.valor_recebido ?? item.valor_previsto ?? 0)
-            : Number(item.valor_previsto ?? 0);
+            ? Number(item.valor_final ?? item.valor_original ?? 0)
+            : Number(item.valor_original ?? 0);
           monthData[key].receita += valor;
         }
       });

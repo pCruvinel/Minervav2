@@ -103,6 +103,8 @@ export interface CalendarioIntegracaoProps {
   dataInicial?: Date;
   /** Filtro de setor para restringir vagas disponíveis (usado em OS) */
   setorFiltro?: string;
+  /** Filtro de cargo para restringir colaboradores (ex: coordenadores) */
+  cargoFiltro?: string[];
   /** ID da etapa da OS vinculada ao agendamento */
   etapaId?: string;
 }
@@ -123,6 +125,7 @@ export const CalendarioIntegracao = forwardRef<
       readOnly = false,
       dataInicial,
       setorFiltro,
+      cargoFiltro,
       etapaId,
     },
     ref
@@ -333,6 +336,7 @@ export const CalendarioIntegracao = forwardRef<
               <CalendarioSemanaCustom
                 dataInicial={dataInicial}
                 setorFiltro={setorFiltro}
+                cargoFiltro={cargoFiltro}
                 osId={osId}
                 etapaId={etapaId}
                 onAgendamentoCriado={handleAgendamentoChange}

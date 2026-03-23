@@ -44,8 +44,9 @@ interface ModalCriarBloqueioProps {
   dataInicial?: string;
 }
 
-// Motivos disponíveis para criação manual (sem 'feriado')
+// Motivos disponíveis para criação manual
 const MOTIVO_OPTIONS: { value: BloqueioMotivo; label: string; desc: string }[] = [
+  { value: 'feriado', label: 'Feriado Nacional', desc: 'Dia não útil — impacta SLA e custo/dia' },
   { value: 'ponto_facultativo', label: 'Ponto Facultativo', desc: 'Dia opcional, não bloqueia agendamentos' },
   { value: 'manutencao', label: 'Manutenção', desc: 'Manutenção predial ou de equipamentos' },
   { value: 'evento', label: 'Evento', desc: 'Evento corporativo ou externo' },
@@ -222,6 +223,8 @@ export function ModalCriarBloqueio({
                       type="button"
                       onClick={() => {
                         setMotivo(option.value);
+                        // Feriado sempre bloqueia dia inteiro
+                        if (option.value === 'feriado') setDiaInteiro(true);
                         if (step1.touched.motivo) step1.validateField('motivo', option.value);
                       }}
                       className={cn(
@@ -327,7 +330,7 @@ export function ModalCriarBloqueio({
                 <Label htmlFor="diaInteiro" className="cursor-pointer font-medium text-sm">
                   Dia inteiro
                 </Label>
-                <Switch id="diaInteiro" checked={diaInteiro} onCheckedChange={setDiaInteiro} />
+                <Switch id="diaInteiro" checked={diaInteiro} onCheckedChange={setDiaInteiro} disabled={motivo === 'feriado'} />
               </div>
 
               {!diaInteiro && (

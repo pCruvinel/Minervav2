@@ -63,10 +63,10 @@ export function useFluxoCaixa(diasProjecao: number = 30) {
       const hojeStr = hoje.toISOString().split('T')[0];
       const fimStr = dataFim.toISOString().split('T')[0];
 
-      // Buscar receitas previstas
+      // Buscar receitas previstas (faturas)
       const { data: receitas } = await supabase
-        .from('contas_receber')
-        .select('vencimento, valor_previsto, status')
+        .from('faturas')
+        .select('vencimento, valor_original, status')
         .gte('vencimento', hojeStr)
         .lte('vencimento', fimStr);
 
@@ -91,7 +91,7 @@ export function useFluxoCaixa(diasProjecao: number = 30) {
       // Agregar receitas
       receitas?.forEach((r) => {
         if (fluxoPorDia[r.vencimento]) {
-          fluxoPorDia[r.vencimento].entradas += Number(r.valor_previsto);
+          fluxoPorDia[r.vencimento].entradas += Number(r.valor_original);
         }
       });
 
@@ -146,13 +146,13 @@ export function useFluxoCaixaKPIs() {
       const hojeStr = hoje.toISOString().split('T')[0];
       const fim30Str = data30Dias.toISOString().split('T')[0];
 
-      // Entradas próximos 30 dias
+      // Entradas próximos 30 dias (faturas)
       const { data: receitas } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto, vencimento, status')
+        .from('faturas')
+        .select('valor_original, vencimento, status')
         .gte('vencimento', hojeStr)
         .lte('vencimento', fim30Str)
-        .in('status', ['em_aberto', 'pendente']);
+        .in('status', ['pendente', 'em_aberto']);
 
       // Saídas próximos 30 dias
       const { data: despesas } = await supabase
@@ -164,8 +164,8 @@ export function useFluxoCaixaKPIs() {
 
       // Saldo atual (receitas recebidas - despesas pagas até hoje)
       const { data: recebidos } = await supabase
-        .from('contas_receber')
-        .select('valor_recebido')
+        .from('faturas')
+        .select('valor_final')
         .lte('vencimento', hojeStr)
         .eq('status', 'pago');
 
@@ -175,11 +175,11 @@ export function useFluxoCaixaKPIs() {
         .lte('vencimento', hojeStr)
         .eq('status', 'pago');
 
-      const totalRecebido = recebidos?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0;
+      const totalRecebido = recebidos?.reduce((acc, r) => acc + Number(r.valor_final || 0), 0) ?? 0;
       const totalPago = pagos?.reduce((acc, p) => acc + Number(p.valor), 0) ?? 0;
       const saldoAtual = totalRecebido - totalPago;
 
-      const entradasProximos30Dias = receitas?.reduce((acc, r) => acc + Number(r.valor_previsto), 0) ?? 0;
+      const entradasProximos30Dias = receitas?.reduce((acc, r) => acc + Number(r.valor_original), 0) ?? 0;
       const saidasProximos30Dias = despesas?.reduce((acc, d) => acc + Number(d.valor), 0) ?? 0;
       const saldoProjetado30Dias = saldoAtual + entradasProximos30Dias - saidasProximos30Dias;
 
@@ -190,7 +190,7 @@ export function useFluxoCaixaKPIs() {
 
       receitas?.forEach((r) => {
         fluxoPorDia[r.vencimento] = fluxoPorDia[r.vencimento] || { entradas: 0, saidas: 0 };
-        fluxoPorDia[r.vencimento].entradas += Number(r.valor_previsto);
+        fluxoPorDia[r.vencimento].entradas += Number(r.valor_original);
       });
 
       despesas?.forEach((d) => {
@@ -240,10 +240,10 @@ export function useFluxoMensal(meses: number = 12) {
       const dataInicio = new Date(hoje.getFullYear(), hoje.getMonth() - meses + 1, 1);
       const dataInicioStr = dataInicio.toISOString().split('T')[0];
 
-      // Buscar receitas realizadas (status pago/recebido)
+      // Buscar receitas realizadas (faturas - status pago)
       const { data: receitas } = await supabase
-        .from('contas_receber')
-        .select('vencimento, valor_recebido, valor_previsto, status')
+        .from('faturas')
+        .select('vencimento, valor_final, valor_original, status')
         .gte('vencimento', dataInicioStr)
         .in('status', ['pago', 'recebido', 'conciliado']);
 
@@ -271,7 +271,7 @@ export function useFluxoMensal(meses: number = 12) {
         const data = new Date(r.vencimento);
         const key = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}`;
         if (fluxoPorMes[key]) {
-          fluxoPorMes[key].entradas += Number(r.valor_recebido ?? r.valor_previsto ?? 0);
+          fluxoPorMes[key].entradas += Number(r.valor_final ?? r.valor_original ?? 0);
         }
       });
 
@@ -323,20 +323,20 @@ export function useCalendarioFinanceiro(dias: number = 7) {
       const hojeStr = hoje.toISOString().split('T')[0];
       const fimStr = dataFim.toISOString().split('T')[0];
 
-      // Receitas
+      // Receitas (faturas)
       const { data: receitas } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .select(`
           id,
           vencimento,
-          parcela,
-          valor_previsto,
+          parcela_descricao,
+          valor_original,
           status,
           clientes (nome_razao_social)
         `)
         .gte('vencimento', hojeStr)
         .lte('vencimento', fimStr)
-        .in('status', ['em_aberto', 'pendente']);
+        .in('status', ['pendente', 'em_aberto']);
 
       // Despesas
       const { data: despesas } = await supabase
@@ -354,8 +354,8 @@ export function useCalendarioFinanceiro(dias: number = 7) {
           id: r.id,
           data: r.vencimento,
           tipo: 'receita',
-          descricao: r.parcela || 'Receita',
-          valor: Number(r.valor_previsto),
+          descricao: r.parcela_descricao || 'Receita',
+          valor: Number(r.valor_original),
           cliente_ou_fornecedor: clienteData?.nome_razao_social ?? 'Cliente',
           status: r.status,
         });
@@ -406,17 +406,17 @@ export function useDetalhesDia(data: string | null) {
 
       const transacoes: TransacaoDia[] = [];
 
-      // Receitas do dia (query simples sem joins problemáticos)
+      // Receitas do dia (faturas - query simples sem joins problemáticos)
       const { data: receitas, error: receitasError } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .select(`
           id,
-          contrato_numero,
-          parcela,
-          valor_previsto,
+          numero_fatura,
+          parcela_descricao,
+          valor_original,
           status,
           cliente_id,
-          cc_id
+          contrato_id
         `)
         .eq('vencimento', data);
 
@@ -439,16 +439,31 @@ export function useDetalhesDia(data: string | null) {
         });
       }
 
+      // Buscar cc_id dos contratos associados às faturas
+      const contratoIds = receitas?.map(r => r.contrato_id).filter(Boolean) ?? [];
+      let contratoCCMap: Record<string, string> = {};
+      
+      if (contratoIds.length > 0) {
+        const { data: contratosData } = await supabase
+          .from('contratos')
+          .select('id, cc_id')
+          .in('id', contratoIds);
+        
+        contratosData?.forEach(c => {
+          if (c.cc_id) contratoCCMap[c.id] = c.cc_id;
+        });
+      }
+
       receitas?.forEach((r) => {
         transacoes.push({
           id: r.id,
           tipo: 'receita',
-          descricao: r.contrato_numero || 'Receita',
-          valor: Number(r.valor_previsto),
+          descricao: r.numero_fatura || 'Receita',
+          valor: Number(r.valor_original),
           cliente_ou_fornecedor: clientesMap[r.cliente_id] ?? 'Cliente',
-          cc_codigo: r.cc_id ?? null,
+          cc_codigo: r.contrato_id ? (contratoCCMap[r.contrato_id] ?? null) : null,
           status: r.status,
-          parcela: r.parcela,
+          parcela: r.parcela_descricao,
         });
       });
 

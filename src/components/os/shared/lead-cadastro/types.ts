@@ -65,6 +65,10 @@ export interface LeadEdificacao {
   tipoTelhado: TipoTelhado | string;
   possuiElevador: boolean;
   possuiPiscina: boolean;
+  /** R11-6: Quantidade de elevadores (quando possuiElevador = true) */
+  qtdElevadores?: string;
+  /** R11-7: Quantidade de piscinas (quando possuiPiscina = true) */
+  qtdPiscinas?: string;
 }
 
 // ===========================================

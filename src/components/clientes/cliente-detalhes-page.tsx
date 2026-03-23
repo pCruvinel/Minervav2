@@ -47,6 +47,7 @@ import { cn } from '@/lib/utils';
 import {
   FileText,
   DollarSign,
+  HardHat,
   Eye,
   AlertTriangle,
   Upload,
@@ -84,6 +85,7 @@ import {
   ClienteTabHistoricoOS,
   ClienteTabFinanceiro,
   ClienteTabDocumentos,
+  ClienteTabTimeline,
 } from './tabs';
 import { SendMessageModal } from '@/components/shared/send-message-modal';
 
@@ -488,6 +490,11 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
               <span className="hidden sm:inline truncate">Contratos ({contratosSummary.contratosAtivos})</span>
               <span className="sm:hidden truncate">Contratos ({contratosSummary.contratosAtivos})</span>
             </TabsTrigger>
+            <TabsTrigger value="timeline" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
+              <HardHat className="w-4 h-4 flex-shrink-0" />
+              <span className="hidden sm:inline truncate">Diário de Obra</span>
+              <span className="sm:hidden truncate">Diário</span>
+            </TabsTrigger>
             <TabsTrigger value="historico-os" className="flex items-center gap-2 px-3 py-2 text-sm font-medium data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm flex-1 min-w-0">
               <ClipboardList className="w-4 h-4 flex-shrink-0" />
               <span className="hidden sm:inline truncate">Histórico OS ({ordensServico.length})</span>
@@ -645,6 +652,10 @@ export function ClienteDetalhesPage({ clienteId, onBack, onVisualizarPortal }: C
 
           <TabsContent value="contratos" className="space-y-6">
             <ClienteTabContratos clienteId={clienteId} />
+          </TabsContent>
+
+          <TabsContent value="timeline" className="space-y-6">
+            <ClienteTabTimeline clienteId={clienteId} />
           </TabsContent>
 
           <TabsContent value="historico-os" className="space-y-6">

@@ -2,7 +2,7 @@
  * CategoriaFinanceiraSelect
  * 
  * Componente de seleção de categorias financeiras agrupadas por plano de contas.
- * Usado para classificar lançamentos em contas_pagar e contas_receber.
+ * Usado para classificar lançamentos em contas_pagar e faturas.
  * 
  * @example
  * ```tsx

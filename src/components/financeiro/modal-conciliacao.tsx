@@ -88,29 +88,21 @@ import {
 } from '@/lib/hooks/use-receitas-previstas-conciliacao';
 import { validarExtensaoAnexo, gerarPathAnexo } from '@/lib/hooks/colab-anexo-utils';
 import { useVincularPagador, useDesvincularPagador } from '@/lib/hooks/use-vincular-pagador';
+import { Popover, PopoverTrigger, PopoverContent } from '../ui/popover';
 import { useClientes } from '@/lib/hooks/use-clientes';
+import { useCategoriaBehavior, getBehavior } from '@/lib/hooks/use-categoria-comportamento';
+import {
+  SETORES_CONCILIACAO,
+  CATEGORIA_MAO_DE_OBRA_ID,
+  CATEGORIA_RESGATE_APLICACAO_ID,
+  CATEGORIAS_DESCARTADAS_IDS,
+  MO_CATEGORY_NAMES,
+  ENTRY_EXTRA_CATEGORIES,
+  EXIT_EXTRA_CATEGORIES,
+} from '@/lib/constants/conciliacao';
+import { Textarea } from '../ui/textarea';
 
-const CATEGORIA_MAO_DE_OBRA_ID = '843f5fef-fb6a-49bd-bec3-b0917c2d4204';
-
-// Nomes de categorias para detecção no modo read-only
-const MO_CATEGORY_NAMES = ['mão de obra', 'mao de obra', 'tributos de mão de obra', 'tributos de mao de obra'];
-
-// Categorias fixas para Entradas (Receitas) avulsas
-const CATEGORIA_RESGATE_APLICACAO_ID = '__resgate_aplicacao__';
-const CATEGORIA_OUTROS_ID = '__outros__';
-const ENTRY_EXTRA_CATEGORIES = [
-  { id: CATEGORIA_RESGATE_APLICACAO_ID, nome: 'Resgate de Aplicação', codigo: 'RESGATE', tipo: 'receber' as const, ativo: true },
-  { id: CATEGORIA_OUTROS_ID, nome: 'Outros', codigo: 'OUTROS', tipo: 'receber' as const, ativo: true },
-];
-
-// Categorias fixas para Saídas (Despesas) avulsas
-const CATEGORIA_APLICACAO_ID = '__aplicacao__';
-const EXIT_EXTRA_CATEGORIES = [
-  { id: CATEGORIA_APLICACAO_ID, nome: 'Aplicação', codigo: 'APLICACAO', tipo: 'pagar' as const, ativo: true },
-];
-
-// IDs de categorias que são descartadas de relatórios
-const CATEGORIAS_DESCARTADAS = [CATEGORIA_RESGATE_APLICACAO_ID, CATEGORIA_APLICACAO_ID];
+// (Constantes movidas para @/lib/constants/conciliacao.ts)
 
 // ============================================================
 // TYPES
@@ -129,13 +121,7 @@ interface ModalConciliacaoProps {
   lancamento: LancamentoBancario | null;
 }
 
-const SETORES = [
-  { value: 'administrativo', label: 'Administrativo' },
-  { value: 'obras', label: 'Obras' },
-  { value: 'assessoria', label: 'Assessoria' },
-  { value: 'diretoria', label: 'Diretoria' },
-  { value: 'ti', label: 'TI' },
-];
+// SETORES importado de @/lib/constants/conciliacao.ts (reduzido para 2: Obras, Assessoria)
 
 // ============================================================
 // COMPONENT
@@ -218,6 +204,21 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
   const desvincularPagadorMutation = useDesvincularPagador();
   const { clientes: todosClientes = [], loading: loadingClientes } = useClientes({ status: ['ativo', 'lead'] });
 
+  // Hook: data-driven category behavior (from DB table categoria_comportamento)
+  const { data: behaviorMap } = useCategoriaBehavior();
+  const behavior = getBehavior(behaviorMap, categoriaIdSelecionada);
+
+  // Computed flags — zero hardcodes, tudo derivado do banco
+  const isCategoriaMaoDeObraFlag = categoriaIdSelecionada === CATEGORIA_MAO_DE_OBRA_ID;
+  const mostrarSetor = behavior.exigeSetor && !isCategoriaMaoDeObraFlag;
+  const mostrarCC = behavior.exigeCC && !isCategoriaMaoDeObraFlag;
+  const mostrarAnexo = behavior.exigeAnexo;
+  const mostrarDetalhamento = behavior.exigeDetalhamento;
+  const isCategoriaDescartavel = behavior.isDescartavel;
+
+  // Detalhamento state (salva em campo 'observacoes')
+  const [detalhamento, setDetalhamento] = useState('');
+
   // Filtrar clientes por busca
   const clientesFiltrados = useMemo(() => {
     if (!searchCliente) return todosClientes.slice(0, 20);
@@ -251,7 +252,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
 
   // Todas IDs que devem mostrar o hint de descarte
   const isCategoriDescartada = useMemo(() => {
-    const ids = [...CATEGORIAS_DESCARTADAS];
+    const ids = [...CATEGORIAS_DESCARTADAS_IDS];
     if (aplicacaoDbId) ids.push(aplicacaoDbId);
     return ids.includes(categoriaIdSelecionada);
   }, [categoriaIdSelecionada, aplicacaoDbId]);
@@ -288,6 +289,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
       setLembrarPagador(true);
       setRelacaoPagador('terceiro');
       setSearchCliente('');
+      setDetalhamento('');
     }
   }, [open, lancamento, valorLancamento]);
 
@@ -465,11 +467,8 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
 
   const getSetorId = (slug: string) => {
     const map: Record<string, string> = {
-      administrativo: 'Administrativo',
       obras: 'Obras',
       assessoria: 'Assessoria',
-      diretoria: 'Diretoria',
-      ti: 'TI',
     };
     const nome = map[slug] || slug;
     const setor = setores.find((s: { nome: string; id: string }) => s.nome === nome || s.nome.toLowerCase() === slug.toLowerCase());
@@ -479,13 +478,18 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
   const handleCriar = async () => {
     const isCategoriaMaoDeObra = categoriaIdSelecionada === CATEGORIA_MAO_DE_OBRA_ID;
 
-    // Mão de Obra não precisa de setor/rateio CC pois colaborador já tem
-    if (!lancamento || !categoriaIdSelecionada || (!isCategoriaMaoDeObra && !setorSelecionado)) {
-      toast.error('Preencha todos os campos obrigatórios');
+    // Validação condicional: setor só obrigatório se o behavior exige
+    if (!lancamento || !categoriaIdSelecionada) {
+      toast.error('Selecione uma categoria');
       return;
     }
 
-    if (!isCategoriaMaoDeObra && !isRateioValido) {
+    if (mostrarSetor && !setorSelecionado) {
+      toast.error('Selecione um setor');
+      return;
+    }
+
+    if (mostrarCC && !isRateioValido) {
       toast.error('A soma dos rateios deve ser igual a 100%');
       return;
     }
@@ -523,16 +527,17 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
       await classificarMutation.mutateAsync({
         id: lancamento.id,
         categoria_id: categoriaIdSelecionada,
-        setor_id: setorId,
-        cc_id: ccIdPrincipal,
-        rateios: rateios.map((r) => ({
+        setor_id: mostrarSetor ? setorId : undefined,
+        cc_id: mostrarCC ? ccIdPrincipal : undefined,
+        rateios: mostrarCC ? rateios.map((r) => ({
           cc_id: r.centroCusto,
           cc_nome: centrosCusto.find(cc => cc.id === r.centroCusto)?.nome,
           valor: r.valor,
           percentual: r.percentual,
-        })),
+        })) : undefined,
         nota_fiscal_url: isCategoriaMaoDeObra ? undefined : (notaFiscalUrl || undefined),
         comprovante_url: isCategoriaMaoDeObra ? undefined : (comprovanteUrl || undefined),
+        observacoes: detalhamento || undefined,
         // Campos Extras Mão de Obra
         tipo_custo_mo: isCategoriaMaoDeObra ? tipoCustoVariavel : undefined,
         colaborador_ids: isCategoriaMaoDeObra ? selectedColabIds : undefined,
@@ -745,6 +750,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                             <th className="text-right px-3 py-2 font-medium text-xs w-24">Valor</th>
                             <th className="text-right px-3 py-2 font-medium text-xs w-16">%</th>
                             <th className="text-center px-3 py-2 font-medium text-xs w-28">Tipo</th>
+                            <th className="text-center px-3 py-2 font-medium text-xs w-20">Anexo</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -774,6 +780,21 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                                     {custo.tipo_custo === 'flutuante' ? 'Flutuante' : 'Geral/Fixo'}
                                   </Badge>
                                 </td>
+                                <td className="px-3 py-2 text-center">
+                                  {custo.anexo_url ? (
+                                    <a
+                                      href={custo.anexo_url}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-primary hover:underline text-[10px]"
+                                    >
+                                      <FileText className="h-3 w-3" />
+                                      Ver
+                                    </a>
+                                  ) : (
+                                    <span className="text-muted-foreground text-[10px]">—</span>
+                                  )}
+                                </td>
                               </tr>
                             );
                           })}
@@ -793,7 +814,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
               )}
 
               {/* Seção: Vínculos */}
-              {(lancamento.conta_pagar_id || lancamento.conta_receber_id) && (
+              {(lancamento.conta_pagar_id || (lancamento as any).fatura_id) && (
                 <div className="rounded-lg border p-4">
                   <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
                     <Link2 className="h-4 w-4" />
@@ -806,10 +827,10 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                         <p className="font-medium font-mono text-xs">{lancamento.conta_pagar_id}</p>
                       </div>
                     )}
-                    {lancamento.conta_receber_id && (
+                    {(lancamento as any).fatura_id && (
                       <div>
-                        <span className="text-muted-foreground">Conta a Receber</span>
-                        <p className="font-medium font-mono text-xs">{lancamento.conta_receber_id}</p>
+                        <span className="text-muted-foreground">Fatura (Receita)</span>
+                        <p className="font-medium font-mono text-xs">{(lancamento as any).fatura_id}</p>
                       </div>
                     )}
                   </div>
@@ -943,6 +964,148 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                     {lancamento.contraparte_documento}
                   </Badge>
                 )}
+
+                {/* Cliente Chip — compacto no header */}
+                {lancamento.contraparte_documento && (
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      {lancamento.cliente_id && lancamento.cliente ? (
+                        <button
+                          type="button"
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border transition-colors cursor-pointer',
+                            'border-success/30 bg-success/10 text-success hover:bg-success/20'
+                          )}
+                        >
+                          <UserCheck className="h-3 w-3" />
+                          {lancamento.cliente.nome_razao_social}
+                          {lancamento.match_type && (
+                            <span className="opacity-60 ml-0.5">
+                              {lancamento.match_type === 'auto_direto' && '✓'}
+                              {lancamento.match_type === 'auto_terceiro' && '✓'}
+                              {lancamento.match_type === 'manual' && '✎'}
+                            </span>
+                          )}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium border transition-colors cursor-pointer',
+                            'border-dashed border-muted-foreground/40 text-muted-foreground hover:border-primary hover:text-primary hover:bg-primary/5'
+                          )}
+                        >
+                          <UserCheck className="h-3 w-3" />
+                          Vincular Pagador
+                        </button>
+                      )}
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-80 p-3 space-y-3">
+                      {/* Popover: Cliente search form */}
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-semibold">Vincular Cliente</h4>
+                        {lancamento.cliente_id && lancamento.cliente && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-6 text-[10px] text-destructive hover:text-destructive px-2"
+                            onClick={() => {
+                              if (lancamento?.id) {
+                                desvincularPagadorMutation.mutate(lancamento.id);
+                              }
+                            }}
+                            disabled={desvincularPagadorMutation.isPending}
+                          >
+                            <Unlink className="h-3 w-3 mr-1" />
+                            Desvincular
+                          </Button>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Buscar por nome ou CPF/CNPJ..."
+                          value={searchCliente}
+                          onChange={(e) => setSearchCliente(e.target.value)}
+                          className="pl-8 h-7 text-xs"
+                        />
+                      </div>
+
+                      {(searchCliente || clienteSelecionadoId) && (
+                        <div className="max-h-[130px] overflow-y-auto border rounded-md">
+                          {loadingClientes ? (
+                            <p className="text-[10px] text-muted-foreground text-center py-2">Carregando...</p>
+                          ) : clientesFiltrados.length === 0 ? (
+                            <p className="text-[10px] text-muted-foreground text-center py-2">Nenhum encontrado</p>
+                          ) : (
+                            clientesFiltrados.map((c: any) => (
+                              <button
+                                key={c.id}
+                                type="button"
+                                className={cn(
+                                  'w-full text-left px-2.5 py-1 text-[10px] hover:bg-muted/50 flex items-center justify-between',
+                                  clienteSelecionadoId === c.id && 'bg-primary/10 text-primary'
+                                )}
+                                onClick={() => setClienteSelecionadoId(c.id === clienteSelecionadoId ? '' : c.id)}
+                              >
+                                <span className="font-medium truncate">{c.nome_razao_social}</span>
+                                <span className="font-mono text-muted-foreground text-[9px] ml-2 shrink-0">{c.cpf_cnpj}</span>
+                              </button>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {clienteSelecionadoId && (
+                        <div className="flex items-center gap-3 pt-1">
+                          <div className="flex items-center gap-1.5">
+                            <Checkbox
+                              id="lembrar-pagador-pop"
+                              checked={lembrarPagador}
+                              onCheckedChange={(v) => setLembrarPagador(!!v)}
+                              className="h-3.5 w-3.5"
+                            />
+                            <Label htmlFor="lembrar-pagador-pop" className="text-[10px] cursor-pointer">
+                              Lembrar
+                            </Label>
+                          </div>
+                          {lembrarPagador && (
+                            <Select value={relacaoPagador} onValueChange={(v) => setRelacaoPagador(v as any)}>
+                              <SelectTrigger className="h-6 w-[100px] text-[10px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent side="bottom" sideOffset={4}>
+                                <SelectItem value="titular">Titular</SelectItem>
+                                <SelectItem value="socio">Sócio</SelectItem>
+                                <SelectItem value="familiar">Familiar</SelectItem>
+                                <SelectItem value="terceiro">Terceiro</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                          <Button
+                            size="sm"
+                            className="h-6 text-[10px] ml-auto px-2"
+                            onClick={() => {
+                              if (lancamento?.id && clienteSelecionadoId) {
+                                vincularPagadorMutation.mutate({
+                                  lancamento_id: lancamento.id,
+                                  cliente_id: clienteSelecionadoId,
+                                  lembrar: lembrarPagador,
+                                  relacao: relacaoPagador,
+                                });
+                              }
+                            }}
+                            disabled={vincularPagadorMutation.isPending}
+                          >
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Vincular
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
+                )}
               </div>
             </div>
             <div className="text-right">
@@ -960,161 +1123,23 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
           </div>
         </DialogHeader>
 
-        {/* Seção: Vincular Cliente */}
-        {lancamento.contraparte_documento && (
-          <div className="mx-6 mt-3 rounded-lg border p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-semibold flex items-center gap-2">
-                <UserCheck className="h-4 w-4" />
-                Cliente Vinculado
-              </h4>
-              {lancamento.match_type && (
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    'text-[10px]',
-                    lancamento.match_type === 'auto_direto' && 'border-success/30 text-success bg-success/10',
-                    lancamento.match_type === 'auto_terceiro' && 'border-primary/30 text-primary bg-primary/10',
-                    lancamento.match_type === 'manual' && 'border-warning/30 text-warning bg-warning/10'
-                  )}
-                >
-                  {lancamento.match_type === 'auto_direto' && '✓ Auto (CPF/CNPJ)'}
-                  {lancamento.match_type === 'auto_terceiro' && '✓ Auto (Terceiro)'}
-                  {lancamento.match_type === 'manual' && '✓ Manual'}
-                </Badge>
-              )}
-            </div>
-
-            {lancamento.cliente_id && lancamento.cliente ? (
-              /* Cliente já vinculado */
-              <div className="flex items-center justify-between bg-muted/50 rounded-md p-2">
-                <div className="flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-sm font-medium">{lancamento.cliente.nome_razao_social}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{lancamento.cliente.cpf_cnpj}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 text-xs text-destructive hover:text-destructive"
-                  onClick={() => {
-                    if (lancamento?.id) {
-                      desvincularPagadorMutation.mutate(lancamento.id);
-                    }
-                  }}
-                  disabled={desvincularPagadorMutation.isPending}
-                >
-                  <Unlink className="h-3 w-3 mr-1" />
-                  Desvincular
-                </Button>
-              </div>
-            ) : (
-              /* Sem vínculo — formulário de busca */
-              <div className="space-y-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar cliente por nome ou CPF/CNPJ..."
-                    value={searchCliente}
-                    onChange={(e) => setSearchCliente(e.target.value)}
-                    className="pl-9 h-8 text-sm"
-                  />
-                </div>
-
-                {/* Lista de clientes */}
-                {(searchCliente || clienteSelecionadoId) && (
-                  <div className="max-h-[120px] overflow-y-auto border rounded-md">
-                    {loadingClientes ? (
-                      <p className="text-xs text-muted-foreground text-center py-2">Carregando...</p>
-                    ) : clientesFiltrados.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-2">Nenhum cliente encontrado</p>
-                    ) : (
-                      clientesFiltrados.map((c: any) => (
-                        <button
-                          key={c.id}
-                          type="button"
-                          className={cn(
-                            'w-full text-left px-3 py-1.5 text-xs hover:bg-muted/50 flex items-center justify-between',
-                            clienteSelecionadoId === c.id && 'bg-primary/10 text-primary'
-                          )}
-                          onClick={() => setClienteSelecionadoId(c.id === clienteSelecionadoId ? '' : c.id)}
-                        >
-                          <div>
-                            <span className="font-medium">{c.nome_razao_social}</span>
-                            {c.apelido && <span className="text-muted-foreground ml-1">({c.apelido})</span>}
-                          </div>
-                          <span className="font-mono text-muted-foreground">{c.cpf_cnpj}</span>
-                        </button>
-                      ))
-                    )}
-                  </div>
-                )}
-
-                {/* Opções de vínculo */}
-                {clienteSelecionadoId && (
-                  <div className="flex items-center gap-4 pt-1">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="lembrar-pagador"
-                        checked={lembrarPagador}
-                        onCheckedChange={(v) => setLembrarPagador(!!v)}
-                      />
-                      <Label htmlFor="lembrar-pagador" className="text-xs cursor-pointer">
-                        Lembrar este pagador
-                      </Label>
-                    </div>
-                    {lembrarPagador && (
-                      <Select value={relacaoPagador} onValueChange={(v) => setRelacaoPagador(v as any)}>
-                        <SelectTrigger className="h-7 w-[130px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent side="bottom" sideOffset={4}>
-                          <SelectItem value="titular">Titular</SelectItem>
-                          <SelectItem value="socio">Sócio</SelectItem>
-                          <SelectItem value="familiar">Familiar</SelectItem>
-                          <SelectItem value="terceiro">Terceiro</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                    <Button
-                      size="sm"
-                      className="h-7 text-xs ml-auto"
-                      onClick={() => {
-                        if (lancamento?.id && clienteSelecionadoId) {
-                          vincularPagadorMutation.mutate({
-                            lancamento_id: lancamento.id,
-                            cliente_id: clienteSelecionadoId,
-                            lembrar: lembrarPagador,
-                            relacao: relacaoPagador,
-                          });
-                        }
-                      }}
-                      disabled={vincularPagadorMutation.isPending}
-                    >
-                      <UserCheck className="h-3 w-3 mr-1" />
-                      Vincular
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Cliente Vinculado movido para o header como chip/popover */}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'vincular' | 'criar')} className="flex-1 flex flex-col overflow-hidden">
+          {/* Tab strip — only show for Saídas (2 tabs). Entradas have only 1 tab so no strip needed */}
+          {!isEntrada && (
           <TabsList className="mx-6 mt-4 grid w-auto grid-cols-2 bg-muted/50">
             <TabsTrigger value="vincular" className="gap-2">
               <Link2 className="h-4 w-4" />
-              Vincular Existente
+              Vincular Fatura Recorrente
             </TabsTrigger>
             <TabsTrigger value="criar" className="gap-2">
               <Plus className="h-4 w-4" />
               Criar Novo
             </TabsTrigger>
           </TabsList>
+          )}
 
           {/* Tab: Vincular */}
           <TabsContent value="vincular" className="flex-1 overflow-hidden flex flex-col m-0 px-6 py-4 data-[state=inactive]:hidden">
@@ -1223,6 +1248,29 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                     )}
                   </div>
                 )}
+
+                {/* Anexar NF (opcional) — #59 */}
+                <div className="mt-3 flex items-center gap-3">
+                  <Label htmlFor="nf-entrada" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                    <FileText className="h-3.5 w-3.5 inline mr-1" />
+                    Anexar NF (opcional)
+                  </Label>
+                  <Input
+                    id="nf-entrada"
+                    type="file"
+                    accept=".pdf,.png,.jpg,.jpeg"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setNotaFiscal(file);
+                    }}
+                    className="h-7 text-xs flex-1 file:mr-2 file:text-xs"
+                  />
+                  {notaFiscal && (
+                    <Badge variant="outline" className="text-[10px] shrink-0">
+                      {notaFiscal.name.slice(0, 20)}{notaFiscal.name.length > 20 ? '…' : ''}
+                    </Badge>
+                  )}
+                </div>
               </>
             ) : (
               /* ===== FLUXO SAÍDA: Comportamento original ===== */
@@ -1348,7 +1396,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                     </SelectContent>
                   </Select>
                 </div>
-                {categoriaIdSelecionada !== CATEGORIA_MAO_DE_OBRA_ID && (
+                {mostrarSetor && (
                 <div className="space-y-2">
                   <Label>Setor *</Label>
                   <Select value={setorSelecionado} onValueChange={setSetorSelecionado}>
@@ -1356,7 +1404,7 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent side="bottom" sideOffset={4}>
-                      {SETORES.map((s) => (
+                      {SETORES_CONCILIACAO.map((s) => (
                         <SelectItem key={s.value} value={s.value}>
                           {s.label}
                         </SelectItem>
@@ -1576,8 +1624,32 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                 </div>
               )}
 
-              {/* Rateio por CC - hide when Mão de Obra selected OR when it's an Entry (Receita) */}
-              {categoriaIdSelecionada !== CATEGORIA_MAO_DE_OBRA_ID && !isEntrada && (
+              {/* Detalhamento (Observações livres) - somente se behavior permite */}
+              {mostrarDetalhamento && categoriaIdSelecionada && (
+                <div className="space-y-2">
+                  <Label>Detalhamento</Label>
+                  <Textarea
+                    placeholder="Informações adicionais sobre esta transação..."
+                    value={detalhamento}
+                    onChange={(e) => setDetalhamento(e.target.value)}
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
+              )}
+
+              {/* Hint: Categoria descartável (Aplicação / Resgate) */}
+              {isCategoriaDescartavel && categoriaIdSelecionada && (
+                <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                  <Info className="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-blue-700 dark:text-blue-300">
+                    <span className="font-medium">Movimento financeiro:</span> Este lançamento será registrado sem setor ou centro de custo. Confira o valor e confirme.
+                  </p>
+                </div>
+              )}
+
+              {/* Rateio por CC - controlado pelo behavior da categoria */}
+              {mostrarCC && !isEntrada && (
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>Rateio por Centro de Custo</Label>
@@ -1796,8 +1868,8 @@ export function ModalConciliacao({ open, onClose, lancamento }: ModalConciliacao
                   ? !registroSelecionado || vincularMutation.isPending || isUploading
                   : !categoriaIdSelecionada || 
                     (categoriaIdSelecionada !== CATEGORIA_MAO_DE_OBRA_ID && !setorSelecionado) ||
-                    (categoriaIdSelecionada !== CATEGORIA_MAO_DE_OBRA_ID && !isRateioValido) ||
-                    (categoriaIdSelecionada === CATEGORIA_MAO_DE_OBRA_ID && selectedColabIds.length > 0 && !isColabRateioValido) ||
+                    (mostrarCC && !isRateioValido) ||
+                    (isCategoriaMaoDeObraFlag && selectedColabIds.length > 0 && !isColabRateioValido) ||
                     classificarMutation.isPending || 
                     isUploading
               }
@@ -1970,9 +2042,6 @@ function ReceitaPrevistaCard({ receita, selected, valorMatch, onSelect }: Receit
         </div>
         <div className="text-right shrink-0">
           <p className="font-semibold text-sm tabular-nums">{fmtCurrency(receita.valor_previsto)}</p>
-          {receita.valor_recebido > 0 && (
-            <p className="text-[10px] text-muted-foreground">Recebido: {fmtCurrency(receita.valor_recebido)}</p>
-          )}
           <div className="flex gap-1 mt-1 justify-end">
             {valorMatch && (
               <Badge variant="outline" className="text-[10px] border-success/50 text-success bg-success/10">

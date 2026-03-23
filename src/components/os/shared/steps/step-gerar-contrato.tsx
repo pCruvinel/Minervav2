@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { FileText, CheckCircle, Upload, Download, Loader2, X } from 'lucide-react';
 import { toast } from '@/lib/utils/safe-toast';
-import { uploadAndRegisterDocument, deleteRegisteredDocument } from '@/lib/utils/upload-and-register';
+import { uploadAndRegisterDocument } from '@/lib/utils/upload-and-register';
 import { logger } from '@/lib/utils/logger';
 import { supabase } from '@/lib/supabase-client';
 
@@ -12,18 +12,12 @@ interface StepGerarContratoProps {
   data: {
     contratoFile?: File | null;
     contratoUrl?: string;
-    contratoPath?: string; // ✅ Path no storage (novo)
-    contratoDocumentoId?: string; // ID do registro em os_documentos
+    contratoPath?: string;
+    contratoDocumentoId?: string;
     dataUpload?: string;
-    // Dados necessários para o modelo
     osId: string;
     codigoOS: string;
-    numeroContrato?: string;
-    clienteNome: string;
-    clienteCpfCnpj: string;
-    valorContrato: number;
-    dataInicio: string;
-    objetoContrato?: string;
+    tipoOsId?: string;
     [key: string]: unknown;
   };
   /** ID da etapa atual (para rastreabilidade) */
@@ -34,6 +28,7 @@ interface StepGerarContratoProps {
 
 export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = false }: StepGerarContratoProps) {
   const [uploading, setUploading] = useState(false);
+  const [downloadingModelo, setDownloadingModelo] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // State local para URL de exibição (prioridade: URL assinada fresca > data.contratoUrl)
@@ -74,7 +69,7 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
         ...data,
         contratoFile: file,
         contratoUrl: result.url,
-        contratoPath: result.path, // ✅ Persistir o caminho do storage
+        contratoPath: result.path,
         contratoDocumentoId: result.documentoId,
         dataUpload: new Date().toISOString().split('T')[0]
       };
@@ -95,16 +90,14 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
     }
   };
 
-  // ✅ EFEITO: Gerar URL assinada atualizada ao carregar (se houver path e a URL antiga expirou ou é invalida)
-  // Isso corrige o erro 406 quando o link expira
+  // Gerar URL assinada atualizada ao carregar
   useEffect(() => {
     const refreshUrl = async () => {
-      // Se TEMOS path mas NÃO temos arquivo local (recarregamento de página)
       if (data.contratoPath && !data.contratoFile) {
         try {
-          const { data: signedData, error } = await supabase.storage
+          const { data: signedData } = await supabase.storage
             .from('os-documents')
-            .createSignedUrl(data.contratoPath, 3600); // 1 hora de validade
+            .createSignedUrl(data.contratoPath, 3600);
 
           if (signedData?.signedUrl) {
             setDisplayUrl(signedData.signedUrl);
@@ -113,7 +106,6 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
           console.error("Erro ao gerar URL assinada:", e);
         }
       } else if (data.contratoUrl) {
-        // Se não tem path (legado) ou tem arquivo local, usa a URL que já temos
         setDisplayUrl(data.contratoUrl);
       }
     };
@@ -121,26 +113,81 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
     refreshUrl();
   }, [data.contratoPath, data.contratoUrl, data.contratoFile]);
 
-  const handleDownloadModelo = () => {
-    // Aqui você pode implementar o download do modelo de contrato
-    // Por exemplo, um PDF template hospedado no Supabase Storage
-    toast.info('Baixando modelo de contrato...');
+  // Baixar modelo de contrato cadastrado nas configurações (por tipo de OS)
+  const handleDownloadModelo = async () => {
+    if (!data.tipoOsId) {
+      toast.error('Tipo de OS não identificado.');
+      return;
+    }
 
-    // Exemplo: link para modelo
-    const modeloUrl = '/modelos/modelo-contrato.pdf';
-    const link = document.createElement('a');
-    link.href = modeloUrl;
-    link.download = 'modelo-contrato.pdf';
-    link.click();
+    setDownloadingModelo(true);
+
+    try {
+      // Buscar modelo cadastrado para este tipo de OS
+      const { data: modelo, error } = await supabase
+        .from('modelos_contrato')
+        .select('arquivo_path, arquivo_nome')
+        .eq('tipo_os_id', data.tipoOsId)
+        .eq('ativo', true)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Erro ao buscar modelo de contrato:', error);
+        toast.error('Erro ao buscar modelo de contrato.');
+        return;
+      }
+
+      if (!modelo?.arquivo_path) {
+        toast.warning('Nenhum modelo de contrato cadastrado para este tipo de OS. Cadastre um modelo em Configurações → Ordens de Serviço → Contratos.');
+        return;
+      }
+
+      // Gerar URL assinada e iniciar download
+      const { data: signedData, error: signedError } = await supabase.storage
+        .from('os-documents')
+        .createSignedUrl(modelo.arquivo_path, 3600);
+
+      if (signedError || !signedData?.signedUrl) {
+        logger.error('Erro ao gerar URL para download:', signedError);
+        toast.error('Erro ao gerar link de download.');
+        return;
+      }
+
+      // Trigger download
+      const link = document.createElement('a');
+      link.href = signedData.signedUrl;
+      link.download = modelo.arquivo_nome || 'modelo-contrato';
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast.success('Download iniciado!');
+    } catch (err) {
+      logger.error('Erro inesperado ao baixar modelo:', err);
+      toast.error('Erro ao baixar modelo de contrato.');
+    } finally {
+      setDownloadingModelo(false);
+    }
   };
 
   const handleRemoveFile = async () => {
     if (!data.contratoUrl) return;
 
     try {
-      // Se temos o ID do documento, usar o helper para deletar
+      // Remove from storage if path is known
+      if (data.contratoPath) {
+        await supabase.storage
+          .from('os-documents')
+          .remove([data.contratoPath as string]);
+      }
+
+      // Remove from os_documentos table if registered
       if (data.contratoDocumentoId) {
-        await deleteRegisteredDocument(data.contratoDocumentoId as string);
+        await supabase
+          .from('os_documentos')
+          .delete()
+          .eq('id', data.contratoDocumentoId as string);
       }
 
       onDataChange({
@@ -206,10 +253,19 @@ export function StepGerarContrato({ data, etapaId, onDataChange, readOnly = fals
             <Button
               variant="outline"
               onClick={handleDownloadModelo}
-              disabled={readOnly}
+              disabled={readOnly || downloadingModelo}
             >
-              <Download className="w-4 h-4 mr-2" />
-              Baixar Modelo
+              {downloadingModelo ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Baixando...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Baixar Modelo
+                </>
+              )}
             </Button>
           </div>
 

@@ -7,3 +7,4 @@ export { ClienteTabContratos } from './cliente-tab-contratos';
 export { ClienteTabHistoricoOS } from './cliente-tab-historico-os';
 export { ClienteTabFinanceiro } from './cliente-tab-financeiro';
 export { ClienteTabDocumentos } from './cliente-tab-documentos';
+export { ClienteTabTimeline } from './cliente-tab-timeline';

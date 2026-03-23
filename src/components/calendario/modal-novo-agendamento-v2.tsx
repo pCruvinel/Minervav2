@@ -56,6 +56,8 @@ interface ModalNovoAgendamentoV2Props {
   onSuccess?: (agendamento?: any) => void;
   /** Filtro de setor - exibe apenas vagas desse setor (usado em OS) */
   setorFiltro?: string;
+  /** Filtro de cargo - exibe apenas colaboradores com esses cargos (ex: coordenadores) */
+  cargoFiltro?: string[];
   /** ID da OS vinculada (passado automaticamente via CalendarioIntegracao) */
   osId?: string;
   /** ID da etapa da OS vinculada */
@@ -85,6 +87,7 @@ export function ModalNovoAgendamentoV2({
   agendamentosExistentes,
   onSuccess,
   setorFiltro,
+  cargoFiltro,
   osId,
   etapaId,
 }: ModalNovoAgendamentoV2Props) {
@@ -98,7 +101,7 @@ export function ModalNovoAgendamentoV2({
   
   // Buscar colaboradores do setor da vaga aberta
   const setorParaBuscar = vagaAberta?.setor || '';
-  const { colaboradores, loading: loadingColaboradores } = useColaboradoresPorSetor(setorParaBuscar);
+  const { colaboradores, loading: loadingColaboradores } = useColaboradoresPorSetor(setorParaBuscar, cargoFiltro);
 
   // Resetar campos quando modal abrir/fechar
   useEffect(() => {

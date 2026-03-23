@@ -607,6 +607,7 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
     ...etapa10Data,
     osId: osId || '',
     codigoOS: os?.codigo_os || '',
+    tipoOsId: os?.tipo_os_id || undefined,
     numeroContrato: os?.codigo_os || '',
     clienteNome: formDataByStep[1]?.nome || os?.cliente?.nome_razao_social || '',
     clienteCpfCnpj: formDataByStep[1]?.cpfCnpj || os?.cliente?.cpf_cnpj || '',

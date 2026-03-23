@@ -38,8 +38,10 @@ export function useDiasUteisMes(ano: number, mes: number, enabled = true) {
 
 /**
  * Retorna o custo/dia calculado dinamicamente via RPC.
- * Para CLT: (salario_base * 1.46) / dias_uteis_mes
+ * Para CLT: (salario_base * fator_encargos) / dias_uteis_mes
  * Para PJ/outros: custo_dia manual
+ * 
+ * Agora usa configuracoes_rh para fator de encargos e dias úteis (KOD-77)
  */
 export function useCustoDia(
   salarioBase: number,
@@ -66,4 +68,63 @@ export function useCustoDia(
     enabled,
     staleTime: 1000 * 60 * 60 * 24, // 24h
   });
+}
+
+// =====================================================
+// KOD-77: Config dias úteis/mês (override manual do RH)
+// =====================================================
+
+interface ConfigRH {
+  dias_uteis_mes: number;
+  percentual_encargos_clt: number;
+  valor_beneficio_padrao: number;
+}
+
+/**
+ * Retorna as configurações de RH (dias úteis, encargos, benefícios).
+ * Permite leitura e atualização do dias_uteis_mes.
+ */
+export function useConfiguracoesRH() {
+  const query = useQuery({
+    queryKey: ['configuracoes-rh'],
+    queryFn: async (): Promise<ConfigRH> => {
+      const { data, error } = await supabase
+        .from('configuracoes_rh')
+        .select('chave, valor');
+
+      if (error) throw error;
+
+      const configs: Record<string, string> = {};
+      (data || []).forEach((c: { chave: string; valor: string }) => {
+        configs[c.chave] = c.valor;
+      });
+
+      return {
+        dias_uteis_mes: parseInt(configs.dias_uteis_mes || '22', 10),
+        percentual_encargos_clt: parseFloat(configs.percentual_encargos_clt || '46'),
+        valor_beneficio_padrao: parseFloat(configs.valor_beneficio_padrao || '450'),
+      };
+    },
+    staleTime: 1000 * 60 * 60, // 1h
+  });
+
+  /**
+   * Atualiza uma configuração de RH
+   */
+  const atualizarConfig = async (chave: string, valor: string) => {
+    const { error } = await supabase
+      .from('configuracoes_rh')
+      .update({ valor, updated_at: new Date().toISOString() })
+      .eq('chave', chave);
+
+    if (error) throw error;
+  };
+
+  return {
+    config: query.data,
+    loading: query.isLoading,
+    error: query.error,
+    refetch: query.refetch,
+    atualizarConfig,
+  };
 }

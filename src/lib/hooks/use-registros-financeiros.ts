@@ -1,7 +1,7 @@
 /**
  * use-registros-financeiros.ts
  *
- * Hooks para buscar Despesas (contas_pagar) e Receitas (contas_receber)
+ * Hooks para buscar Despesas (contas_pagar) e Receitas (faturas)
  * pendentes para vincular na conciliação bancária.
  *
  * @example
@@ -57,43 +57,68 @@ export function useRegistrosFinanceirosPendentes(tipo: 'pagar' | 'receber') {
   return useQuery({
     queryKey: ['registros-financeiros-pendentes', tipo],
     queryFn: async (): Promise<RegistroFinanceiro[]> => {
-      const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
+      if (tipo === 'pagar') {
+        const { data, error } = await supabase
+          .from('contas_pagar')
+          .select(`id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`)
+          .in('status', ['pendente', 'atrasado', 'parcial'])
+          .order('vencimento', { ascending: true })
+          .limit(100);
 
-      // contas_pagar NÃO tem setor_id - apenas categoria_id e cc_id
-      const selectFields = tipo === 'pagar'
-        ? `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`
-        : `id, parcela, valor_previsto, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social)`;
+        if (error) {
+          logger.error('Erro ao buscar contas_pagar:', error);
+          throw error;
+        }
 
-      const { data, error } = await supabase
-        .from(tabela)
-        .select(selectFields)
-        .in('status', tipo === 'pagar' 
-          ? ['pendente', 'atrasado', 'parcial'] 
-          : ['em_aberto', 'inadimplente'])
-        .order('vencimento', { ascending: true })
-        .limit(100);
+        return (data || []).map((item: Record<string, unknown>) => ({
+          id: item.id as string,
+          tipo: 'pagar' as const,
+          descricao: item.descricao as string,
+          valor: item.valor as number,
+          vencimento: item.vencimento as string,
+          status: item.status as RegistroFinanceiro['status'],
+          cc_id: item.cc_id as string | null,
+          cc_nome: (item.centro_custo as { nome?: string } | null)?.nome || null,
+          categoria_id: item.categoria_id as string | null,
+          categoria_nome: (item.categoria as { nome?: string } | null)?.nome || null,
+          setor_id: null,
+          setor_nome: null,
+          fornecedor: (item.favorecido_fornecedor as string) || undefined,
+        }));
+      } else {
+        // tipo === 'receber' → query faturas
+        const { data, error } = await supabase
+          .from('faturas')
+          .select(`id, parcela_descricao, valor_original, vencimento, status, contrato_id, categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social), contratos(cc_id, centros_custo:centros_custo(nome))`)
+          .in('status', ['pendente', 'em_aberto', 'inadimplente'])
+          .order('vencimento', { ascending: true })
+          .limit(100);
 
-      if (error) {
-        logger.error(`Erro ao buscar ${tabela}:`, error);
-        throw error;
+        if (error) {
+          logger.error('Erro ao buscar faturas:', error);
+          throw error;
+        }
+
+        return (data || []).map((item: Record<string, unknown>) => {
+          const contratoData = item.contratos as { cc_id?: string; centros_custo?: { nome?: string } | null } | null;
+          return {
+            id: item.id as string,
+            tipo: 'receber' as const,
+            descricao: item.parcela_descricao as string,
+            valor: item.valor_original as number,
+            vencimento: item.vencimento as string,
+            status: item.status as RegistroFinanceiro['status'],
+            cc_id: contratoData?.cc_id as string | null ?? null,
+            cc_nome: contratoData?.centros_custo?.nome || null,
+            categoria_id: item.categoria_id as string | null,
+            categoria_nome: (item.categoria as { nome?: string } | null)?.nome || null,
+            setor_id: null,
+            setor_nome: null,
+            cliente_nome: (item.cliente as { nome_razao_social?: string } | null)?.nome_razao_social,
+            contrato_id: item.contrato_id as string | undefined,
+          };
+        });
       }
-
-      return (data || []).map((item: Record<string, unknown>) => ({
-        id: item.id as string,
-        tipo,
-        descricao: (tipo === 'pagar' ? item.descricao : item.parcela) as string,
-        valor: (tipo === 'pagar' ? item.valor : item.valor_previsto) as number,
-        vencimento: item.vencimento as string,
-        status: item.status as RegistroFinanceiro['status'],
-        cc_id: item.cc_id as string | null,
-        cc_nome: (item.centro_custo as { nome?: string } | null)?.nome || null,
-        categoria_id: item.categoria_id as string | null,
-        categoria_nome: (item.categoria as { nome?: string } | null)?.nome || null,
-        setor_id: null,
-        setor_nome: null,
-        fornecedor: (item.favorecido_fornecedor as string) || undefined,
-        cliente_nome: (item.cliente as { nome_razao_social?: string } | null)?.nome_razao_social,
-      }));
     },
     staleTime: 1000 * 60 * 2, // 2 minutos
   });
@@ -114,8 +139,6 @@ export function useSugestoesConciliacao(
   return useQuery({
     queryKey: ['sugestoes-conciliacao', tipo, valor, data],
     queryFn: async (): Promise<SugestaoVinculo[]> => {
-      const tabela = tipo === 'pagar' ? 'contas_pagar' : 'contas_receber';
-
       // Buscar registros pendentes com valor próximo (±10%)
       const margemValor = valor * 0.1;
       const valorMin = valor - margemValor;
@@ -128,33 +151,53 @@ export function useSugestoesConciliacao(
       const dataMax = new Date(dataBase);
       dataMax.setDate(dataMax.getDate() + 7);
 
-      // contas_pagar NÃO tem setor_id
-      const selectFields = tipo === 'pagar'
-        ? `id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`
-        : `id, parcela, valor_previsto, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social)`;
+      let registros: Record<string, unknown>[] | null = null;
 
-      const { data: registros, error } = await supabase
-        .from(tabela)
-        .select(selectFields)
-        .in('status', tipo === 'pagar' 
-          ? ['pendente', 'atrasado', 'parcial'] 
-          : ['em_aberto', 'inadimplente'])
-        .gte(tipo === 'pagar' ? 'valor' : 'valor_previsto', valorMin)
-        .lte(tipo === 'pagar' ? 'valor' : 'valor_previsto', valorMax)
-        .gte('vencimento', dataMin.toISOString().split('T')[0])
-        .lte('vencimento', dataMax.toISOString().split('T')[0])
-        .order('vencimento', { ascending: true })
-        .limit(10);
+      if (tipo === 'pagar') {
+        const { data: result, error } = await supabase
+          .from('contas_pagar')
+          .select(`id, descricao, valor, vencimento, status, cc_id, centro_custo:centros_custo(nome), categoria_id, categoria:categorias_financeiras(nome), favorecido_fornecedor`)
+          .in('status', ['pendente', 'atrasado', 'parcial'])
+          .gte('valor', valorMin)
+          .lte('valor', valorMax)
+          .gte('vencimento', dataMin.toISOString().split('T')[0])
+          .lte('vencimento', dataMax.toISOString().split('T')[0])
+          .order('vencimento', { ascending: true })
+          .limit(10);
 
-      if (error) {
-        logger.error('Erro ao buscar sugestões:', error);
-        throw error;
+        if (error) {
+          logger.error('Erro ao buscar sugestões pagar:', error);
+          throw error;
+        }
+        registros = result as Record<string, unknown>[] | null;
+      } else {
+        // tipo === 'receber' → query faturas
+        const { data: result, error } = await supabase
+          .from('faturas')
+          .select(`id, parcela_descricao, valor_original, vencimento, status, contrato_id, categoria_id, categoria:categorias_financeiras(nome), cliente:clientes(nome_razao_social), contratos(cc_id, centros_custo:centros_custo(nome))`)
+          .in('status', ['pendente', 'em_aberto', 'inadimplente'])
+          .gte('valor_original', valorMin)
+          .lte('valor_original', valorMax)
+          .gte('vencimento', dataMin.toISOString().split('T')[0])
+          .lte('vencimento', dataMax.toISOString().split('T')[0])
+          .order('vencimento', { ascending: true })
+          .limit(10);
+
+        if (error) {
+          logger.error('Erro ao buscar sugestões receber:', error);
+          throw error;
+        }
+        registros = result as Record<string, unknown>[] | null;
       }
 
       // Calcular score de match
       return (registros || []).map((item: Record<string, unknown>) => {
+        const contratoData = tipo === 'receber'
+          ? item.contratos as { cc_id?: string; centros_custo?: { nome?: string } | null } | null
+          : null;
+
         // Match por valor (0-50 pontos)
-        const itemValor = item.valor as number;
+        const itemValor = (tipo === 'pagar' ? item.valor : item.valor_original) as number;
         const diffValor = Math.abs(itemValor - valor);
         const percDiffValor = (diffValor / valor) * 100;
         const scoreValor = Math.max(0, 50 - percDiffValor * 5);
@@ -185,18 +228,21 @@ export function useSugestoesConciliacao(
         return {
           id: item.id as string,
           tipo,
-          descricao: (tipo === 'pagar' ? item.descricao : item.parcela) as string,
+          descricao: (tipo === 'pagar' ? item.descricao : item.parcela_descricao) as string,
           valor: itemValor,
           vencimento: item.vencimento as string,
           status: item.status as RegistroFinanceiro['status'],
-          cc_id: item.cc_id as string | null,
-          cc_nome: (item.centro_custo as { nome?: string } | null)?.nome || null,
+          cc_id: tipo === 'pagar' ? (item.cc_id as string | null) : (contratoData?.cc_id as string | null ?? null),
+          cc_nome: tipo === 'pagar'
+            ? ((item.centro_custo as { nome?: string } | null)?.nome || null)
+            : (contratoData?.centros_custo?.nome || null),
           categoria_id: item.categoria_id as string | null,
           categoria_nome: (item.categoria as { nome?: string } | null)?.nome || null,
-          setor_id: null, // contas_pagar não tem setor_id
+          setor_id: null,
           setor_nome: null,
           fornecedor: (item.favorecido_fornecedor as string) || undefined,
           cliente_nome: (item.cliente as { nome_razao_social?: string } | null)?.nome_razao_social,
+          contrato_id: item.contrato_id as string | undefined,
           matchScore,
           matchReason,
         };
@@ -240,7 +286,7 @@ export function useVincularLancamento() {
         updateData.conta_pagar_id = contaPagarId;
       }
       if (contaReceberId) {
-        updateData.conta_receber_id = contaReceberId;
+        updateData.fatura_id = contaReceberId; // FK para faturas (receita)
       }
 
       const { error: lancError } = await supabase
@@ -255,7 +301,7 @@ export function useVincularLancamento() {
 
       // Se valor parcial, atualizar status da conta para 'parcial'
       if (valorParcial) {
-        const tabela = contaPagarId ? 'contas_pagar' : 'contas_receber';
+        const tabela = contaPagarId ? 'contas_pagar' : 'faturas';
         const contaId = contaPagarId || contaReceberId;
 
         const { error: contaError } = await supabase
@@ -269,9 +315,9 @@ export function useVincularLancamento() {
         }
       } else {
         // Marcar conta como paga/recebida
-        const tabela = contaPagarId ? 'contas_pagar' : 'contas_receber';
+        const tabela = contaPagarId ? 'contas_pagar' : 'faturas';
         const contaId = contaPagarId || contaReceberId;
-        const statusFinal = contaPagarId ? 'pago' : 'conciliado';
+        const statusFinal = 'pago'; // Both contas_pagar and faturas accept 'pago'
 
         const { error: contaError } = await supabase
           .from(tabela)

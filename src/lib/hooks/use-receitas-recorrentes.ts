@@ -96,7 +96,7 @@ export function useReceitasRecorrentes() {
       // Para cada contrato, calcular parcelas pagas
       const receitasPromises = (contratos || []).map(async (contrato) => {
         const { count: parcelasPagas } = await supabase
-          .from('contas_receber')
+          .from('faturas')
           .select('*', { count: 'exact', head: true })
           .eq('contrato_id', contrato.id)
           .eq('status', 'pago');
@@ -119,11 +119,11 @@ export function useReceitasRecorrentes() {
         let status: 'em_dia' | 'atrasado' | 'parcial' = 'em_dia';
         // Check for overdue payments
         const { count: atrasadas } = await supabase
-          .from('contas_receber')
+          .from('faturas')
           .select('*', { count: 'exact', head: true })
           .eq('contrato_id', contrato.id)
           .lt('vencimento', hoje.toISOString().split('T')[0])
-          .in('status', ['em_aberto', 'pendente']);
+          .in('status', ['pendente', 'em_aberto']);
 
         if ((atrasadas ?? 0) > 0) {
           status = 'atrasado';
@@ -160,25 +160,26 @@ export function useParcelasPendentes() {
       const hoje = new Date().toISOString().split('T')[0];
 
       const { data, error } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .select(`
           id,
           cliente_id,
           contrato_id,
-          os_id,
-          cc_id,
-          parcela,
-          valor_previsto,
-          valor_recebido,
+          parcela_descricao,
+          valor_original,
+          valor_final,
           vencimento,
           status,
           parcela_num,
-          total_parcelas,
           clientes!inner (
             nome_razao_social
+          ),
+          contratos (
+            parcelas_total,
+            cc_id
           )
         `)
-        .in('status', ['em_aberto', 'pendente', 'parcial'])
+        .in('status', ['pendente', 'em_aberto', 'parcial'])
         .order('vencimento', { ascending: true })
         .limit(50);
 
@@ -194,21 +195,25 @@ export function useParcelasPendentes() {
           ? item.clientes[0] as unknown as { nome_razao_social: string } 
           : item.clientes as unknown as { nome_razao_social: string } | null;
 
+        const contratoData = Array.isArray(item.contratos)
+          ? item.contratos[0] as unknown as { parcelas_total: number; cc_id: string | null }
+          : item.contratos as unknown as { parcelas_total: number; cc_id: string | null } | null;
+
         return {
           id: item.id,
           cliente_id: item.cliente_id,
           cliente_nome: clienteData?.nome_razao_social ?? 'Cliente',
           contrato_id: item.contrato_id,
-          os_id: item.os_id,
-          cc_id: item.cc_id,
-          descricao: item.parcela || 'Parcela',
-          valor_previsto: Number(item.valor_previsto),
-          valor_recebido: Number(item.valor_recebido || 0),
+          os_id: null,
+          cc_id: contratoData?.cc_id ?? null,
+          descricao: item.parcela_descricao || 'Parcela',
+          valor_previsto: Number(item.valor_original),
+          valor_recebido: Number(item.valor_final || 0),
           vencimento: item.vencimento,
           status: item.status,
           dias_atraso: diffDays > 0 ? diffDays : 0,
           parcela_num: item.parcela_num,
-          total_parcelas: item.total_parcelas,
+          total_parcelas: contratoData?.parcelas_total ?? 0,
         };
       });
     },
@@ -224,21 +229,38 @@ export function useParcelasContrato(contratoId: string) {
     queryKey: ['parcelas-contrato', contratoId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('contas_receber')
-        .select('*')
+        .from('faturas')
+        .select(`
+          id,
+          parcela_num,
+          vencimento,
+          valor_original,
+          status,
+          data_pagamento,
+          contrato_id,
+          contratos (
+            parcelas_total
+          )
+        `)
         .eq('contrato_id', contratoId)
         .order('parcela_num', { ascending: true });
 
       if (error) throw error;
 
-      return (data || []).map((item) => ({
-        id: item.id,
-        parcela: `${item.parcela_num}/${item.total_parcelas}`,
-        vencimento: item.vencimento,
-        valor: Number(item.valor_previsto),
-        status: item.status,
-        dataPagamento: item.data_recebimento,
-      }));
+      return (data || []).map((item) => {
+        const contratoData = Array.isArray(item.contratos)
+          ? item.contratos[0] as unknown as { parcelas_total: number }
+          : item.contratos as unknown as { parcelas_total: number } | null;
+
+        return {
+          id: item.id,
+          parcela: `${item.parcela_num}/${contratoData?.parcelas_total ?? '?'}`,
+          vencimento: item.vencimento,
+          valor: Number(item.valor_original),
+          status: item.status,
+          dataPagamento: item.data_pagamento,
+        };
+      });
     },
     enabled: !!contratoId,
     staleTime: 5 * 60 * 1000,
@@ -256,10 +278,10 @@ export function useReceitasKPIs() {
       const firstDayOfMonth = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
       const lastDayOfMonth = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0];
 
-      // Receitas do mês
+      // Receitas do mês (faturas)
       const { data: receitasMes } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto, valor_recebido, status')
+        .from('faturas')
+        .select('valor_original, valor_final, status')
         .gte('vencimento', firstDayOfMonth)
         .lte('vencimento', lastDayOfMonth);
 
@@ -269,21 +291,21 @@ export function useReceitasKPIs() {
         .select('*', { count: 'exact', head: true })
         .in('status', ['ativo', 'em_andamento']);
 
-      const totalReceitasMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_previsto || 0), 0) ?? 0;
-      const recebidoMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_recebido || 0), 0) ?? 0;
+      const totalReceitasMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_original || 0), 0) ?? 0;
+      const recebidoMes = receitasMes?.reduce((acc, r) => acc + Number(r.valor_final || 0), 0) ?? 0;
       const pendenteMes = receitasMes
         ?.filter(r => r.status !== 'pago')
-        .reduce((acc, r) => acc + (Number(r.valor_previsto) - Number(r.valor_recebido || 0)), 0) ?? 0;
+        .reduce((acc, r) => acc + (Number(r.valor_original) - Number(r.valor_final || 0)), 0) ?? 0;
 
       // Valores atrasados
       const { data: atrasados } = await supabase
-        .from('contas_receber')
-        .select('valor_previsto, valor_recebido')
+        .from('faturas')
+        .select('valor_original, valor_final')
         .lt('vencimento', hoje.toISOString().split('T')[0])
-        .in('status', ['em_aberto', 'pendente']);
+        .in('status', ['pendente', 'em_aberto']);
 
       const atrasadoMes = atrasados?.reduce((acc, r) => 
-        acc + (Number(r.valor_previsto) - Number(r.valor_recebido || 0)), 0) ?? 0;
+        acc + (Number(r.valor_original) - Number(r.valor_final || 0)), 0) ?? 0;
 
       return {
         totalReceitasMes,
@@ -307,11 +329,11 @@ export function useMarcarRecebido() {
   return useMutation({
     mutationFn: async ({ parcelaId, valorRecebido }: { parcelaId: string; valorRecebido: number }) => {
       const { error } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .update({
-          valor_recebido: valorRecebido,
+          valor_final: valorRecebido,
           status: 'pago',
-          data_recebimento: new Date().toISOString(),
+          data_pagamento: new Date().toISOString(),
         })
         .eq('id', parcelaId);
 

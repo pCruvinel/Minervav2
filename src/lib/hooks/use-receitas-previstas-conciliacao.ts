@@ -1,7 +1,7 @@
 /**
  * use-receitas-previstas-conciliacao.ts
  *
- * Hook e funções puras para listar receitas previstas (contas_receber)
+ * Hook e funções puras para listar receitas previstas (faturas)
  * pendentes para uso na conciliação bancária de Entradas.
  *
  * @example
@@ -93,30 +93,28 @@ export function calcularDiasAtraso(vencimento: string): number {
 
 /**
  * Hook para listar receitas previstas pendentes para conciliação de Entradas.
- * Busca contas_receber com status pendente, formata com descrição amigável.
+ * Busca faturas com status pendente, formata com descrição amigável.
  */
 export function useReceitasPrevistasConciliacao(enabled: boolean = true) {
   return useQuery({
     queryKey: ['receitas-previstas-conciliacao'],
     queryFn: async (): Promise<ReceitaPrevistaConciliacao[]> => {
       const { data, error } = await supabase
-        .from('contas_receber')
+        .from('faturas')
         .select(`
           id,
           cliente_id,
-          parcela,
+          parcela_descricao,
           parcela_num,
-          total_parcelas,
-          valor_previsto,
-          valor_recebido,
+          valor_original,
+          valor_final,
           vencimento,
           status,
-          cc_id,
           contrato_id,
           clientes!inner ( nome_razao_social ),
-          centro_custo:centros_custo ( nome )
+          contratos ( cc_id, parcelas_total, centros_custo:centros_custo ( nome ) )
         `)
-        .in('status', ['em_aberto', 'inadimplente', 'parcial', 'pendente'])
+        .in('status', ['pendente', 'em_aberto', 'inadimplente', 'parcial'])
         .order('vencimento', { ascending: true })
         .limit(100);
 
@@ -124,22 +122,22 @@ export function useReceitasPrevistasConciliacao(enabled: boolean = true) {
 
       return (data || []).map((item: Record<string, unknown>) => {
         const clienteData = item.clientes as { nome_razao_social?: string } | null;
-        const ccData = item.centro_custo as { nome?: string } | null;
+        const contratoData = item.contratos as { cc_id?: string; parcelas_total?: number; centros_custo?: { nome?: string } | null } | null;
         const clienteNome = clienteData?.nome_razao_social;
         const parcelaNum = item.parcela_num as number;
-        const totalParcelas = item.total_parcelas as number;
+        const totalParcelas = contratoData?.parcelas_total ?? 0;
 
         return {
           id: item.id as string,
           descricaoFormatada: formatarDescricaoParcela(parcelaNum, totalParcelas, clienteNome),
-          valor_previsto: Number(item.valor_previsto),
-          valor_recebido: Number(item.valor_recebido || 0),
+          valor_previsto: Number(item.valor_original),
+          valor_recebido: Number(item.valor_final || 0),
           vencimento: item.vencimento as string,
           status: item.status as string,
           dias_atraso: calcularDiasAtraso(item.vencimento as string),
           cliente_nome: clienteNome,
-          cc_nome: ccData?.nome || null,
-          cc_id: item.cc_id as string | null,
+          cc_nome: contratoData?.centros_custo?.nome || null,
+          cc_id: contratoData?.cc_id as string | null ?? null,
           parcela_num: parcelaNum,
           total_parcelas: totalParcelas,
           contrato_id: item.contrato_id as string | null,

@@ -1335,8 +1335,13 @@ export function OS14WorkflowPage({
   const isCurrentStepInvalid = useMemo(() => {
     if (isHistoricalNavigation) return false;
     if (currentStep <= 2) return false; // Etapas 1-2 são via LeadCadastro/TipoOS
-    return !completedSteps.includes(currentStep);
-  }, [currentStep, isHistoricalNavigation, completedSteps]);
+    // ✅ FIX: Não bloquear o botão via isFormInvalid para etapas >= 3.
+    // A validação real acontece no handleNextStep() via refs imperativas e schemas Zod.
+    // O check anterior (!completedSteps.includes(currentStep)) era incorreto porque
+    // completedSteps só contém etapas com status='concluida' no banco, e a etapa ativa
+    // sempre está como 'em_andamento', resultando em botão permanentemente desabilitado.
+    return false;
+  }, [currentStep, isHistoricalNavigation]);
 
   // ✅ Calcular ID da etapa atual para passar aos componentes filhos
   const currentStepEtapa = etapas?.find(e => e.ordem === currentStep);
@@ -1420,6 +1425,9 @@ export function OS14WorkflowPage({
                             qtdPavimentos: data.edificacao.qtdPavimentos,
                             possuiElevador: data.edificacao.possuiElevador,
                             possuiPiscina: data.edificacao.possuiPiscina,
+                            // R11-6 / R11-7
+                            qtdElevadores: data.edificacao.qtdElevadores || '',
+                            qtdPiscinas: data.edificacao.qtdPiscinas || '',
                             // Endereco
                             cep: data.endereco.cep,
                             rua: data.endereco.rua,
@@ -1608,6 +1616,7 @@ export function OS14WorkflowPage({
                           ...etapa13Data,
                           osId: osId!, // ✅ FIX: Passar osId para upload funcionar
                           codigoOS: os?.codigo_os || '',
+                          tipoOsId: os?.tipo_os_id || undefined,
                           clienteNome: etapa1Data?.nome || os?.cliente?.nome_razao_social || '',
                           clienteCpfCnpj: etapa1Data?.cpfCnpj || '',
                           valorContrato: valorTotalCalc,

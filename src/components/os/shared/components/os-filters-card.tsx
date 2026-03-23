@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User } from '@/lib/types';
 import { useTiposOS } from '@/lib/hooks/use-tipos-os';
-import { mockUsers } from '@/lib/mock-data';
+import { useColaboradoresPerfil } from '@/lib/hooks/use-colaboradores-perfil';
 
 interface OSFiltersCardProps {
   currentUser: User;
@@ -35,6 +35,8 @@ export function OSFiltersCard({
 }: OSFiltersCardProps) {
   // Carregar tipos de OS do backend
   const { tiposOS, loading: loadingTipos } = useTiposOS();
+  // Carregar colaboradores reais do Supabase
+  const { data: colaboradores, isLoading: loadingColabs } = useColaboradoresPerfil();
 
   const canViewSetorFilter = currentUser.role === 'diretoria' || currentUser.role === 'gestor_adm';
   const canViewResponsavelFilter = currentUser.role !== 'colaborador';
@@ -101,15 +103,15 @@ export function OSFiltersCard({
 
           {/* Filtro por Responsável (não visível para Colaborador) */}
           {canViewResponsavelFilter && (
-            <Select value={responsavelFilter} onValueChange={onResponsavelChange}>
+            <Select value={responsavelFilter} onValueChange={onResponsavelChange} disabled={loadingColabs}>
               <SelectTrigger>
-                <SelectValue placeholder="Filtrar por Responsável" />
+                <SelectValue placeholder={loadingColabs ? "Carregando..." : "Filtrar por Responsável"} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos os Responsáveis</SelectItem>
-                {mockUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {user.name}
+                {(colaboradores || []).map((colab) => (
+                  <SelectItem key={colab.id} value={colab.id}>
+                    {colab.nome_completo}
                   </SelectItem>
                 ))}
               </SelectContent>

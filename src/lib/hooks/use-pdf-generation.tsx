@@ -7,7 +7,7 @@ import { uploadPDFToStorage } from '@/lib/pdf/pdf-uploader';
 
 // Templates imports
 import PropostaTemplate from '@/lib/pdf/templates/proposta-template';
-import { ContratoTemplate } from '@/lib/pdf/templates/contrato-template';
+
 import { MemorialTemplate } from '@/lib/pdf/templates/memorial-template';
 import { DocumentoSSTTemplate } from '@/lib/pdf/templates/documento-sst-template';
 import ParecerReformaTemplate from '@/lib/pdf/templates/parecer-reforma-template';
@@ -53,8 +53,7 @@ export function usePDFGeneration(): UsePDFGenerationReturn {
           DocumentComponent = <PropostaTemplate data={dados} />;
           break;
         case 'contrato':
-          DocumentComponent = <ContratoTemplate data={dados} />;
-          break;
+          throw new Error('Contratos agora usam upload de arquivo. Acesse Configurações → Ordens de Serviço → Contratos.');
         case 'memorial':
           DocumentComponent = <MemorialTemplate data={dados} />;
           break;

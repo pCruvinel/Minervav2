@@ -46,6 +46,17 @@ export interface StepAgendarApresentacaoHandle {
 }
 
 // =====================================================
+// CONSTANTES — mapeamento setor → cargo coordenador
+// =====================================================
+
+const SETOR_COORDENADOR_MAP: Record<string, string[]> = {
+  obras:          ['coord_obras'],
+  assessoria:     ['coord_assessoria'],
+  administrativo: ['coord_administrativo'],
+  comercial:      ['operacional_comercial'], // Comercial não tem coordenador dedicado
+};
+
+// =====================================================
 // COMPONENTE
 // =====================================================
 
@@ -153,6 +164,7 @@ export const StepAgendarApresentacao = forwardRef<
           categoria="apresentacao"
           setorSlug={setorSlug}
           setorFiltro={setorSlug}
+          cargoFiltro={SETOR_COORDENADOR_MAP[setorSlug]}
           agendamentoExistente={
             data.agendamentoId
               ? {

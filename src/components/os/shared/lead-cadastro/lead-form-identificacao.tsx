@@ -21,7 +21,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FormMaskedInput, validarCPF, validarCNPJ, validarTelefone } from '@/components/ui/form-masked-input';
 import { FormInput } from '@/components/ui/form-input';
-import type { LeadIdentificacao, TipoCliente, TipoEmpresa } from './types';
+import type { LeadIdentificacao, TipoCliente } from './types';
 
 interface LeadFormIdentificacaoProps {
     /** Dados do formulário */
@@ -78,33 +78,7 @@ export function LeadFormIdentificacao({
                 )}
             </div>
 
-            {/* Tipo de Empresa (apenas PJ) */}
-            {isJuridica && (
-                <div className="space-y-2">
-                    <Label htmlFor="tipoEmpresa">
-                        Tipo de Empresa <span className="text-destructive">*</span>
-                    </Label>
-                    <Select
-                        value={data.tipoEmpresa || ''}
-                        onValueChange={(value: TipoEmpresa) => handleChange('tipoEmpresa', value)}
-                        disabled={readOnly}
-                    >
-                        <SelectTrigger id="tipoEmpresa" className={errors.tipoEmpresa ? 'border-destructive' : ''}>
-                            <SelectValue placeholder="Selecione o tipo de empresa" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="condominio">Condomínio</SelectItem>
-                            <SelectItem value="empresa_privada">Empresa Privada</SelectItem>
-                            <SelectItem value="orgao_publico">Órgão Público</SelectItem>
-                            <SelectItem value="associacao">Associação</SelectItem>
-                            <SelectItem value="outro">Outro</SelectItem>
-                        </SelectContent>
-                    </Select>
-                    {errors.tipoEmpresa && (
-                        <p className="text-sm text-destructive">{errors.tipoEmpresa}</p>
-                    )}
-                </div>
-            )}
+            {/* R11-5: Campo "Tipo de Empresa" removido — Val: "essa informação não é relevante" */}
 
             {/* Nome / Razão Social */}
             <FormInput

@@ -116,30 +116,45 @@ export function ModalDetalhesDia({ open, onClose, celula, onSuccess }: ModalDeta
                   Aniversariantes ({aniversarios.length})
                 </h3>
                 <div className="space-y-1.5">
-                  {aniversarios.map(aniv => (
+                  {aniversarios.map(aniv => {
+                    const isCliente = aniv.tipo === 'cliente';
+                    return (
                     <div
                       key={aniv.id}
-                      className="flex items-center gap-3 p-2.5 rounded-lg bg-pink-50 dark:bg-pink-950/20 border border-pink-200/50 dark:border-pink-800/30"
+                      className={`flex items-center gap-3 p-2.5 rounded-lg border ${
+                        isCliente
+                          ? 'bg-blue-50 dark:bg-blue-950/20 border-blue-200/50 dark:border-blue-800/30'
+                          : 'bg-pink-50 dark:bg-pink-950/20 border-pink-200/50 dark:border-pink-800/30'
+                      }`}
                     >
                       {aniv.avatarUrl ? (
                         <img
                           src={aniv.avatarUrl}
                           alt={aniv.nome}
-                          className="w-8 h-8 rounded-full object-cover ring-2 ring-pink-200"
+                          className={`w-8 h-8 rounded-full object-cover ring-2 ${isCliente ? 'ring-blue-200' : 'ring-pink-200'}`}
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-pink-200 dark:bg-pink-800 flex items-center justify-center text-sm">
-                          🎂
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
+                          isCliente ? 'bg-blue-200 dark:bg-blue-800' : 'bg-pink-200 dark:bg-pink-800'
+                        }`}>
+                          {isCliente ? '🏢' : '🎂'}
                         </div>
                       )}
                       <div>
                         <div className="text-sm font-medium text-foreground">{aniv.nome}</div>
-                        {aniv.cargo && (
+                        {isCliente && aniv.empresa && (
+                          <div className="text-xs text-muted-foreground">{aniv.empresa}</div>
+                        )}
+                        {!isCliente && aniv.cargo && (
                           <div className="text-xs text-muted-foreground">{aniv.cargo}</div>
                         )}
+                        <div className="text-[10px] text-muted-foreground/70 mt-0.5">
+                          {isCliente ? 'Contratante' : 'Colaborador'}
+                        </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

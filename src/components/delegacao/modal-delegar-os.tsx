@@ -3,7 +3,7 @@
 
 import { logger } from '@/lib/utils/logger';
 import React, { useState, useMemo } from 'react';
-import { X, UserPlus, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { UserPlus, Calendar, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 import { Label } from '../ui/label';
 import { Input } from '../ui/input';
@@ -14,8 +14,8 @@ import { Badge } from '../ui/badge';
 import { Avatar, AvatarImage, AvatarFallback } from '../ui/avatar';
 import { toast } from '../../lib/utils/safe-toast';
 import { useAuth } from '../../lib/contexts/auth-context';
-import { User, OrdemServico, Delegacao, podeDelegar, isGestor, isAdminOuDiretoria, ROLE_LABELS } from '../../lib/types';
-import { mockUsers } from '../../lib/mock-data';
+import { OrdemServico, Delegacao, podeDelegar, isGestor, isAdminOuDiretoria, ROLE_LABELS } from '../../lib/types';
+import { useColaboradoresPerfil, ColaboradorPerfil } from '../../lib/hooks/use-colaboradores-perfil';
 import { ordensServicoAPI } from '../../lib/api-client';
 
 interface ModalDelegarOSProps {
@@ -32,7 +32,8 @@ export function ModalDelegarOS({
   onDelegarSuccess 
 }: ModalDelegarOSProps) {
   const { currentUser } = useAuth();
-  const [selectedColaborador, setSelectedColaborador] = useState<User | null>(null);
+  const { data: todosColaboradores } = useColaboradoresPerfil();
+  const [selectedColaborador, setSelectedColaborador] = useState<ColaboradorPerfil | null>(null);
   const [descricaoTarefa, setDescricaoTarefa] = useState('');
   const [observacoes, setObservacoes] = useState('');
   const [dataPrazo, setDataPrazo] = useState('');
@@ -40,17 +41,17 @@ export function ModalDelegarOS({
 
   // Filtrar colaboradores disponíveis para delegação
   const colaboradoresDisponiveis = useMemo(() => {
-    if (!currentUser) return [];
+    if (!currentUser || !todosColaboradores) return [];
 
     // Verificar se usuário atual pode delegar
     if (!podeDelegar(currentUser)) return [];
 
-    return mockUsers.filter(user => {
+    return todosColaboradores.filter(colab => {
       // Não delegar para si mesmo
-      if (user.id === currentUser.id) return false;
+      if (colab.id === currentUser.id) return false;
 
       // Não delegar para mao_de_obra (sem acesso ao sistema)
-      if (user.cargo_slug === 'mao_de_obra') return false;
+      if (colab.role_slug === 'colaborador_obra') return false;
 
       // Admin e Diretoria podem delegar para qualquer um
       if (isAdminOuDiretoria(currentUser)) return true;
@@ -60,12 +61,12 @@ export function ModalDelegarOS({
 
       // Gestor de setor pode delegar apenas para seu setor
       if (isGestor(currentUser)) {
-        return user.setor_slug === currentUser.setor_slug;
+        return colab.setor_slug === currentUser.setor_slug;
       }
 
       return false;
     });
-  }, [currentUser]);
+  }, [currentUser, todosColaboradores]);
 
   // Resetar form ao abrir
   React.useEffect(() => {
@@ -254,7 +255,7 @@ export function ModalDelegarOS({
                   >
                     <div className="flex items-center gap-3">
                       <Avatar className="w-10 h-10">
-                        <AvatarImage src={colaborador.avatar_url} alt={colaborador.nome_completo} />
+                        <AvatarImage src={colaborador.avatar_url || undefined} alt={colaborador.nome_completo} />
                         <AvatarFallback className="bg-primary/10 text-primary text-sm">
                           {getInitials(colaborador.nome_completo)}
                         </AvatarFallback>
@@ -277,7 +278,7 @@ export function ModalDelegarOS({
                             {getRoleLabel(colaborador.cargo_slug || '')}
                           </Badge>
                           <span className="text-xs text-muted-foreground capitalize">
-                            {colaborador.setor_slug || colaborador.setor || ''}
+                            {colaborador.setor_nome || colaborador.setor_slug || ''}
                           </span>
                         </div>
                       </div>

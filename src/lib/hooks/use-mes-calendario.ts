@@ -116,6 +116,14 @@ const mesAPI = {
 
     if (errorColabs) throw errorColabs;
 
+    // 2.1.1 v2.1: Buscar aniversários de clientes (contratantes)
+    const { data: clientes, error: errorClientes } = await supabase
+      .from('clientes')
+      .select('id, nome_razao_social, data_nascimento')
+      .not('data_nascimento', 'is', null);
+
+    if (errorClientes) throw errorClientes;
+
     // 2.2 v3.0: Buscar bloqueios ativos do período (feriados, manutenção, etc.)
     const { data: bloqueiosDB, error: errorBloqueios } = await supabase
       .from('calendario_bloqueios')
@@ -234,6 +242,30 @@ const mesAPI = {
         dataCompleta: colab.data_nascimento,
         avatarUrl: colab.avatar_url,
         cargo: colab.funcao,
+      };
+
+      const lista = aniversariosPorDia.get(chaveDia) || [];
+      lista.push(aniversario);
+      aniversariosPorDia.set(chaveDia, lista);
+    });
+
+    // 6.1.1 v2.1: Processar aniversários de clientes (contratantes)
+    (clientes || []).forEach(cliente => {
+      if (!cliente.data_nascimento) return;
+
+      const dataNasc = new Date(cliente.data_nascimento + 'T00:00:00');
+      const mesNasc = dataNasc.getMonth() + 1;
+      const diaNasc = dataNasc.getDate();
+
+      const chaveDia = `${String(mesNasc).padStart(2, '0')}-${String(diaNasc).padStart(2, '0')}`;
+
+      const aniversario: AniversarioCalendario = {
+        id: cliente.id,
+        nome: cliente.nome_razao_social || 'Cliente',
+        tipo: 'cliente',
+        data: chaveDia,
+        dataCompleta: cliente.data_nascimento,
+        empresa: cliente.nome_razao_social,
       };
 
       const lista = aniversariosPorDia.get(chaveDia) || [];

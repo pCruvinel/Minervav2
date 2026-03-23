@@ -541,6 +541,7 @@ export function OS56WorkflowPage({
                                 ...etapa10Data,
                                 osId: finalOsId || '',
                                 codigoOS: os?.codigo_os || '',
+                                tipoOsId: os?.tipo_os_id || undefined,
                                 clienteNome: String(etapa1Data.nome || etapa1Data.nomeFantasia || ''),
                                 clienteCpfCnpj: String(etapa1Data.cpfCnpj || ''),
                                 valorContrato: valoresFinanceiros.valorTotal,

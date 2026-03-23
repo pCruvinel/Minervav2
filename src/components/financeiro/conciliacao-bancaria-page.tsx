@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   RefreshCw,
   UserCheck,
+  Wallet,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/page-header';
 import { cn } from '../ui/utils';
@@ -31,22 +32,17 @@ import {
   useLancamentosBancarios,
   useLancamentosBancariosStats,
   useSyncExtrato,
+  useAutoSyncExtrato,
   MOCK_LANCAMENTOS,
-  useCoraBalance,
   type LancamentoBancario,
   type LancamentoBancarioStatus
 } from '@/lib/hooks/use-lancamentos-bancarios';
 
 import { useCentroCusto } from '@/lib/hooks/use-centro-custo';
 import { useQuery } from '@tanstack/react-query';
-
-const SETORES_OPTIONS: MultiSelectOption[] = [
-  { label: 'Administrativo', value: 'Administrativo' },
-  { label: 'Obras', value: 'Obras' },
-  { label: 'Assessoria', value: 'Assessoria' },
-  { label: 'Diretoria', value: 'Diretoria' },
-  { label: 'TI', value: 'TI' }
-];
+import { SETORES_CONCILIACAO_OPTIONS } from '@/lib/constants/conciliacao';
+import { format as fnsFormat } from 'date-fns';
+import { useReceitasPrevistasConciliacao } from '@/lib/hooks/use-receitas-previstas-conciliacao';
 
 const STATUS_OPTIONS: { value: LancamentoBancarioStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Todos' },
@@ -82,12 +78,16 @@ export function ConciliacaoBancariaPage() {
   });
   
   // 3. Hook de Saldo Real (Banco)
-  // Como useCoraBalance não foi exportado no import original, assumindo que foi adicionado ao arquivo
-  // Precisamos importar ele. Como é o mesmo arquivo, vou adicionar na lista de imports manuais se necessário
-  // mas aqui estamos editando o componente. Vou usar via import atualizado.
-  const { data: saldoBanco, isLoading: isLoadingSaldo } = useCoraBalance();
 
   const syncMutation = useSyncExtrato();
+  const { lastSyncAt } = useAutoSyncExtrato();
+
+  // Hook: receitas previstas para painel de previsão
+  const { data: receitasPrevistas = [] } = useReceitasPrevistasConciliacao();
+  const receitasVencidas = useMemo(
+    () => receitasPrevistas.filter(r => r.dias_atraso > 0).length,
+    [receitasPrevistas]
+  );
 
   // Buscar Centros de Custo para o filtro
   const { listCentrosCusto } = useCentroCusto();
@@ -222,28 +222,8 @@ export function ConciliacaoBancariaPage() {
         showBackButton
       />
 
-      {/* Cartão de Saldo Real (Banco Cora) */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-         <div className="md:col-span-1 rounded-xl border bg-card text-card-foreground shadow-sm p-4 flex flex-col justify-between relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-3 opacity-10">
-               <DollarSign className="w-16 h-16 text-primary" />
-            </div>
-            <div>
-               <p className="text-sm text-muted-foreground font-medium mb-1">Saldo Atual</p>
-               {isLoadingSaldo ? (
-                 <div className="h-8 w-32 bg-muted animate-pulse rounded" />
-               ) : (
-                 <h2 className="text-2xl font-bold text-primary">{formatCurrency(saldoBanco?.disponivel ?? 0)}</h2>
-               )}
-            </div>
-            <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-               <div className={`w-2 h-2 rounded-full ${saldoBanco ? 'bg-success' : 'bg-warning'}`} />
-               {saldoBanco ? 'Sincronizado' : 'Verificando...'}
-            </div>
-         </div>
-
-         {/* KPIs Filtrados */}
-         <div className="md:col-span-3 grid grid-cols-3 gap-4">
+      {/* KPIs Filtrados */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
              <div className="rounded-xl border bg-card/50 p-4 flex flex-col justify-center">
                 <div className="flex items-center gap-2 mb-1">
                    <div className="p-1 rounded bg-success/10">
@@ -274,8 +254,55 @@ export function ConciliacaoBancariaPage() {
                 <span className={cn("text-xl font-semibold", saldo >= 0 ? "text-primary" : "text-destructive")}>
                    {formatCurrency(saldo)}
                 </span>
-             </div>
-         </div>
+             </div>\n      </div>
+
+      {/* Painel de Previsão (#50) */}
+      <div className="rounded-xl border bg-card/50 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Wallet className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold">Previsão Financeira</h3>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Receitas Previstas do Mês */}
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Receitas Previstas</p>
+            <p className="text-lg font-bold text-primary tabular-nums">
+              {formatCurrency(receitasPrevistas.reduce((acc, r) => acc + r.valor_previsto, 0))}
+            </p>
+            <p className="text-[10px] text-muted-foreground">{receitasPrevistas.length} parcela(s) pendentes</p>
+          </div>
+
+          {/* Faturas Vencidas */}
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Faturas Vencidas</p>
+            <p className={cn(
+              "text-lg font-bold tabular-nums",
+              receitasVencidas > 0 ? 'text-destructive' : 'text-muted-foreground'
+            )}>
+              {receitasVencidas}
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {receitasVencidas > 0
+                ? formatCurrency(receitasPrevistas.filter(r => r.dias_atraso > 0).reduce((acc, r) => acc + r.valor_previsto, 0))
+                : 'Nenhuma vencida'
+              }
+            </p>
+          </div>
+
+          {/* Pendentes de Conciliação */}
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Pendentes</p>
+            <p className="text-lg font-bold text-warning tabular-nums">{stats?.pendentes ?? 0}</p>
+            <p className="text-[10px] text-muted-foreground">lançamentos a classificar</p>
+          </div>
+
+          {/* % Conciliado */}
+          <div className="rounded-lg border bg-background p-3">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">Conciliado</p>
+            <p className="text-lg font-bold text-success tabular-nums">{stats?.percentualConciliado ?? 0}%</p>
+            <p className="text-[10px] text-muted-foreground">{stats?.conciliados ?? 0} de {stats?.total ?? 0}</p>
+          </div>
+        </div>
       </div>
 
       {/* Filtros Compactos */}
@@ -301,7 +328,7 @@ export function ConciliacaoBancariaPage() {
 
             {/* Setores */}
             <MultiSelect
-              options={SETORES_OPTIONS}
+              options={SETORES_CONCILIACAO_OPTIONS}
               selected={filtroSetores}
               onChange={setFiltroSetores}
               placeholder="Setores"
@@ -336,6 +363,11 @@ export function ConciliacaoBancariaPage() {
                 <RefreshCw className={cn("h-4 w-4", syncMutation.isPending && "animate-spin")} />
                 {syncMutation.isPending ? 'Sincronizando...' : 'Sincronizar'}
               </Button>
+              {lastSyncAt && (
+                <span className="text-[10px] text-muted-foreground self-center">
+                  Última sync: {fnsFormat(lastSyncAt, 'HH:mm')}
+                </span>
+              )}
               <Button variant="outline" size="sm" onClick={handleExportarPDF} className="h-9 w-9 p-0" title="Exportar PDF">
                 <FileText className="h-4 w-4" />
               </Button>

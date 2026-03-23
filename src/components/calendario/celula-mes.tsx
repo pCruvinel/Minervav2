@@ -97,20 +97,31 @@ function CelulaMesComponent({ celula, onClick }: CelulaMesProps) {
           {dia}
         </span>
 
-        {/* Birthday badge */}
-        {aniversarios.length > 0 && (
-          <span
-            className="text-[10px] lg:text-xs bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300 px-1 py-0.5 rounded-full leading-none flex items-center gap-0.5 max-w-[65%] truncate"
-            title={aniversarios.map(a => a.nome).join(', ')}
-          >
-            🎂
-            <span className="truncate hidden sm:inline">
-              {aniversarios.length === 1
-                ? primeiroNome(aniversarios[0].nome)
-                : `${aniversarios.length}`}
+        {/* Birthday badge — diferencia colaboradores (🎂) e clientes (🏢) */}
+        {aniversarios.length > 0 && (() => {
+          const colabs = aniversarios.filter(a => a.tipo === 'colaborador');
+          const clientes = aniversarios.filter(a => a.tipo === 'cliente');
+          const emoji = clientes.length > 0 && colabs.length === 0 ? '🏢' : '🎂';
+          const isClientOnly = clientes.length > 0 && colabs.length === 0;
+          return (
+            <span
+              className={cn(
+                'text-[10px] lg:text-xs px-1 py-0.5 rounded-full leading-none flex items-center gap-0.5 max-w-[65%] truncate',
+                isClientOnly
+                  ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                  : 'bg-pink-100 dark:bg-pink-900/30 text-pink-700 dark:text-pink-300'
+              )}
+              title={aniversarios.map(a => `${a.nome} (${a.tipo === 'cliente' ? 'Cliente' : 'Colab.'})`).join(', ')}
+            >
+              {emoji}
+              <span className="truncate hidden sm:inline">
+                {aniversarios.length === 1
+                  ? primeiroNome(aniversarios[0].nome)
+                  : `${aniversarios.length}`}
+              </span>
             </span>
-          </span>
-        )}
+          );
+        })()}
       </div>
 
       {/* Row 2: Feriado badge */}

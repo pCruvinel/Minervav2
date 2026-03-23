@@ -83,6 +83,8 @@ const EMPTY_EDIFICACAO: LeadEdificacao = {
     tipoTelhado: '',
     possuiElevador: false,
     possuiPiscina: false,
+    qtdElevadores: '',
+    qtdPiscinas: '',
 };
 
 const EMPTY_ENDERECO: LeadEndereco = {
@@ -179,6 +181,8 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                         tipoTelhado: (endData.tipo_telhado as string) || '',
                         possuiElevador: (endData.possui_elevador as boolean) || false,
                         possuiPiscina: (endData.possui_piscina as boolean) || false,
+                        qtdElevadores: endData.qtd_elevadores != null ? String(endData.qtd_elevadores) : '',
+                        qtdPiscinas: endData.qtd_piscinas != null ? String(endData.qtd_piscinas) : '',
                     });
 
                     setEndereco({
@@ -214,9 +218,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
             if (!identificacao.telefone) newErrors.telefone = 'Telefone é obrigatório';
             if (!identificacao.email) newErrors.email = 'Email é obrigatório';
 
-            if (identificacao.tipo === 'juridica' && !identificacao.tipoEmpresa) {
-                newErrors.tipoEmpresa = 'Tipo de empresa é obrigatório';
-            }
+            // R11-5: Campo "Tipo de Empresa" removido — Val: "essa informação não é relevante"
 
             // Edificação (se habilitado)
             if (showEdificacao) {
@@ -319,6 +321,9 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                     tipo_telhado: edificacao.tipoTelhado,
                     possui_elevador: edificacao.possuiElevador,
                     possui_piscina: edificacao.possuiPiscina,
+                    // R11-6 / R11-7: Quantidades condicionais
+                    qtd_elevadores: edificacao.qtdElevadores ? parseInt(edificacao.qtdElevadores) : null,
+                    qtd_piscinas: edificacao.qtdPiscinas ? parseInt(edificacao.qtdPiscinas) : null,
                     // Endereço
                     cep: endereco.cep,
                     rua: endereco.rua,
@@ -334,7 +339,7 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                     nome_razao_social: identificacao.nome,
                     cpf_cnpj: identificacao.cpfCnpj,
                     tipo_cliente: identificacao.tipo === 'fisica' ? 'PESSOA_FISICA' : 'PESSOA_JURIDICA',
-                    tipo_empresa: identificacao.tipoEmpresa,
+                    // R11-5: tipo_empresa removido do save — campo não é mais coletado
                     nome_responsavel: identificacao.nomeResponsavel,
                     telefone: identificacao.telefone,
                     email: identificacao.email,
@@ -433,6 +438,8 @@ export const LeadCadastro = forwardRef<LeadCadastroHandle, LeadCadastroProps>(
                 tipoTelhado: (endData.tipo_telhado as string) || '',
                 possuiElevador: (endData.possui_elevador as boolean) || false,
                 possuiPiscina: (endData.possui_piscina as boolean) || false,
+                qtdElevadores: endData.qtd_elevadores != null ? String(endData.qtd_elevadores) : '',
+                qtdPiscinas: endData.qtd_piscinas != null ? String(endData.qtd_piscinas) : '',
             };
 
             const mappedEndereco: LeadEndereco = {
