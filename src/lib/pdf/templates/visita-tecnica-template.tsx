@@ -15,6 +15,7 @@ import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/render
 import { colors } from '../shared-styles';
 import { LOGO_BASE64 } from '../assets';
 import { formatarData, formatarCpfCnpj, formatarTelefone } from '../utils/pdf-formatter';
+import { type FileWithComment } from '@/components/ui/file-upload-unificado';
 
 // ============================================
 // TYPES
@@ -22,6 +23,7 @@ import { formatarData, formatarCpfCnpj, formatarTelefone } from '../utils/pdf-fo
 
 export type FinalidadeInspecao =
     | 'recebimento_unidade'
+    | 'recebimento_imovel'
     | 'escopo_tecnico'
     | 'parecer_tecnico'
     | 'laudo_spci'
@@ -33,9 +35,11 @@ export type GravidadeNivel = 'baixa' | 'media' | 'alta' | 'critica';
 export interface ChecklistItem {
     id: string;
     bloco: string;
+    secao?: string;
     label: string;
     status: StatusItem;
     observacao?: string;
+    fotos?: FileWithComment[];
 }
 
 export interface VisitaTecnicaData {
@@ -660,13 +664,25 @@ const ChecklistSection = ({ data }: { data: VisitaTecnicaData }) => {
     if (!data.checklistRecebimento) return null;
 
     const { items, estatisticas } = data.checklistRecebimento;
-    const groupedByBloco: Record<string, ChecklistItem[]> = {};
+    // Agrupar primeiro por bloco, depois por seção (se existir)
+    const groupedByBloco: Record<string, {
+        nenhumaSecao: ChecklistItem[];
+        secoes: Record<string, ChecklistItem[]>;
+    }> = {};
 
     items.forEach(item => {
         if (!groupedByBloco[item.bloco]) {
-            groupedByBloco[item.bloco] = [];
+            groupedByBloco[item.bloco] = { nenhumaSecao: [], secoes: {} };
         }
-        groupedByBloco[item.bloco].push(item);
+        
+        if (item.secao) {
+            if (!groupedByBloco[item.bloco].secoes[item.secao]) {
+                groupedByBloco[item.bloco].secoes[item.secao] = [];
+            }
+            groupedByBloco[item.bloco].secoes[item.secao].push(item);
+        } else {
+            groupedByBloco[item.bloco].nenhumaSecao.push(item);
+        }
     });
 
     // Título dinâmico baseado na finalidade
@@ -721,36 +737,68 @@ const ChecklistSection = ({ data }: { data: VisitaTecnicaData }) => {
             </View>
 
             {/* Tabela Rows */}
-            {Object.entries(groupedByBloco).map(([bloco, blocoItems]) => (
-                <View key={bloco}>
-                    {blocoItems.map((item, idx) => (
-                        <View
-                            key={item.id}
-                            style={[
-                                styles.tableRow,
-                                item.status === 'NC' ? styles.tableRowNC : undefined
-                            ].filter(Boolean)}
-                        >
-                            <Text style={[styles.tableCell, styles.colBloco]}>
-                                {idx === 0 ? bloco : ''}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.colItem]}>{item.label}</Text>
-                            <Text style={[
-                                styles.tableCell,
-                                styles.colStatus,
-                                item.status === 'C' ? styles.statusC : undefined,
-                                item.status === 'NC' ? styles.statusNC : undefined,
-                                item.status === 'NA' ? styles.statusNA : undefined,
-                            ].filter(Boolean)}>
-                                {item.status}
-                            </Text>
-                            <Text style={[styles.tableCell, styles.colObs]}>
-                                {item.observacao || '-'}
-                            </Text>
-                        </View>
-                    ))}
-                </View>
-            ))}
+            {Object.entries(groupedByBloco).map(([bloco, contents]) => {
+                const mapItemRow = (item: ChecklistItem, idx: number, isFirstInBloco: boolean) => (
+                    <View
+                        key={item.id}
+                        style={[
+                            styles.tableRow,
+                            item.status === 'NC' ? styles.tableRowNC : undefined
+                        ].filter(Boolean)}
+                    >
+                        <Text style={[styles.tableCell, styles.colBloco]}>
+                            {isFirstInBloco ? bloco : ''}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.colItem]}>{item.label}</Text>
+                        <Text style={[
+                            styles.tableCell,
+                            styles.colStatus,
+                            item.status === 'C' ? styles.statusC : undefined,
+                            item.status === 'NC' ? styles.statusNC : undefined,
+                            item.status === 'NA' ? styles.statusNA : undefined,
+                        ].filter(Boolean)}>
+                            {item.status}
+                        </Text>
+                        <Text style={[styles.tableCell, styles.colObs]}>
+                            {item.observacao || '-'}
+                        </Text>
+                    </View>
+                );
+
+                let isFirstInBloco = true;
+                
+                return (
+                    <View key={bloco}>
+                        {/* Itens sem seção específica */}
+                        {contents.nenhumaSecao.map((item, idx) => {
+                            const row = mapItemRow(item, idx, isFirstInBloco);
+                            isFirstInBloco = false;
+                            return row;
+                        })}
+
+                        {/* Itens agrupados por seção */}
+                        {Object.entries(contents.secoes).map(([secaoNome, secaoItems]) => (
+                            <View key={`${bloco}-${secaoNome}`}>
+                                {/* Cabeçalho da Seção */}
+                                <View style={[styles.tableRow, { backgroundColor: colors.neutral100 }]}>
+                                    <Text style={[styles.tableCell, styles.colBloco, { fontFamily: 'Helvetica-Bold' }]}>
+                                        {isFirstInBloco ? bloco : ''}
+                                    </Text>
+                                    <Text style={[styles.tableCell, { width: '80%', paddingLeft: 4, fontFamily: 'Helvetica-Bold', color: colors.primary }]}>
+                                        {secaoNome}
+                                    </Text>
+                                </View>
+                                
+                                {/* Itens da Seção */}
+                                {secaoItems.map((item, idx) => {
+                                    isFirstInBloco = false; // Após o cabeçalho, não precisa mais repetir o bloco
+                                    return mapItemRow(item, idx, false);
+                                })}
+                            </View>
+                        ))}
+                    </View>
+                );
+            })}
         </View>
     );
 };
@@ -828,20 +876,44 @@ const Conclusao = ({ data }: { data: VisitaTecnicaData }) => (
             )}
 
             {data.checklistRecebimento && (
-                <Text style={styles.textBlock}>
-                    {data.finalidadeInspecao === 'laudo_spci'
-                        ? (data.checklistRecebimento.estatisticas.naoConformes === 0
-                            ? 'O sistema de proteção e combate a incêndio foi inspecionado e encontra-se em conformidade com as normas técnicas aplicáveis (NBR 12693, NBR 13434, NBR 10898, NBR 9077, NBR 13714, NBR 17240, NBR 10897, NBR 14276).'
-                            : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção e combate a incêndio que devem ser corrigidas.`)
-                        : data.finalidadeInspecao === 'laudo_spda'
+                <View>
+                    <Text style={styles.textBlock}>
+                        {data.finalidadeInspecao === 'laudo_spci'
                             ? (data.checklistRecebimento.estatisticas.naoConformes === 0
-                                ? 'O sistema de proteção contra descargas atmosféricas foi inspecionado e encontra-se em conformidade com a NBR 5419:2015.'
-                                : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção contra descargas atmosféricas que devem ser corrigidas.`)
-                            : (data.checklistRecebimento.estatisticas.naoConformes === 0
-                                ? 'A unidade autônoma foi inspecionada e encontra-se em conformidade com os padrões estabelecidos pela NBR 15575 e PBQP-H.'
-                                : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) que devem ser corrigidas antes da entrega da unidade.`)
-                    }
-                </Text>
+                                ? 'O sistema de proteção e combate a incêndio foi inspecionado e encontra-se em conformidade com as normas técnicas aplicáveis (NBR 12693, NBR 13434, NBR 10898, NBR 9077, NBR 13714, NBR 17240, NBR 10897, NBR 14276).'
+                                : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção e combate a incêndio que devem ser corrigidas.`)
+                            : data.finalidadeInspecao === 'laudo_spda'
+                                ? (data.checklistRecebimento.estatisticas.naoConformes === 0
+                                    ? 'O sistema de proteção contra descargas atmosféricas foi inspecionado e encontra-se em conformidade com a NBR 5419:2015.'
+                                    : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) no sistema de proteção contra descargas atmosféricas que devem ser corrigidas.`)
+                                : (data.checklistRecebimento.estatisticas.naoConformes === 0
+                                    ? 'A unidade autônoma foi inspecionada e encontra-se em conformidade com os padrões estabelecidos pela NBR 15575 e PBQP-H.'
+                                    : `Foram identificadas ${data.checklistRecebimento.estatisticas.naoConformes} não conformidade(s) que devem ser corrigidas antes da entrega da unidade.`)
+                        }
+                    </Text>
+                    {data.checklistRecebimento.estatisticas.naoConformes > 0 && (
+                        <View style={{ marginTop: 10 }}>
+                            <Text style={[styles.textBlock, { fontFamily: 'Helvetica-Bold', fontSize: 9, marginBottom: 5 }]}>
+                                Lista de Não Conformidades (NC) a serem corrigidas:
+                            </Text>
+                            {data.checklistRecebimento.items
+                                .filter((item) => item.status === 'NC')
+                                .map((item, idx) => (
+                                    <View key={item.id || idx} style={{ marginTop: 4, marginLeft: 10 }}>
+                                        <Text style={[styles.textBlock, { marginBottom: 2 }]}>
+                                            <Text style={{ fontFamily: 'Helvetica-Bold' }}>Item:</Text> {item.label}
+                                        </Text>
+                                        <Text style={[styles.textBlock, { marginBottom: 2 }]}>
+                                            <Text style={{ fontFamily: 'Helvetica-Bold' }}>Localização:</Text> {item.bloco}{item.secao ? ` / ${item.secao}` : ''}
+                                        </Text>
+                                        <Text style={[styles.textBlock, { marginBottom: 4 }]}>
+                                            <Text style={{ fontFamily: 'Helvetica-Bold' }}>Observação do Responsável:</Text> {item.observacao || 'Nenhuma observação reportada.'}
+                                        </Text>
+                                    </View>
+                                ))}
+                        </View>
+                    )}
+                </View>
             )}
         </View>
 

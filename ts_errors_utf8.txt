@@ -1,0 +1,720 @@
+﻿src/app/colaborador/agenda/page.tsx(91,23): error TS2345: Argument of type '{ id: any; titulo: any; data: any; hora_inicio: any; hora_fim: any; tipo: any; endereco: any; os_id: any; cliente_id: any; responsavel_id: any; ordens_servico: { codigo_os: any; }[]; clientes: { nome_razao_social: any; }[]; }[]' is not assignable to parameter of type 'SetStateAction<Agendamento[]>'.
+  Type '{ id: any; titulo: any; data: any; hora_inicio: any; hora_fim: any; tipo: any; endereco: any; os_id: any; cliente_id: any; responsavel_id: any; ordens_servico: { codigo_os: any; }[]; clientes: { nome_razao_social: any; }[]; }[]' is not assignable to type 'Agendamento[]'.
+    Type '{ id: any; titulo: any; data: any; hora_inicio: any; hora_fim: any; tipo: any; endereco: any; os_id: any; cliente_id: any; responsavel_id: any; ordens_servico: { codigo_os: any; }[]; clientes: { nome_razao_social: any; }[]; }' is not assignable to type 'Agendamento'.
+      Types of property 'ordens_servico' are incompatible.
+        Property 'codigo_os' is missing in type '{ codigo_os: any; }[]' but required in type '{ codigo_os: string; }'.
+src/app/colaborador/agenda/page.tsx(451,23): error TS2322: Type '`/colaborador/minhas-os/${string}`' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/app/colaborador/dashboard/page.tsx(153,21): error TS2322: Type '"/colaborador/minhas-os"' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/app/colaborador/dashboard/page.tsx(162,21): error TS2820: Type '"/colaborador/agenda"' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'. Did you mean '"/colaboradores"'?
+src/app/colaborador/dashboard/page.tsx(286,29): error TS2322: Type '`/colaborador/minhas-os/${string}`' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/app/colaborador/minhas-os/[id]/page.tsx(4,38): error TS2307: Cannot find module 'next/navigation' or its corresponding type declarations.
+src/app/colaborador/minhas-os/[id]/page.tsx(22,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+src/app/colaborador/minhas-os/page.tsx(16,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+src/app/colaborador/minhas-os/page.tsx(89,24): error TS2345: Argument of type '{ id: any; codigo_os: any; tipo_os_id: any; cliente_id: any; responsavel_id: any; criado_por_id: any; status_geral: any; descricao: any; valor_proposta: any; data_prazo: any; data_entrada: any; prioridade: any; clientes: { ...; }[]; tipos_os: { ...; }[]; }[]' is not assignable to parameter of type 'SetStateAction<OrdemServico[]>'.
+  Type '{ id: any; codigo_os: any; tipo_os_id: any; cliente_id: any; responsavel_id: any; criado_por_id: any; status_geral: any; descricao: any; valor_proposta: any; data_prazo: any; data_entrada: any; prioridade: any; clientes: { ...; }[]; tipos_os: { ...; }[]; }[]' is not assignable to type 'OrdemServico[]'.
+    Type '{ id: any; codigo_os: any; tipo_os_id: any; cliente_id: any; responsavel_id: any; criado_por_id: any; status_geral: any; descricao: any; valor_proposta: any; data_prazo: any; data_entrada: any; prioridade: any; clientes: { ...; }[]; tipos_os: { ...; }[]; }' is not assignable to type 'OrdemServico'.
+      Types of property 'tipos_os' are incompatible.
+        Property 'nome' is missing in type '{ nome: any; }[]' but required in type '{ nome: string; }'.
+src/app/colaborador/page.tsx(14,18): error TS2307: Cannot find module 'next/link' or its corresponding type declarations.
+src/app/colaborador/page.tsx(15,37): error TS2307: Cannot find module '@/lib/mock-data-colaborador' or its corresponding type declarations.
+src/components/admin/menu-preview-page.tsx(55,3): error TS2353: Object literal may only specify known properties, and ''diretoria'' does not exist in type 'Record<RoleLevel, string[]>'.
+src/components/admin/menu-preview-page.tsx(77,63): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel | (() => RoleLevel)'.
+src/components/admin/menu-preview-page.tsx(80,5): error TS2820: Type '"diretoria"' is not assignable to type 'RoleLevel'. Did you mean '"diretor"'?
+src/components/admin/menu-preview-page.tsx(81,5): error TS2820: Type '"gestor_administrativo"' is not assignable to type 'RoleLevel'. Did you mean '"coord_administrativo"'?
+src/components/admin/menu-preview-page.tsx(82,5): error TS2322: Type '"gestor_assessoria"' is not assignable to type 'RoleLevel'.
+src/components/admin/menu-preview-page.tsx(83,5): error TS2322: Type '"gestor_obras"' is not assignable to type 'RoleLevel'.
+src/components/admin/menu-preview-page.tsx(84,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel'.
+src/components/admin/menu-preview-page.tsx(85,5): error TS2322: Type '"mao_de_obra"' is not assignable to type 'RoleLevel'.
+src/components/admin/menu-preview-page.tsx(121,22): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel' and '"diretoria"' have no overlap.
+src/components/admin/menu-preview-page.tsx(123,25): error TS2367: This comparison appears to be unintentional because the types '"diretor" | "coord_administrativo" | "coord_assessoria" | "coord_obras" | "operacional_admin" | "operacional_comercial" | "operacional_assessoria" | "operacional_obras" | "colaborador_obra" | "cliente"' and '"colaborador"' have no overlap.
+src/components/admin/seed-usuarios-page.tsx(76,11): error TS2741: Property 'status' is missing in type '{ email: string; nome: string; role: string; }' but required in type 'SeedResultado'.
+src/components/admin/seed-usuarios-page.tsx(77,11): error TS2741: Property 'status' is missing in type '{ email: string; nome: string; role: string; }' but required in type 'SeedResultado'.
+src/components/admin/seed-usuarios-page.tsx(78,11): error TS2741: Property 'status' is missing in type '{ email: string; nome: string; role: string; }' but required in type 'SeedResultado'.
+src/components/admin/seed-usuarios-page.tsx(80,9): error TS2741: Property 'total' is missing in type '{ criados: number; existentes: number; erros: number; }' but required in type '{ total: number; criados: number; existentes: number; erros: number; }'.
+src/components/admin/seed-usuarios-page.tsx(89,12): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/components/admin/seed-usuarios-page.tsx(94,40): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/components/assessoria/analise-reformas.tsx(10,33): error TS6133: 'XCircle' is declared but its value is never read.
+src/components/calendario/celula-calendario.tsx(73,13): error TS1117: An object literal cannot have multiple properties with the same name.
+src/components/calendario/modal-novo-agendamento-v2.tsx(470,48): error TS2339: Property 'funcao' does not exist on type 'ColaboradorSetor'.
+src/components/calendario/modal-novo-agendamento-v2.tsx(472,52): error TS2339: Property 'funcao' does not exist on type 'ColaboradorSetor'.
+src/components/calendario/time-block-view.tsx(315,3): error TS6133: 'onClickAgendamento' is declared but its value is never read.
+src/components/clientes/ClienteHistoricoCompleto.tsx(15,1): error TS6133: 'React' is declared but its value is never read.
+src/components/clientes/ClienteHistoricoCompleto.tsx(34,5): error TS6133: 'onRefresh' is declared but its value is never read.
+src/components/clientes/tabs/cliente-tab-contratos.tsx(37,3): error TS6133: 'FileSignature' is declared but its value is never read.
+src/components/clientes/tabs/cliente-tab-documentos.tsx(14,29): error TS6133: 'CardHeader' is declared but its value is never read.
+src/components/clientes/tabs/cliente-tab-documentos.tsx(14,41): error TS6133: 'CardTitle' is declared but its value is never read.
+src/components/clientes/tabs/cliente-tab-documentos.tsx(49,1): error TS6133: 'Label' is declared but its value is never read.
+src/components/clientes/tabs/cliente-tab-financeiro.tsx(174,16): error TS2322: Type '"/financeiro/contas-receber"' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/components/clientes/tabs/cliente-tab-financeiro.tsx(174,60): error TS2353: Object literal may only specify known properties, and 'clienteId' does not exist in type 'ParamsReducerFn<RouterCore<Route<Register, any, "/", "/", string, "__root__", undefined, {}, MyRouterContext, AnyContext, AnyContext, {}, undefined, ... 4 more ..., undefined>, "never", false, RouterHistory, Record<...>>, "SEARCH", string, "/financeiro/contas-receber">'.
+src/components/colaboradores/attendance-filters.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/colaboradores/controle-presenca-page.tsx(34,57): error TS6133: 'formatMinutosAtraso' is declared but its value is never read.
+src/components/colaboradores/controle-presenca-page.tsx(243,11): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/colaboradores/controle-presenca-page.tsx(436,23): error TS18048: 'col.nome_completo' is possibly 'undefined'.
+src/components/colaboradores/controle-presenca-page.tsx(565,18): error TS2552: Cannot find name 'Filter'. Did you mean 'File'?
+src/components/colaboradores/controle-presenca-page.tsx(593,44): error TS18048: 'colaborador.nome_completo' is possibly 'undefined'.
+src/components/colaboradores/controle-presenca-tabela-page.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/colaboradores/controle-presenca-tabela-page.tsx(17,3): error TS6133: 'Search' is declared but its value is never read.
+src/components/colaboradores/presenca-detalhes-page.tsx(151,41): error TS2352: Conversion of type '{ nome: any; }[]' to type '{ nome: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'nome' is missing in type '{ nome: any; }[]' but required in type '{ nome: string; }'.
+src/components/colaboradores/presenca-historico-page.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/comercial/detalhes-lead.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/comercial/detalhes-lead.tsx(6,1): error TS6133: 'Separator' is declared but its value is never read.
+src/components/comercial/detalhes-lead.tsx(35,3): error TS6133: 'PhoneCall' is declared but its value is never read.
+src/components/comercial/lista-leads.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/comercial/propostas-comerciais.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/configuracoes/cora-integration-tab.tsx(33,24): error TS2345: Argument of type '{ ativo: boolean; }' is not assignable to parameter of type 'SaveCoraConfigParams'.
+  Type '{ ativo: boolean; }' is missing the following properties from type 'SaveCoraConfigParams': ambiente, client_id
+src/components/configuracoes/usuarios-permissoes-page.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/dashboard/executive/executive-overview.tsx(15,1): error TS6133: 'Badge' is declared but its value is never read.
+src/components/dashboard/executive/executive-overview.tsx(19,5): error TS6133: 'TrendingUp' is declared but its value is never read.
+src/components/dashboard/executive/system-audit-log.tsx(16,1): error TS6133: 'Input' is declared but its value is never read.
+src/components/dashboard/executive/workload-kanban.tsx(49,5): error TS6133: 'Paperclip' is declared but its value is never read.
+src/components/delegacao/delegacoes-page.tsx(4,8): error TS6133: 'React' is declared but its value is never read.
+src/components/delegacao/delegacoes-page.tsx(116,26): error TS6133: 'delegacaoId' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(4,8): error TS6133: 'React' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(17,29): error TS6133: 'CardHeader' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(17,41): error TS6133: 'CardTitle' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(19,18): error TS6133: 'AvatarImage' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(36,3): error TS6133: 'onAprovar' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(37,3): error TS6133: 'onReprovar' is declared but its value is never read.
+src/components/delegacao/lista-delegacoes.tsx(127,41): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/delegacao/modal-delegar-os.tsx(6,10): error TS6133: 'X' is declared but its value is never read.
+src/components/delegacao/modal-delegar-os.tsx(53,11): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"mao_de_obra"' have no overlap.
+src/components/delegacao/modal-delegar-os.tsx(59,11): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_administrativo"' have no overlap.
+src/components/design-system-showcase.tsx(15,1): error TS6133: 'React' is declared but its value is never read.
+src/components/error-boundary.tsx(28,5): error TS2304: Cannot find name 'logger'.
+src/components/financeiro/centro-custo-detalhes-page.tsx(62,11): error TS2339: Property 'data' does not exist on type '{ createCentroCustoWithId: (ccId: string, tipoOsId: string, clienteId: string, descricao?: string | undefined) => Promise<CentroCusto>; generateCentroCusto: (tipoOsId: string, clienteId: string, descricao?: string | undefined) => Promise<...>; listCentrosCusto: () => Promise<...>; loading: boolean; error: Error | nu...'.
+src/components/financeiro/centro-custo-detalhes-page.tsx(63,35): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/financeiro/compras/sheet-detalhes-requisicao.tsx(68,7): error TS2353: Object literal may only specify known properties, and 'valorTotal' does not exist in type '{ osId: string; codigoOS: string; observacao?: string | undefined; documentoId?: string | undefined; }'.
+src/components/financeiro/conciliacao/criar-tab.tsx(41,3): error TS2305: Module '"./conciliacao-types"' has no exported member 'validarExtensaoAnexo'.
+src/components/financeiro/conciliacao/criar-tab.tsx(501,13): error TS2322: Type '{ notaFiscal: File | null; setNotaFiscal: Dispatch<SetStateAction<File | null>>; comprovante: File | null; setComprovante: Dispatch<SetStateAction<File | null>>; notaFiscalInputRef: RefObject<...>; comprovanteInputRef: RefObject<...>; lancamento: LancamentoBancario; }' is not assignable to type 'IntrinsicAttributes & DocumentosSectionProps'.
+  Property 'notaFiscalInputRef' does not exist on type 'IntrinsicAttributes & DocumentosSectionProps'.
+src/components/financeiro/conciliacao/use-conciliacao-state.ts(29,8): error TS6133: 'ReceitaPrevistaConciliacao' is declared but its value is never read.
+src/components/financeiro/conciliacao/use-conciliacao-state.ts(39,3): error TS6133: 'CATEGORIA_OUTROS_ID' is declared but its value is never read.
+src/components/financeiro/conciliacao/vincular-tab.tsx(342,21): error TS2322: Type 'RegistroFinanceiro' is not assignable to type 'SugestaoVinculo'.
+  Types of property 'matchScore' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/financeiro/conciliacao/vincular-tab.tsx(346,25): error TS2345: Argument of type 'RegistroFinanceiro | null' is not assignable to parameter of type 'SetStateAction<SugestaoVinculo | null>'.
+  Type 'RegistroFinanceiro' is not assignable to type 'SetStateAction<SugestaoVinculo | null>'.
+    Type 'RegistroFinanceiro' is not assignable to type 'SugestaoVinculo'.
+      Types of property 'matchScore' are incompatible.
+        Type 'number | undefined' is not assignable to type 'number'.
+          Type 'undefined' is not assignable to type 'number'.
+src/components/financeiro/conciliacao/vincular-tab.tsx(407,11): error TS2322: Type '{ notaFiscal: File | null; setNotaFiscal: Dispatch<SetStateAction<File | null>>; comprovante: File | null; setComprovante: Dispatch<SetStateAction<File | null>>; notaFiscalInputRef: RefObject<...>; comprovanteInputRef: RefObject<...>; lancamento: LancamentoBancario; }' is not assignable to type 'IntrinsicAttributes & DocumentosSectionProps'.
+  Property 'notaFiscalInputRef' does not exist on type 'IntrinsicAttributes & DocumentosSectionProps'.
+src/components/financeiro/custo-mao-de-obra-page.tsx(39,7): error TS6133: 'mockKPIs' is declared but its value is never read.
+src/components/financeiro/financeiro-dashboard-page.tsx(38,3): error TS6133: 'MapPin' is declared but its value is never read.
+src/components/financeiro/financeiro-dashboard-page.tsx(39,3): error TS6133: 'FileText' is declared but its value is never read.
+src/components/financeiro/financeiro-dashboard-page.tsx(40,3): error TS6133: 'MoreHorizontal' is declared but its value is never read.
+src/components/financeiro/gestao-despesas-page.tsx(55,8): error TS6133: 'React' is declared but its value is never read.
+src/components/financeiro/gestao-despesas-page.tsx(75,59): error TS2345: Argument of type 'string' is not assignable to parameter of type 'PeriodoFiltro | (() => PeriodoFiltro)'.
+src/components/financeiro/gestao-despesas-page.tsx(96,13): error TS2339: Property 'data' does not exist on type '{ centrosCusto: CentroCusto[]; loading: boolean; error: Error | null; refetch: () => Promise<void>; }'.
+src/components/financeiro/gestao-despesas-page.tsx(98,61): error TS2345: Argument of type 'PeriodoFiltro' is not assignable to parameter of type '"thisMonth" | "lastMonth" | "lastQuarter" | "thisYear" | "last6Months"'.
+src/components/financeiro/gestao-despesas-page.tsx(120,67): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/components/financeiro/gestao-despesas-page.tsx(314,52): error TS7006: Parameter 'cc' implicitly has an 'any' type.
+src/components/financeiro/gestao-despesas-page.tsx(451,45): error TS2322: Type '((event: unknown) => void) | undefined' is not assignable to type '(() => void) | undefined'.
+  Type '(event: unknown) => void' is not assignable to type '() => void'.
+    Target signature provides too few arguments. Expected 1 or more, but got 0.
+src/components/financeiro/modal-aprovar-requisicao.tsx(47,7): error TS2353: Object literal may only specify known properties, and 'valorTotal' does not exist in type '{ osId: string; codigoOS: string; observacao?: string | undefined; documentoId?: string | undefined; }'.
+src/components/financeiro/modal-classificar-lancamento.tsx(87,33): error TS2339: Property 'setor_padrao' does not exist on type 'CategoriaFinanceira'.
+src/components/financeiro/modal-classificar-lancamento.tsx(88,50): error TS2339: Property 'setor_padrao' does not exist on type 'CategoriaFinanceira'.
+src/components/financeiro/modal-conciliacao.tsx(1183,35): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/components/financeiro/modals/nova-despesa-modal.tsx(107,50): error TS6133: 'isLoadingColaboradores' is declared but its value is never read.
+src/components/financeiro/modals/nova-despesa-modal.tsx(220,17): error TS2353: Object literal may only specify known properties, and 'favorecidoColaboradorId' does not exist in type '{ descricao: string; fornecedor: string; valor: number; categoria: string; recorrencia: "MENSAL" | "SEMANAL" | "ANUAL" | "UNICA"; vencimentoData: Date; centroCustoId?: string | undefined; parcelar?: boolean | undefined; numeroParcelas?: number | undefined; comprovante_url?: string | undefined; }'.
+src/components/financeiro/modals/pagar-despesa-modal.tsx(62,9): error TS2322: Type 'Resolver<{ valorPago: string | number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+  Types of parameters 'options' and 'options' are incompatible.
+    Type 'ResolverOptions<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>' is not assignable to type 'ResolverOptions<{ valorPago: string | number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+      Type 'string | number' is not assignable to type 'number'.
+        Type 'string' is not assignable to type 'number'.
+src/components/financeiro/modals/pagar-despesa-modal.tsx(174,55): error TS2345: Argument of type '(data: { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'TFieldValues' is not assignable to type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }'.
+      Type 'FieldValues' is missing the following properties from type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }': valorPago, dataPagamento
+src/components/financeiro/modals/pagar-despesa-modal.tsx(177,33): error TS2322: Type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+  The types of '_options.resolver' are incompatible between these types.
+    Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues> | undefined' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | undefined'.
+      Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+        Type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues> | Promise<ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues>>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+          Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+            Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverSuccess<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+              Type 'TFieldValues' is not assignable to type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }'.
+                Type 'FieldValues' is missing the following properties from type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }': valorPago, dataPagamento
+src/components/financeiro/modals/pagar-despesa-modal.tsx(188,80): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'string | number'.
+  Type 'undefined' is not assignable to type 'string | number'.
+src/components/financeiro/modals/pagar-despesa-modal.tsx(202,33): error TS2322: Type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+  The types of '_options.resolver' are incompatible between these types.
+    Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues> | undefined' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | undefined'.
+      Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+        Type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues> | Promise<ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues>>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+          Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+            Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverSuccess<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+              Type 'TFieldValues' is not assignable to type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }'.
+                Type 'FieldValues' is missing the following properties from type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }': valorPago, dataPagamento
+src/components/financeiro/modals/pagar-despesa-modal.tsx(245,29): error TS2322: Type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Control<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+  The types of '_options.resolver' are incompatible between these types.
+    Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues> | undefined' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | undefined'.
+      Type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, TFieldValues>' is not assignable to type 'Resolver<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, any, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+        Type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues> | Promise<ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, TFieldValues>>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+          Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverResult<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }, { valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }> | Promise<...>'.
+            Type 'ResolverSuccess<TFieldValues>' is not assignable to type 'ResolverSuccess<{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }>'.
+              Type 'TFieldValues' is not assignable to type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }'.
+                Type 'FieldValues' is missing the following properties from type '{ valorPago: number; dataPagamento: Date; observacoes?: string | undefined; }': valorPago, dataPagamento
+src/components/home/recent-notifications-widget.tsx(162,21): error TS2322: Type '"/notificacoes"' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/components/obras/aprovacao-medicoes.tsx(62,17): error TS2345: Argument of type '(prev: MedicaoPendente[]) => (MedicaoPendente | { statusAprovacao: "APROVADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; ... 6 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to parameter of type 'SetStateAction<MedicaoPendente[]>'.
+  Type '(prev: MedicaoPendente[]) => (MedicaoPendente | { statusAprovacao: "APROVADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; ... 6 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to type '(prevState: MedicaoPendente[]) => MedicaoPendente[]'.
+    Type '(MedicaoPendente | { statusAprovacao: "APROVADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | ... 1 more ... | "AMBAS"; ... 4 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to type 'MedicaoPendente[]'.
+      Type 'MedicaoPendente | { statusAprovacao: "APROVADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | ... 1 more ... | "AMBAS"; ... 4 more ...; documentos?: { ...; } | undefined; }' is not assignable to type 'MedicaoPendente'.
+        Type '{ statusAprovacao: "APROVADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | "FINANCEIRA" | "AMBAS"; ... 4 more ...; documentos?: { relatorioFotografico?: string; planilhaMedicao?: string; diarioObra?: string; }; }' is not assignable to type 'MedicaoPendente'.
+          Types of property 'statusAprovacao' are incompatible.
+            Type '"APROVADO"' is not assignable to type '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"'. Did you mean '"aprovado"'?
+src/components/obras/aprovacao-medicoes.tsx(82,17): error TS2345: Argument of type '(prev: MedicaoPendente[]) => (MedicaoPendente | { statusAprovacao: "REJEITADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; ... 6 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to parameter of type 'SetStateAction<MedicaoPendente[]>'.
+  Type '(prev: MedicaoPendente[]) => (MedicaoPendente | { statusAprovacao: "REJEITADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; ... 6 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to type '(prevState: MedicaoPendente[]) => MedicaoPendente[]'.
+    Type '(MedicaoPendente | { statusAprovacao: "REJEITADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | ... 1 more ... | "AMBAS"; ... 4 more ...; documentos?: { ...; } | undefined; })[]' is not assignable to type 'MedicaoPendente[]'.
+      Type 'MedicaoPendente | { statusAprovacao: "REJEITADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | ... 1 more ... | "AMBAS"; ... 4 more ...; documentos?: { ...; } | undefined; }' is not assignable to type 'MedicaoPendente'.
+        Type '{ statusAprovacao: "REJEITADO"; observacoes: string; id: string; codigo: string; obraId: string; obraCliente: string; numeroMedicao: number; tipoMedicao: "FISICA" | "FINANCEIRA" | "AMBAS"; ... 4 more ...; documentos?: { relatorioFotografico?: string; planilhaMedicao?: string; diarioObra?: string; }; }' is not assignable to type 'MedicaoPendente'.
+          Types of property 'statusAprovacao' are incompatible.
+            Type '"REJEITADO"' is not assignable to type '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"'. Did you mean '"rejeitado"'?
+src/components/obras/aprovacao-medicoes.tsx(104,18): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"AGUARDANDO_VALIDACAO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(104,66): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"EM_ANALISE"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(125,41): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"AGUARDANDO_VALIDACAO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(151,41): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"APROVADO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(177,49): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"AGUARDANDO_VALIDACAO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(183,49): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"EM_ANALISE"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(189,48): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"APROVADO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(253,26): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"AGUARDANDO_VALIDACAO"' have no overlap.
+src/components/obras/aprovacao-medicoes.tsx(254,27): error TS2367: This comparison appears to be unintentional because the types '"em_analise" | "aprovado" | "rejeitado" | "aguardando_validacao"' and '"EM_ANALISE"' have no overlap.
+src/components/obras/lista-obras-ativas.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/__tests__/os-details-redesign-page.test.tsx(4,39): error TS2307: Cannot find module '../os-details-redesign-page' or its corresponding type declarations.
+src/components/os/__tests__/os-details-redesign-page.test.tsx(174,36): error TS2339: Property 'mockReturnValue' does not exist on type '{ <TableName extends string, Table extends any>(relation: TableName): PostgrestQueryBuilder<any, any, Table, TableName, Table extends { Relationships: infer R; } ? R : unknown>; <ViewName extends string, View extends any>(relation: ViewName): PostgrestQueryBuilder<...>; }'.
+src/components/os/__tests__/os-details-redesign-page.test.tsx(210,36): error TS2339: Property 'mockReturnValue' does not exist on type '{ <TableName extends string, Table extends any>(relation: TableName): PostgrestQueryBuilder<any, any, Table, TableName, Table extends { Relationships: infer R; } ? R : unknown>; <ViewName extends string, View extends any>(relation: ViewName): PostgrestQueryBuilder<...>; }'.
+src/components/os/__tests__/os-details-redesign-page.test.tsx(243,36): error TS2339: Property 'mockReturnValue' does not exist on type '{ <TableName extends string, Table extends any>(relation: TableName): PostgrestQueryBuilder<any, any, Table, TableName, Table extends { Relationships: infer R; } ? R : unknown>; <ViewName extends string, View extends any>(relation: ViewName): PostgrestQueryBuilder<...>; }'.
+src/components/os/__tests__/os-details-redesign-page.test.tsx(284,14): error TS2339: Property 'mockReturnValueOnce' does not exist on type '{ <TableName extends string, Table extends any>(relation: TableName): PostgrestQueryBuilder<any, any, Table, TableName, Table extends { Relationships: infer R; } ? R : unknown>; <ViewName extends string, View extends any>(relation: ViewName): PostgrestQueryBuilder<...>; }'.
+src/components/os/administrativo/os-9/components/requisition-item-card.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/administrativo/os-9/components/requisition-item-card.tsx(74,11): error TS6133: 'formatted' is declared but its value is never read.
+src/components/os/administrativo/os-9/steps/step-upload-orcamentos.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-11/pages/os11-workflow-page.tsx(533,25): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/os/assessoria/os-11/pages/os11-workflow-page.tsx(572,25): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/os/assessoria/os-11/steps/step-agendar-visita.tsx(56,37): error TS6133: 'loadingColaboradores' is declared but its value is never read.
+src/components/os/assessoria/os-11/steps/step-agendar-visita.tsx(135,11): error TS6133: 'handleTecnicoChange' is declared but its value is never read.
+src/components/os/assessoria/os-11/steps/step-cadastro-cliente.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-11/steps/step-enviar-cliente.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-11/steps/step-gerar-documento.tsx(303,7): error TS2322: Type 'import("C:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/components/os/assessoria/shared/types/visita-tecnica-types").FinalidadeInspecao' is not assignable to type 'import("C:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/lib/pdf/templates/visita-tecnica-template").FinalidadeInspecao'.
+  Type '"recebimento_imovel"' is not assignable to type 'FinalidadeInspecao'.
+src/components/os/assessoria/os-12/steps/step-agendar-visita-recorrente.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-agendar-visita.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-alocacao-equipe.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-anexar-art.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-cadastro-cliente-contrato.tsx(80,51): error TS6133: 'leadData' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-concluir-contrato.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-config-calendario.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-definicao-sla.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-inicio-servicos.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-inicio-servicos.tsx(4,1): error TS6133: 'Switch' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-plano-manutencao.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-realizar-visita-recorrente.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-realizar-visita-recorrente.tsx(11,1): error TS6133: 'Checkbox' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-realizar-visita.tsx(7,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-realizar-visita.tsx(8,32): error TS6133: 'Clock' is declared but its value is never read.
+src/components/os/assessoria/os-12/steps/step-setup-recorrencia.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-5-6/steps/step-ativar-contrato-assessoria.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-7/components/os07-form-publico.tsx(23,1): error TS6133: 'ordensServicoAPI' is declared but its value is never read.
+src/components/os/assessoria/os-7/pages/os07-analise-page.tsx(5,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-7/pages/os07-workflow-page.tsx(14,1): error TS6133: 'ordensServicoAPI' is declared but its value is never read.
+src/components/os/assessoria/os-7/pages/os07-workflow-page.tsx(88,9): error TS6133: 'currentUserId' is declared but its value is never read.
+src/components/os/assessoria/os-7/pages/os07-workflow-page.tsx(164,9): error TS6133: 'createEtapasBatch' is declared but its value is never read.
+src/components/os/assessoria/os-7/shared/form-detalhes-reforma.tsx(10,17): error TS6133: 'useEffect' is declared but its value is never read.
+src/components/os/assessoria/os-7/shared/form-detalhes-reforma.tsx(414,29): error TS2322: Type '"data"' is not assignable to type 'MaskType'.
+src/components/os/assessoria/os-7/shared/form-detalhes-reforma.tsx(425,29): error TS2322: Type '"data"' is not assignable to type 'MaskType'.
+src/components/os/assessoria/os-7/shared/form-detalhes-reforma.tsx(561,17): error TS2322: Type '{ id: string; label: string; files: FileWithComment[]; onFilesChange: (files: FileWithComment[]) => void; disabled: boolean | undefined; maxFiles: number; acceptedTypes: string[]; }' is not assignable to type 'IntrinsicAttributes & FileUploadUnificadoProps'.
+  Property 'id' does not exist on type 'IntrinsicAttributes & FileUploadUnificadoProps'.
+src/components/os/assessoria/os-7/shared/form-detalhes-reforma.tsx(579,15): error TS2322: Type '{ id: string; label: string; files: FileWithComment[]; onFilesChange: (files: FileWithComment[]) => void; disabled: boolean | undefined; maxFiles: number; acceptedTypes: string[]; }' is not assignable to type 'IntrinsicAttributes & FileUploadUnificadoProps'.
+  Property 'id' does not exist on type 'IntrinsicAttributes & FileUploadUnificadoProps'.
+src/components/os/assessoria/os-8/components/checklist-recebimento-table.tsx(174,30): error TS6133: 'itemId' is declared but its value is never read.
+src/components/os/assessoria/os-8/components/os08-form-publico.tsx(68,10): error TS6133: 'errors' is declared but its value is never read.
+src/components/os/assessoria/os-8/steps/step-detalhes-solicitacao.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/assessoria/os-8/steps/step-detalhes-solicitacao.tsx(9,1): error TS6133: 'useWorkflowCompletion' is declared but its value is never read.
+src/components/os/assessoria/os-8/steps/step-gerar-documento.tsx(285,7): error TS2322: Type 'import("C:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/components/os/assessoria/shared/types/visita-tecnica-types").FinalidadeInspecao' is not assignable to type 'import("C:/Users/Usuario/OneDrive/Documentos/claude/Minervav2/src/lib/pdf/templates/visita-tecnica-template").FinalidadeInspecao'.
+  Type '"recebimento_imovel"' is not assignable to type 'FinalidadeInspecao'.
+src/components/os/assessoria/shared/components/checklist-recebimento-table.tsx(173,37): error TS6133: 'itemId' is declared but its value is never read.
+src/components/os/assessoria/shared/components/checklist-recebimento.tsx(281,33): error TS2872: This kind of expression is always truthy.
+src/components/os/obras/os-1-4/pages/_OBSOLETE_workflow-page.tsx(4,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-1-4/pages/os-1-4-workflow-page.tsx(51,10): error TS6133: 'isValidUUID' is declared but its value is never read.
+src/components/os/obras/os-1-4/pages/os-1-4-workflow-page.tsx(1517,21): error TS2322: Type '(data: Etapa7Data) => void' is not assignable to type '(newData: { objetivo?: string | undefined; etapasPrincipais?: EtapaPrincipal[] | undefined; planejamentoInicial?: string | undefined; logisticaTransporte?: string | undefined; ... 5 more ...; _legacy?: Record<...> | undefined; }) => void'.
+  Types of parameters 'data' and 'newData' are incompatible.
+    Type '{ objetivo?: string | undefined; etapasPrincipais?: EtapaPrincipal[] | undefined; planejamentoInicial?: string | undefined; logisticaTransporte?: string | undefined; ... 5 more ...; _legacy?: Record<...> | undefined; }' is not assignable to type 'Etapa7Data'.
+      Types of property 'etapasPrincipais' are incompatible.
+        Type 'EtapaPrincipal[] | undefined' is not assignable to type 'EtapaPrincipal[] | undefined'. Two different types with this name exist, but they are unrelated.
+          Type 'EtapaPrincipal[]' is not assignable to type 'EtapaPrincipal[]'. Two different types with this name exist, but they are unrelated.
+            Type 'EtapaPrincipal' is not assignable to type 'EtapaPrincipal'. Two different types with this name exist, but they are unrelated.
+              Types of property 'subetapas' are incompatible.
+                Type 'SubEtapa[]' is not assignable to type 'Subetapa[]'.
+                  Property 'descricao' is missing in type 'SubEtapa' but required in type 'Subetapa'.
+src/components/os/obras/os-1-4/pages/os-1-4-workflow-page.tsx(1561,25): error TS2322: Type '{ osId: string; etapa1Data: any; etapa2Data: any; etapa7Data: any; etapa8Data: any; valorTotal: number; valorEntrada: number; valorParcela: number; data: any; onDataChange: (data: Etapa9Data) => void; readOnly: boolean; etapaId: string | undefined; }' is not assignable to type 'IntrinsicAttributes & StepGerarPropostaProps'.
+  Property 'etapaId' does not exist on type 'IntrinsicAttributes & StepGerarPropostaProps'.
+src/components/os/obras/os-1-4/pages/os-1-4-workflow-page.tsx(1573,21): error TS2322: Type '(data: Etapa10Data) => void' is not assignable to type '(data: StepAgendarApresentacaoData) => void'.
+  Types of parameters 'data' and 'data' are incompatible.
+    Type 'StepAgendarApresentacaoData' is not assignable to type 'Etapa10Data'.
+      Index signature for type 'string' is missing in type 'StepAgendarApresentacaoData'.
+src/components/os/obras/os-1-4/steps/step-gerar-proposta-os01-04.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-1-4/steps/step-gerar-proposta-os01-04.tsx(9,1): error TS6133: 'Separator' is declared but its value is never read.
+src/components/os/obras/os-1-4/steps/step-gerar-proposta-os01-04.tsx(12,1): error TS6133: 'PDFDownloadButton' is declared but its value is never read.
+src/components/os/obras/os-13/steps/cadastrar-cliente-obra.tsx(192,13): error TS2322: Type 'undefined' is not assignable to type 'string'.
+src/components/os/obras/os-13/steps/step-anexar-art.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-anexar-art.tsx(5,1): error TS6133: 'toast' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-anexar-art.tsx(6,1): error TS6133: 'useOSDocumentUpload' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-cronograma-obra.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-cronograma-obra.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-dados-cliente.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-diario-obra.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-diario-obra.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-documentos-sst.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-evidencia-mobilizacao.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-evidencia-mobilizacao.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-histograma.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-histograma.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-imagem-areas.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-imagem-areas.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-placa-obra.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-placa-obra.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-realizar-visita-final.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-realizar-visita-final.tsx(4,24): error TS6133: 'MapPin' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-realizar-visita-inicial.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-realizar-visita-inicial.tsx(4,45): error TS6133: 'Calendar' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-relatorio-fotografico.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-relatorio-fotografico.tsx(22,5): error TS2322: Type '{ id: string; name: string; url: string; path: string; size: number; type: string; uploadedAt: string; comment: string; }[]' is not assignable to type 'FileWithComment[]'.
+  Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(5,1): error TS6133: 'Label' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(6,1): error TS6133: 'Input' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(7,1): error TS6133: 'Textarea' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(8,1): error TS6192: All imports in import declaration are unused.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(53,29): error TS2339: Property 'isPending' does not exist on type '{ mutate: (variables: { tipoOSCodigo: string; clienteId: string; ccId: string; responsavelId: string | null; descricao: string; metadata: Record<string, unknown>; etapas: { nome_etapa: string; ordem: number; dados_etapa?: Record<...> | undefined; status?: string | undefined; }[]; parentOSId?: string | ... 1 more ......'.
+src/components/os/obras/os-13/steps/step-requisicao-compras.tsx(239,8): error TS2552: Cannot find name 'StepRequisicaoCompra'. Did you mean 'StepRequisicaoCompras'?
+src/components/os/obras/os-13/steps/step-requisicao-mao-obra.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-mao-obra.tsx(5,10): error TS6133: 'Users' is declared but its value is never read.
+src/components/os/obras/os-13/steps/step-requisicao-mao-obra.tsx(40,29): error TS2339: Property 'isPending' does not exist on type '{ mutate: (variables: { tipoOSCodigo: string; clienteId: string; ccId: string; responsavelId: string | null; descricao: string; metadata: Record<string, unknown>; etapas: { nome_etapa: string; ordem: number; dados_etapa?: Record<...> | undefined; status?: string | undefined; }[]; parentOSId?: string | ... 1 more ......'.
+src/components/os/obras/os-13/steps/step-requisicao-mao-obra.tsx(221,9): error TS2322: Type '{ dataAbertura: string; solicitante: string; departamento: string; urgencia: string; justificativa: string; }' is not assignable to type '{ solicitante: string; justificativa: string; dataAbertura: string; departamento: string; urgencia: "normal" | "baixa" | "alta" | "critica"; solicitanteId?: string | undefined; }'.
+  Types of property 'urgencia' are incompatible.
+    Type 'string' is not assignable to type '"normal" | "baixa" | "alta" | "critica"'.
+src/components/os/obras/os-13/steps/step-seguro-obras.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/cliente-completar/cliente-completar.tsx(55,16): error TS6133: 'documentos' is declared but its value is never read.
+src/components/os/shared/cliente-completar/cliente-completar.tsx(62,16): error TS6133: 'errors' is declared but its value is never read.
+src/components/os/shared/cliente-completar/cliente-completar.tsx(147,34): error TS2345: Argument of type 'FileWithComment[]' is not assignable to parameter of type 'ClienteDocumentoUpload[]'.
+  Property 'tipo' is missing in type 'FileWithComment' but required in type 'ClienteDocumentoUpload'.
+src/components/os/shared/cliente-completar/cliente-documentos-upload.tsx(149,16): error TS6133: 'isSaving' is declared but its value is never read.
+src/components/os/shared/cliente-completar/cliente-documentos-upload.tsx(200,37): error TS2353: Object literal may only specify known properties, and 'comment' does not exist in type 'FileWithComment'.
+src/components/os/shared/cliente-completar/cliente-documentos-upload.tsx(377,33): error TS2322: Type 'Element' is not assignable to type 'string'.
+src/components/os/shared/components/agendamento-os.tsx(59,10): error TS2305: Module '"@/lib/utils"' has no exported member 'getInitials'.
+src/components/os/shared/components/agendamento-os.tsx(162,7): error TS2554: Expected 1 arguments, but got 2.
+src/components/os/shared/components/aprovacao-status-banner.tsx(17,23): error TS6133: 'CheckCircle' is declared but its value is never read.
+src/components/os/shared/components/field-with-adendos.tsx(81,5): error TS6133: 'etapaId' is declared but its value is never read.
+src/components/os/shared/components/file-upload-with-description.tsx(241,33): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/components/os-creation-card.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/components/os-creation-hub.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/components/os-filters-card.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/components/os-filters-card.tsx(39,42): error TS2339: Property 'role' does not exist on type 'User'.
+src/components/os/shared/components/os-filters-card.tsx(39,78): error TS2339: Property 'role' does not exist on type 'User'.
+src/components/os/shared/components/os-filters-card.tsx(40,48): error TS2339: Property 'role' does not exist on type 'User'.
+src/components/os/shared/components/os-filters-card.tsx(112,27): error TS2339: Property 'name' does not exist on type 'User'.
+src/components/os/shared/components/os-participantes-panel.tsx(193,5): error TS6133: 'osId' is declared but its value is never read.
+src/components/os/shared/components/os-participantes-panel.tsx(196,5): error TS6133: 'onAddParticipante' is declared but its value is never read.
+src/components/os/shared/components/os-table.tsx(133,66): error TS2367: This comparison appears to be unintentional because the types '"em_triagem" | "em_andamento" | "aguardando_info" | "concluido" | "cancelado"' and '"atrasada"' have no overlap.
+src/components/os/shared/components/os-table.tsx(155,78): error TS2367: This comparison appears to be unintentional because the types '"em_triagem" | "em_andamento" | "aguardando_info" | "concluido" | "cancelado"' and '"atrasada"' have no overlap.
+src/components/os/shared/components/step-responsibility-header.tsx(39,1): error TS6133: 'cn' is declared but its value is never read.
+src/components/os/shared/components/step-responsibility-header.tsx(107,5): error TS6133: 'setor' is declared but its value is never read.
+src/components/os/shared/components/step-responsibility-header.tsx(109,5): error TS6133: 'responsavelId' is declared but its value is never read.
+src/components/os/shared/components/step-responsibility-header.tsx(115,5): error TS6133: 'isCurrent' is declared but its value is never read.
+src/components/os/shared/components/workflow-footer.tsx(5,53): error TS6133: 'Info' is declared but its value is never read.
+src/components/os/shared/lead-cadastro/lead-form-endereco.tsx(20,1): error TS6133: 'Input' is declared but its value is never read.
+src/components/os/shared/lead-cadastro/lead-form-endereco.tsx(117,29): error TS2322: Type '{ id: string; mask: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; onBlur: () => void | undefined; error: string; validate: (cep: string) => boolean; required: true; disabled: boolean; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & FormMaskedInputProps'.
+  Property 'mask' does not exist on type 'IntrinsicAttributes & FormMaskedInputProps'.
+src/components/os/shared/lead-cadastro/lead-form-identificacao.tsx(138,17): error TS2322: Type '{ id: string; label: string; mask: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; onBlur: () => void | undefined; error: string; validate: (cnpj: string) => boolean; required: true; disabled: boolean; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & FormMaskedInputProps'.
+  Property 'mask' does not exist on type 'IntrinsicAttributes & FormMaskedInputProps'.
+src/components/os/shared/lead-cadastro/lead-form-identificacao.tsx(154,21): error TS2322: Type '{ id: string; label: string; mask: string; value: string; onChange: (e: ChangeEvent<HTMLInputElement>) => void; onBlur: () => void | undefined; error: string; validate: (telefone: string) => boolean; required: true; disabled: boolean; placeholder: string; }' is not assignable to type 'IntrinsicAttributes & FormMaskedInputProps'.
+  Property 'mask' does not exist on type 'IntrinsicAttributes & FormMaskedInputProps'.
+src/components/os/shared/lead-cadastro/lead-selector.tsx(116,37): error TS2322: Type '"secondary" | "success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+  Type '"success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/os/shared/lead-cadastro/lead-selector.tsx(183,57): error TS2322: Type '"secondary" | "success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+  Type '"success"' is not assignable to type '"default" | "destructive" | "outline" | "secondary" | null | undefined'.
+src/components/os/shared/pages/os-details-page.tsx(71,19): error TS2339: Property 'cargo' does not exist on type 'User'.
+src/components/os/shared/pages/os-details-page.tsx(72,19): error TS2339: Property 'cargo' does not exist on type 'User'.
+src/components/os/shared/pages/os-details-page.tsx(73,47): error TS2339: Property 'setor_atual_slug' does not exist on type 'OrdemServico'.
+src/components/os/shared/pages/os-details-page.tsx(168,29): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/pages/os-details-page.tsx(168,66): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/pages/os-details-page.tsx(169,29): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/pages/os-details-page.tsx(170,29): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/pages/os-details-page.tsx(266,29): error TS2322: Type '`/os/details-workflow/${string}`' is not assignable to type '"." | "/delegacoes" | "/colaboradores" | "/solicitacao-visita-tecnica" | "/solicitacao-reforma" | "/portal" | "/login" | "/reforma/$osId" | "/proposta/$osId" | "/portal/suporte" | ... 59 more ... | "/os/criar"'.
+src/components/os/shared/pages/os-details-redesign-page.tsx(817,25): error TS2322: Type 'unknown' is not assignable to type 'ReactNode'.
+src/components/os/shared/pages/proposta-comercial-print-page.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/steps/step-followup-1-os5.tsx(14,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/steps/step-followup-1-os5.tsx(134,29): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/components/os/shared/steps/step-followup-1.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/steps/step-followup-1.tsx(3,1): error TS6192: All imports in import declaration are unused.
+src/components/os/shared/steps/step-followup-1.tsx(5,1): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/components/os/shared/steps/step-followup-1.tsx(406,43): error TS2322: Type '{ id: any; url: any; nome: any; tamanho: any; comentario: any; }[]' is not assignable to type 'ArquivoComComentario[]'.
+  Type '{ id: any; url: any; nome: any; tamanho: any; comentario: any; }' is missing the following properties from type 'ArquivoComComentario': name, path, size, type, uploadedAt
+src/components/os/shared/steps/step-followup-2.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/steps/step-followup-3.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/shared/steps/step-gerar-contrato.tsx(105,37): error TS6133: 'error' is declared but its value is never read.
+src/components/os/shared/steps/step-identificacao-lead-completo.tsx(15,1): error TS6133: 'Separator' is declared but its value is never read.
+src/components/os/shared/steps/step-identificacao-lead-completo.tsx(19,41): error TS6133: 'transformFormToCliente' is declared but its value is never read.
+src/components/os/shared/steps/step-identificacao-lead-completo.tsx(23,1): error TS6133: 'FormSelect' is declared but its value is never read.
+src/components/os/shared/steps/step-identificacao-lead-completo.tsx(80,5): error TS6133: 'onSaveNewLead' is declared but its value is never read.
+src/components/os/shared/steps/step-preparar-orcamentos.tsx(2,20): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/components/os/shared/steps/step-selecao-tipo-obras.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/os/unified/unified-workflow-stepper.tsx(304,9): error TS6133: 'totalSteps' is declared but its value is never read.
+src/components/os/unified/unified-workflow-stepper.tsx(305,9): error TS6133: 'completedSteps' is declared but its value is never read.
+src/components/pdf/pdf-download-button.tsx(71,11): error TS2739: Type '{ proposta: string; contrato: string; memorial: string; 'documento-sst': string; }' is missing the following properties from type 'Record<PDFType, string>': "proposta-ass-anual", "proposta-ass-pontual", "parecer-reforma", "visita-tecnica", "laudo-tecnico"
+src/components/pdf/pdf-preview-modal.tsx(80,11): error TS2739: Type '{ proposta: string; contrato: string; memorial: string; 'documento-sst': string; }' is missing the following properties from type 'Record<PDFType, string>': "proposta-ass-anual", "proposta-ass-pontual", "parecer-reforma", "visita-tecnica", "laudo-tecnico"
+src/components/pdf/pdf-viewer-toolbar.tsx(12,1): error TS6133: 'React' is declared but its value is never read.
+src/components/portal/portal-cliente-assessoria.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/portal/portal-cliente-assessoria.tsx(90,9): error TS6133: 'formatDate' is declared but its value is never read.
+src/components/portal/portal-cliente-obras.tsx(2,8): error TS6133: 'React' is declared but its value is never read.
+src/components/portal/portal-cliente-obras.tsx(11,12): error TS6133: 'ImageIcon' is declared but its value is never read.
+src/components/portal/portal-cliente-obras.tsx(19,3): error TS6133: 'AlertCircle' is declared but its value is never read.
+src/components/portal/portal-cliente-page.tsx(134,68): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/components/portal/tabs/portal-contratos.tsx(8,29): error TS6133: 'CardHeader' is declared but its value is never read.
+src/components/portal/tabs/portal-contratos.tsx(8,41): error TS6133: 'CardTitle' is declared but its value is never read.
+src/components/portal/tabs/portal-contratos.tsx(8,52): error TS6133: 'CardDescription' is declared but its value is never read.
+src/components/portal/tabs/portal-contratos.tsx(41,36): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/components/portal/tabs/portal-documentos.tsx(17,5): error TS6133: 'Calendar' is declared but its value is never read.
+src/components/portal/tabs/portal-documentos.tsx(46,36): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/components/portal/tabs/portal-historico.tsx(41,36): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/components/portal/tabs/portal-suporte.tsx(8,29): error TS6133: 'CardHeader' is declared but its value is never read.
+src/components/portal/tabs/portal-suporte.tsx(8,41): error TS6133: 'CardTitle' is declared but its value is never read.
+src/components/portal/tabs/portal-suporte.tsx(8,52): error TS6133: 'CardDescription' is declared but its value is never read.
+src/components/portal/tabs/portal-suporte.tsx(26,5): error TS6133: 'HeadphonesIcon' is declared but its value is never read.
+src/components/portal/tabs/portal-suporte.tsx(64,36): error TS2339: Property 'user_metadata' does not exist on type 'User'.
+src/components/shared/categoria-financeira-select.tsx(89,20): error TS2352: Conversion of type '{ id: any; codigo: any; nome: any; tipo: any; plano_conta_id: any; plano_contas: { nome: any; natureza: any; desprezar_lucro: any; usar_custo_dia_flutuante: any; exige_nf: any; exige_cc: any; }[]; }[]' to type 'CategoriaFinanceira[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: any; codigo: any; nome: any; tipo: any; plano_conta_id: any; plano_contas: { nome: any; natureza: any; desprezar_lucro: any; usar_custo_dia_flutuante: any; exige_nf: any; exige_cc: any; }[]; }' is not comparable to type 'CategoriaFinanceira'.
+    Types of property 'plano_contas' are incompatible.
+      Type '{ nome: any; natureza: any; desprezar_lucro: any; usar_custo_dia_flutuante: any; exige_nf: any; exige_cc: any; }[]' is missing the following properties from type '{ nome: string; natureza: string; desprezar_lucro: boolean; usar_custo_dia_flutuante: boolean; exige_nf: boolean; exige_cc: boolean; }': nome, natureza, desprezar_lucro, usar_custo_dia_flutuante, and 2 more.
+src/components/shared/filters/search-input.tsx(47,38): error TS2503: Cannot find namespace 'NodeJS'.
+src/components/shared/notification-bell.tsx(8,1): error TS6133: 'Badge' is declared but its value is never read.
+src/components/ui/auto-save-status.tsx(1,8): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/form-date-picker.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/form-error.tsx(75,3): error TS6133: 'inputClassName' is declared but its value is never read.
+src/components/ui/form-radio-group.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/components/ui/form-select.tsx(1,1): error TS6133: 'React' is declared but its value is never read.
+src/constants/os-workflow.ts(1,30): error TS2307: Cannot find module '../components/os/workflow-stepper' or its corresponding type declarations.
+src/debug/test-schema-reload.tsx(3,8): error TS6133: 'React' is declared but its value is never read.
+src/debug/test-schema-reload.tsx(4,75): error TS2307: Cannot find module './ui/card' or its corresponding type declarations.
+src/debug/test-schema-reload.tsx(5,24): error TS2307: Cannot find module './ui/button' or its corresponding type declarations.
+src/debug/test-schema-reload.tsx(6,41): error TS2307: Cannot find module './ui/alert' or its corresponding type declarations.
+src/debug/test-schema-reload.tsx(10,7): error TS6133: 'SUPABASE_ANON_KEY' is declared but its value is never read.
+src/lib/__tests__/permissions.test.ts(11,8): error TS6133: 'Permissoes' is declared but its value is never read.
+src/lib/__tests__/permissions.test.ts(76,43): error TS2551: Property 'diretoria' does not exist on type 'Record<RoleLevel, Permissoes>'. Did you mean 'diretor'?
+src/lib/__tests__/permissions.test.ts(84,40): error TS2551: Property 'gestor_administrativo' does not exist on type 'Record<RoleLevel, Permissoes>'. Did you mean 'coord_administrativo'?
+src/lib/__tests__/permissions.test.ts(93,40): error TS2339: Property 'gestor_obras' does not exist on type 'Record<RoleLevel, Permissoes>'.
+src/lib/__tests__/permissions.test.ts(103,40): error TS2339: Property 'gestor_assessoria' does not exist on type 'Record<RoleLevel, Permissoes>'.
+src/lib/__tests__/permissions.test.ts(111,39): error TS2339: Property 'colaborador' does not exist on type 'Record<RoleLevel, Permissoes>'.
+src/lib/__tests__/permissions.test.ts(121,37): error TS2339: Property 'mao_de_obra' does not exist on type 'Record<RoleLevel, Permissoes>'.
+src/lib/__tests__/permissions.test.ts(145,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(147,47): error TS2339: Property 'colaborador' does not exist on type 'Record<RoleLevel, Permissoes>'.
+src/lib/__tests__/permissions.test.ts(159,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(177,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(182,33): error TS2345: Argument of type '"gestor_administrativo"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(187,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(192,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(212,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(217,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(237,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(242,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(247,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(267,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(273,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(293,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(298,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(318,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(323,33): error TS2345: Argument of type '"mao_de_obra"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(344,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(349,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(370,33): error TS2345: Argument of type '"diretoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(375,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(380,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(404,33): error TS2345: Argument of type '"gestor_obras"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(411,33): error TS2345: Argument of type '"gestor_assessoria"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(417,33): error TS2345: Argument of type '"gestor_administrativo"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/__tests__/permissions.test.ts(424,33): error TS2345: Argument of type '"colaborador"' is not assignable to parameter of type 'RoleLevel'.
+src/lib/analytics.ts(6,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/analytics.ts(14,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/analytics.ts(27,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/auth-utils.ts(48,11): error TS6133: 'permissoes' is declared but its value is never read.
+src/lib/auth-utils.ts(48,51): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(51,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"mao_de_obra"' have no overlap.
+src/lib/auth-utils.ts(56,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"colaborador"' have no overlap.
+src/lib/auth-utils.ts(61,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"diretoria"' have no overlap.
+src/lib/auth-utils.ts(66,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_administrativo"' have no overlap.
+src/lib/auth-utils.ts(71,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_assessoria"' have no overlap.
+src/lib/auth-utils.ts(76,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_obras"' have no overlap.
+src/lib/auth-utils.ts(87,51): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(102,51): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(116,51): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(124,28): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(140,24): error TS2339: Property 'supervisor_id' does not exist on type 'User'.
+src/lib/auth-utils.ts(161,12): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"diretoria"' have no overlap.
+src/lib/auth-utils.ts(169,12): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_obras"' have no overlap.
+src/lib/auth-utils.ts(169,39): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_assessoria"' have no overlap.
+src/lib/auth-utils.ts(169,71): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_administrativo"' have no overlap.
+src/lib/auth-utils.ts(176,12): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"colaborador"' have no overlap.
+src/lib/auth-utils.ts(183,12): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"mao_de_obra"' have no overlap.
+src/lib/auth-utils.ts(201,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_administrativo"' have no overlap.
+src/lib/auth-utils.ts(234,9): error TS2367: This comparison appears to be unintentional because the types 'RoleLevel | undefined' and '"gestor_administrativo"' have no overlap.
+src/lib/auth-utils.ts(252,44): error TS2339: Property 'status' does not exist on type 'OrdemServico'.
+src/lib/auth-utils.ts(293,51): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/auth-utils.ts(308,5): error TS6133: 'os' is declared but its value is never read.
+src/lib/auth-utils.ts(327,42): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'Setor'.
+  Type 'undefined' is not assignable to type 'Setor'.
+src/lib/auth-utils.ts(330,91): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'Setor'.
+  Type 'undefined' is not assignable to type 'Setor'.
+src/lib/auth-utils.ts(335,18): error TS2339: Property 'status_colaborador' does not exist on type 'User'.
+src/lib/auth-utils.ts(362,32): error TS2345: Argument of type 'RoleLevel | undefined' is not assignable to parameter of type 'RoleLevel'.
+  Type 'undefined' is not assignable to type 'RoleLevel'.
+src/lib/auth-utils.ts(370,50): error TS2538: Type 'undefined' cannot be used as an index type.
+src/lib/color-utils.ts(1,1): error TS6192: All imports in import declaration are unused.
+src/lib/contexts/auth-context.tsx(159,11): error TS6133: 'cargo_nivel' is declared but its value is never read.
+src/lib/feature-flags.ts(41,14): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/feature-flags.ts(46,14): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/feature-flags.ts(189,36): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/feature-flags.ts(190,35): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/feature-flags.ts(191,29): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(11,1): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(13,11): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(14,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(15,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(16,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(17,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(18,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(19,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(20,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(21,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(35,5): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(116,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(117,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(118,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(119,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(120,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(121,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(122,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(123,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(133,21): error TS2339: Property 'waitForNextUpdate' does not exist on type 'RenderHookResult<{ agendamentos: { usuarioNome: string | undefined; usuarioAvatarUrl: string | undefined; osCodigo: string | undefined; clienteNome: string | undefined; statusGeralOS: string | undefined; ... 29 more ...; etapaNome?: string | undefined; }[]; loading: boolean; error: Error | null; refetch: () => Promi...'.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(167,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(168,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(169,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(170,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(171,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(172,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(173,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(174,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(184,21): error TS2339: Property 'waitForNextUpdate' does not exist on type 'RenderHookResult<{ agendamentos: { usuarioNome: string | undefined; usuarioAvatarUrl: string | undefined; osCodigo: string | undefined; clienteNome: string | undefined; statusGeralOS: string | undefined; ... 29 more ...; etapaNome?: string | undefined; }[]; loading: boolean; error: Error | null; refetch: () => Promi...'.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(211,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(212,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(213,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(214,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(215,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(216,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(217,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(218,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(228,21): error TS2339: Property 'waitForNextUpdate' does not exist on type 'RenderHookResult<{ agendamentos: { usuarioNome: string | undefined; usuarioAvatarUrl: string | undefined; osCodigo: string | undefined; clienteNome: string | undefined; statusGeralOS: string | undefined; ... 29 more ...; etapaNome?: string | undefined; }[]; loading: boolean; error: Error | null; refetch: () => Promi...'.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(245,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(246,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(247,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(248,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(249,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(250,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(251,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(252,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(262,21): error TS2339: Property 'waitForNextUpdate' does not exist on type 'RenderHookResult<{ agendamentos: { usuarioNome: string | undefined; usuarioAvatarUrl: string | undefined; osCodigo: string | undefined; clienteNome: string | undefined; statusGeralOS: string | undefined; ... 29 more ...; etapaNome?: string | undefined; }[]; loading: boolean; error: Error | null; refetch: () => Promi...'.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(276,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(277,16): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(278,15): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(279,18): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(280,20): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(281,21): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(282,24): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(283,27): error TS2708: Cannot use namespace 'jest' as a value.
+src/lib/hooks/__tests__/use-agendamentos-redesign.test.ts(293,21): error TS2339: Property 'waitForNextUpdate' does not exist on type 'RenderHookResult<{ agendamentos: { usuarioNome: string | undefined; usuarioAvatarUrl: string | undefined; osCodigo: string | undefined; clienteNome: string | undefined; statusGeralOS: string | undefined; ... 29 more ...; etapaNome?: string | undefined; }[]; loading: boolean; error: Error | null; refetch: () => Promi...'.
+src/lib/hooks/use-aniversarios.ts(22,11): error TS6133: 'mesStr' is declared but its value is never read.
+src/lib/hooks/use-audit-logs.ts(140,47): error TS2339: Property 'nome_completo' does not exist on type '{ nome_completo: any; avatar_url: any; }[]'.
+src/lib/hooks/use-audit-logs.ts(141,49): error TS2339: Property 'avatar_url' does not exist on type '{ nome_completo: any; avatar_url: any; }[]'.
+src/lib/hooks/use-audit-logs.ts(194,47): error TS2339: Property 'nome_completo' does not exist on type '{ nome_completo: any; avatar_url: any; }[]'.
+src/lib/hooks/use-audit-logs.ts(195,49): error TS2339: Property 'avatar_url' does not exist on type '{ nome_completo: any; avatar_url: any; }[]'.
+src/lib/hooks/use-audit-logs.ts(200,51): error TS2339: Property 'codigo_os' does not exist on type '{ codigo_os: any; }[]'.
+src/lib/hooks/use-auto-save.ts(96,35): error TS2503: Cannot find namespace 'NodeJS'.
+src/lib/hooks/use-colaborador-export.tsx(104,25): error TS2339: Property 'minutos_atraso' does not exist on type 'RegistroPresenca'.
+src/lib/hooks/use-coordinators-workload.ts(163,37): error TS2339: Property 'slug' does not exist on type '{ slug: any; nome: any; }[]'.
+src/lib/hooks/use-coordinators-workload.ts(164,38): error TS2339: Property 'nome' does not exist on type '{ nome: any; }[]'.
+src/lib/hooks/use-fluxo-caixa.ts(352,29): error TS2352: Conversion of type '{ nome_razao_social: any; }[]' to type '{ nome_razao_social: string; }' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'nome_razao_social' is missing in type '{ nome_razao_social: any; }[]' but required in type '{ nome_razao_social: string; }'.
+src/lib/hooks/use-granular-permissions.ts(96,7): error TS2353: Object literal may only specify known properties, and 'revalidateOnFocus' does not exist in type 'UseApiOptions<GranularPermissions | null>'.
+src/lib/hooks/use-mes-calendario.ts(174,35): error TS2345: Argument of type '{ id: any; horaInicio: any; horaFim: any; vagasTotal: any; vagasOcupadas: number; setores: any; cor: any; ativo: any; }[]' is not assignable to parameter of type 'TurnoProcessado[]'.
+  Property 'vagasPorSetor' is missing in type '{ id: any; horaInicio: any; horaFim: any; vagasTotal: any; vagasOcupadas: number; setores: any; cor: any; ativo: any; }' but required in type 'TurnoProcessado'.
+src/lib/hooks/use-notifications.ts(6,1): error TS6133: 'logger' is declared but its value is never read.
+src/lib/hooks/use-os-responsabilidade.ts(23,26): error TS2307: Cannot find module '@/lib/supabase' or its corresponding type declarations.
+src/lib/hooks/use-os-responsabilidade.ts(24,25): error TS2307: Cannot find module '@/lib/auth' or its corresponding type declarations.
+src/lib/hooks/use-os-responsabilidade.ts(29,3): error TS6133: 'getOwnershipRule' is declared but its value is never read.
+src/lib/hooks/use-os-responsabilidade.ts(135,71): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/lib/hooks/use-os-responsabilidade.ts(178,68): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/lib/hooks/use-os-responsabilidade.ts(396,14): error TS18048: 'participante.etapas_permitidas' is possibly 'undefined'.
+src/lib/hooks/use-setor-workload.ts(11,31): error TS6133: 'useMemo' is declared but its value is never read.
+src/lib/hooks/use-turno-horarios.ts(68,27): error TS18048: 'horaInicio' is possibly 'undefined'.
+src/lib/hooks/use-turno-horarios.ts(69,24): error TS18048: 'horaFim' is possibly 'undefined'.
+src/lib/hooks/use-turnos-realtime.ts(15,10): error TS6133: 'Turno' is declared but its value is never read.
+src/lib/hooks/use-turnos-realtime.ts(124,3): error TS2741: Property 'vagasPorSetor' is missing in type '{ id: any; horaInicio: any; horaFim: any; vagasTotal: any; vagasOcupadas: number; setores: any; cor: any; tipoRecorrencia: any; dataInicio: any; dataFim: any; diasSemana: any; ativo: any; criadoPor: any; criadoEm: any; atualizadoEm: any; agendamentos: any; }' but required in type 'TurnoComVagas'.
+src/lib/hooks/use-turnos-realtime.ts(166,35): error TS6133: 'dateRange' is declared but its value is never read.
+src/lib/hooks/use-turnos-realtime.ts(176,33): error TS2503: Cannot find namespace 'NodeJS'.
+src/lib/hooks/use-turnos-realtime.ts(249,10): error TS2339: Property 'on' does not exist on type 'PostgrestQueryBuilder<any, any, any, "turnos", unknown>'.
+src/lib/hooks/use-turnos-realtime.ts(379,41): error TS6133: 'date' is declared but its value is never read.
+src/lib/hooks/use-turnos.ts(196,43): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/lib/hooks/use-turnos.ts(196,48): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/lib/hooks/use-turnos.ts(197,46): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/lib/hooks/use-turnos.ts(197,51): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/lib/hooks/use-unified-workflow.ts(140,5): error TS6133: 'rootLead' is declared but its value is never read.
+src/lib/hooks/use-unified-workflow.ts(141,5): error TS6133: 'isContract' is declared but its value is never read.
+src/lib/hooks/use-workflow-state.ts(3,1): error TS6133: 'toast' is declared but its value is never read.
+src/lib/hooks/use-workflow-state.ts(13,42): error TS6133: 'totalSteps' is declared but its value is never read.
+src/lib/hooks/use-workflow-state.ts(28,5): error TS6133: 'getEtapaData' is declared but its value is never read.
+src/lib/mock-data.ts(209,5): error TS2820: Type '"diretoria"' is not assignable to type 'RoleLevel | undefined'. Did you mean '"diretor"'?
+src/lib/mock-data.ts(236,5): error TS2820: Type '"gestor_administrativo"' is not assignable to type 'RoleLevel | undefined'. Did you mean '"coord_administrativo"'?
+src/lib/mock-data.ts(259,5): error TS2322: Type '"gestor_assessoria"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(282,5): error TS2322: Type '"gestor_obras"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(309,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(332,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(359,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(382,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(409,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(432,5): error TS2322: Type '"colaborador"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(459,5): error TS2322: Type '"mao_de_obra"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(482,5): error TS2322: Type '"mao_de_obra"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(505,5): error TS2322: Type '"mao_de_obra"' is not assignable to type 'RoleLevel | undefined'.
+src/lib/mock-data.ts(530,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(552,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(574,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(596,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(618,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(640,5): error TS2322: Type 'string' is not assignable to type 'Cliente'.
+src/lib/mock-data.ts(669,84): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(670,76): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(671,86): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(672,77): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(682,84): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(683,76): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(684,86): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(685,77): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(686,70): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(687,78): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(688,83): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(689,67): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(690,79): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(691,86): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(692,87): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(693,86): error TS2322: Type '"aguardando_aprovacao"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(696,84): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(697,76): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(698,86): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(699,77): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(700,70): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(701,78): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(702,83): error TS2322: Type '"aprovada"' is not assignable to type 'EtapaStatus'.
+src/lib/mock-data.ts(709,5): error TS2561: Object literal may only specify known properties, but 'osId' does not exist in type 'Comentario'. Did you mean to write 'os_id'?
+src/lib/mock-data.ts(718,5): error TS2561: Object literal may only specify known properties, but 'osId' does not exist in type 'Comentario'. Did you mean to write 'os_id'?
+src/lib/mock-data.ts(727,5): error TS2561: Object literal may only specify known properties, but 'osId' does not exist in type 'Comentario'. Did you mean to write 'os_id'?
+src/lib/mock-data.ts(739,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'Documento'.
+src/lib/mock-data.ts(748,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'Documento'.
+src/lib/mock-data.ts(757,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'Documento'.
+src/lib/mock-data.ts(769,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(777,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(785,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(793,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(801,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(809,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(817,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/mock-data.ts(825,5): error TS2353: Object literal may only specify known properties, and 'osId' does not exist in type 'HistoricoItem'.
+src/lib/pdf/components/shared-footer.tsx(10,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/components/shared-header.tsx(11,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/components/shared-header.tsx(113,5): error TS6133: 'logoWidth' is declared but its value is never read.
+src/lib/pdf/components/shared-header.tsx(114,5): error TS6133: 'logoHeight' is declared but its value is never read.
+src/lib/pdf/templates/contrato-template.tsx(5,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/documento-sst-template.tsx(5,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/memorial-template.tsx(5,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/parecer-reforma-template.tsx(5,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/parecer-reforma-template.tsx(10,38): error TS6133: 'TableHeaderRow' is declared but its value is never read.
+src/lib/pdf/templates/parecer-reforma-template.tsx(10,54): error TS6133: 'TableHeaderCell' is declared but its value is never read.
+src/lib/pdf/templates/proposta-template.tsx(6,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/proposta-template.tsx(667,11): error TS6133: 'valImposto' is declared but its value is never read.
+src/lib/pdf/templates/visita-tecnica-template.tsx(13,1): error TS6133: 'React' is declared but its value is never read.
+src/lib/pdf/templates/visita-tecnica-template.tsx(677,15): error TS2367: This comparison appears to be unintentional because the types '"recebimento_unidade" | "escopo_tecnico" | "parecer_tecnico"' and '"recebimento_imovel"' have no overlap.
+src/lib/pdf/templates/visita-tecnica-template.tsx(729,29): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PropsWithChildren<ViewProps>): View', gave the following error.
+    Type '({ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined)[]' is not assignable to type 'Style | Style[] | undefined'.
+      Type '({ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined)[]' is not assignable to type 'Style[]'.
+        Type '{ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined' is not assignable to type 'Style'.
+          Type 'undefined' is not assignable to type 'Style'.
+            Type 'undefined' is not assignable to type 'BorderShorthandStyle'.
+  Overload 2 of 2, '(props: PropsWithChildren<ViewProps>, context: any): View', gave the following error.
+    Type '({ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined)[]' is not assignable to type 'Style | Style[] | undefined'.
+      Type '({ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined)[]' is not assignable to type 'Style[]'.
+        Type '{ flexDirection: "row"; borderBottomWidth: number; borderBottomColor: string; paddingVertical: number; minHeight: number; alignItems: "center"; } | { backgroundColor: string; } | undefined' is not assignable to type 'Style'.
+          Type 'undefined' is not assignable to type 'Style'.
+            Type 'undefined' is not assignable to type 'BorderShorthandStyle'.
+src/lib/pdf/templates/visita-tecnica-template.tsx(738,35): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: PropsWithChildren<TextProps> | SVGTextProps): Text', gave the following error.
+    Type '({ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined)[]' is not assignable to type 'Style | Style[] | SVGPresentationAttributes | undefined'.
+      Type '({ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined)[]' is not assignable to type 'Style[]'.
+        Type '{ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined' is not assignable to type 'Style'.
+          Type 'undefined' is not assignable to type 'Style'.
+            Type 'undefined' is not assignable to type 'BorderShorthandStyle'.
+  Overload 2 of 2, '(props: PropsWithChildren<TextProps> | SVGTextProps, context: any): Text', gave the following error.
+    Type '({ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined)[]' is not assignable to type 'Style | Style[] | SVGPresentationAttributes | undefined'.
+      Type '({ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined)[]' is not assignable to type 'Style[]'.
+        Type '{ fontSize: number; color: string; } | { width: string; textAlign: "center"; } | { color: string; fontFamily: string; } | undefined' is not assignable to type 'Style'.
+          Type 'undefined' is not assignable to type 'Style'.
+            Type 'undefined' is not assignable to type 'BorderShorthandStyle'.
+src/lib/pdf/templates/visita-tecnica-template.tsx(883,12): error TS2367: This comparison appears to be unintentional because the types '"escopo_tecnico" | "parecer_tecnico" | "laudo_spci" | "laudo_spda"' and '"recebimento_imovel"' have no overlap.
+src/lib/sentry.ts(6,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(8,12): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(11,16): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(14,20): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(19,13): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(47,30): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(65,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/sentry.ts(81,7): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+src/lib/utils/__tests__/conflict-resolver.test.ts(164,21): error TS2339: Property 'vagasTotal' does not exist on type '{ id: string; updatedAt?: string | undefined; }'.
+src/lib/utils/__tests__/conflict-resolver.test.ts(236,21): error TS2339: Property 'vagasTotal' does not exist on type '{ id: string; updatedAt?: string | undefined; }'.
+src/lib/utils/__tests__/conflict-resolver.test.ts(297,7): error TS6133: 'resolved2' is declared but its value is never read.
+src/lib/utils/offline-cache.ts(101,13): error TS6133: 'finalTTL' is declared but its value is never read.
+src/lib/utils/supabase-storage.ts(90,27): error TS6133: 'etapa' is declared but its value is never read.
+src/lib/utils/temporal-helpers.ts(1,26): error TS2307: Cannot find module '@js-temporal/polyfill' or its corresponding type declarations.
+src/lib/validations/os07-schema.ts(3,5): error TS6133: 'SISTEMAS_REFORMA' is declared but its value is never read.
+src/routes/_auth/configuracoes/index.tsx(13,7): error TS2322: Type '{ onBack: () => void; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'onBack' does not exist on type 'IntrinsicAttributes'.
+src/routes/_auth/configuracoes/teste-pdf.tsx(277,3): error TS2353: Object literal may only specify known properties, and ''visita-tecnica-parecer'' does not exist in type 'Record<PDFType, Record<string, unknown>>'.
+src/routes/_auth/configuracoes/teste-pdf.tsx(442,22): error TS7053: Element implicitly has an 'any' type because expression of type 'string' can't be used to index type 'Record<PDFType, Record<string, unknown>>'.
+  No index signature with a parameter of type 'string' was found on type 'Record<PDFType, Record<string, unknown>>'.
+src/routes/_auth/financeiro/index.tsx(14,9): error TS2322: Type '{ onNavigate: (page: any) => Promise<void>; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'onNavigate' does not exist on type 'IntrinsicAttributes'.
+src/routes/_auth/financeiro/index.tsx(14,22): error TS7006: Parameter 'page' implicitly has an 'any' type.
+src/routes/_auth/health-check.tsx(53,58): error TS2367: This comparison appears to be unintentional because the types '"diretor" | "coord_administrativo" | "coord_assessoria" | "coord_obras" | "operacional_admin" | "operacional_comercial" | "operacional_assessoria" | "operacional_obras" | "colaborador_obra" | "cliente" | undefined' and '"diretoria"' have no overlap.
+src/routes/_auth/os/$osId/workflow.tsx(61,9): error TS6133: 'routeConfig' is declared but its value is never read.
+src/tests/test-supabase-connection.tsx(11,1): error TS6133: 'React' is declared but its value is never read.
+src/tests/test-supabase-connection.tsx(12,75): error TS2307: Cannot find module './ui/card' or its corresponding type declarations.
+src/tests/test-supabase-connection.tsx(13,41): error TS2307: Cannot find module './ui/alert' or its corresponding type declarations.
+tests/e2e/os-workflow.e2e.test.ts(1,24): error TS6133: 'Page' is declared but its value is never read.
+tests/e2e/os-workflow.e2e.test.ts(133,11): error TS6133: 'errorCount' is declared but its value is never read.
+tests/integration/calendario.test.ts(19,21): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+tests/integration/calendario.test.ts(20,25): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.
+tests/setup.ts(7,1): error TS6133: 'expect' is declared but its value is never read.
+tests/setup.ts(10,1): error TS2591: Cannot find name 'process'. Do you need to install type definitions for node? Try `npm i --save-dev @types/node` and then add 'node' to the types field in your tsconfig.

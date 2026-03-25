@@ -96,7 +96,7 @@ function createSectionDefaults(sections: ChecklistSectionDef[]) {
   for (const section of sections) {
     const sectionItems: Record<string, any> = { _customItems: [] };
     for (const item of section.items) {
-      sectionItems[item.id] = { status: '', observacao: '' };
+      sectionItems[item.id] = { status: '', observacao: '', fotos: [] };
     }
     result[section.id] = sectionItems;
   }

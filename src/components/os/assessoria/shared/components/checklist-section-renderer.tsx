@@ -9,8 +9,10 @@
  */
 
 import { memo, useState, useMemo } from 'react';
+import { useParams } from '@tanstack/react-router';
 import { useFormContext, Controller, useWatch, useFieldArray } from 'react-hook-form';
 import { AddCustomItemButton } from './add-custom-item-button';
+import { PhotoUploadDialog } from './checklist-recebimento-table';
 import { type ReplicationScope } from '../hooks/use-dynamic-line-replication';
 import {
   Table,
@@ -81,6 +83,7 @@ export const ChecklistSectionRenderer = memo(function ChecklistSectionRenderer({
 }: ChecklistSectionRendererProps) {
   const [expanded, setExpanded] = useState(!defaultCollapsed);
   const { control } = useFormContext();
+  const { osId } = useParams({ strict: false }) as { osId?: string };
 
   const customItemsArray = useFieldArray({
     control,
@@ -192,9 +195,10 @@ export const ChecklistSectionRenderer = memo(function ChecklistSectionRenderer({
           <Table>
             <TableHeader>
               <TableRow className="bg-muted/30">
-                <TableHead className="w-[45%]">Item</TableHead>
-                <TableHead className="w-[140px]">Status</TableHead>
-                <TableHead className="w-[40%]">Observação</TableHead>
+                <TableHead className="w-[40%]">Item</TableHead>
+                <TableHead className="w-[120px]">Status</TableHead>
+                <TableHead className="w-[35%]">Observação</TableHead>
+                <TableHead className="w-[80px] text-center">Fotos</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -206,6 +210,7 @@ export const ChecklistSectionRenderer = memo(function ChecklistSectionRenderer({
                   descricao={item.descricao}
                   fieldPrefix={fieldPrefix}
                   readOnly={readOnly}
+                  osId={osId}
                 />
               ))}
               {customItemsArray.fields.map((field, index) => (
@@ -215,6 +220,7 @@ export const ChecklistSectionRenderer = memo(function ChecklistSectionRenderer({
                   fieldPrefix={fieldPrefix}
                   readOnly={readOnly}
                   onRemove={() => customItemsArray.remove(index)}
+                  osId={osId}
                 />
               ))}
             </TableBody>
@@ -240,6 +246,7 @@ interface ChecklistItemRowProps {
   descricao?: string;
   fieldPrefix: string;
   readOnly: boolean;
+  osId?: string;
 }
 
 const ChecklistItemRow = memo(function ChecklistItemRow({
@@ -248,11 +255,13 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
   descricao,
   fieldPrefix,
   readOnly,
+  osId,
 }: ChecklistItemRowProps) {
   const { control } = useFormContext();
 
   const statusPath = `${fieldPrefix}.${itemId}.status` as const;
   const observacaoPath = `${fieldPrefix}.${itemId}.observacao` as const;
+  const fotosPath = `${fieldPrefix}.${itemId}.fotos` as const;
 
   // useWatch scoped to individual fields — only THIS row re-renders
   const currentStatus = useWatch({ control, name: statusPath });
@@ -332,6 +341,24 @@ const ChecklistItemRow = memo(function ChecklistItemRow({
           )}
         />
       </TableCell>
+
+      {/* Fotos Upload */}
+      <TableCell className="py-2 text-center">
+        <Controller
+          name={fotosPath}
+          control={control}
+          render={({ field }) => (
+            <PhotoUploadDialog
+                itemId={itemId}
+                itemLabel={label}
+                fotos={field.value || []}
+                onFotosChange={field.onChange}
+                disabled={readOnly}
+                osId={osId}
+            />
+          )}
+        />
+      </TableCell>
     </TableRow>
   );
 });
@@ -345,6 +372,7 @@ interface CustomItemRowProps {
   fieldPrefix: string;
   readOnly: boolean;
   onRemove: () => void;
+  osId?: string;
 }
 
 const CustomItemRow = memo(function CustomItemRow({
@@ -352,12 +380,14 @@ const CustomItemRow = memo(function CustomItemRow({
   fieldPrefix,
   readOnly,
   onRemove,
+  osId,
 }: CustomItemRowProps) {
   const { control, getValues } = useFormContext();
 
   const basePath = `${fieldPrefix}._customItems.${index}`;
   const statusPath = `${basePath}.status` as const;
   const observacaoPath = `${basePath}.observacao` as const;
+  const fotosPath = `${basePath}.fotos` as const;
   
   const label = getValues(`${basePath}.label`);
 
@@ -440,6 +470,24 @@ const CustomItemRow = memo(function CustomItemRow({
                 'h-8 text-xs',
                 needsObservacao && 'border-destructive placeholder:text-destructive/70',
               )}
+            />
+          )}
+        />
+      </TableCell>
+      
+      {/* Fotos Upload */}
+      <TableCell className="py-2 text-center">
+        <Controller
+          name={fotosPath}
+          control={control}
+          render={({ field }) => (
+            <PhotoUploadDialog
+                itemId={basePath}
+                itemLabel={label}
+                fotos={field.value || []}
+                onFotosChange={field.onChange}
+                disabled={readOnly}
+                osId={osId}
             />
           )}
         />

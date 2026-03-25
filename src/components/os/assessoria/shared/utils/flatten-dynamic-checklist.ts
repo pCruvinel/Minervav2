@@ -51,9 +51,11 @@ function extractItemsFromSections(
       items.push({
         id: itemDef.id,
         bloco: blocoLabel,
+        secao: sectionDef.titulo,
         label: itemDef.label,
         status: itemData.status as StatusItem,
         observacao: itemData.observacao || undefined,
+        fotos: itemData.fotos || [],
       });
     }
 
@@ -65,9 +67,11 @@ function extractItemsFromSections(
         items.push({
           id: customItem.id,
           bloco: blocoLabel,
+          secao: sectionDef.titulo,
           label: `${customItem.label} [Extra]`,
           status: customItem.status as StatusItem,
           observacao: customItem.observacao || undefined,
+          fotos: customItem.fotos || [],
         });
       }
     }
@@ -151,9 +155,11 @@ export function flattenRecebimentoImovelChecklist(
       allItems.push({
         id: itemDef.id,
         bloco: sectionDef.titulo, // Section title maps to the "bloco" visually in PDF
+        secao: sectionDef.titulo,
         label: itemDef.label,
         status: itemData.status as StatusItem,
         observacao: itemData.observacao || undefined,
+        fotos: itemData.fotos || [],
       });
     }
   }

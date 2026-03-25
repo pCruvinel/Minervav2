@@ -21,6 +21,7 @@ import {
 export const checklistItemValuesSchema = z.object({
   status: z.union([z.literal('C'), z.literal('NC'), z.literal('NA'), z.literal('')]),
   observacao: z.string(),
+  fotos: z.array(z.any()).optional(),
 });
 
 export type ChecklistItemValues = z.infer<typeof checklistItemValuesSchema>;
@@ -32,6 +33,7 @@ export const customItemSchema = z.object({
   createdAt: z.string(),
   status: z.union([z.literal('C'), z.literal('NC'), z.literal('NA'), z.literal('')]),
   observacao: z.string(),
+  fotos: z.array(z.any()).optional(),
 });
 
 export type CustomItemData = z.infer<typeof customItemSchema>;
@@ -101,7 +103,7 @@ function createSectionDefaults(sections: ChecklistSectionDef[]) {
       _customItems: [],
     };
     for (const item of section.items) {
-      sectionItems[item.id] = { status: '', observacao: '' };
+      sectionItems[item.id] = { status: '', observacao: '', fotos: [] };
     }
     result[section.id] = sectionItems;
   }

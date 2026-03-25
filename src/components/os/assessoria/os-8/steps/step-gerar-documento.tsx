@@ -257,15 +257,18 @@ export function StepGerarDocumento({
       });
     }
 
-    // 3. Fotos do checklist de recebimento (itens NC têm prioridade visual)
-    if (isChecklist && etapa5Data?.checklistRecebimento?.items) {
-      Object.values(etapa5Data.checklistRecebimento.items).forEach(item => {
+    // Obter dados do checklist formatados (unifica Recebimento, SPCI e SPDA)
+    const checklistFormatted = transformChecklistData();
+
+    // 3. Fotos do checklist (todos os itens formatados que contiverem fotos)
+    if (checklistFormatted?.items) {
+      checklistFormatted.items.forEach(item => {
         if (item.fotos && Array.isArray(item.fotos)) {
           item.fotos.forEach((foto, idx) => {
             if (foto.url) {
               todasFotos.push({
                 url: foto.url,
-                legenda: foto.comentario || `Item ${item.id} - Foto ${idx + 1}`,
+                legenda: foto.comentario || `Item ${item.label} - Foto ${idx + 1}`,
                 isNaoConforme: item.status === 'NC',
               });
             }
@@ -329,7 +332,7 @@ export function StepGerarDocumento({
 
     // Adicionar dados específicos baseado na finalidade
     if (isChecklist) {
-      payload.checklistRecebimento = transformChecklistData();
+      payload.checklistRecebimento = checklistFormatted;
     } else {
       payload.parecerTecnico = {
         manifestacaoPatologica: etapa5Data?.manifestacaoPatologica || '',

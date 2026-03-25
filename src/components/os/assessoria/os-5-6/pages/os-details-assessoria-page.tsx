@@ -413,8 +413,9 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
 
 
   // Sincronizar selectedLeadId com etapa1Data
+  // Guard: só re-sincroniza se leadId é truthy E selectedLeadId não foi intencionalmente limpo
   useEffect(() => {
-    if (etapa1Data.leadId && etapa1Data.leadId !== selectedLeadId) {
+    if (etapa1Data.leadId && etapa1Data.leadId !== selectedLeadId && selectedLeadId !== '') {
       setSelectedLeadId(etapa1Data.leadId);
     }
   }, [etapa1Data.leadId]);
@@ -665,6 +666,9 @@ export function OSDetailsAssessoriaPage({ onBack, tipoOS = 'OS-05', osId: osIdPr
                         email: data.identificacao.email,
                         telefone: data.identificacao.telefone,
                       });
+                    } else {
+                      // Clear case: limpar explicitamente os dados da etapa 1
+                      setEtapa1Data({ leadId: '' });
                     }
                   }}
                   readOnly={isHistoricalNavigation}

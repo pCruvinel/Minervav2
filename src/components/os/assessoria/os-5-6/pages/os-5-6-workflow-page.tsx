@@ -190,8 +190,9 @@ export function OS56WorkflowPage({
     const etapa11Data = formDataByStep[11] || {};
 
     // Sincronizar selectedLeadId com etapa1Data
+    // Guard: só re-sincroniza se leadId é truthy E selectedLeadId não foi intencionalmente limpo
     useEffect(() => {
-        if (etapa1Data.leadId && etapa1Data.leadId !== selectedLeadId) {
+        if (etapa1Data.leadId && etapa1Data.leadId !== selectedLeadId && selectedLeadId !== '') {
             setSelectedLeadId(etapa1Data.leadId);
         }
     }, [etapa1Data.leadId, selectedLeadId]);
@@ -433,6 +434,9 @@ export function OS56WorkflowPage({
                                         edificacao: data.edificacao,
                                         endereco: data.endereco,
                                     });
+                                } else {
+                                    // Clear case: limpar explicitamente os dados da etapa 1
+                                    setStepData(1, { leadId: '' });
                                 }
                             }}
                             readOnly={isGlobalReadOnly}
