@@ -2,15 +2,15 @@
  * ============================================================================
  * ⚠️ ARQUIVO DEPRECADO - NÃO USE PARA NOVO CÓDIGO
  * ============================================================================
- * 
+ *
  * Este arquivo contém lógica de permissões LEGADA baseada em `role_nivel`.
- * 
+ *
  * Para novo código, use:
  * - Hook: `usePermissoes()` de '@/lib/hooks/use-permissoes'
  * - Função: `getPermissoes(user)` de '@/lib/types'
- * 
+ *
  * Sistema novo usa `cargo_slug` e `escopo_visao` ao invés de `role_nivel`.
- * 
+ *
  * @deprecated Migrar para sistema RBAC v3.0
  * @see docs/technical/USUARIOS_SCHEMA.md
  * ============================================================================
@@ -209,7 +209,7 @@ export class PermissaoUtil {
 
     // Colaborador tem acesso apenas às OS delegadas para ele
     if (this.ehColaborador(usuario)) {
-      return os.delegada_para_id === usuario.id || 
+      return os.delegada_para_id === usuario.id ||
              os.responsavel?.id === usuario.id;
     }
 
@@ -390,7 +390,7 @@ export function validarEmail(email: string): boolean {
 export function validarCPF(cpf: string): boolean {
   // Remove caracteres não numéricos
   const cpfLimpo = cpf.replace(/[^\d]/g, '');
-  
+
   // Verifica se tem 11 dígitos
   if (cpfLimpo.length !== 11) {
     return false;
@@ -417,13 +417,13 @@ export function formatarCPF(cpf: string): string {
  */
 export function formatarTelefone(telefone: string): string {
   const telefoneLimpo = telefone.replace(/[^\d]/g, '');
-  
+
   if (telefoneLimpo.length === 11) {
     return telefoneLimpo.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   } else if (telefoneLimpo.length === 10) {
     return telefoneLimpo.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
   }
-  
+
   return telefone;
 }
 
@@ -433,10 +433,19 @@ export function formatarTelefone(telefone: string): string {
 export function gerarSenhaAleatoria(tamanho: number = 12): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
   let senha = '';
-  
-  for (let i = 0; i < tamanho; i++) {
-    senha += chars.charAt(Math.floor(Math.random() * chars.length));
+
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const values = new Uint32Array(tamanho);
+    crypto.getRandomValues(values);
+    for (let i = 0; i < tamanho; i++) {
+      senha += chars[values[i] % chars.length];
+    }
+  } else {
+    // Fallback for environments without crypto
+    for (let i = 0; i < tamanho; i++) {
+      senha += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
   }
-  
+
   return senha;
 }
